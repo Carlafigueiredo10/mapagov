@@ -1,0 +1,1029 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MapaGov | Governança, Riscos e Conformidade para o Setor Público</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* === VARIÁVEIS E RESET === */
+    :root {
+      --primary-blue: #1B4F72;
+      --secondary-blue: #3498DB;
+      --process-green: #27AE60;
+      --alert-yellow: #F1C40F;
+      --neutral-gray: #ECF0F1;
+      --dark-text: #2C3E50;
+      --light-text: #7F8C8D;
+      --white: #FFFFFF;
+      --red-law: #E74C3C;
+      --orange-law: #E67E22;
+      --blue-law: #3498DB;
+      --purple-law: #9B59B6;
+      --gray-law: #95A5A6;
+      
+      --font-display: 'Playfair Display', serif;
+      --font-body: 'Inter', sans-serif;
+      --header-height: 80px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-family: var(--font-body);
+      scroll-behavior: smooth;
+    }
+
+    body {
+      line-height: 1.6;
+      color: var(--dark-text);
+      background-color: var(--white);
+      overflow-x: hidden;
+    }
+
+    /* === COMPONENTES GLOBAIS === */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    .section {
+      padding: 6rem 0;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: var(--primary-blue);
+      position: relative;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      width: 80px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--secondary-blue), var(--process-green));
+      transform: translateX(-50%);
+      border-radius: 2px;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      font-size: 1.1rem;
+      color: var(--light-text);
+      max-width: 700px;
+      margin: 0 auto 4rem;
+      line-height: 1.7;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 1rem 2.5rem;
+      background: var(--primary-blue);
+      color: var(--white);
+      text-decoration: none;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 2px solid var(--primary-blue);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.6s;
+    }
+
+    .btn:hover {
+      background: var(--white);
+      color: var(--primary-blue);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(27, 79, 114, 0.3);
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary-blue);
+      border: 2px solid var(--primary-blue);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary-blue);
+      color: var(--white);
+    }
+
+    /* === HEADER === */
+    .header {
+      position: fixed;
+      width: 100%;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border-bottom: 1px solid rgba(27, 79, 114, 0.1);
+    }
+
+    .header.scrolled {
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 4px 30px rgba(0,0,0,0.1);
+    }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: var(--header-height);
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary-blue);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-logo::before {
+      content: '⚖️';
+      font-size: 1.5rem;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 2.5rem;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--dark-text);
+      font-weight: 500;
+      position: relative;
+      transition: color 0.3s ease;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -8px;
+      left: 50%;
+      background: var(--secondary-blue);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+
+    .nav-links a:hover {
+      color: var(--secondary-blue);
+    }
+
+    .nav-links a:hover::after {
+      width: 100%;
+    }
+
+    /* === HERO === */
+    .hero {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f8fbff 0%, #e8f4fd 100%);
+      display: flex;
+      align-items: center;
+      padding-top: var(--header-height);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 100%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(27, 79, 114, 0.05) 0%, transparent 70%);
+      animation: float 20s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(-20px, -20px) rotate(1deg); }
+    }
+
+    .hero-content {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-text h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 6vw, 4.2rem);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--primary-blue);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-text .highlight {
+      color: var(--process-green);
+      position: relative;
+    }
+
+    .hero-text p {
+      font-size: 1.2rem;
+      margin-bottom: 2.5rem;
+      color: var(--light-text);
+      line-height: 1.7;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 2rem;
+      margin-top: 3rem;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--secondary-blue);
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--light-text);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .hero-visual {
+      position: relative;
+    }
+
+    .helena-preview {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 20px 60px rgba(27, 79, 114, 0.1);
+      position: relative;
+    }
+
+    .helena-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin: 0 auto 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+      overflow: hidden;
+      background: linear-gradient(135deg, var(--secondary-blue), var(--process-green));
+    }
+
+    .helena-avatar::before {
+      content: '';
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      background: linear-gradient(135deg, var(--secondary-blue), var(--process-green), var(--secondary-blue));
+      border-radius: 50%;
+      z-index: -1;
+      animation: avatarPulse 3s ease-in-out infinite;
+    }
+
+    .helena-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    @keyframes avatarPulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.8;
+      }
+      50% {
+        transform: scale(1.05);
+        opacity: 1;
+      }
+    }
+
+    .helena-chat {
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .helena-message {
+      background: var(--secondary-blue);
+      color: white;
+      padding: 12px 18px;
+      border-radius: 20px 20px 20px 5px;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    .user-message {
+      background: #e3f2fd;
+      color: var(--dark-text);
+      padding: 12px 18px;
+      border-radius: 20px 20px 5px 20px;
+      font-size: 0.9rem;
+      text-align: right;
+    }
+
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 12px 18px;
+      background: #f0f0f0;
+      border-radius: 20px;
+      width: fit-content;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--light-text);
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
+    /* === FUNCIONALIDADES === */
+    .features {
+      background: linear-gradient(135deg, var(--primary-blue) 0%, #2C5F86 100%);
+      color: var(--white);
+    }
+
+    .features .section-title {
+      color: var(--white);
+    }
+
+    .features .section-subtitle {
+      color: rgba(255,255,255,0.8);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 2.5rem;
+      border-radius: 20px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-10px);
+      background: rgba(255,255,255,0.15);
+    }
+
+    .feature-card.clickable {
+      cursor: pointer;
+    }
+
+    .feature-card.clickable:hover {
+      background: rgba(255,255,255,0.2);
+      transform: translateY(-15px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    }
+
+    .feature-card:hover .feature-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .feature-tooltip {
+      position: absolute;
+      bottom: -60px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--dark-text);
+      color: var(--white);
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 10;
+      width: 200px;
+      text-align: left;
+    }
+
+    .feature-tooltip::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 5px solid var(--dark-text);
+    }
+
+    .development .feature-card {
+      position: relative;
+      overflow: visible;
+    }
+
+    .development .feature-card:hover .feature-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+      display: block;
+    }
+
+    .feature-card h3 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .feature-card p {
+      color: rgba(255,255,255,0.9);
+      line-height: 1.6;
+    }
+
+    /* === BASE LEGAL === */
+    .legal-hierarchy {
+      background: var(--white);
+    }
+
+    .legal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+
+    .legal-card {
+      background: var(--white);
+      padding: 2rem;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-top: 4px solid;
+      position: relative;
+    }
+
+    .legal-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    .legal-card.red { border-color: var(--red-law); }
+    .legal-card.orange { border-color: var(--orange-law); }
+    .legal-card.yellow { border-color: var(--alert-yellow); }
+    .legal-card.blue { border-color: var(--blue-law); }
+    .legal-card.gray { border-color: var(--gray-law); }
+
+    .legal-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: var(--white);
+    }
+
+    .legal-card.red .legal-icon { background: var(--red-law); }
+    .legal-card.orange .legal-icon { background: var(--orange-law); }
+    .legal-card.yellow .legal-icon { background: var(--alert-yellow); }
+    .legal-card.blue .legal-icon { background: var(--blue-law); }
+    .legal-card.gray .legal-icon { background: var(--gray-law); }
+
+    .legal-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      color: var(--dark-text);
+    }
+
+    .legal-card p {
+      color: var(--light-text);
+      font-size: 0.95rem;
+    }
+
+    /* === CTA === */
+    .cta {
+      background: var(--neutral-gray);
+      text-align: center;
+    }
+
+    .cta-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    /* === FOOTER === */
+    .footer {
+      background: var(--dark-text);
+      color: rgba(255,255,255,0.8);
+      padding: 4rem 0 2rem;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 3rem;
+      margin-bottom: 3rem;
+    }
+
+    .footer-brand h4 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--white);
+      margin-bottom: 1rem;
+    }
+
+    .footer-brand p {
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .footer h5 {
+      color: var(--white);
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .footer ul {
+      list-style: none;
+    }
+
+    .footer ul li {
+      margin-bottom: 0.8rem;
+    }
+
+    .footer ul li a {
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .footer ul li a:hover {
+      color: var(--secondary-blue);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 2rem;
+      text-align: center;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* === MOBILE === */
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+
+      .hero-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .hero-stats {
+        justify-content: center;
+      }
+
+      .section {
+        padding: 4rem 0;
+      }
+
+      .container {
+        padding: 0 1rem;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+
+    /* === ANIMAÇÕES === */
+    .hero-text, .hero-visual {
+      animation: fadeInUp 1s ease-out;
+    }
+
+    .feature-card, .legal-card {
+      animation: slideInUp 0.8s ease-out forwards;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .legal-card:nth-child(1) { animation-delay: 0.1s; }
+    .legal-card:nth-child(2) { animation-delay: 0.2s; }
+    .legal-card:nth-child(3) { animation-delay: 0.3s; }
+    .legal-card:nth-child(4) { animation-delay: 0.4s; }
+    .legal-card:nth-child(5) { animation-delay: 0.5s; }
+
+    @keyframes fadeInUp {
+      0% {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <nav class="nav container">
+      <a href="{% url 'landing' %}" class="nav-logo">MapaGov</a>
+      <ul class="nav-links">
+        <li><a href="#sobre">Sobre</a></li>
+        <li><a href="#funcionalidades">Funcionalidades</a></li>
+        <li><a href="#base-legal">Base Legal</a></li>
+        <li><a href="{% url 'portal' %}">Acessar Sistema</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1>Governança, Riscos e <span class="highlight">Conformidade</span> para o Setor Público</h1>
+          <p>Sistema completo de GRC baseado em padrões DECIPEX/MGI, referenciais TCU/CGU e normas internacionais. Transforme como seu órgão gerencia processos, riscos e conformidade.</p>
+          
+          <div>
+            <a href="{% url 'portal' %}" class="btn">Começar Mapeamento</a>
+            <a href="{% url 'chat-page' %}" class="btn btn-outline">Conversar com Helena</a>
+          </div>
+
+          <div class="hero-stats">
+            <div class="stat-item">
+              <span class="stat-number">AI</span>
+              <span class="stat-label">Assistente Helena</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">5</span>
+              <span class="stat-label">Etapas Estruturadas</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">100%</span>
+              <span class="stat-label">Padrões Gov.br</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="helena-preview">
+            <div class="helena-avatar">
+              <img src="{% static 'img/helena_avatar.png' %}" alt="Helena - IA Assistente">
+            </div>
+            <h4 style="text-align: center; margin-bottom: 1rem; color: var(--primary-blue);">Helena - IA Assistente</h4>
+            
+            <div class="helena-chat">
+              <div class="helena-message" id="helena-message">Olá! Sou a Helena. Que processo você gostaria de mapear hoje?</div>
+              <div class="user-message">Quero mapear concessão de aposentadoria</div>
+              <div class="helena-message">Perfeito! Vou preencher o formulário automaticamente...</div>
+              <div class="typing-indicator" style="display: none;" id="typing-indicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+              </div>
+            </div>
+            
+            <p style="text-align: center; color: var(--light-text); font-size: 0.9rem;">
+              Conversa natural que gera POP automaticamente
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FUNCIONALIDADES IMPLEMENTADAS -->
+  <section id="funcionalidades" class="features section">
+    <div class="container">
+      <h2 class="section-title">Funcionalidades Implementadas</h2>
+      <p class="section-subtitle">Sistema completo de mapeamento de processos com inteligência artificial integrada</p>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">🗺️</span>
+          <h3>Mapeamento de Processos</h3>
+          <p>Documente processos com padrão profissional equivalente ao DECIPEX através de conversa natural com Helena.</p>
+        </div>
+        
+        <div class="feature-card clickable" onclick="window.location.href='{% url 'riscos_fluxo' %}'">
+          <span class="feature-icon">⚠️</span>
+          <h3>Análise de Riscos de Processos Mapeados</h3>
+          <p>Identificação e categorização automática de riscos dos processos documentados.</p>
+        </div>
+        
+        <div class="feature-card">
+          <span class="feature-icon">📊</span>
+          <h3>Gerador de Fluxogramas</h3>
+          <p>Criação automática de fluxogramas visuais em formato Mermaid a partir dos processos mapeados.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EM DESENVOLVIMENTO -->
+  <section class="development section" style="background: #f8f9fa;">
+    <div class="container">
+      <h2 class="section-title">Em Desenvolvimento</h2>
+      <p class="section-subtitle">Transforme sua governança com inteligência artificial</p>
+      
+      <div class="features-grid">
+        <div class="feature-card" style="background: var(--white); color: var(--dark-text); border: 1px solid #e9ecef;">
+          <div style="position: relative;">
+            <span class="feature-icon">🛡️</span>
+            <span style="position: absolute; top: -10px; right: -10px; background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Em breve</span>
+          </div>
+          <h3>Controles e Mitigação</h3>
+          <p>Sugestões de controles baseadas em ISO 31000 e COSO ERM.</p>
+          <div class="feature-tooltip">
+            Gera relatórios formais com análise detalhada dos riscos identificados, incluindo classificação e recomendações de tratamento
+          </div>
+        </div>
+        
+        <div class="feature-card" style="background: var(--white); color: var(--dark-text); border: 1px solid #e9ecef;">
+          <div style="position: relative;">
+            <span class="feature-icon">📋</span>
+            <span style="position: absolute; top: -10px; right: -10px; background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Em breve</span>
+          </div>
+          <h3>Gerador de Documento Final</h3>
+          <p>Check list com o fluxo para verificar adequação e melhorias do processo.</p>
+          <div class="feature-tooltip">
+            Produção automática de notas técnicas, despachos e documentos oficiais com base no conhecimento acumulado dos processos
+          </div>
+        </div>
+        
+        <div class="feature-card" style="background: var(--white); color: var(--dark-text); border: 1px solid #e9ecef;">
+          <div style="position: relative;">
+            <span class="feature-icon">⭐</span>
+            <span style="position: absolute; top: -10px; right: -10px; background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Em breve</span>
+          </div>
+          <h3>Boas Práticas</h3>
+          <p>Práticas recomendadas e benchmarks.</p>
+          <div class="feature-tooltip">
+            Biblioteca de práticas recomendadas e benchmarks do setor público, com sugestões contextualizadas para cada processo
+          </div>
+        </div>
+
+        <div class="feature-card" style="background: var(--white); color: var(--dark-text); border: 1px solid #e9ecef;">
+          <div style="position: relative;">
+            <span class="feature-icon">🎯</span>
+            <span style="position: absolute; top: -10px; right: -10px; background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Em breve</span>
+          </div>
+          <h3>Plano de Ação</h3>
+          <p>Geração automática de planos de ação para mitigar os riscos identificados.</p>
+          <div class="feature-tooltip">
+            Cria planos estruturados de ação com responsáveis, prazos e indicadores para mitigação efetiva dos riscos mapeados
+          </div>
+        </div>
+
+        <div class="feature-card" style="background: var(--white); color: var(--dark-text); border: 1px solid #e9ecef;">
+          <div style="position: relative;">
+            <span class="feature-icon">📊</span>
+            <span style="position: absolute; top: -10px; right: -10px; background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Em breve</span>
+          </div>
+          <h3>Relatório de Conformidade</h3>
+          <p>Avalia a aderência entre processos executados e POPs definidos através de análise comparativa.</p>
+          <div class="feature-tooltip">
+            Ferramenta que compara processos executados (via upload de PDF) com POPs estabelecidos, identificando gaps e não conformidades
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta section">
+    <div class="container">
+      <div class="cta-content">
+        <h2 class="section-title">Transforme a Governança do seu Órgão</h2>
+        <p class="section-subtitle">Junte-se aos órgãos públicos que já utilizam o MapaGov para otimizar seus processos e garantir conformidade total.</p>
+        
+        <div class="cta-buttons">
+          <a href="{% url 'portal' %}" class="btn">Acessar Sistema Completo</a>
+          <a href="{% url 'chat-page' %}" class="btn btn-outline">Conversar com Helena</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HIERARQUIA LEGAL -->
+  <section id="base-legal" class="legal-hierarchy section">
+    <div class="container">
+      <h2 class="section-title">Hierarquia Legal Integrada</h2>
+      <p class="section-subtitle">Sistema baseado na categorização por cores que facilita a identificação do nível de obrigatoriedade normativa</p>
+      
+      <div class="legal-grid">
+        <div class="legal-card red">
+          <div class="legal-icon">⚖️</div>
+          <h3>Leis e Decretos</h3>
+          <p>Normas obrigatórias de cumprimento nacional. Base fundamental do ordenamento jurídico.</p>
+        </div>
+        
+        <div class="legal-card orange">
+          <div class="legal-icon">📋</div>
+          <h3>INs e Portarias</h3>
+          <p>Instruções normativas obrigatórias para Administração Pública Federal.</p>
+        </div>
+        
+        <div class="legal-card yellow">
+          <div class="legal-icon">🔍</div>
+          <h3>Referenciais TCU/CGU</h3>
+          <p>Diretrizes para auditoria e controle interno governamental.</p>
+        </div>
+        
+        <div class="legal-card blue">
+          <div class="legal-icon">🌐</div>
+          <h3>Normas Internacionais</h3>
+          <p>Padrões internacionais de boas práticas em governança e gestão.</p>
+        </div>
+        
+        <div class="legal-card gray">
+          <div class="legal-icon">📝</div>
+          <h3>Guias Internos</h3>
+          <p>Procedimentos operacionais específicos do órgão ou entidade.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h4>MapaGov</h4>
+          <p>Sistema completo de Governança, Riscos e Conformidade desenvolvido especificamente para as necessidades do setor público brasileiro.</p>
+          <p>Baseado em padrões DECIPEX/MGI, referenciais TCU/CGU e normas internacionais.</p>
+        </div>
+        
+        <div>
+          <h5>Sistema</h5>
+          <ul>
+            <li><a href="{% url 'portal' %}">Acessar Plataforma</a></li>
+            <li><a href="#funcionalidades">Funcionalidades</a></li>
+            <li><a href="{% url 'chat-page' %}">Helena IA</a></li>
+            <li><a href="#base-legal">Base Legal</a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h5>Recursos</h5>
+          <ul>
+            <li><a href="{% url 'chat-page' %}">Assistente IA</a></li>
+            <li><a href="#base-legal">Base Legal</a></li>
+            <li><a href="{% url 'portal' %}">Templates</a></li>
+            <li><a href="{% url 'portal' %}">Exemplos</a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h5>Contato</h5>
+          <ul>
+            <li><a href="{% url 'portal' %}">Demonstração</a></li>
+            <li><a href="{% url 'chat-page' %}">Começar Agora</a></li>
+            <li><a href="#funcionalidades">Recursos</a></li>
+            <li><a href="{% url 'portal' %}">Suporte</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 MapaGov. Sistema de Governança, Riscos e Conformidade para o Setor Público Brasileiro.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Header scroll effect
+    window.addEventListener('scroll', () => {
+      const header = document.querySelector('.header');
+      if (window.scrollY > 50) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    });
+
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      });
+    });
+
+    // Helena chat animation
+    document.addEventListener('DOMContentLoaded', function() {
+      const typingIndicator = document.getElementById('typing-indicator');
+      const helenaMessage = document.getElementById('helena-message');
+      
+      setTimeout(() => {
+        if (typingIndicator && helenaMessage) {
+          typingIndicator.style.display = 'flex';
+          setTimeout(() => {
+            typingIndicator.style.display = 'none';
+          }, 2000);
+        }
+      }, 5000);
+    });
+  </script>
+</body>
+</html>

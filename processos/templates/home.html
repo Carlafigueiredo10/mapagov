@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>MapaGov - Início</title>
+    <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tema.css' %}">
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0;">
+
+    <div class="container" style="max-width: 600px; margin: 60px auto; text-align: center; background-color: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+
+        <!-- Logo -->
+        <img src="{% static 'img/logo_mapa.png' %}" alt="Logo MapaGov" width="120" height="120">
+
+        <!-- Título -->
+        <h1 style="margin-top: 20px; color: #001F3F;">Mapeie aqui seu processo</h1>
+        <p style="margin-bottom: 30px; color: #555;">Com a ajuda da nossa IA, <strong>Helena</strong></p>
+
+        <!-- Avatar da Helena -->
+        <img src="{% static 'img/helena.png' %}" alt="Avatar de Helena" width="160" height="160" style="border-radius: 50%; margin-bottom: 20px;">
+
+        <!-- Texto de apresentação da Helena -->
+        <div style="text-align: left; font-size: 15px; color: #333; line-height: 1.6; background-color: #f0f4f8; padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+            <p><strong>Olá! Eu sou a Helena</strong>, sua assistente de governança no <strong>MapaGov</strong>.</p>
+            <p>Meu propósito é transformar a maneira como você gerencia seus processos, tornando a governança mais simples, rápida e inteligente.</p>
+            <p><strong>Juntos, nós vamos percorrer uma jornada completa. Veja como posso ajudar:</strong></p>
+            <ul style="padding-left: 20px; margin-bottom: 10px;">
+                <li><strong>Começamos pelo começo:</strong> Você me descreve um processo, e eu o transformo em um Procedimento Operacional Padrão (POP) claro e um Fluxograma visual.</li>
+                <li><strong>Depois, olhamos para o futuro:</strong> Analisamos os Riscos do seu processo, criando um Relatório e um Plano de Gestão robusto.</li>
+                <li><strong>E por fim, aceleramos seu trabalho:</strong> Gero automaticamente os Documentos Finais que você precisa e analiso a execução dos processos com Relatórios de Conformidade.</li>
+            </ul>
+            <p><strong>Vamos transformar a burocracia em inteligência?</strong></p>
+        </div>
+
+        <!-- Campo de entrada -->
+        <input type="text" placeholder="Digite o nome do processo"
+               style="padding: 10px; width: 300px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px;">
+
+        <!-- Botões -->
+        <div style="margin-top: 30px;">
+            <button class="btn-primary" style="padding: 10px 20px; background-color: #003366; color: white; border: none; border-radius: 5px; font-size: 16px;">
+                Mapeie com a Helena
+            </button>
+
+            <span style="margin: 0 10px;">-</span>
+
+            <button class="btn-primary" disabled
+                    style="padding: 10px 20px; background-color: #003366; color: white; border: none; border-radius: 5px; font-size: 16px; opacity: 0.6;">
+                Exportar
+            </button>
+        </div>
+
+    </div>
+
+</body>
+</html>

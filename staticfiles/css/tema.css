@@ -1,0 +1,16 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.btn-primary {
+    background-color: #005288;
+    border-color: #003c66;
+    color: white;
+}
+
+.section-title {
+    color: #003366;
+    border-left: 4px solid #005288;
+    padding-left: 8px;
+}
