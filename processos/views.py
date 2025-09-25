@@ -273,7 +273,7 @@ def analyze_pop_content(text):
         
         # Buscar responsável/órgão
         if any(palavra in line.upper() for palavra in ['DECIPEX', 'CGBEN', 'COAUX']) and not info['responsavel']:
-            info['responsavel'] = line
+            info['responsável'] = line
     
     # Limpeza final - remover itens vazios
     info['sistemas'] = list(set(info['sistemas']))  # Remover duplicatas
@@ -287,7 +287,7 @@ def analyze_pop_content(text):
 # ============================================================================
 
 @csrf_exempt  
-@require_methods(["POST"])
+@require_http_methods(["POST"])  # <-- CORRIGIDO: era require_methods
 def analyze_risks_ai(request):
     """API endpoint para análise de riscos com Helena especializada"""
     try:
