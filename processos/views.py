@@ -319,19 +319,41 @@ def analyze_pop_content(text):
 def chat_recepcao_api(request):
     """API para Helena Recepcionista - Landing Page"""
     try:
-        from .helena_produtos.helena_recepcao import helena_recepcao
+        print("🔵 Requisição recebida em /api/chat-recepcao/")
         
+        # Parse do JSON
         data = json.loads(request.body)
         mensagem = data.get('message', '')
+        session_id = data.get('session_id', 'default')
         
-        resposta = helena_recepcao(mensagem)
+        print(f"🔵 Mensagem: {mensagem}")
+        print(f"🔵 Session ID: {session_id}")
+        
+        if not mensagem:
+            return JsonResponse({
+                'resposta': 'Por favor, envie uma mensagem.',
+                'success': False
+            }, status=400)
+        
+        # Importar e chamar Helena com session_id
+        from .helena_produtos.helena_recepcao import helena_recepcao
+        print("🔵 Helena importada")
+        
+        resposta = helena_recepcao(mensagem, session_id)
+        print(f"🔵 Resposta: {resposta[:100]}...")
         
         return JsonResponse({
             'resposta': resposta,
             'success': True
         })
+        
     except Exception as e:
+        print(f"🔴 ERRO: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
         return JsonResponse({
             'resposta': 'Desculpe, tive um problema técnico.',
-            'error': str(e)
+            'error': str(e),
+            'success': False
         }, status=500)
