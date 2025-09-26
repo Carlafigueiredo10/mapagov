@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -367,41 +368,6 @@
       margin-bottom: 10px;
     }
 
-    .user-message {
-      background: #e3f2fd;
-      color: var(--dark-text);
-      padding: 12px 18px;
-      border-radius: 20px 20px 5px 20px;
-      font-size: 0.9rem;
-      text-align: right;
-    }
-
-    .typing-indicator {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 12px 18px;
-      background: #f0f0f0;
-      border-radius: 20px;
-      width: fit-content;
-    }
-
-    .typing-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--light-text);
-      animation: typing 1.4s infinite ease-in-out;
-    }
-
-    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes typing {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1); }
-    }
-
     /* === FUNCIONALIDADES === */
     .features {
       background: linear-gradient(135deg, var(--primary-blue) 0%, #2C5F86 100%);
@@ -430,21 +396,12 @@
       text-align: center;
       border: 1px solid rgba(255,255,255,0.2);
       transition: all 0.3s ease;
-      position: relative;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-10px);
-      background: rgba(255,255,255,0.15);
-    }
-
-    .feature-card.clickable {
       cursor: pointer;
     }
 
-    .feature-card.clickable:hover {
-      background: rgba(255,255,255,0.2);
+    .feature-card:hover {
       transform: translateY(-15px);
+      background: rgba(255,255,255,0.2);
       box-shadow: 0 15px 40px rgba(0,0,0,0.2);
     }
 
@@ -484,7 +441,6 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.05);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       border-top: 4px solid;
-      position: relative;
     }
 
     .legal-card:hover {
@@ -658,12 +614,12 @@
   <!-- HEADER -->
   <header class="header">
     <nav class="nav container">
-      <a href="#" class="nav-logo">MapaGov</a>
+      <a href="{% url 'landing' %}" class="nav-logo">MapaGov</a>
       <ul class="nav-links">
         <li><a href="#sobre">Sobre</a></li>
         <li><a href="#funcionalidades">Funcionalidades</a></li>
         <li><a href="#base-legal">Base Legal</a></li>
-        <li><a href="http://127.0.0.1:8000/portal/">Portal</a></li>
+        <li><a href="{% url 'portal' %}">Portal</a></li>
       </ul>
     </nav>
   </header>
@@ -677,8 +633,8 @@
           <p>Sistema completo de GRC baseado em padrões DECIPEX/MGI, referenciais TCU/CGU e normas internacionais. Transforme como seu órgão gerencia processos, riscos e conformidade.</p>
           
           <div>
-            <a href="http://127.0.0.1:8000/chat/" class="btn">Começar Mapeamento</a>
-            <a href="http://127.0.0.1:8000/riscos/fluxo/" class="btn btn-outline">Análise de Riscos</a>
+            <a href="{% url 'chat-page' %}" class="btn">Começar Mapeamento</a>
+            <a href="{% url 'riscos_fluxo' %}" class="btn btn-outline">Análise de Riscos</a>
           </div>
 
           <div class="hero-stats">
@@ -699,9 +655,9 @@
 
         <div class="hero-visual">
           <div class="helena-preview">
-            <a href="http://127.0.0.1:8000/portal/" style="text-decoration: none;">
+            <a href="{% url 'portal' %}" style="text-decoration: none;">
               <div class="helena-avatar">
-                <img src="/static/img/helena_em_pe.png" alt="Helena - IA Assistente">
+                <img src="{% static 'img/helena_em_pe.png' %}" alt="Helena - IA Assistente">
               </div>
             </a>
             <h4 style="text-align: center; margin-bottom: 1rem; color: var(--primary-blue);">Helena - IA Assistente</h4>
@@ -734,19 +690,19 @@
       <p class="section-subtitle">Sistema completo de mapeamento de processos com inteligência artificial integrada</p>
       
       <div class="features-grid">
-        <div class="feature-card clickable" onclick="window.location.href='http://127.0.0.1:8000/chat/'">
+        <div class="feature-card" onclick="window.location.href='{% url 'chat-page' %}'">
           <span class="feature-icon">🗺️</span>
           <h3>Mapeamento de Processos</h3>
           <p>Documente processos com padrão profissional equivalente ao DECIPEX através de conversa natural com Helena.</p>
         </div>
         
-        <div class="feature-card clickable" onclick="window.location.href='http://127.0.0.1:8000/riscos/fluxo/'">
+        <div class="feature-card" onclick="window.location.href='{% url 'riscos_fluxo' %}'">
           <span class="feature-icon">⚠️</span>
           <h3>Análise de Riscos de Processos Mapeados</h3>
           <p>Identificação e categorização automática de riscos dos processos documentados.</p>
         </div>
         
-        <div class="feature-card clickable" onclick="window.location.href='http://127.0.0.1:8000/fluxograma/'">
+        <div class="feature-card" onclick="window.location.href='{% url 'fluxograma' %}'">
           <span class="feature-icon">📊</span>
           <h3>Gerador de Fluxogramas</h3>
           <p>Criação automática de fluxogramas visuais em formato Mermaid a partir dos processos mapeados.</p>
@@ -803,8 +759,8 @@
         <p class="section-subtitle">Junte-se aos órgãos públicos que já utilizam o MapaGov para otimizar seus processos e garantir conformidade total.</p>
         
         <div class="cta-buttons">
-          <a href="http://127.0.0.1:8000/portal/" class="btn">Acessar Portal Completo</a>
-          <a href="http://127.0.0.1:8000/chat/" class="btn btn-outline">Começar Mapeamento</a>
+          <a href="{% url 'portal' %}" class="btn">Acessar Portal Completo</a>
+          <a href="{% url 'chat-page' %}" class="btn btn-outline">Começar Mapeamento</a>
         </div>
       </div>
     </div>
@@ -823,9 +779,9 @@
         <div>
           <h5>Sistema</h5>
           <ul>
-            <li><a href="http://127.0.0.1:8000/portal/">Portal</a></li>
+            <li><a href="{% url 'portal' %}">Portal</a></li>
             <li><a href="#funcionalidades">Funcionalidades</a></li>
-            <li><a href="http://127.0.0.1:8000/chat/">Helena IA</a></li>
+            <li><a href="{% url 'chat-page' %}">Helena IA</a></li>
             <li><a href="#base-legal">Base Legal</a></li>
           </ul>
         </div>
@@ -833,9 +789,9 @@
         <div>
           <h5>Recursos</h5>
           <ul>
-            <li><a href="http://127.0.0.1:8000/chat/">Assistente IA</a></li>
-            <li><a href="http://127.0.0.1:8000/fluxograma/">Fluxogramas</a></li>
-            <li><a href="http://127.0.0.1:8000/riscos/fluxo/">Análise de Riscos</a></li>
+            <li><a href="{% url 'chat-page' %}">Assistente IA</a></li>
+            <li><a href="{% url 'fluxograma' %}">Fluxogramas</a></li>
+            <li><a href="{% url 'riscos_fluxo' %}">Análise de Riscos</a></li>
             <li><a href="#base-legal">Base Legal</a></li>
           </ul>
         </div>
@@ -843,10 +799,10 @@
         <div>
           <h5>Contato</h5>
           <ul>
-            <li><a href="http://127.0.0.1:8000/portal/">Demonstração</a></li>
-            <li><a href="http://127.0.0.1:8000/chat/">Começar Agora</a></li>
+            <li><a href="{% url 'portal' %}">Demonstração</a></li>
+            <li><a href="{% url 'chat-page' %}">Começar Agora</a></li>
             <li><a href="#funcionalidades">Recursos</a></li>
-            <li><a href="http://127.0.0.1:8000/portal/">Suporte</a></li>
+            <li><a href="{% url 'portal' %}">Suporte</a></li>
           </ul>
         </div>
       </div>
@@ -881,17 +837,6 @@
         }
       });
     });
-
-    // Helena chat animation
-    setTimeout(() => {
-      const typingIndicator = document.getElementById('typing-indicator');
-      if (typingIndicator) {
-        typingIndicator.style.display = 'flex';
-        setTimeout(() => {
-          typingIndicator.style.display = 'none';
-        }, 2000);
-      }
-    }, 3000);
   </script>
 </body>
 </html>
