@@ -1,4 +1,3 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -303,8 +302,8 @@
     }
 
     .helena-avatar {
-      width: 80px;
-      height: 80px;
+      width: 120px;
+      height: 120px;
       border-radius: 50%;
       margin: 0 auto 1rem;
       display: flex;
@@ -314,6 +313,18 @@
       box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
       overflow: hidden;
       background: linear-gradient(135deg, var(--secondary-blue), var(--process-green));
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    .helena-avatar:hover {
+      transform: scale(1.05);
+    }
+
+    .helena-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .helena-avatar::before {
@@ -327,13 +338,6 @@
       border-radius: 50%;
       z-index: -1;
       animation: avatarPulse 3s ease-in-out infinite;
-    }
-
-    .helena-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 50%;
     }
 
     @keyframes avatarPulse {
@@ -442,52 +446,6 @@
       background: rgba(255,255,255,0.2);
       transform: translateY(-15px);
       box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-    }
-
-    .feature-card:hover .feature-tooltip {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
-    }
-
-    .feature-tooltip {
-      position: absolute;
-      bottom: -60px;
-      left: 50%;
-      transform: translateX(-50%) translateY(10px);
-      background: var(--dark-text);
-      color: var(--white);
-      padding: 10px 15px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s ease;
-      z-index: 10;
-      width: 200px;
-      text-align: left;
-    }
-
-    .feature-tooltip::before {
-      content: '';
-      position: absolute;
-      top: -5px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      border-bottom: 5px solid var(--dark-text);
-    }
-
-    .development .feature-card {
-      position: relative;
-      overflow: visible;
-    }
-
-    .development .feature-card:hover .feature-tooltip {
-      opacity: 1;
-      visibility: visible;
-      transform: translateX(-50%) translateY(0);
     }
 
     .feature-icon {
@@ -684,18 +642,6 @@
       animation: fadeInUp 1s ease-out;
     }
 
-    .feature-card, .legal-card {
-      animation: slideInUp 0.8s ease-out forwards;
-      opacity: 0;
-      transform: translateY(30px);
-    }
-
-    .legal-card:nth-child(1) { animation-delay: 0.1s; }
-    .legal-card:nth-child(2) { animation-delay: 0.2s; }
-    .legal-card:nth-child(3) { animation-delay: 0.3s; }
-    .legal-card:nth-child(4) { animation-delay: 0.4s; }
-    .legal-card:nth-child(5) { animation-delay: 0.5s; }
-
     @keyframes fadeInUp {
       0% {
         opacity: 0;
@@ -706,25 +652,18 @@
         transform: translateY(0);
       }
     }
-
-    @keyframes slideInUp {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
   </style>
 </head>
 <body>
   <!-- HEADER -->
   <header class="header">
     <nav class="nav container">
-      <a href="{% url 'landing' %}" class="nav-logo">MapaGov</a>
+      <a href="#" class="nav-logo">MapaGov</a>
       <ul class="nav-links">
         <li><a href="#sobre">Sobre</a></li>
         <li><a href="#funcionalidades">Funcionalidades</a></li>
         <li><a href="#base-legal">Base Legal</a></li>
-        <li><a href="{% url 'portal' %}">Acessar Sistema</a></li>
+        <li><a href="http://127.0.0.1:8000/portal/">Portal</a></li>
       </ul>
     </nav>
   </header>
@@ -738,8 +677,8 @@
           <p>Sistema completo de GRC baseado em padrões DECIPEX/MGI, referenciais TCU/CGU e normas internacionais. Transforme como seu órgão gerencia processos, riscos e conformidade.</p>
           
           <div>
-            <a href="{% url 'portal' %}" class="btn">Começar Mapeamento</a>
-            <a href="{% url 'chat-page' %}" class="btn btn-outline">Conversar com Helena</a>
+            <a href="http://127.0.0.1:8000/chat/" class="btn">Começar Mapeamento</a>
+            <a href="http://127.0.0.1:8000/riscos/fluxo/" class="btn btn-outline">Análise de Riscos</a>
           </div>
 
           <div class="hero-stats">
@@ -760,24 +699,27 @@
 
         <div class="hero-visual">
           <div class="helena-preview">
-            <div class="helena-avatar">
-              <img src="{% static 'img/helena_avatar.png' %}" alt="Helena - IA Assistente">
-            </div>
+            <a href="http://127.0.0.1:8000/portal/" style="text-decoration: none;">
+              <div class="helena-avatar">
+                <img src="/static/img/helena_em_pe.png" alt="Helena - IA Assistente">
+              </div>
+            </a>
             <h4 style="text-align: center; margin-bottom: 1rem; color: var(--primary-blue);">Helena - IA Assistente</h4>
             
             <div class="helena-chat">
-              <div class="helena-message" id="helena-message">Olá! Sou a Helena. Que processo você gostaria de mapear hoje?</div>
-              <div class="user-message">Quero mapear concessão de aposentadoria</div>
-              <div class="helena-message">Perfeito! Vou preencher o formulário automaticamente...</div>
-              <div class="typing-indicator" style="display: none;" id="typing-indicator">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
+              <div class="helena-message">
+                <strong>Oi, eu sou a Helena!</strong> Sou especialista em <strong>mapeamento de processos e governança</strong> no setor público. Conheço profundamente as normas e referenciais técnicos sobre o tema, e estou sempre me atualizando para apoiar sua jornada.
+              </div>
+              <div class="helena-message">
+                Meu papel é te guiar dentro do <strong>MapaGov</strong>, tornando o mapeamento mais simples, claro e eficiente.
+              </div>
+              <div class="helena-message">
+                👉 Quer saber por onde começar? É só me mandar um <strong>"oi"</strong> e seguimos juntos!
               </div>
             </div>
             
             <p style="text-align: center; color: var(--light-text); font-size: 0.9rem;">
-              Conversa natural que gera POP automaticamente
+              Clique na Helena para acessar o portal
             </p>
           </div>
         </div>
@@ -785,26 +727,26 @@
     </div>
   </section>
 
-  <!-- FUNCIONALIDADES IMPLEMENTADAS -->
+  <!-- FUNCIONALIDADES -->
   <section id="funcionalidades" class="features section">
     <div class="container">
       <h2 class="section-title">Funcionalidades Implementadas</h2>
       <p class="section-subtitle">Sistema completo de mapeamento de processos com inteligência artificial integrada</p>
       
       <div class="features-grid">
-        <div class="feature-card">
+        <div class="feature-card clickable" onclick="window.location.href='http://127.0.0.1:8000/chat/'">
           <span class="feature-icon">🗺️</span>
           <h3>Mapeamento de Processos</h3>
           <p>Documente processos com padrão profissional equivalente ao DECIPEX através de conversa natural com Helena.</p>
         </div>
         
-        <div class="feature-card clickable" onclick="window.location.href='{% url 'riscos_fluxo' %}'">
+        <div class="feature-card clickable" onclick="window.location.href='http://127.0.0.1:8000/riscos/fluxo/'">
           <span class="feature-icon">⚠️</span>
           <h3>Análise de Riscos de Processos Mapeados</h3>
           <p>Identificação e categorização automática de riscos dos processos documentados.</p>
         </div>
         
-        <div class="feature-card">
+        <div class="feature-card clickable" onclick="window.location.href='http://127.0.0.1:8000/fluxograma/'">
           <span class="feature-icon">📊</span>
           <h3>Gerador de Fluxogramas</h3>
           <p>Criação automática de fluxogramas visuais em formato Mermaid a partir dos processos mapeados.</p>
@@ -813,92 +755,7 @@
     </div>
   </section>
 
-  <!-- EM DESENVOLVIMENTO -->
-  <section class="development section" style="background: #f8f9fa;">
-    <div class="container">
-      <h2 class="section-title">Em Desenvolvimento</h2>
-      <p class="section-subtitle">Transforme sua governança com inteligência artificial</p>
-      
-      <div class="features-grid">
-        <div class="feature-card" style="background: var(--white); color: var(--dark-text); border: 1px solid #e9ecef;">
-          <div style="position: relative;">
-            <span class="feature-icon">🛡️</span>
-            <span style="position: absolute; top: -10px; right: -10px; background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Em breve</span>
-          </div>
-          <h3>Controles e Mitigação</h3>
-          <p>Sugestões de controles baseadas em ISO 31000 e COSO ERM.</p>
-          <div class="feature-tooltip">
-            Gera relatórios formais com análise detalhada dos riscos identificados, incluindo classificação e recomendações de tratamento
-          </div>
-        </div>
-        
-        <div class="feature-card" style="background: var(--white); color: var(--dark-text); border: 1px solid #e9ecef;">
-          <div style="position: relative;">
-            <span class="feature-icon">📋</span>
-            <span style="position: absolute; top: -10px; right: -10px; background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Em breve</span>
-          </div>
-          <h3>Gerador de Documento Final</h3>
-          <p>Check list com o fluxo para verificar adequação e melhorias do processo.</p>
-          <div class="feature-tooltip">
-            Produção automática de notas técnicas, despachos e documentos oficiais com base no conhecimento acumulado dos processos
-          </div>
-        </div>
-        
-        <div class="feature-card" style="background: var(--white); color: var(--dark-text); border: 1px solid #e9ecef;">
-          <div style="position: relative;">
-            <span class="feature-icon">⭐</span>
-            <span style="position: absolute; top: -10px; right: -10px; background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Em breve</span>
-          </div>
-          <h3>Boas Práticas</h3>
-          <p>Práticas recomendadas e benchmarks.</p>
-          <div class="feature-tooltip">
-            Biblioteca de práticas recomendadas e benchmarks do setor público, com sugestões contextualizadas para cada processo
-          </div>
-        </div>
-
-        <div class="feature-card" style="background: var(--white); color: var(--dark-text); border: 1px solid #e9ecef;">
-          <div style="position: relative;">
-            <span class="feature-icon">🎯</span>
-            <span style="position: absolute; top: -10px; right: -10px; background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Em breve</span>
-          </div>
-          <h3>Plano de Ação</h3>
-          <p>Geração automática de planos de ação para mitigar os riscos identificados.</p>
-          <div class="feature-tooltip">
-            Cria planos estruturados de ação com responsáveis, prazos e indicadores para mitigação efetiva dos riscos mapeados
-          </div>
-        </div>
-
-        <div class="feature-card" style="background: var(--white); color: var(--dark-text); border: 1px solid #e9ecef;">
-          <div style="position: relative;">
-            <span class="feature-icon">📊</span>
-            <span style="position: absolute; top: -10px; right: -10px; background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Em breve</span>
-          </div>
-          <h3>Relatório de Conformidade</h3>
-          <p>Avalia a aderência entre processos executados e POPs definidos através de análise comparativa.</p>
-          <div class="feature-tooltip">
-            Ferramenta que compara processos executados (via upload de PDF) com POPs estabelecidos, identificando gaps e não conformidades
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA -->
-  <section class="cta section">
-    <div class="container">
-      <div class="cta-content">
-        <h2 class="section-title">Transforme a Governança do seu Órgão</h2>
-        <p class="section-subtitle">Junte-se aos órgãos públicos que já utilizam o MapaGov para otimizar seus processos e garantir conformidade total.</p>
-        
-        <div class="cta-buttons">
-          <a href="{% url 'portal' %}" class="btn">Acessar Sistema Completo</a>
-          <a href="{% url 'chat-page' %}" class="btn btn-outline">Conversar com Helena</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- HIERARQUIA LEGAL -->
+  <!-- BASE LEGAL -->
   <section id="base-legal" class="legal-hierarchy section">
     <div class="container">
       <h2 class="section-title">Hierarquia Legal Integrada</h2>
@@ -938,6 +795,21 @@
     </div>
   </section>
 
+  <!-- CTA -->
+  <section id="cta" class="cta section">
+    <div class="container">
+      <div class="cta-content">
+        <h2 class="section-title">Transforme a Governança do seu Órgão</h2>
+        <p class="section-subtitle">Junte-se aos órgãos públicos que já utilizam o MapaGov para otimizar seus processos e garantir conformidade total.</p>
+        
+        <div class="cta-buttons">
+          <a href="http://127.0.0.1:8000/portal/" class="btn">Acessar Portal Completo</a>
+          <a href="http://127.0.0.1:8000/chat/" class="btn btn-outline">Começar Mapeamento</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- FOOTER -->
   <footer class="footer">
     <div class="container">
@@ -951,9 +823,9 @@
         <div>
           <h5>Sistema</h5>
           <ul>
-            <li><a href="{% url 'portal' %}">Acessar Plataforma</a></li>
+            <li><a href="http://127.0.0.1:8000/portal/">Portal</a></li>
             <li><a href="#funcionalidades">Funcionalidades</a></li>
-            <li><a href="{% url 'chat-page' %}">Helena IA</a></li>
+            <li><a href="http://127.0.0.1:8000/chat/">Helena IA</a></li>
             <li><a href="#base-legal">Base Legal</a></li>
           </ul>
         </div>
@@ -961,20 +833,20 @@
         <div>
           <h5>Recursos</h5>
           <ul>
-            <li><a href="{% url 'chat-page' %}">Assistente IA</a></li>
+            <li><a href="http://127.0.0.1:8000/chat/">Assistente IA</a></li>
+            <li><a href="http://127.0.0.1:8000/fluxograma/">Fluxogramas</a></li>
+            <li><a href="http://127.0.0.1:8000/riscos/fluxo/">Análise de Riscos</a></li>
             <li><a href="#base-legal">Base Legal</a></li>
-            <li><a href="{% url 'portal' %}">Templates</a></li>
-            <li><a href="{% url 'portal' %}">Exemplos</a></li>
           </ul>
         </div>
         
         <div>
           <h5>Contato</h5>
           <ul>
-            <li><a href="{% url 'portal' %}">Demonstração</a></li>
-            <li><a href="{% url 'chat-page' %}">Começar Agora</a></li>
+            <li><a href="http://127.0.0.1:8000/portal/">Demonstração</a></li>
+            <li><a href="http://127.0.0.1:8000/chat/">Começar Agora</a></li>
             <li><a href="#funcionalidades">Recursos</a></li>
-            <li><a href="{% url 'portal' %}">Suporte</a></li>
+            <li><a href="http://127.0.0.1:8000/portal/">Suporte</a></li>
           </ul>
         </div>
       </div>
@@ -996,7 +868,7 @@
       }
     });
 
-    // Smooth scrolling for anchor links
+    // Smooth scrolling
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function (e) {
         e.preventDefault();
@@ -1011,19 +883,15 @@
     });
 
     // Helena chat animation
-    document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
       const typingIndicator = document.getElementById('typing-indicator');
-      const helenaMessage = document.getElementById('helena-message');
-      
-      setTimeout(() => {
-        if (typingIndicator && helenaMessage) {
-          typingIndicator.style.display = 'flex';
-          setTimeout(() => {
-            typingIndicator.style.display = 'none';
-          }, 2000);
-        }
-      }, 5000);
-    });
+      if (typingIndicator) {
+        typingIndicator.style.display = 'flex';
+        setTimeout(() => {
+          typingIndicator.style.display = 'none';
+        }, 2000);
+      }
+    }, 3000);
   </script>
 </body>
 </html>

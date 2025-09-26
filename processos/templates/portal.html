@@ -3,322 +3,733 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>MapaGov - Mapeie seu Processo</title>
-    <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
-    <link rel="stylesheet" href="{% static 'css/tema.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal MapaGov - Helena</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .container {
-            max-width: 1200px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7fafc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .portal-header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1600px;
             margin: 0 auto;
-            padding: 50px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .header-section {
-            text-align: center;
-            margin-bottom: 50px;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 50px;
-            align-items: start;
-        }
-
-        /* Seção da Helena */
-        .helena-section {
-            text-align: left;
-        }
-
-        .helena-section h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .helena-section .subtexto {
-            font-size: 18px;
-            color: #666;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .helena-avatar {
-            width: 140px;
-            height: auto;
-            border-radius: 50%;
-            margin: 20px auto;
-            display: block;
-        }
-
-        .apresentacao {
-            text-align: justify;
-            font-size: 16px;
-            color: #333;
-            line-height: 1.6;
-            margin: 20px 0;
-        }
-
-        .helena-actions {
-            text-align: center;
-            margin-top: 30px;
-        }
-
-        .helena-actions input {
-            padding: 12px;
-            width: 100%;
-            max-width: 350px;
-            margin-bottom: 20px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-        }
-
-        .btn-primary {
-            background-color: #003366;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            margin: 5px;
-            border-radius: 6px;
-            cursor: pointer;
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             text-decoration: none;
-            display: inline-block;
         }
 
-        .btn-primary:hover {
-            background-color: #0055a5;
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1B4F72 0%, #3498DB 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            margin: 5px;
-            border-radius: 6px;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        /* Seção de Funcionalidades */
-        .funcionalidades-section h2 {
-            font-size: 2rem;
-            margin-bottom: 15px;
-            color: #003366;
-            text-align: center;
-        }
-
-        .funcionalidades-subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 16px;
-        }
-
-        .funcionalidades-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+        .header-nav {
+            display: flex;
             gap: 20px;
         }
 
-        .funcionalidade-card {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
+        .nav-link {
+            color: #4a5568;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: #f7fafc;
+            color: #1B4F72;
+        }
+
+        /* Container Principal */
+        .main-container {
+            flex: 1;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
             padding: 20px;
-            text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 100px);
+        }
+
+        /* Sidebar de Produtos */
+        .products-sidebar {
+            width: 320px;
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1B4F72;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .product-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .product-card:hover {
+            background: #edf2f7;
+            border-color: #3498DB;
+            transform: translateX(4px);
+        }
+
+        .product-card.active {
+            background: linear-gradient(135deg, #1B4F72 0%, #3498DB 100%);
+            color: white;
+        }
+
+        .product-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .product-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .product-status {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .product-card.active .product-status {
+            opacity: 0.9;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
 
-        .funcionalidade-card.ativo {
-            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-            border-color: #003366;
-            cursor: pointer;
+        /* Chat Header */
+        .chat-header {
+            background: linear-gradient(135deg, #1B4F72 0%, #3498DB 100%);
+            color: white;
+            padding: 24px 28px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
 
-        .funcionalidade-card.ativo:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,51,102,0.15);
+        .helena-avatar-header {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
-        .funcionalidade-card.em-breve {
-            background: #f8f9fa;
-            color: #6c757d;
-            cursor: default;
+        .helena-avatar-header img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .funcionalidade-icon {
-            width: 50px;
-            height: 50px;
-            margin: 0 auto 15px;
+        .chat-header-info h2 {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .chat-header-info p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        /* Área de Mensagens */
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background: #f8fafc;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.helena {
+            justify-content: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-        }
-
-        .funcionalidade-card.ativo .funcionalidade-icon {
-            background: linear-gradient(135deg, #4caf50, #45a049);
-            color: white;
-        }
-
-        .funcionalidade-card.em-breve .funcionalidade-icon {
-            background: #e9ecef;
-            color: #6c757d;
-        }
-
-        .funcionalidade-card h3 {
-            font-size: 1.1rem;
-            margin-bottom: 8px;
-            color: inherit;
-        }
-
-        .funcionalidade-card p {
-            font-size: 14px;
-            color: inherit;
-            margin: 0;
-            opacity: 0.8;
-        }
-
-        .status-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 11px;
-            padding: 4px 8px;
-            border-radius: 12px;
             font-weight: bold;
+            flex-shrink: 0;
+            overflow: hidden;
         }
 
-        .status-ativo {
-            background: #4caf50;
+        .message.helena .message-avatar {
+            background: linear-gradient(135deg, #1B4F72 0%, #3498DB 100%);
             color: white;
         }
 
-        .status-em-breve {
-            background: #ffc107;
-            color: #333;
+        .message.helena .message-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        /* Responsividade */
+        .message.user .message-avatar {
+            background: #cbd5e0;
+            color: #4a5568;
+        }
+
+        .message-content {
+            padding: 14px 18px;
+            border-radius: 12px;
+            max-width: 65%;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .message.helena .message-content {
+            background: white;
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #1B4F72 0%, #3498DB 100%);
+            color: white;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 18px;
+            background: white;
+            border-radius: 12px;
+            width: fit-content;
+            border: 1px solid #e2e8f0;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #cbd5e0;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px 24px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .message-input:focus {
+            border-color: #3498DB;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .send-button {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #1B4F72 0%, #3498DB 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(27, 79, 114, 0.3);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Scrollbar */
+        .messages-area::-webkit-scrollbar,
+        .products-sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages-area::-webkit-scrollbar-track,
+        .products-sidebar::-webkit-scrollbar-track {
+            background: #edf2f7;
+        }
+
+        .messages-area::-webkit-scrollbar-thumb,
+        .products-sidebar::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .products-sidebar {
+                width: 280px;
+            }
+        }
+
         @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-                gap: 30px;
+            .header-nav {
+                display: none;
             }
-            
-            .funcionalidades-grid {
-                grid-template-columns: 1fr;
+
+            .main-container {
+                flex-direction: column;
+                height: auto;
             }
-            
-            .helena-section h1 {
-                font-size: 2rem;
+
+            .products-sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+
+            .chat-container {
+                height: 500px;
+            }
+
+            .message-content {
+                max-width: 85%;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header com logo -->
-        <div class="header-section">
-            <img src="{% static 'img/logo_mapa.png' %}" alt="Logo MapaGov" width="80" height="80">
+    <!-- Header -->
+    <div class="portal-header">
+        <div class="header-content">
+            <a href="/" class="logo">
+                <span class="logo-text">MapaGov</span>
+            </a>
+            <nav class="header-nav">
+                <a href="/" class="nav-link">Início</a>
+            </nav>
         </div>
+    </div>
 
-        <!-- Conteúdo principal em duas colunas -->
-        <div class="main-content">
-            <!-- Seção da Helena (lado esquerdo) -->
-            <div class="helena-section">
-                <h1>Mapeie aqui seu processo</h1>
-                <p class="subtexto">Com a ajuda da nossa IA, Helena</p>
+    <!-- Container Principal -->
+    <div class="main-container">
+        <!-- Sidebar de Produtos -->
+        <aside class="products-sidebar">
+            <h3 class="sidebar-title">Produtos MapaGov</h3>
+            
+            <div class="product-card active" data-produto="geral">
+                <img src="{% static 'img/logo_mapa.png' %}" alt="MapaGov" style="width: 32px; height: 32px; margin-bottom: 8px;">
+                <div class="product-title">Helena - Assistente</div>
+                <div class="product-status">Orientação Geral</div>
+            </div>
 
-                <img src="{% static 'img/helena_avatar.png' %}" alt="Avatar da Helena" class="helena-avatar">
+            <div class="product-card" data-produto="pop">
+                <span class="product-icon">📋</span>
+                <div class="product-title">P1: Gerador de POP</div>
+                <div class="product-status">✅ Disponível</div>
+            </div>
 
-                <div class="apresentacao">
-                    <p><strong>Olá! Eu sou a Helena, sua assistente de governança no MapaGov.</strong></p>
-                    <p>Meu propósito é transformar a maneira como você gerencia seus processos, tornando a governança mais simples, rápida e inteligente.</p>
-                    <p><strong>Começamos pelo começo:</strong> Você me descreve um processo, e eu o transformo em um Procedimento Operacional Padrão (POP) claro e um Fluxograma visual.</p>
-                    <p><strong>Depois, olhamos para o futuro:</strong> Analisaremos juntos os Riscos do seu processo, criando um Relatório e um Plano de Gestão.</p>
-                    <p><strong>E por fim, aceleramos seu trabalho:</strong> Gero automaticamente os Documentos Finais que você precisa, garantindo a integridade e eficiência.</p>
-                    <p><strong>Vamos transformar a burocracia em inteligência?</strong></p>
+            <div class="product-card" data-produto="fluxograma">
+                <span class="product-icon">📊</span>
+                <div class="product-title">P2: Fluxograma</div>
+                <div class="product-status">🔨 Em Desenvolvimento</div>
+            </div>
+
+            <div class="product-card" data-produto="dossie">
+                <span class="product-icon">📑</span>
+                <div class="product-title">P3: Dossiê PDF</div>
+                <div class="product-status">📋 Planejado</div>
+            </div>
+
+            <div class="product-card" data-produto="dashboard">
+                <span class="product-icon">📈</span>
+                <div class="product-title">P4: Dashboard</div>
+                <div class="product-status">📋 Planejado</div>
+            </div>
+
+            <div class="product-card" data-produto="riscos">
+                <span class="product-icon">⚠️</span>
+                <div class="product-title">P5: Análise de Riscos</div>
+                <div class="product-status">✅ Disponível</div>
+            </div>
+
+            <div class="product-card" data-produto="relatorio">
+                <span class="product-icon">📊</span>
+                <div class="product-title">P6: Relatório Riscos</div>
+                <div class="product-status">📋 Planejado</div>
+            </div>
+
+            <div class="product-card" data-produto="acao">
+                <span class="product-icon">✅</span>
+                <div class="product-title">P7: Plano de Ação</div>
+                <div class="product-status">📋 Planejado</div>
+            </div>
+
+            <div class="product-card" data-produto="governanca">
+                <span class="product-icon">⚖️</span>
+                <div class="product-title">P8: Dossiê Governança</div>
+                <div class="product-status">📋 Planejado</div>
+            </div>
+
+            <div class="product-card" data-produto="documentos">
+                <span class="product-icon">📝</span>
+                <div class="product-title">P9: Gerador Docs</div>
+                <div class="product-status">📋 Planejado</div>
+            </div>
+
+            <div class="product-card" data-produto="conformidade">
+                <span class="product-icon">✔️</span>
+                <div class="product-title">P10: Conformidade</div>
+                <div class="product-status">📋 Planejado</div>
+            </div>
+
+            <div class="product-card" data-produto="artefatos">
+                <span class="product-icon">🔍</span>
+                <div class="product-title">P11: Análise Artefatos</div>
+                <div class="product-status">📋 Planejado</div>
+            </div>
+        </aside>
+
+        <!-- Chat Container -->
+        <div class="chat-container">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="helena-avatar-header">
+                    <img src="{% static 'img/helena_avatar.png' %}" alt="Helena">
                 </div>
-
-                <div class="helena-actions">
-                    <input type="text" placeholder="Digite o nome do processo">
-                    <div>
-                        <a href="{% url 'chat-page' %}" class="btn-primary">Mapear com a Helena</a>
-                        <button class="btn-secondary">Exportar</button>
-                    </div>
+                <div class="chat-header-info">
+                    <h2>Helena - Assistente GRC</h2>
+                    <p>Especialista em Governança, Riscos e Conformidade</p>
                 </div>
             </div>
-            <!-- Seção de Funcionalidades (lado direito) -->
-            <div class="funcionalidades-section">
-                <h2>Funcionalidades Disponíveis</h2>
-                <p class="funcionalidades-subtitle">Transforme sua governança com inteligência artificial</p>
 
-                <div class="funcionalidades-grid">
-                    <!-- Mapeamento de Processos - ATIVO -->
-                    <div class="funcionalidade-card ativo" onclick="window.location.href='{% url 'chat-page' %}'">
-                        <span class="status-badge status-ativo">Ativo</span>
-                        <div class="funcionalidade-icon">📋</div>
-                        <h3>Mapeamento de Processos</h3>
-                        <p>Documente processos com padrão profissional equivalente ao DECIPEX</p>
+            <!-- Área de Mensagens -->
+            <div class="messages-area" id="messagesArea">
+                <div class="message helena">
+                    <div class="message-avatar">
+                        <img src="{% static 'img/helena_avatar.png' %}" alt="Helena">
                     </div>
+                    <div class="message-content">
+                        <strong>Oi, eu sou a Helena!</strong> ✨ Sua assistente em <strong>Governança, Riscos e Conformidade</strong> no setor público.
+                        <br><br>
+                        Eu sei bastante sobre <strong>mapeamento de processos</strong>, normas de GRC e estou sempre me atualizando para trazer as melhores práticas pra você.
+                        <br><br>
+                        Aqui dentro eu posso te ajudar a:
+                        <br>• Transformar atividades em <strong>POPs claros e estruturados</strong>
+                        <br>• Mapear riscos e controles de forma prática
+                        <br>• Gerar <strong>fluxogramas visuais</strong> para entender cada etapa
+                        <br>• Organizar documentos com base em normas e regulamentos oficiais
+                        <br><br>
+                        💡 É só escolher um produto no menu lateral ou falar comigo direto no chat. Me diz seu nome, manda suas dúvidas, e eu vou te guiar por aqui! 🚀
+                    </div>
+                </div>
 
-                    <!-- Identificação de Riscos - EM BREVE -->
-                    <div class="funcionalidade-card em-breve">
-                        <span class="status-badge status-em-breve">Em breve</span>
-                        <div class="funcionalidade-icon">⚠️</div>
-                        <h3>Identificação de Riscos</h3>
-                        <p>Análise automática de riscos operacionais baseada em normas</p>
-                    </div>
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
 
-                    <!-- Controles e Mitigação - EM BREVE -->
-                    <div class="funcionalidade-card em-breve">
-                        <span class="status-badge status-em-breve">Em breve</span>
-                        <div class="funcionalidade-icon">🛡️</div>
-                        <h3>Controles e Mitigação</h3>
-                        <p>Sugestões de controles baseadas em ISO 31000 e COSO ERM</p>
-                    </div>
-
-                    <!-- Base Legal e Normativa - EM BREVE -->
-                    <div class="funcionalidade-card em-breve">
-                        <span class="status-badge status-em-breve">Em breve</span>
-                        <div class="funcionalidade-icon">⚖️</div>
-                        <h3>Base Legal e Normativa</h3>
-                        <p>Fundamentação técnica e jurídica do processo</p>
-                    </div>
-
-                    <!-- Normas Técnicas Internacionais - EM BREVE -->
-                    <div class="funcionalidade-card em-breve">
-                        <span class="status-badge status-em-breve">Em breve</span>
-                        <div class="funcionalidade-icon">🌐</div>
-                        <h3>Normas Técnicas Internacionais</h3>
-                        <p>ISO, COSO e outros padrões internacionais</p>
-                    </div>
-
-                    <!-- Boas Práticas - EM BREVE -->
-                    <div class="funcionalidade-card em-breve">
-                        <span class="status-badge status-em-breve">Em breve</span>
-                        <div class="funcionalidade-icon">⭐</div>
-                        <h3>Boas Práticas</h3>
-                        <p>Práticas recomendadas e benchmarks</p>
-                    </div>
+            <!-- Input Area -->
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        class="message-input" 
+                        id="messageInput" 
+                        placeholder="Digite sua mensagem..."
+                        onkeypress="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+                    >
+                    <button class="send-button" id="sendButton" onclick="sendMessage()">
+                        <span>Enviar</span>
+                        <span>→</span>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Adicionar funcionalidade de clique apenas para cards ativos
-        document.querySelectorAll('.funcionalidade-card.ativo').forEach(card => {
-            card.style.cursor = 'pointer';
+        const messagesArea = document.getElementById('messagesArea');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // Produto atual selecionado
+        let currentProduct = 'geral';
+
+        // Gerenciar seleção de produtos
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.addEventListener('click', function() {
+                // Remove active de todos
+                document.querySelectorAll('.product-card').forEach(c => c.classList.remove('active'));
+                
+                // Adiciona active no clicado
+                this.classList.add('active');
+                
+                // Atualiza produto atual
+                currentProduct = this.dataset.produto;
+                
+                // Mensagem da Helena sobre o produto
+                const productMessages = {
+                    'geral': 'Perfeito! Estou em modo de orientação geral. Como posso te ajudar hoje?',
+                    'pop': 'Ótimo! Vamos criar um POP estruturado. Qual processo você quer mapear?',
+                    'fluxograma': 'Legal! O gerador de fluxogramas está em desenvolvimento. Em breve estará disponível!',
+                    'riscos': 'Excelente escolha! Para analisar riscos, primeiro precisamos de um processo mapeado. Já tem algum POP?',
+                    'dossie': 'O Dossiê PDF está sendo desenvolvido. Você poderá gerar documentação completa em breve!',
+                    'dashboard': 'Dashboard em desenvolvimento! Em breve você terá visão completa dos seus processos.',
+                    'relatorio': 'Relatório de Riscos em planejamento. Aguarde novidades!',
+                    'acao': 'Plano de Ação será implementado na próxima fase!',
+                    'governanca': 'Dossiê de Governança em desenvolvimento!',
+                    'documentos': 'Gerador de Documentos está no roadmap!',
+                    'conformidade': 'Análise de Conformidade em planejamento!',
+                    'artefatos': 'Análise de Artefatos será implementado em breve!'
+                };
+                
+                addMessage(productMessages[currentProduct] || 'Produto selecionado!', 'helena');
+            });
         });
+
+        // Verificar mensagem inicial
+        window.addEventListener('load', () => {
+            const initialMessage = localStorage.getItem('initialMessage');
+            if (initialMessage) {
+                messageInput.value = initialMessage;
+                localStorage.removeItem('initialMessage');
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, 'user');
+            messageInput.value = '';
+            sendButton.disabled = true;
+
+            typingIndicator.classList.add('active');
+            scrollToBottom();
+
+            try {
+                // API CORRIGIDA
+                const response = await fetch('/api/chat-recepcao/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ 
+                        message: message,
+                        produto: currentProduct,
+                        session_id: getSessionId()
+                    })
+                });
+
+                const data = await response.json();
+
+                typingIndicator.classList.remove('active');
+
+                if (data.resposta) {
+                    addMessage(data.resposta, 'helena');
+                }
+
+            } catch (error) {
+                console.error('Erro:', error);
+                typingIndicator.classList.remove('active');
+                addMessage('Desculpe, ocorreu um erro. Tente novamente.', 'helena');
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            
+            if (sender === 'helena') {
+                const img = document.createElement('img');
+                img.src = "{% static 'img/helena_avatar.png' %}";
+                img.alt = 'Helena';
+                avatar.appendChild(img);
+            } else {
+                avatar.textContent = 'U';
+            }
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            
+            // Detectar e criar links para produtos
+            let processedText = text;
+            const productLinks = {
+                'gerar um pop': '/chat/',
+                'criar um pop': '/chat/',
+                'mapear processo': '/chat/',
+                'analisar riscos': '/riscos/fluxo/',
+                'análise de riscos': '/riscos/fluxo/',
+                'gerar fluxograma': '/fluxograma/',
+                'criar fluxograma': '/fluxograma/'
+            };
+            
+            // Verificar se a mensagem menciona algum produto
+            for (const [keyword, link] of Object.entries(productLinks)) {
+                if (text.toLowerCase().includes(keyword)) {
+                    const buttonHtml = `<br><br><a href="${link}" style="display: inline-block; background: linear-gradient(135deg, #1B4F72 0%, #3498DB 100%); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; margin-top: 8px; font-weight: 600;">Acessar ${keyword.charAt(0).toUpperCase() + keyword.slice(1)} →</a>`;
+                    processedText += buttonHtml;
+                    break;
+                }
+            }
+            
+            content.innerHTML = processedText;
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+
+            messagesArea.insertBefore(messageDiv, typingIndicator);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        function getSessionId() {
+            let sessionId = localStorage.getItem('helena_session_id');
+            if (!sessionId) {
+                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('helena_session_id', sessionId);
+            }
+            return sessionId;
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
     </script>
 </body>
 </html>

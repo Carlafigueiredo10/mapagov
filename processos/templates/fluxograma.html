@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Fluxogramas - MapaGov</title>
+    {% load static %}
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .card-header h2 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .card-header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        /* Upload Section */
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-info.active {
+            display: block;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Chat Section */
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.helena {
+            background: #e3f2fd;
+            margin-right: auto;
+        }
+
+        .message.user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-group button {
+            padding: 12px 25px;
+            width: auto;
+            margin: 0;
+        }
+
+        /* Fluxograma Preview */
+        .fluxograma-preview {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .fluxograma-preview.empty {
+            color: #999;
+        }
+
+        .fluxograma-content {
+            width: 100%;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 8px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Gerador de Fluxogramas</h1>
+            <p>Upload de PDF do POP e geração automática de fluxograma visual</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- Coluna 1: Upload e Chat -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>1. Upload do POP</h2>
+                    <p>Faça upload do PDF do seu Procedimento Operacional Padrão</p>
+                </div>
+                <div class="card-body">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📄</div>
+                        <h3>Clique ou arraste o PDF aqui</h3>
+                        <p>Arquivo PDF do POP (máx. 10MB)</p>
+                        <input type="file" id="pdfInput" accept=".pdf" style="display: none;">
+                    </div>
+
+                    <div class="file-info" id="fileInfo">
+                        <strong>Arquivo:</strong> <span id="fileName"></span><br>
+                        <strong>Status:</strong> <span id="fileStatus">Aguardando análise...</span>
+                    </div>
+
+                    <button class="btn" id="uploadBtn" disabled>Analisar PDF</button>
+
+                    <div class="progress-bar" style="display: none;" id="progressBar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna 2: Chat com Helena -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>2. Conversa com Helena</h2>
+                    <p>Helena vai fazer perguntas complementares sobre o processo</p>
+                </div>
+                <div class="card-body">
+                    <div class="chat-container" id="chatContainer">
+                        <div class="message helena">
+                            Olá! Faça upload de um PDF de POP para começarmos a criar o fluxograma. 📊
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="text" id="userInput" placeholder="Digite sua mensagem..." disabled>
+                        <button class="btn" id="sendBtn" disabled>Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview do Fluxograma -->
+        <div class="card">
+            <div class="card-header">
+                <h2>3. Fluxograma Gerado</h2>
+                <p>Visualização do fluxograma em formato Mermaid</p>
+            </div>
+            <div class="card-body">
+                <div class="fluxograma-preview empty" id="fluxogramaPreview">
+                    <div>
+                        <div class="upload-icon">📈</div>
+                        <p>O fluxograma aparecerá aqui após a conversa com Helena</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const pdfInput = document.getElementById('pdfInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileStatus = document.getElementById('fileStatus');
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+
+        let pdfFile = null;
+        let pdfAnalyzed = false;
+
+        // Upload Area Events
+        uploadArea.addEventListener('click', () => pdfInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        pdfInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            pdfFile = file;
+            fileName.textContent = file.name;
+            fileInfo.classList.add('active');
+            uploadBtn.disabled = false;
+            fileStatus.textContent = 'Pronto para análise';
+        }
+
+        // Upload and Analyze PDF
+        uploadBtn.addEventListener('click', async () => {
+            if (!pdfFile) return;
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Analisando...';
+            progressBar.style.display = 'block';
+            progressFill.style.width = '50%';
+
+            const formData = new FormData();
+            formData.append('pdf_file', pdfFile);
+
+            try {
+                const response = await fetch('/api/fluxograma-from-pdf/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    fileStatus.textContent = '✅ Analisado com sucesso!';
+                    progressFill.style.width = '100%';
+                    pdfAnalyzed = true;
+                    
+                    addMessage('helena', data.message);
+                    addMessage('helena', `Encontrei: ${data.pop_info.atividade || 'processo'}. Vamos mapear as etapas para criar o fluxograma?`);
+                    
+                    userInput.disabled = false;
+                    sendBtn.disabled = false;
+                    userInput.focus();
+                } else {
+                    fileStatus.textContent = '❌ Erro na análise';
+                    addMessage('helena', 'Desculpe, não consegui analisar o PDF. Tente outro arquivo.');
+                }
+            } catch (error) {
+                fileStatus.textContent = '❌ Erro de conexão';
+                addMessage('helena', 'Erro ao processar o arquivo. Verifique a conexão.');
+            } finally {
+                uploadBtn.textContent = 'Analisar PDF';
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 1000);
+            }
+        });
+
+        // Chat Functions
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message || !pdfAnalyzed) return;
+
+            addMessage('user', message);
+            userInput.value = '';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/fluxograma-from-pdf/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+                addMessage('helena', data.resposta);
+
+                if (data.conversa_completa) {
+                    addMessage('helena', '✅ Fluxograma completo! Gerando visualização...');
+                    // Aqui você pode chamar função para renderizar o fluxograma
+                }
+            } catch (error) {
+                addMessage('helena', 'Erro ao processar mensagem.');
+            } finally {
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        function addMessage(type, text) {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.textContent = text;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
