@@ -1,247 +1,652 @@
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_chroma import Chroma
 from langchain.prompts import ChatPromptTemplate
 import os
 import json
+import re
+from datetime import datetime
+from typing import List, Dict, Any
+from processos.utils import BaseLegalSuggestor
 
 class HelenaPOP:
-    """Helena especializada em extrair informações para Procedimento Operacional Padrão"""
-    
-    CAMPOS_POP = {
-        "nome_processo": {"valor": None, "estado": None},
-        "macroprocesso": {"valor": None, "estado": None},
-        "processo": {"valor": None, "estado": None},
-        "entrega_esperada": {"valor": None, "estado": None},
-        "dispositivos_normativos": {"valor": None, "estado": None},
-        "sistemas_utilizados": {"valor": None, "estado": None},
-        "operadores": {"valor": None, "estado": None},
-        "etapas": {"valor": None, "estado": None},
-        "documentos_utilizados": {"valor": None, "estado": None},
-        "pontos_atencao": {"valor": None, "estado": None},
-        "codigo_arquitetura": {"valor": None, "estado": None}
-    }
-    
-    ORDEM_CAMPOS = [
-        "nome_processo", "macroprocesso", "processo", "entrega_esperada",
-        "operadores", "etapas", "sistemas_utilizados", "dispositivos_normativos",
-        "documentos_utilizados", "pontos_atencao", "codigo_arquitetura"
-    ]
-    
-    # Exemplos contextuais para ajudar o usuário
-    EXEMPLOS_CAMPOS = {
-        "macroprocesso": ["Gestão de Pessoas", "Gestão de Contratos", "Gestão Orçamentária", "Gestão de TI"],
-        "operadores": ["Técnico Especializado", "Coordenador", "Analista", "Gestor"],
-        "sistemas_utilizados": ["SEI", "SIGEPE", "SIAPE", "SouGov", "Comprasnet"]
-    }
+    """Helena para mapeamento de POPs - versão completa integrada à DECIPEX"""
     
     def __init__(self):
-        self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0.8,
-            api_key=os.getenv('OPENAI_API_KEY')
-        )
+        # LLM e RAG desabilitados para melhor performance
+        self.vectorstore = None
         
+        # Estados da conversa
+        self.estado = "nome"  # nome -> area -> sistemas -> campos -> etapas -> fluxos -> revisao
+        self.dados = {}
         self.nome_usuario = None
+        self.area_selecionada = None
+        self.sistemas_selecionados = []
+        self.etapas_processo = []
+        self.fluxos_entrada = []
+        self.fluxos_saida = []
+        self.etapa_atual_campo = 0
+        self.conversas = []
         
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", """Você é Helena, consultora experiente em mapeamento de processos do setor público brasileiro.
-
-SEU PAPEL:
-- Seja consultiva, amigável e natural (nunca robótica)
-- Faça perguntas abertas e ofereça exemplos quando relevante
-- Use o conhecimento de GRC do setor público para SUGERIR, nunca ASSUMIR
-- Adapte-se ao contexto que o usuário traz
-
-PRIMEIRA INTERAÇÃO:
-- Se não souber o nome: "Como gostaria de ser chamado(a)?"
-- Com nome: Use naturalmente ("Perfeito, [nome]! Vamos começar?")
-
-CAMPOS A COLETAR (nesta ordem):
-1. nome_processo - Nome da atividade (ex: "Conceder auxílio", "Homologar licitação")
-2. macroprocesso - Área ampla (ex: "Gestão de Pessoas", "Compras", "Orçamento")
-3. processo - Subárea (ex: "Gestão de Benefícios", "Pregão Eletrônico")
-4. entrega_esperada - Resultado concreto (ex: "Auxílio concedido", "Contrato assinado")
-5. operadores - Quem faz (ex: "Técnico, Coordenador")
-6. etapas - Passo a passo (numere: 1. Receber demanda, 2. Analisar...)
-7. sistemas_utilizados - Ferramentas (ex: "SEI, SIGEPE")
-8. dispositivos_normativos - Leis/normas (ex: "Lei 8.112/90, IN 97/2022")
-9. documentos_utilizados - Docs necessários
-10. pontos_atencao - Alertas importantes
-11. codigo_arquitetura - Código (ex: "2.3.1" - pergunte por último)
-
-COMO PERGUNTAR:
-- Uma pergunta por vez, de forma conversacional
-- Ofereça 2-3 exemplos quando ajudar: "Por exemplo: X, Y ou Z"
-- Valide respostas: "Entendi! [resumo]. Está correto?"
-- Se resposta vaga: peça mais detalhes naturalmente
-
-CONTEXTO: {contexto_campos}
-NOME USUÁRIO: {nome_usuario}
-
-RESPONDA EM JSON:
-{{
-    "resposta": "mensagem natural e consultiva",
-    "campo_preenchido": "campo ou null",
-    "valor": "valor ou null",
-    "progresso": "X/11"
-}}"""),
-            ("human", "{input}")
-        ])
+        # ============ NOVA LINHA: INTEGRAÇÃO BASE LEGAL ============
+        self.suggestor_base_legal = BaseLegalSuggestor()
+        # ============================================================
         
-        self.chain = self.prompt | self.llm
-        self.dados_coletados = self.CAMPOS_POP.copy()
-        self.historico = []
-    
-    def processar_mensagem(self, mensagem_usuario):
-        """Processa mensagem de forma consultiva"""
+        # Campos principais a coletar (após área e sistemas)
+        self.campos_principais = [
+            {
+                "nome": "nome_processo",
+                "pergunta": "Qual é o nome completo da atividade que você quer mapear?",
+                "exemplo": "Ex: Conceder ressarcimento a aposentado civil, Análise de requerimento de auxílio alimentação"
+            },
+            {
+                "nome": "processo_especifico", 
+                "pergunta": "A que processo específico esta atividade pertence?",
+                "exemplo": "Ex: Gestão de Benefícios de Assistência à Saúde, Gestão de Auxílios Alimentação"
+            },
+            {
+                "nome": "entrega_esperada",
+                "pergunta": "Qual é o resultado final desta atividade?",
+                "exemplo": "Ex: Auxílio concedido, Requerimento analisado e decidido, Cadastro atualizado"
+            },
+            {
+                "nome": "operadores",
+                "pergunta": "Quem são os responsáveis por executar esta atividade?",
+                "exemplo": "Ex: Técnico Especializado, Coordenador, Apoio-gabinete"
+            },
+            {
+                "nome": "dispositivos_normativos",
+                "pergunta": "Quais são as principais normas que regulam esta atividade?",
+                "exemplo": "Ex: Art. 34 da IN SGP/SEDGG/ME nº 97/2022, Lei 8.112/90"
+            },
+            {
+                "nome": "documentos_utilizados",
+                "pergunta": "Quais documentos são necessários para executar esta atividade?",
+                "exemplo": "Ex: Requerimento SIGEPE, Documentos pessoais, Comprovantes de pagamento"
+            },
+            {
+                "nome": "pontos_atencao",
+                "pergunta": "Há algum ponto especial de atenção ou cuidado nesta atividade?",
+                "exemplo": "Ex: Auditar situação desde centralização, Observar prazos de retroatividade"
+            }
+        ]
+
+    # =============================================================================
+    # ESTRUTURAS DE DADOS DECIPEX
+    # =============================================================================
+
+    @property
+    def AREAS_DECIPEX(self):
+        return {
+            1: {"codigo": "CGBEN", "nome": "Coordenação de Benefícios", "prefixo": "1"},
+            2: {"codigo": "CGPAG", "nome": "Coordenação de Pagamentos", "prefixo": "2"},
+            3: {"codigo": "COATE", "nome": "Coordenação de Atendimento", "prefixo": "3"},
+            4: {"codigo": "CGGAF", "nome": "Coordenação de Gestão Administrativa", "prefixo": "4"},
+            5: {"codigo": "DIGEP", "nome": "Diretoria de Pessoal dos Ex-Territórios", "prefixo": "5"},
+            6: {"codigo": "CGRIS", "nome": "Coordenação de Riscos", "prefixo": "6"},
+            7: {"codigo": "CGCAF", "nome": "Coordenação de Cadastro Funcional", "prefixo": "7"},
+            8: {"codigo": "CGECO", "nome": "Coordenação de Convênios", "prefixo": "8"}
+        }
+
+    @property
+    def SISTEMAS_DECIPEX(self):
+        return {
+            "gestao_pessoal": ["SIAPE", "E-SIAPE", "SIGEPE", "SIGEP - AFD", "E-Pessoal TCU", "SIAPNET", "SIGAC"],
+            "documentos": ["SEI", "DOINET", "DOU", "SOUGOV", "PETRVS"],
+            "transparencia": ["Portal da Transparência", "CNIS", "Site CGU-PAD", "Sistema de Pesquisa Integrada do TCU", "Consulta CPF RFB"],
+            "previdencia": ["SISTEMA COMPREV", "BG COMPREV"],
+            "comunicacao": ["TEAMS", "OUTLOOK"],
+            "outros": ["DW"]
+        }
+
+    # =============================================================================
+    # MÉTODO PRINCIPAL DE PROCESSAMENTO
+    # =============================================================================
+
+    def processar_mensagem(self, mensagem):
+        """Processa mensagem do usuário de acordo com o estado atual"""
         try:
-            # 1. PERGUNTAR NOME (primeira vez)
-            if not self.nome_usuario:
-                palavras = mensagem_usuario.strip().split()
-                if len(palavras) <= 3 and len(palavras[0]) > 2:
-                    self.nome_usuario = palavras[0].capitalize()
-                    return {
-                        "resposta": f"Prazer, {self.nome_usuario}! Vamos mapear um processo? Me conte: qual atividade você quer documentar?",
-                        "dados_extraidos": {},
-                        "conversa_completa": False,
-                        "progresso": "0/11",
-                        "tipo_resposta": "ASK"
-                    }
-                else:
-                    return {
-                        "resposta": "Olá! Antes de começar, como gostaria de ser chamado(a)?",
-                        "dados_extraidos": {},
-                        "conversa_completa": False,
-                        "progresso": "0/11",
-                        "tipo_resposta": "ASK"
-                    }
-            
-            # 2. PROCESSAR NORMALMENTE
-            self.historico.append({"role": "user", "content": mensagem_usuario})
-            
-            # Contexto enriquecido
-            contexto = self._construir_contexto()
-            proximo = self._proximo_campo_vazio()
-            
-            if proximo and proximo in self.EXEMPLOS_CAMPOS:
-                exemplos = ", ".join(self.EXEMPLOS_CAMPOS[proximo][:3])
-                contexto += f"\n\nSUGESTÃO: Para '{proximo}', ofereça exemplos como: {exemplos}"
-            
-            # Chamar LLM
-            resposta = self.chain.invoke({
-                "input": mensagem_usuario,
-                "contexto_campos": contexto,
-                "nome_usuario": self.nome_usuario or "você"
+            # CORREÇÃO: Converter datetime para string antes de salvar
+            self.conversas.append({
+                "usuario": mensagem, 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             })
             
-            resposta_texto = resposta.content if hasattr(resposta, 'content') else str(resposta)
-            self.historico.append({"role": "assistant", "content": resposta_texto})
-            
-            # Parse JSON
-            try:
-                dados = json.loads(resposta_texto)
-                
-                # Atualizar campo
-                if dados.get('campo_preenchido') and dados.get('valor'):
-                    campo = dados['campo_preenchido']
-                    if campo in self.dados_coletados:
-                        self.dados_coletados[campo]['valor'] = dados['valor']
-                        self.dados_coletados[campo]['estado'] = 'confirmado'
-                
-                progresso = self._calcular_progresso()
-                
-                return {
-                    "resposta": dados.get('resposta', resposta_texto),
-                    "dados_extraidos": {dados['campo_preenchido']: dados['valor']} if dados.get('campo_preenchido') else {},
-                    "conversa_completa": progresso['confirmados'] == 11,
-                    "progresso": f"{progresso['confirmados']}/11",
-                    "tipo_resposta": "FILL" if dados.get('campo_preenchido') else "ASK"
-                }
-                
-            except json.JSONDecodeError:
-                # Fallback: tentar extrair da resposta natural
-                return {
-                    "resposta": resposta_texto,
-                    "dados_extraidos": {},
-                    "conversa_completa": False,
-                    "progresso": f"{self._calcular_progresso()['confirmados']}/11",
-                    "tipo_resposta": "ASK"
-                }
+            if self.estado == "nome":
+                return self._processar_nome(mensagem)
+            elif self.estado == "area":
+                return self._processar_area(mensagem)
+            elif self.estado == "sistemas":
+                return self._processar_sistemas(mensagem)
+            elif self.estado == "campos":
+                return self._processar_campos(mensagem)
+            elif self.estado == "etapas":
+                return self._processar_etapas(mensagem)
+            elif self.estado == "fluxos":
+                return self._processar_fluxos(mensagem)
+            elif self.estado == "revisao":
+                return self._processar_revisao(mensagem)
+            else:
+                return self._erro_estado()
                 
         except Exception as e:
-            print(f"🔴 ERRO: {e}")
-            import traceback
-            traceback.print_exc()
-            
+            print(f"Erro: {e}")
             return {
-                "resposta": f"Desculpe {self.nome_usuario or 'colega'}, tive um problema técnico. Pode repetir?",
+                "resposta": "Desculpe, ocorreu um erro. Pode repetir sua resposta?",
+                "tipo_interface": "texto",
                 "dados_extraidos": {},
                 "conversa_completa": False,
-                "progresso": "0/11",
-                "tipo_resposta": "ERROR"
+                "progresso": self._calcular_progresso(),
+                "proximo_estado": self.estado
             }
-    
-    def _construir_contexto(self):
-        """Contexto dos campos já coletados"""
-        confirmados = [f"✅ {c}: {d['valor']}" for c, d in self.dados_coletados.items() if d['estado'] == 'confirmado']
+
+    # =============================================================================
+    # PROCESSAMENTO POR ESTADO
+    # =============================================================================
+
+    def _processar_nome(self, mensagem):
+        """Processa nome do usuário"""
+        palavras = mensagem.strip().split()
+        if 1 <= len(palavras) <= 3 and all(len(p) > 1 for p in palavras):
+            self.nome_usuario = palavras[0].capitalize()
+            self.estado = "area"
+            
+            return {
+                "resposta": f"Prazer, {self.nome_usuario}! Vamos mapear seu processo da DECIPEX. Em qual área você trabalha?",
+                "tipo_interface": "areas",
+                "dados_interface": {
+                    "opcoes_areas": self.AREAS_DECIPEX,
+                    "titulo": "Selecione sua área na DECIPEX"
+                },
+                "dados_extraidos": {"nome_usuario": self.nome_usuario},
+                "conversa_completa": False,
+                "progresso": self._calcular_progresso(),
+                "proximo_estado": "area"
+            }
+        else:
+            return {
+                "resposta": "Olá! Sou a Helena, assistente da DECIPEX para mapeamento de processos. Como você gostaria de ser chamado?",
+                "tipo_interface": "texto",
+                "dados_interface": {},
+                "dados_extraidos": {},
+                "conversa_completa": False,
+                "progresso": "0/10",
+                "proximo_estado": "nome"
+            }
+
+    def _processar_area(self, mensagem):
+        """Processa seleção de área"""
+        try:
+            area_id = int(mensagem.strip())
+            if area_id in self.AREAS_DECIPEX:
+                self.area_selecionada = area_id
+                self.dados["area"] = self.AREAS_DECIPEX[area_id]
+                self.estado = "sistemas"
+                
+                return {
+                    "resposta": f"Perfeito! Você trabalha na {self.AREAS_DECIPEX[area_id]['nome']}. Agora me diga: quais sistemas você utiliza neste processo?",
+                    "tipo_interface": "sistemas",
+                    "dados_interface": {
+                        "sistemas_por_categoria": self.SISTEMAS_DECIPEX,
+                        "area_contexto": self.AREAS_DECIPEX[area_id]['nome'],
+                        "multipla_selecao": True
+                    },
+                    "dados_extraidos": {"area": self.AREAS_DECIPEX[area_id]},
+                    "conversa_completa": False,
+                    "progresso": self._calcular_progresso(),
+                    "proximo_estado": "sistemas"
+                }
+            else:
+                raise ValueError("Área inválida")
+        except:
+            return {
+                "resposta": "Por favor, selecione uma área válida da lista.",
+                "tipo_interface": "areas",
+                "dados_interface": {"opcoes_areas": self.AREAS_DECIPEX},
+                "dados_extraidos": {},
+                "conversa_completa": False,
+                "progresso": self._calcular_progresso(),
+                "proximo_estado": "area"
+            }
+
+    def _processar_sistemas(self, mensagem):
+        """Processa seleção de sistemas"""
+        # Processar lista de sistemas selecionados
+        sistemas_texto = mensagem.strip()
         
-        contexto = "CAMPOS JÁ COLETADOS:\n" + "\n".join(confirmados) if confirmados else "Nenhum campo confirmado ainda"
+        if sistemas_texto.lower() in ["não sei", "nenhum", "não utilizo"]:
+            self.sistemas_selecionados = []
+        else:
+            # Extrair sistemas da mensagem
+            todos_sistemas = []
+            for categoria in self.SISTEMAS_DECIPEX.values():
+                todos_sistemas.extend(categoria)
+            
+            sistemas_encontrados = []
+            for sistema in todos_sistemas:
+                if sistema.lower() in sistemas_texto.lower():
+                    sistemas_encontrados.append(sistema)
+            
+            self.sistemas_selecionados = sistemas_encontrados
+
+        self.dados["sistemas"] = self.sistemas_selecionados
+        self.estado = "campos"
         
-        proximo = self._proximo_campo_vazio()
-        if proximo:
-            contexto += f"\n\n📍 PRÓXIMO: Pergunte sobre '{proximo}' de forma natural"
+        primeiro_campo = self.campos_principais[0]
+        resposta_sistemas = f"Sistemas registrados: {', '.join(self.sistemas_selecionados) if self.sistemas_selecionados else 'Nenhum sistema específico'}.\n\n"
         
-        return contexto
-    
-    def _proximo_campo_vazio(self):
-        """Próximo campo na ordem"""
-        for campo in self.ORDEM_CAMPOS:
-            if self.dados_coletados[campo]['estado'] != 'confirmado':
-                return campo
-        return None
-    
-    def _calcular_progresso(self):
-        """Calcula progresso"""
-        confirmados = sum(1 for d in self.dados_coletados.values() if d['estado'] == 'confirmado')
         return {
-            'confirmados': confirmados,
-            'vazios': 11 - confirmados
+            "resposta": f"{resposta_sistemas}{primeiro_campo['pergunta']} {primeiro_campo['exemplo']}",
+            "tipo_interface": "texto",
+            "dados_interface": {},
+            "dados_extraidos": {"sistemas": self.sistemas_selecionados},
+            "conversa_completa": False,
+            "progresso": self._calcular_progresso(),
+            "proximo_estado": "campos"
         }
-    
-    def obter_dados_pop(self):
-        """Retorna dados coletados"""
-        return {campo: dados['valor'] for campo, dados in self.dados_coletados.items() if dados['valor']}
-    
-    def gerar_pop_completo(self):
-        """Gera POP formatado"""
-        d = self.dados_coletados
+
+    def _processar_campos(self, mensagem):
+        """Processa coleta de campos principais"""
+        if self.etapa_atual_campo < len(self.campos_principais):
+            campo_atual = self.campos_principais[self.etapa_atual_campo]
+            
+            # Verificar se usuário não sabe
+            if mensagem.lower().strip() in ["não sei", "não tenho certeza", "help", "ajuda"]:
+                return self._consultar_rag_exemplos(campo_atual["nome"])
+            
+            # Salvar resposta
+            self.dados[campo_atual["nome"]] = mensagem.strip()
+            self.etapa_atual_campo += 1
+            
+            # Verificar se há próximo campo
+            if self.etapa_atual_campo < len(self.campos_principais):
+                proximo_campo = self.campos_principais[self.etapa_atual_campo]
+                
+                # ============ NOVA LÓGICA: SUGESTÃO DE BASE LEGAL ============
+                # Se o próximo campo for dispositivos normativos, sugerir base legal
+                if proximo_campo["nome"] == "dispositivos_normativos":
+                    sugestoes = self._sugerir_base_legal_contextual()
+                    
+                    if sugestoes:
+                        sugestoes_texto = self._formatar_sugestoes_base_legal(sugestoes)
+                        resposta = f"Anotado! {mensagem[:50]}{'...' if len(mensagem) > 50 else ''}\n\n{proximo_campo['pergunta']}\n\n{sugestoes_texto}"
+                    else:
+                        resposta = f"Anotado! {mensagem[:50]}{'...' if len(mensagem) > 50 else ''}\n\n{proximo_campo['pergunta']} {proximo_campo['exemplo']}"
+                else:
+                    # Campos normais sem sugestão
+                    resposta = f"Anotado! {mensagem[:50]}{'...' if len(mensagem) > 50 else ''}\n\n{proximo_campo['pergunta']} {proximo_campo['exemplo']}"
+                # ============================================================
+                
+                return {
+                    "resposta": resposta,
+                    "tipo_interface": "texto",
+                    "dados_interface": {},
+                    "dados_extraidos": {campo_atual["nome"]: mensagem.strip()},
+                    "conversa_completa": False,
+                    "progresso": self._calcular_progresso(),
+                    "proximo_estado": "campos"
+                }
+            else:
+                # Transição para etapas
+                self.estado = "etapas"
+                return {
+                    "resposta": f"Perfeito! Agora vamos mapear as etapas do processo. Descreva a primeira etapa desta atividade:",
+                    "tipo_interface": "texto",
+                    "dados_interface": {},
+                    "dados_extraidos": {campo_atual["nome"]: mensagem.strip()},
+                    "conversa_completa": False,
+                    "progresso": self._calcular_progresso(),
+                    "proximo_estado": "etapas"
+                }
+        else:
+            return self._erro_estado()
+
+    def _processar_etapas(self, mensagem):
+        """Processa coleta dinâmica de etapas"""
+        resposta_lower = mensagem.lower().strip()
         
-        return f"""
-PROCEDIMENTO OPERACIONAL PADRÃO (POP)
+        # Comandos especiais para gerenciamento de etapas
+        if resposta_lower in ["não", "nao", "não há mais", "fim", "finalizar"]:
+            if self.etapas_processo:
+                self.dados["etapas"] = self.etapas_processo
+                self.estado = "fluxos"
+                return {
+                    "resposta": "Ótimo! Agora vou perguntar sobre os fluxos de trabalho. Seu processo recebe insumos de outra área da DECIPEX?",
+                    "tipo_interface": "fluxos_entrada",
+                    "dados_interface": {
+                        "opcoes_areas": {k: v for k, v in self.AREAS_DECIPEX.items() if k != self.area_selecionada},
+                        "tipo_fluxo": "entrada"
+                    },
+                    "dados_extraidos": {"etapas": self.etapas_processo},
+                    "conversa_completa": False,
+                    "progresso": self._calcular_progresso(),
+                    "proximo_estado": "fluxos"
+                }
+            else:
+                return {
+                    "resposta": "Você precisa informar pelo menos uma etapa. Descreva a primeira etapa:",
+                    "tipo_interface": "texto",
+                    "dados_interface": {},
+                    "dados_extraidos": {},
+                    "conversa_completa": False,
+                    "progresso": self._calcular_progresso(),
+                    "proximo_estado": "etapas"
+                }
+        
+        # Adicionar etapa
+        numero_etapa = len(self.etapas_processo) + 1
+        etapa = {
+            "numero": numero_etapa,
+            "descricao": mensagem.strip()
+        }
+        self.etapas_processo.append(etapa)
+        
+        return {
+            "resposta": f"Etapa {numero_etapa} registrada: {mensagem[:60]}{'...' if len(mensagem) > 60 else ''}\n\nHá mais alguma etapa? (Digite a próxima etapa ou 'não' para finalizar)",
+            "tipo_interface": "texto",
+            "dados_interface": {},
+            "dados_extraidos": {"etapa_adicionada": etapa},
+            "conversa_completa": False,
+            "progresso": self._calcular_progresso(),
+            "proximo_estado": "etapas"
+        }
 
-Código: {d.get('codigo_arquitetura', {}).get('valor', 'A definir')}
+    def _processar_fluxos(self, mensagem):
+        """Processa fluxos entre áreas"""
+        resposta_lower = mensagem.lower().strip()
+        
+        # Lógica simplificada para fluxos
+        if resposta_lower in ["sim", "s", "há", "recebe"]:
+            # Processar áreas de entrada (simulado)
+            self.fluxos_entrada = ["CGPAG"]  # Exemplo
+            return {
+                "resposta": "Entendido! E seu processo entrega resultados para outra área da DECIPEX?",
+                "tipo_interface": "fluxos_saida",
+                "dados_interface": {
+                    "opcoes_areas": {k: v for k, v in self.AREAS_DECIPEX.items() if k != self.area_selecionada},
+                    "tipo_fluxo": "saida"
+                },
+                "dados_extraidos": {"fluxos_entrada": self.fluxos_entrada},
+                "conversa_completa": False,
+                "progresso": self._calcular_progresso(),
+                "proximo_estado": "fluxos"
+            }
+        elif hasattr(self, '_processando_saida'):
+            # Segunda pergunta de fluxos
+            if resposta_lower in ["sim", "s", "há", "entrega"]:
+                self.fluxos_saida = ["COATE"]  # Exemplo
+            
+            self.dados["fluxos_entrada"] = self.fluxos_entrada
+            self.dados["fluxos_saida"] = self.fluxos_saida
+            self.estado = "revisao"
+            
+            return {
+                "resposta": f"Excelente, {self.nome_usuario}! Coletei todas as informações. Vou gerar o código do processo e mostrar um resumo para sua revisão.",
+                "tipo_interface": "revisao",
+                "dados_interface": {
+                    "dados_completos": self._gerar_dados_completos_pop(),
+                    "codigo_gerado": self._gerar_codigo_processo()
+                },
+                "dados_extraidos": {"fluxos_saida": self.fluxos_saida},
+                "conversa_completa": False,
+                "progresso": "10/10",
+                "proximo_estado": "revisao"
+            }
+        else:
+            # Primeira pergunta de fluxos - não recebe insumos
+            self.fluxos_entrada = []
+            self._processando_saida = True
+            
+            return {
+                "resposta": "Entendido! E seu processo entrega resultados para outra área da DECIPEX?",
+                "tipo_interface": "fluxos_saida",
+                "dados_interface": {
+                    "opcoes_areas": {k: v for k, v in self.AREAS_DECIPEX.items() if k != self.area_selecionada},
+                    "tipo_fluxo": "saida"
+                },
+                "dados_extraidos": {"fluxos_entrada": self.fluxos_entrada},
+                "conversa_completa": False,
+                "progresso": self._calcular_progresso(),
+                "proximo_estado": "fluxos"
+            }
 
-MACROPROCESSO: {d.get('macroprocesso', {}).get('valor', 'Não informado')}
-PROCESSO: {d.get('processo', {}).get('valor', 'Não informado')}
-ATIVIDADE: {d.get('nome_processo', {}).get('valor', 'Não informado')}
+    def _processar_revisao(self, mensagem):
+        """Processa revisão final"""
+        resposta_lower = mensagem.lower().strip()
+        
+        if resposta_lower in ["gerar", "pdf", "finalizar", "ok", "está bom"]:
+            # ============ ALTERAÇÃO: RETORNAR DICT AO INVÉS DE TEXTO ============
+            return {
+                "resposta": f"POP criado com sucesso, {self.nome_usuario}! Preparando dados para geração do PDF profissional...",
+                "tipo_interface": "final",
+                "dados_interface": {
+                    "pop_completo": self._gerar_dados_completos_pop(),
+                    "codigo": self._gerar_codigo_processo()
+                },
+                "dados_extraidos": self._gerar_dados_completos_pop(),
+                "conversa_completa": True,
+                "progresso": "10/10",
+                "proximo_estado": "completo"
+            }
+        else:
+            return {
+                "resposta": "O que você gostaria de editar? Posso ajustar qualquer informação.",
+                "tipo_interface": "revisao",
+                "dados_interface": {
+                    "dados_completos": self._gerar_dados_completos_pop(),
+                    "editavel": True
+                },
+                "dados_extraidos": {},
+                "conversa_completa": False,
+                "progresso": "10/10",
+                "proximo_estado": "revisao"
+            }
 
-1. ENTREGA ESPERADA:
-{d.get('entrega_esperada', {}).get('valor', 'Não informado')}
+    # =============================================================================
+    # NOVOS MÉTODOS: SUGESTÃO DE BASE LEGAL
+    # =============================================================================
 
-2. DISPOSITIVOS NORMATIVOS:
-{d.get('dispositivos_normativos', {}).get('valor', 'Não informado')}
+    def _sugerir_base_legal_contextual(self) -> List[Dict[str, Any]]:
+        """Sugere base legal baseada no contexto coletado até agora"""
+        try:
+            # Montar contexto para sugestão
+            contexto = {
+                "nome_processo": self.dados.get("nome_processo", ""),
+                "area_codigo": self.AREAS_DECIPEX.get(self.area_selecionada, {}).get("codigo", ""),
+                "sistemas": self.sistemas_selecionados,
+                "objetivo": self.dados.get("entrega_esperada", "")
+            }
+            
+            # Chamar suggestor
+            sugestoes = self.suggestor_base_legal.sugerir_base_legal(contexto)
+            
+            # Retornar top 3
+            return sugestoes[:3]
+            
+        except Exception as e:
+            print(f"Erro ao sugerir base legal: {e}")
+            return []
 
-3. SISTEMAS UTILIZADOS:
-{d.get('sistemas_utilizados', {}).get('valor', 'Não informado')}
+    def _formatar_sugestoes_base_legal(self, sugestoes: List[Dict[str, Any]]) -> str:
+        """Formata sugestões de base legal para exibição"""
+        if not sugestoes:
+            return ""
+        
+        texto = "💡 **Baseado no seu processo, encontrei estas normas relevantes:**\n\n"
+        
+        for i, sugestao in enumerate(sugestoes, 1):
+            confianca = sugestao.get('confianca', 0)
+            icone_confianca = "🟢" if confianca > 80 else "🟡" if confianca > 60 else "🔵"
+            
+            texto += f"{icone_confianca} **{sugestao['nome_curto']}** - {sugestao.get('artigos', '')}\n"
+            texto += f"   {sugestao['nome_completo']}\n"
+            texto += f"   (Relevância: {int(confianca)}%)\n\n"
+        
+        texto += "Você pode usar estas sugestões ou informar outras normas que conheça."
+        
+        return texto
 
-4. OPERADORES:
-{d.get('operadores', {}).get('valor', 'Não informado')}
+    # =============================================================================
+    # INTEGRAÇÃO RAG
+    # =============================================================================
 
-5. TAREFAS/ETAPAS:
-{d.get('etapas', {}).get('valor', 'Não informado')}
+    def _consultar_rag_exemplos(self, campo):
+        """Consulta RAG quando usuário não sabe responder"""
+        if not self.vectorstore:
+            return {
+                "resposta": f"Para o campo '{campo}', você pode me dar qualquer informação que souber. Mesmo que seja parcial, podemos construir juntos!",
+                "tipo_interface": "texto",
+                "dados_interface": {},
+                "dados_extraidos": {},
+                "conversa_completa": False,
+                "progresso": self._calcular_progresso(),
+                "proximo_estado": self.estado
+            }
+        
+        try:
+            area_nome = self.AREAS_DECIPEX[self.area_selecionada]["nome"] if self.area_selecionada else ""
+            query = f"{campo} {area_nome} DECIPEX processos"
+            docs = self.vectorstore.similarity_search(query, k=3)
+            
+            exemplos = self._extrair_exemplos(docs, campo)
+            
+            return {
+                "resposta": f"Com base em processos similares da {area_nome}, geralmente temos exemplos como: {exemplos}. Seu processo é similar a algum destes?",
+                "tipo_interface": "texto",
+                "dados_interface": {"fonte": "RAG", "exemplos": exemplos},
+                "dados_extraidos": {},
+                "conversa_completa": False,
+                "progresso": self._calcular_progresso(),
+                "proximo_estado": self.estado
+            }
+        except Exception as e:
+            return {
+                "resposta": f"Vou te ajudar com o campo '{campo}'. Me conte o que você sabe, mesmo que seja pouco!",
+                "tipo_interface": "texto",
+                "dados_interface": {},
+                "dados_extraidos": {},
+                "conversa_completa": False,
+                "progresso": self._calcular_progresso(),
+                "proximo_estado": self.estado
+            }
 
-6. DOCUMENTOS:
-{d.get('documentos_utilizados', {}).get('valor', 'Não informado')}
+    def _extrair_exemplos(self, docs, campo):
+        """Extrai exemplos relevantes dos documentos RAG"""
+        exemplos = []
+        for doc in docs:
+            content = doc.page_content.lower()
+            if campo.lower() in content:
+                # Extrair contexto relevante
+                linhas = content.split('\n')
+                for linha in linhas:
+                    if campo.lower() in linha and len(linha.strip()) > 10:
+                        exemplos.append(linha.strip()[:100])
+                        break
+        
+        return exemplos[:3] if exemplos else ["Processo de análise", "Procedimento de cadastro", "Atividade de controle"]
 
-7. PONTOS DE ATENÇÃO:
-{d.get('pontos_atencao', {}).get('valor', 'Não informado')}
-"""
+    # =============================================================================
+    # GERAÇÃO DE CÓDIGO E DADOS
+    # =============================================================================
+
+    def _gerar_codigo_processo(self):
+        """Gera código baseado na área e estrutura"""
+        if not self.area_selecionada:
+            return "X.X.X.X"
+        
+        prefixo = self.AREAS_DECIPEX[self.area_selecionada]["prefixo"]
+        # Lógica simplificada - em produção consultaria RAG para incrementar
+        return f"{prefixo}.1.1.1"
+
+    def _gerar_dados_completos_pop(self):
+        """Organiza todos os dados coletados"""
+        return {
+            "nome_usuario": self.nome_usuario,
+            "area": self.dados.get("area", {}),
+            "sistemas": self.dados.get("sistemas", []),
+            "codigo_processo": self._gerar_codigo_processo(),
+            "nome_processo": self.dados.get("nome_processo", ""),
+            "processo_especifico": self.dados.get("processo_especifico", ""),
+            "entrega_esperada": self.dados.get("entrega_esperada", ""),
+            "operadores": self.dados.get("operadores", ""),
+            "dispositivos_normativos": self.dados.get("dispositivos_normativos", ""),
+            "documentos_utilizados": self.dados.get("documentos_utilizados", ""),
+            "pontos_atencao": self.dados.get("pontos_atencao", ""),
+            "etapas": self.etapas_processo,
+            "fluxos_entrada": self.fluxos_entrada,
+            "fluxos_saida": self.fluxos_saida,
+            "data_criacao": datetime.now().strftime("%d/%m/%Y %H:%M")
+        }
+
+    def _gerar_pop_completo(self):
+        """Gera documento POP formatado - RETORNA DICT para PDFGenerator"""
+        # Não gera mais texto, apenas retorna dados estruturados
+        # O PDFGenerator em processos.utils fará a geração real
+        return self._gerar_dados_completos_pop()
+
+    # =============================================================================
+    # MÉTODOS AUXILIARES
+    # =============================================================================
+
+    def _calcular_progresso(self):
+        """Calcula progresso atual da conversa"""
+        total_etapas = 10
+        etapas_concluidas = 0
+        
+        if self.nome_usuario:
+            etapas_concluidas += 1
+        if self.area_selecionada:
+            etapas_concluidas += 1
+        if self.sistemas_selecionados is not None:
+            etapas_concluidas += 1
+        
+        etapas_concluidas += self.etapa_atual_campo
+        
+        if self.etapas_processo:
+            etapas_concluidas += 1
+        if hasattr(self, 'fluxos_entrada'):
+            etapas_concluidas += 1
+        if self.estado == "revisao":
+            etapas_concluidas = 10
+            
+        return f"{min(etapas_concluidas, total_etapas)}/10"
+
+    def _erro_estado(self):
+        """Retorna erro de estado"""
+        return {
+            "resposta": "Ops! Algo deu errado. Vamos recomeçar?",
+            "tipo_interface": "texto",
+            "dados_interface": {},
+            "dados_extraidos": {},
+            "conversa_completa": False,
+            "progresso": self._calcular_progresso(),
+            "proximo_estado": "nome"
+        }
+
+    # =============================================================================
+    # MÉTODOS PÚBLICOS PARA INTERFACE
+    # =============================================================================
+
+    def obter_dados_pop(self):
+        """Retorna dados coletados para o formulário"""
+        return self._gerar_dados_completos_pop()
+
+    def obter_progresso(self):
+        """Retorna detalhes do progresso atual"""
+        dados = self._gerar_dados_completos_pop()
+        campos_preenchidos = sum(1 for k, v in dados.items() if v and k != "data_criacao")
+        
+        return {
+            "campos_preenchidos": campos_preenchidos,
+            "total_campos": 10,
+            "percentual": int((campos_preenchidos / 10) * 100),
+            "estado_atual": self.estado,
+            "completo": self.estado == "revisao"
+        }
+
+    def reiniciar_conversa(self):
+        """Reinicia a conversa do zero"""
+        self.__init__()
+        
+    def obter_codigo_gerado(self):
+        """Retorna o código gerado para o processo"""
+        return self._gerar_codigo_processo()

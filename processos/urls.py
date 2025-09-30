@@ -1,4 +1,4 @@
-# processos/urls.py - URLs completas do sistema
+# processos/urls.py - URLs completas do sistema com APIs renovadas
 
 from django.urls import path
 from . import views
@@ -8,37 +8,57 @@ urlpatterns = [
     # PÁGINAS DO SISTEMA
     # ============================================================================
     
-    # Página institucional principal
     path('', views.landing_temp, name='landing'),
-    
-    # Portal do sistema 
     path('portal/', views.portal_temp, name='portal'),
-    
-    # Chat Helena (mapeamento de processos)
     path('chat/', views.chat_temp, name='chat-page'),
-    
-    # Análise de Riscos - POP
     path('riscos/fluxo/', views.riscos_fluxo, name='riscos_fluxo'),
-    
-    # Gerador de Fluxogramas via PDF
     path('fluxograma/', views.fluxograma_temp, name='fluxograma'),
-    
+
     # ============================================================================
-    # APIs DO SISTEMA
+    # APIs HELENA - CHAT CONVERSACIONAL
     # ============================================================================
     
-    # API Helena - Chat conversacional para mapeamento
-    path('api/chat_message/', views.chat_api_view, name='chat-api'),
-    
-    # API Helena Recepcionista - Landing Page (orientação geral)
+    path('api/chat/', views.chat_api_view, name='chat-api'),
     path('api/chat-recepcao/', views.chat_recepcao_api, name='chat_recepcao_api'),
+    path('api/reiniciar-conversa-helena/', views.reiniciar_conversa_helena, name='reiniciar_helena'),
+
+    # ============================================================================
+    # APIs PDF E DOCUMENTOS - NOVAS
+    # ============================================================================
     
-    # API Extração PDF - Processar POPs em PDF
+    path('api/gerar-pdf-pop/', views.gerar_pdf_pop, name='gerar_pdf_pop'),
+    path('api/download-pdf/<str:nome_arquivo>/', views.download_pdf, name='download_pdf'),
+    path('api/validar-dados-pop/', views.validar_dados_pop, name='validar_dados_pop'),
+
+    # ============================================================================
+    # APIs RAG E SUGESTÕES - NOVAS
+    # ============================================================================
+    
+    path('api/consultar-rag-sugestoes/', views.consultar_rag_sugestoes, name='consultar_rag'),
+
+    # ============================================================================
+    # APIs EXTRAÇÃO E ANÁLISE PDF - EXISTENTES
+    # ============================================================================
+    
     path('api/extract-pdf/', views.extract_pdf_text, name='extract_pdf'),
-    
-    # API Helena - Análise especializada de riscos
     path('api/analyze-risks/', views.analyze_risks_helena, name='analyze_risks'),
-    
-    # API Fluxograma a partir de PDF - Upload e Chat
     path('api/fluxograma-from-pdf/', views.fluxograma_from_pdf, name='fluxograma_from_pdf'),
+
+    # ============================================================================
+    # APIs FUTURAS - PRODUTOS EM DESENVOLVIMENTO
+    # ============================================================================
+    
+    # path('api/dashboard/', views.dashboard_api, name='dashboard_api'),
+    # path('api/analise-riscos-completa/', views.analise_riscos_api, name='analise_riscos_api'),
+    # path('api/relatorio-riscos/', views.relatorio_riscos_api, name='relatorio_riscos_api'),
+    # path('api/plano-acao/', views.plano_acao_api, name='plano_acao_api'),
+    # path('api/dossie-governanca/', views.dossie_governanca_api, name='dossie_governanca_api'),
+    # path('api/gerador-documentos/', views.gerador_documentos_api, name='gerador_documentos_api'),
+    # path('api/relatorio-conformidade/', views.relatorio_conformidade_api, name='relatorio_conformidade_api'),
+    # path('api/analise-artefatos/', views.analise_artefatos_api, name='analise_artefatos_api'),
+
+    # ============================================================================
+    # API DE TESTE OPENAI
+    # ============================================================================
+    path('api/test-openai/', views.test_openai, name='test_openai'),
 ]

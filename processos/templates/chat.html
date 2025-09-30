@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Helena - Mapeamento de Processos</title>
+    <title>Helena - Mapeamento de Processos DECIPEX</title>
     {% load static %}
     
     <style>
@@ -16,32 +16,79 @@
         }
         
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
+            width: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: row;   /* <- lado a lado */
+            gap: 20px;
+            height: 100vh;         /* opcional, mas ajuda a ocupar a tela inteira */
+            padding: 10px;
         }
         
+        /* ========== SEÇÃO DO CHAT ========== */
         .chat-section {
             background: white;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            height: 600px;
+            height: 100%
+            flex: 0.45;
         }
         
         .chat-header {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
+            background: linear-gradient(135deg, #1351B4, #0E4B99);
             color: white;
             padding: 20px;
             text-align: center;
             border-radius: 15px 15px 0 0;
+            position: relative;
         }
         
         .chat-header h2 { margin: 0; font-size: 24px; }
         .chat-header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 14px; }
+        
+        /* Barra de progresso */
+        .progress-container {
+            margin-top: 15px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: white;
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-text {
+            font-size: 12px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+        
+        /* Botão de reiniciar */
+        .reset-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        
+        .reset-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
         
         #chat-container {
             flex: 1;
@@ -72,10 +119,10 @@
             outline: none;
         }
         
-        #user-input:focus { border-color: #4CAF50; }
+        #user-input:focus { border-color: #1351B4; }
         
         #enviar-btn {
-            background: #4CAF50;
+            background: #1351B4;
             color: white;
             border: none;
             padding: 15px 25px;
@@ -85,19 +132,21 @@
             transition: 0.3s;
         }
         
-        #enviar-btn:hover { background: #45a049; }
+        #enviar-btn:hover { background: #0E4B99; }
         #enviar-btn:disabled { background: #ccc; cursor: not-allowed; }
         
+        /* ========== MENSAGENS ========== */
         .mensagem {
             padding: 12px 16px;
             border-radius: 12px;
             max-width: 80%;
             word-wrap: break-word;
+            line-height: 1.4;
         }
         
         .mensagem.usuario {
             margin-left: auto;
-            background: #4CAF50;
+            background: #1351B4;
             color: white;
         }
         
@@ -111,24 +160,181 @@
             font-style: italic;
         }
         
+        /* ========== INTERFACES INTERATIVAS ========== */
+        .interface-container {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px 0;
+            max-width: 90%;
+        }
+        
+        .interface-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 16px;
+        }
+        
+        /* Seleção de áreas */
+        .areas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px;
+        }
+        
+        .area-option {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .area-option:hover {
+            border-color: #1351B4;
+            background: #f0f4ff;
+        }
+        
+        .area-option.selected {
+            border-color: #1351B4;
+            background: #e6efff;
+        }
+        
+        .area-codigo {
+            font-weight: bold;
+            color: #1351B4;
+            font-size: 18px;
+        }
+        
+        .area-nome {
+            font-size: 14px;
+            margin-top: 5px;
+            color: #666;
+        }
+        
+        /* Seleção de sistemas */
+        .sistemas-container {
+            margin: 15px 0;
+        }
+        
+        .categoria-sistemas {
+            margin-bottom: 20px;
+        }
+        
+        .categoria-titulo {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .sistemas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+        
+        .sistema-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .sistema-checkbox:hover {
+            background: #f8f9fa;
+            border-color: #4CAF50;
+        }
+        
+        .sistema-checkbox input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+        }
+        
+        .sistema-checkbox.selected {
+            background: #e8f5e8;
+            border-color: #4CAF50;
+        }
+        
+        /* Botões de ação */
+        .action-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .btn-interface {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #1351B4;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0E4B99;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        /* ========== SEÇÃO DO FORMULÁRIO ========== */
         .form-section {
             background: white;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            height: 600px;
+            height: 100%;
+            flex: 0.55;
         }
         
         .form-header {
-            background: linear-gradient(135deg, #2196F3, #1976D2);
+            background: linear-gradient(135deg, #495057, #343a40);
             color: white;
             padding: 20px;
             text-align: center;
             border-radius: 15px 15px 0 0;
+            position: relative;
         }
         
         .form-header h2 { margin: 0; font-size: 24px; }
+        
+        /* Indicador de campos preenchidos */
+        .fields-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
         
         .form-content {
             flex: 1;
@@ -138,6 +344,7 @@
         
         .form-group {
             margin-bottom: 20px;
+            position: relative;
         }
         
         .form-group label {
@@ -154,6 +361,19 @@
             border: 2px solid #ddd;
             border-radius: 8px;
             font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #495057;
+        }
+        
+        .form-group input.preenchido,
+        .form-group textarea.preenchido {
+            border-color: #1351B4;
+            background: #f0f4ff;
         }
         
         .form-group textarea {
@@ -161,20 +381,324 @@
             resize: vertical;
         }
         
-        @media (max-width: 768px) {
+        /* Validação em tempo real */
+        .validacao-feedback {
+            position: absolute;
+            right: 10px;
+            top: 35px;
+            font-size: 18px;
+        }
+        
+        .validacao-feedback.valido {
+            color: #1351B4;
+        }
+        
+        .validacao-feedback.invalido {
+            color: #f44336;
+        }
+        
+        /* Seções do formulário */
+        .form-section-header {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 30px 0 20px 0;
+        }
+        
+        .form-section-header h3 {
+            margin: 0;
+            color: #1B4F72;
+            font-size: 16px;
+        }
+        
+        /* Botões de ação do formulário */
+        .form-actions {
+            padding: 20px 30px;
+            background: #fafafa;
+            border-radius: 0 0 15px 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .btn-form {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-form.gerar-pdf {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-form.gerar-pdf:hover {
+            background: #f57c00;
+        }
+        
+        .btn-form.limpar {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-form.limpar:hover {
+            background: #5a6268;
+        }
+        
+        .btn-form.ver-preview {
+            background: #1351B4;
+            color: white;
+        }
+        
+        .btn-form.ver-preview:hover {
+            background: #0E4B99;
+        }
+        
+        /* ========== MODO REVISÃO DO FORMULÁRIO ========== */
+        .form-section.modo-revisao .form-header {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            animation: pulseHeader 2s infinite;
+        }
+        
+        @keyframes pulseHeader {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.9; }
+        }
+        
+        .form-section.modo-revisao .form-header h2::before {
+            content: "✓ ";
+            color: white;
+        }
+        
+        .form-section.modo-revisao input,
+        .form-section.modo-revisao textarea {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .form-section.modo-revisao input:focus,
+        .form-section.modo-revisao textarea:focus {
+            border-color: #20c997;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        }
+        
+        .btn-gerar-pdf-ativo {
+            background: linear-gradient(135deg, #ff9800, #ff6f00) !important;
+            animation: pulseBotao 1.5s infinite;
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+        }
+        
+        @keyframes pulseBotao {
+            0%, 100% { transform: scale(1.05); }
+            50% { transform: scale(1.08); }
+        }
+        
+        /* ========== MODAL DE PREVIEW ========== */
+        .modal-preview {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            overflow-y: auto;
+        }
+        
+        .modal-preview.ativo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content-preview {
+            background: white;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-header-preview {
+            background: linear-gradient(135deg, #1351B4, #0E4B99);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header-preview h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .modal-body-preview {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+        
+        .preview-secao {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        
+        .preview-titulo {
+            background: #F0F4FF;
+            color: #1351B4;
+            padding: 12px 15px;
+            font-weight: bold;
+            border-left: 4px solid #1351B4;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .preview-conteudo {
+            padding: 10px 15px;
+            line-height: 1.6;
+            font-size: 12px;
+        }
+        
+        .preview-identificacao {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 3px solid #1351B4;
+            margin-bottom: 30px;
+        }
+        
+        .preview-identificacao h1 {
+            color: #1351B4;
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+        
+        .modal-footer-preview {
+            padding: 20px;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .btn-modal {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .btn-modal.confirmar {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-modal.confirmar:hover {
+            background: #f57c00;
+        }
+        
+        .btn-modal.voltar {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-modal.voltar:hover {
+            background: #5a6268;
+        }
+        
+        /* ========== RESPONSIVIDADE ========== */
+        @media (max-width: 1200px) {
             .container {
                 grid-template-columns: 1fr;
+                gap: 20px;
             }
+            
+            .chat-section { flex: 0.4; min-width: 40%; height: 100vh; }
+            .form-section { flex: 0.6; min-width: 60%; height: 100vh; }
+                height: auto;
+                min-height: 500px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .areas-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sistemas-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-content {
+                padding: 20px;
+            }
+        }
+        
+        /* ========== ANIMAÇÕES ========== */
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Chat -->
+        <!-- ========== SEÇÃO DO CHAT ========== -->
         <div class="chat-section">
             <div class="chat-header">
-                <h2>Helena - Assistente de Processos</h2>
+                <button class="reset-btn" onclick="reiniciarConversa()">🔄 Reiniciar</button>
+                <h2>Helena - Assistente DECIPEX</h2>
                 <p>Mapeamento conversacional de POPs</p>
+                
+                <!-- Barra de progresso -->
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <div class="progress-text" id="progress-text">0/10 - Vamos começar!</div>
             </div>
             
             <div id="chat-container"></div>
@@ -184,15 +708,16 @@
                     <input type="text" 
                            id="user-input" 
                            placeholder="Digite sua mensagem..."
-                           maxlength="500">
+                           maxlength="2000">
                     <button id="enviar-btn">Enviar</button>
                 </div>
             </div>
         </div>
         
-        <!-- Formulário -->
+        <!-- ========== SEÇÃO DO FORMULÁRIO ========== -->
         <div class="form-section">
             <div class="form-header">
+                <div class="fields-indicator" id="fields-indicator">0/10 campos</div>
                 <h2>Formulário do POP</h2>
             </div>
             
@@ -201,133 +726,195 @@
                     {% csrf_token %}
                     
                     <!-- IDENTIFICAÇÃO -->
-                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
-                        <h3 style="margin: 0; color: #1B4F72; font-size: 16px;">📋 Identificação do Processo</h3>
+                    <div class="form-section-header">
+                        <h3>📋 Identificação do Processo</h3>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Área DECIPEX</label>
+                        <input type="text" id="area_nome" name="area_nome" readonly placeholder="Será preenchido pela conversa">
+                        <div class="validacao-feedback" id="valid-area"></div>
                     </div>
                     
                     <div class="form-group">
                         <label>Código na Arquitetura de Processos</label>
                         <input type="text" id="codigo_arquitetura" name="codigo_arquitetura" placeholder="Ex: 2.3.3.1">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Macroprocesso</label>
-                        <input type="text" id="macroprocesso" name="macroprocesso" placeholder="Ex: Gestão de Auxílios">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Processo</label>
-                        <input type="text" id="processo" name="processo" placeholder="Ex: Gestão de Benefícios de Assistência à Saúde">
+                        <div class="validacao-feedback" id="valid-codigo"></div>
                     </div>
                     
                     <div class="form-group">
                         <label>Nome da Atividade</label>
                         <input type="text" id="nome_processo" name="nome_processo" placeholder="Ex: Conceder Ressarcimento a Aposentado Civil">
+                        <div class="validacao-feedback" id="valid-nome"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Processo Específico</label>
+                        <input type="text" id="processo_especifico" name="processo_especifico" placeholder="Ex: Gestão de Benefícios de Assistência à Saúde">
+                        <div class="validacao-feedback" id="valid-processo"></div>
                     </div>
                     
                     <!-- SEÇÃO 1 -->
-                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin: 30px 0 20px 0;">
-                        <h3 style="margin: 0; color: #1B4F72; font-size: 16px;">1. Entrega Esperada</h3>
+                    <div class="form-section-header">
+                        <h3>1. Entrega Esperada</h3>
                     </div>
                     
                     <div class="form-group">
                         <label>Entrega Esperada da Atividade</label>
                         <textarea id="entrega_esperada" name="entrega_esperada" placeholder="Descreva o resultado/produto final da atividade..."></textarea>
+                        <div class="validacao-feedback" id="valid-entrega"></div>
                     </div>
                     
                     <!-- SEÇÃO 2 -->
-                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin: 30px 0 20px 0;">
-                        <h3 style="margin: 0; color: #1B4F72; font-size: 16px;">2. Dispositivos Normativos</h3>
+                    <div class="form-section-header">
+                        <h3>2. Dispositivos Normativos</h3>
                     </div>
                     
                     <div class="form-group">
                         <label>Dispositivos Normativos Aplicáveis</label>
-                        <textarea id="dispositivos_normativos" name="dispositivos_normativos" placeholder="Ex: Art. 34 a 42 da IN SGP/SEDGG/ME nº 97/2022&#10;Lei nº 8.112/90..."></textarea>
+                        <textarea id="dispositivos_normativos" name="dispositivos_normativos" placeholder="Ex: Art. 34 a 42 da IN SGP/SEDGG/ME nº 97/2022"></textarea>
+                        <div class="validacao-feedback" id="valid-normativos"></div>
                     </div>
                     
                     <!-- SEÇÃO 3 -->
-                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin: 30px 0 20px 0;">
-                        <h3 style="margin: 0; color: #1B4F72; font-size: 16px;">3. Sistemas Utilizados</h3>
+                    <div class="form-section-header">
+                        <h3>3. Sistemas Utilizados</h3>
                     </div>
                     
                     <div class="form-group">
                         <label>Sistemas Utilizados / Acessos Necessários</label>
-                        <input type="text" id="sistemas_utilizados" name="sistemas_utilizados" placeholder="Ex: SouGov, SEI, SIGEPE, SIAPE">
+                        <input type="text" id="sistemas_utilizados" name="sistemas_utilizados" readonly placeholder="Será preenchido pela conversa">
+                        <div class="validacao-feedback" id="valid-sistemas"></div>
                     </div>
                     
                     <!-- SEÇÃO 4 -->
-                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin: 30px 0 20px 0;">
-                        <h3 style="margin: 0; color: #1B4F72; font-size: 16px;">4. Operadores</h3>
+                    <div class="form-section-header">
+                        <h3>4. Operadores</h3>
                     </div>
                     
                     <div class="form-group">
                         <label>Operadores da Atividade</label>
                         <textarea id="operadores" name="operadores" placeholder="Ex: Técnico Especializado, Coordenador, Apoio-Gabinete..."></textarea>
+                        <div class="validacao-feedback" id="valid-operadores"></div>
                     </div>
                     
                     <!-- SEÇÃO 5 -->
-                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin: 30px 0 20px 0;">
-                        <h3 style="margin: 0; color: #1B4F72; font-size: 16px;">5. Tarefas/Etapas</h3>
+                    <div class="form-section-header">
+                        <h3>5. Tarefas/Etapas</h3>
                     </div>
                     
                     <div class="form-group">
-                        <label>Tarefas Realizadas na Atividade</label>
-                        <textarea id="etapas" name="etapas" style="min-height: 150px;" placeholder="Descreva o passo a passo detalhado:&#10;1. Primeira etapa...&#10;2. Segunda etapa..."></textarea>
+                        <label>Etapas do Processo</label>
+                        <div id="etapas-container">
+                            <textarea id="etapas_display" name="etapas_display" readonly style="min-height: 150px;" placeholder="As etapas serão listadas aqui conforme a conversa..."></textarea>
+                        </div>
+                        <div class="validacao-feedback" id="valid-etapas"></div>
                     </div>
                     
                     <!-- SEÇÃO 6 -->
-                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin: 30px 0 20px 0;">
-                        <h3 style="margin: 0; color: #1B4F72; font-size: 16px;">6. Documentos</h3>
+                    <div class="form-section-header">
+                        <h3>6. Documentos</h3>
                     </div>
                     
                     <div class="form-group">
                         <label>Documentos, Formulários e Modelos Utilizados</label>
                         <textarea id="documentos_utilizados" name="documentos_utilizados" placeholder="Liste os documentos necessários e gerados..."></textarea>
+                        <div class="validacao-feedback" id="valid-documentos"></div>
                     </div>
                     
                     <!-- SEÇÃO 7 -->
-                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin: 30px 0 20px 0;">
-                        <h3 style="margin: 0; color: #1B4F72; font-size: 16px;">7. Pontos de Atenção</h3>
+                    <div class="form-section-header">
+                        <h3>7. Pontos de Atenção</h3>
                     </div>
                     
                     <div class="form-group">
                         <label>Pontos Gerais de Atenção na Atividade</label>
                         <textarea id="pontos_atencao" name="pontos_atencao" placeholder="Alertas, cuidados especiais, observações importantes..."></textarea>
+                        <div class="validacao-feedback" id="valid-pontos"></div>
                     </div>
                     
                 </form>
+            </div>
+            
+            <!-- Ações do formulário -->
+            <div class="form-actions">
+                <button type="button" class="btn-form limpar" onclick="limparFormulario()">🗑️ Limpar</button>
+                <button type="button" class="btn-form ver-preview" onclick="abrirModalPreview()" id="btn-ver-preview" disabled>👁️ Ver Preview</button>
+                <button type="button" class="btn-form gerar-pdf" onclick="gerarPDF()" id="btn-gerar-pdf" disabled>📄 Gerar PDF</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========== MODAL DE PREVIEW DO PDF ========== -->
+    <div class="modal-preview" id="modal-preview">
+        <div class="modal-content-preview">
+            <div class="modal-header-preview">
+                <h2>Preview do POP - Visualização antes de gerar PDF</h2>
+                <button class="modal-close" onclick="fecharModalPreview()">×</button>
+            </div>
+            
+            <div class="modal-body-preview" id="modal-body-preview">
+                <!-- Conteúdo será injetado dinamicamente -->
+            </div>
+            
+            <div class="modal-footer-preview">
+                <button class="btn-modal voltar" onclick="fecharModalPreview()">← Voltar para editar</button>
+                <button class="btn-modal confirmar" onclick="confirmarGerarPDF()">📄 Está perfeito! Gerar PDF</button>
             </div>
         </div>
     </div>
     
     <script>
+        // ========== VARIÁVEIS GLOBAIS ==========
         const chatContainer = document.getElementById('chat-container');
         const userInput = document.getElementById('user-input');
         const enviarBtn = document.getElementById('enviar-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const fieldsIndicator = document.getElementById('fields-indicator');
+        
         let processando = false;
-
-        // Mensagem inicial
-        adicionarMensagem('helena', 'Olá! Sou a Helena. Vamos mapear um processo?');
-
+        let dadosColetas = {};
+        let sessionId = 'user_' + Date.now();
+        
+        // ========== INICIALIZAÇÃO ==========
+        inicializarChat();
+        
+        function inicializarChat() {
+            adicionarMensagem('helena', 'Olá! Sou a Helena, assistente da DECIPEX para mapeamento de processos. Como você gostaria de ser chamado?');
+            atualizarProgresso(0, '0/10 - Vamos começar!');
+        }
+        
+        // ========== EVENTOS ==========
         enviarBtn.addEventListener('click', enviarMensagem);
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !processando) enviarMensagem();
         });
-
+        
+        // Validação em tempo real dos campos
+        document.querySelectorAll('input, textarea').forEach(campo => {
+            campo.addEventListener('input', () => validarCampo(campo));
+        });
+        
+        // ========== FUNÇÕES PRINCIPAIS ==========
         async function enviarMensagem() {
             const mensagem = userInput.value.trim();
             if (!mensagem || processando) return;
-
+            
             processando = true;
             enviarBtn.disabled = true;
-
+            enviarBtn.textContent = 'Enviando...';
+            
             adicionarMensagem('usuario', mensagem);
             userInput.value = '';
-
-            const loadingId = adicionarMensagem('helena', 'Analisando...', 'loading');
-
+            
+            const loadingId = adicionarMensagem('helena', 'Processando...', 'loading');
+            
             try {
-                const response = await fetch('/api/chat_message/', {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                
+                const response = await fetch('/api/chat/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -335,39 +922,267 @@
                     },
                     body: JSON.stringify({
                         message: mensagem,
-                        contexto: 'gerador_pop'
-                    })
+                        contexto: 'gerador_pop',
+                        session_id: sessionId
+                    }),
+                    signal: controller.signal
                 });
-
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
-
-                // Remover loading
+                
                 document.getElementById(loadingId)?.remove();
-
-                // Adicionar resposta
-                adicionarMensagem('helena', data.resposta || 'Não entendi. Pode reformular?');
-
-                // Preencher formulário
-                if (data.dados_extraidos) {
-                    preencherFormulario(data.dados_extraidos);
-                }
-
-                // Log progresso
-                if (data.progresso) {
-                    console.log('Progresso:', data.progresso);
-                }
-
+                
+                processarResposta(data);
+                
             } catch (error) {
                 console.error('Erro:', error);
                 document.getElementById(loadingId)?.remove();
-                adicionarMensagem('helena', 'Erro ao processar. Tente novamente.');
+                
+                if (error.name === 'AbortError') {
+                    adicionarMensagem('helena', '⏰ Timeout - A resposta demorou muito. Tente uma pergunta mais simples.');
+                } else {
+                    adicionarMensagem('helena', '❌ Erro de conexão. Verifique sua internet e tente novamente.');
+                }
             } finally {
                 processando = false;
                 enviarBtn.disabled = false;
+                enviarBtn.textContent = 'Enviar';
                 userInput.focus();
             }
         }
+        
+        function processarResposta(data) {
+            adicionarMensagem('helena', data.resposta || 'Não entendi. Pode reformular?');
+            
+            // NOVO: se o back-end enviar um tipo de interface, renderiza a UI correspondente
+if (data.tipo_interface) {
+    criarInterface(data.tipo_interface, data.dados_interface || {});
+}
 
+            if (data.dados_extraidos) {
+                Object.assign(dadosColetas, data.dados_extraidos);
+                preencherFormulario(data.dados_extraidos);
+            }
+            
+            if (data.progresso) {
+                const [atual, total] = data.progresso.split('/');
+                const porcentagem = (parseInt(atual) / parseInt(total)) * 100;
+                atualizarProgresso(porcentagem, data.progresso);
+            }
+            
+            // Habilitar modo revisão se conversa completa
+            if (data.conversa_completa) {
+                ativarModoRevisao();
+            }
+        }
+        
+        // ========== INTERFACES INTERATIVAS ==========
+        function criarInterface(tipo, dados) {
+            const container = document.createElement('div');
+            container.className = 'interface-container fade-in';
+            
+            if (tipo === 'areas') {
+                criarInterfaceAreas(container, dados);
+            } else if (tipo === 'sistemas') {
+                criarInterfaceSistemas(container, dados);
+            } else if (tipo === 'fluxos_entrada' || tipo === 'fluxos_saida') {
+                criarInterfaceFluxos(container, dados);
+            } else if (tipo === 'revisao') {
+                criarInterfaceRevisao(container, dados);
+            }
+            
+            chatContainer.appendChild(container);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function criarInterfaceAreas(container, dados) {
+            container.innerHTML = `
+                <div class="interface-title">🏢 Selecione sua área na DECIPEX:</div>
+                <div class="areas-grid" id="areas-grid"></div>
+                <div class="action-buttons">
+                    <button class="btn-interface btn-primary" onclick="confirmarArea()">Confirmar Área</button>
+                </div>
+            `;
+            
+            const grid = container.querySelector('#areas-grid');
+            
+            Object.entries(dados.opcoes_areas || {}).forEach(([id, area]) => {
+                const div = document.createElement('div');
+                div.className = 'area-option';
+                div.dataset.areaId = id;
+                div.innerHTML = `
+                    <div class="area-codigo">${area.codigo}</div>
+                    <div class="area-nome">${area.nome}</div>
+                `;
+                
+                div.addEventListener('click', () => {
+                    document.querySelectorAll('.area-option').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                });
+                
+                grid.appendChild(div);
+            });
+        }
+        
+        function criarInterfaceSistemas(container, dados) {
+            container.innerHTML = `
+                <div class="interface-title">💻 Quais sistemas você utiliza neste processo?</div>
+                <div class="sistemas-container" id="sistemas-container"></div>
+                <div class="action-buttons">
+                    <button class="btn-interface btn-secondary" onclick="pularSistemas()">Não sei / Pular</button>
+                    <button class="btn-interface btn-primary" onclick="confirmarSistemas()">Confirmar Sistemas</button>
+                </div>
+            `;
+            
+            const container_sistemas = container.querySelector('#sistemas-container');
+            
+            Object.entries(dados.sistemas_por_categoria || {}).forEach(([categoria, sistemas]) => {
+                const categoriaDiv = document.createElement('div');
+                categoriaDiv.className = 'categoria-sistemas';
+                
+                const tituloCategoria = {
+                    'gestao_pessoal': '👥 Gestão de Pessoal',
+                    'documentos': '📄 Documentos e Processos',
+                    'transparencia': '🔍 Transparência e Consultas',
+                    'previdencia': '💰 Previdência',
+                    'comunicacao': '💬 Comunicação',
+                    'outros': '⚙️ Outros'
+                };
+                
+                categoriaDiv.innerHTML = `
+                    <div class="categoria-titulo">${tituloCategoria[categoria] || categoria}</div>
+                    <div class="sistemas-grid" id="sistemas-${categoria}"></div>
+                `;
+                
+                const grid = categoriaDiv.querySelector(`#sistemas-${categoria}`);
+                
+                sistemas.forEach(sistema => {
+                    const div = document.createElement('div');
+                    div.className = 'sistema-checkbox';
+                    div.innerHTML = `
+                        <input type="checkbox" id="sistema-${sistema}" value="${sistema}">
+                        <label for="sistema-${sistema}">${sistema}</label>
+                    `;
+                    
+                    div.addEventListener('click', () => {
+                        const checkbox = div.querySelector('input[type="checkbox"]');
+                        checkbox.checked = !checkbox.checked;
+                        div.classList.toggle('selected', checkbox.checked);
+                    });
+                    
+                    grid.appendChild(div);
+                });
+                
+                container_sistemas.appendChild(categoriaDiv);
+            });
+        }
+        
+        function criarInterfaceFluxos(container, dados) {
+            const tipoFluxo = dados.tipo_fluxo === 'entrada' ? 'recebe insumos de' : 'entrega resultados para';
+            
+            container.innerHTML = `
+                <div class="interface-title">🔄 Seu processo ${tipoFluxo} outras áreas?</div>
+                <div class="areas-grid" id="fluxos-areas"></div>
+                <div class="action-buttons">
+                    <button class="btn-interface btn-secondary" onclick="confirmarFluxo('não')">Não</button>
+                    <button class="btn-interface btn-primary" onclick="confirmarFluxo('sim')">Sim - Confirmar</button>
+                </div>
+            `;
+            
+            const grid = container.querySelector('#fluxos-areas');
+            
+            Object.entries(dados.opcoes_areas || {}).forEach(([id, area]) => {
+                const div = document.createElement('div');
+                div.className = 'area-option';
+                div.dataset.areaId = id;
+                div.innerHTML = `
+                    <div class="area-codigo">${area.codigo}</div>
+                    <div class="area-nome">${area.nome}</div>
+                `;
+                
+                div.addEventListener('click', () => {
+                    div.classList.toggle('selected');
+                });
+                
+                grid.appendChild(div);
+            });
+        }
+        
+        function criarInterfaceRevisao(container, dados) {
+            container.innerHTML = `
+                <div class="interface-title">✅ Revisão Final - Dados Coletados</div>
+                <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                    <pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">${JSON.stringify(dados.dados_completos, null, 2)}</pre>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-interface btn-secondary" onclick="editarDados()">✏️ Editar</button>
+                    <button class="btn-interface btn-primary" onclick="finalizarPOP()">🎯 Finalizar POP</button>
+                </div>
+            `;
+        }
+        
+        // ========== FUNÇÕES DE CONFIRMAÇÃO ==========
+        function confirmarArea() {
+            const areaSelecionada = document.querySelector('.area-option.selected');
+            if (!areaSelecionada) {
+                alert('Por favor, selecione uma área.');
+                return;
+            }
+            
+            const areaId = areaSelecionada.dataset.areaId;
+            userInput.value = areaId;
+            enviarMensagem();
+        }
+        
+        function confirmarSistemas() {
+            const sistemasSelecionados = [];
+            document.querySelectorAll('.sistema-checkbox input[type="checkbox"]:checked').forEach(checkbox => {
+                sistemasSelecionados.push(checkbox.value);
+            });
+            
+            const resposta = sistemasSelecionados.length > 0 
+                ? sistemasSelecionados.join(', ')
+                : 'Nenhum sistema específico';
+                
+            enviarResposta(resposta);
+        }
+        
+        function pularSistemas() {
+            enviarResposta('não sei');
+        }
+        
+        function confirmarFluxo(resposta) {
+            if (resposta === 'sim') {
+                const areasSelecionadas = [];
+                document.querySelectorAll('.area-option.selected').forEach(area => {
+                    areasSelecionadas.push(area.querySelector('.area-codigo').textContent);
+                });
+                enviarResposta(areasSelecionadas.length > 0 ? 'sim' : 'não');
+            } else {
+                enviarResposta('não');
+            }
+        }
+        
+        function editarDados() {
+            enviarResposta('quero editar alguns dados');
+        }
+        
+        function finalizarPOP() {
+            enviarResposta('finalizar');
+        }
+        
+        async function enviarResposta(resposta) {
+            userInput.value = resposta;
+            await enviarMensagem();
+        }
+        
+        // ========== FUNÇÕES DO FORMULÁRIO ==========
         function adicionarMensagem(tipo, texto, classe = '') {
             const div = document.createElement('div');
             const id = 'msg-' + Date.now() + Math.random();
@@ -378,17 +1193,312 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
             return id;
         }
-
+        
         function preencherFormulario(dados) {
             Object.entries(dados).forEach(([campo, valor]) => {
-                const input = document.getElementById(campo);
+                let input = document.getElementById(campo);
+                
+                if (campo === 'area' && valor.nome) {
+                    input = document.getElementById('area_nome');
+                    valor = `${valor.codigo} - ${valor.nome}`;
+                } else if (campo === 'sistemas' && Array.isArray(valor)) {
+                    input = document.getElementById('sistemas_utilizados');
+                    valor = valor.join(', ');
+                } else if (campo === 'etapas' && Array.isArray(valor)) {
+                    input = document.getElementById('etapas_display');
+                    valor = valor.map((etapa, i) => `${i + 1}. ${etapa.descricao || etapa}`).join('\n');
+                }
+                
                 if (input && valor) {
                     input.value = valor;
-                    input.style.borderColor = '#4CAF50';
+                    input.classList.add('preenchido');
+                    validarCampo(input);
                 }
             });
+            
+            atualizarIndicadorCampos();
         }
-
+        
+        function validarCampo(campo) {
+            const valor = campo.value.trim();
+            const validIcon = document.getElementById(`valid-${campo.id.replace('_display', '').replace('_nome', '')}`);
+            
+            if (validIcon) {
+                if (valor.length > 5) {
+                    validIcon.textContent = '✓';
+                    validIcon.className = 'validacao-feedback valido';
+                } else if (valor.length > 0) {
+                    validIcon.textContent = '⚠';
+                    validIcon.className = 'validacao-feedback invalido';
+                } else {
+                    validIcon.textContent = '';
+                    validIcon.className = 'validacao-feedback';
+                }
+            }
+            
+            atualizarIndicadorCampos();
+        }
+        
+        function atualizarIndicadorCampos() {
+            const campos = document.querySelectorAll('#processo-form input, #processo-form textarea');
+            const preenchidos = Array.from(campos).filter(campo => campo.value.trim().length > 5);
+            
+            fieldsIndicator.textContent = `${preenchidos.length}/${campos.length} campos`;
+            
+            const porcentagem = (preenchidos.length / campos.length) * 100;
+            if (porcentagem >= 80) {
+                fieldsIndicator.style.background = 'rgba(76, 175, 80, 0.3)';
+            } else if (porcentagem >= 50) {
+                fieldsIndicator.style.background = 'rgba(255, 152, 0, 0.3)';
+            } else {
+                fieldsIndicator.style.background = 'rgba(244, 67, 54, 0.3)';
+            }
+        }
+        
+        function atualizarProgresso(porcentagem, texto) {
+            progressBar.style.width = `${porcentagem}%`;
+            progressText.textContent = texto;
+            
+            if (porcentagem >= 100) {
+                progressBar.classList.add('pulse');
+            }
+        }
+        
+        // ========== MODO REVISÃO DO FORMULÁRIO ==========
+        function ativarModoRevisao() {
+            const formSection = document.querySelector('.form-section');
+            const btnGerarPDF = document.getElementById('btn-gerar-pdf');
+            const btnVerPreview = document.getElementById('btn-ver-preview');
+            const formHeader = document.querySelector('.form-header h2');
+            
+            formSection.classList.add('modo-revisao');
+            formHeader.textContent = 'Revisão Final - Ajuste se necessário';
+            
+            btnGerarPDF.disabled = false;
+            btnGerarPDF.classList.add('btn-gerar-pdf-ativo', 'pulse');
+            
+            btnVerPreview.disabled = false;
+            
+            document.querySelectorAll('#processo-form input, #processo-form textarea').forEach(campo => {
+                if (campo.hasAttribute('readonly')) {
+                    campo.removeAttribute('readonly');
+                }
+                
+                campo.addEventListener('input', function() {
+                    this.style.borderColor = '#28a745';
+                    this.style.background = '#f8fff9';
+                    
+                    const validacao = document.getElementById(`valid-${this.id.replace('_display', '').replace('_nome', '')}`);
+                    if (validacao) {
+                        validacao.textContent = '✓';
+                        validacao.style.color = '#28a745';
+                    }
+                });
+            });
+            
+            adicionarMensagem('helena', '✓ POP finalizado! Você pode revisar os campos, ver o preview ou gerar o PDF final.');
+        }
+        
+        // ========== MODAL DE PREVIEW ==========
+        function abrirModalPreview() {
+            const modal = document.getElementById('modal-preview');
+            const modalBody = document.getElementById('modal-body-preview');
+            
+            const previewHTML = gerarHTMLPreview();
+            modalBody.innerHTML = previewHTML;
+            
+            modal.classList.add('ativo');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function fecharModalPreview() {
+            const modal = document.getElementById('modal-preview');
+            modal.classList.remove('ativo');
+            document.body.style.overflow = 'auto';
+        }
+        
+        function gerarHTMLPreview() {
+            const dados = dadosColetas;
+            
+            let html = `
+                <div class="preview-identificacao">
+                    <h1>PROCEDIMENTO OPERACIONAL PADRÃO</h1>
+                    <p><strong>Código:</strong> ${dados.codigo_processo || 'X.X.X.X'}</p>
+                    <p><strong>Atividade:</strong> ${dados.nome_processo || 'Não informado'}</p>
+                    <p><strong>Área:</strong> ${dados.area?.nome || 'Não informado'}</p>
+                </div>
+            `;
+            
+            html += `
+                <div class="preview-secao">
+                    <div class="preview-titulo">1. ENTREGA ESPERADA DA ATIVIDADE</div>
+                    <div class="preview-conteudo">${dados.entrega_esperada || 'Não informado'}</div>
+                </div>
+            `;
+            
+            html += `
+                <div class="preview-secao">
+                    <div class="preview-titulo">2. DISPOSITIVOS NORMATIVOS APLICÁVEIS</div>
+                    <div class="preview-conteudo">${dados.dispositivos_normativos || 'Não informado'}</div>
+                </div>
+            `;
+            
+            const sistemas = Array.isArray(dados.sistemas) ? dados.sistemas.join(', ') : dados.sistemas || 'Não informado';
+            html += `
+                <div class="preview-secao">
+                    <div class="preview-titulo">3. SISTEMAS UTILIZADOS / ACESSOS NECESSÁRIOS</div>
+                    <div class="preview-conteudo">${sistemas}</div>
+                </div>
+            `;
+            
+            html += `
+                <div class="preview-secao">
+                    <div class="preview-titulo">4. OPERADORES DA ATIVIDADE</div>
+                    <div class="preview-conteudo">${dados.operadores || 'Não informado'}</div>
+                </div>
+            `;
+            
+            let etapasHTML = '';
+            if (dados.etapas && Array.isArray(dados.etapas) && dados.etapas.length > 0) {
+                dados.etapas.forEach((etapa, i) => {
+                    etapasHTML += `<p><strong>${i + 1}.</strong> ${etapa.descricao || etapa}</p>`;
+                });
+            } else {
+                etapasHTML = 'Nenhuma etapa mapeada';
+            }
+            
+            html += `
+                <div class="preview-secao">
+                    <div class="preview-titulo">5. TAREFAS REALIZADAS NA ATIVIDADE</div>
+                    <div class="preview-conteudo">${etapasHTML}</div>
+                </div>
+            `;
+            
+            html += `
+                <div class="preview-secao">
+                    <div class="preview-titulo">6. DOCUMENTOS, FORMULÁRIOS E MODELOS UTILIZADOS</div>
+                    <div class="preview-conteudo">${dados.documentos_utilizados || 'Não informado'}</div>
+                </div>
+            `;
+            
+            html += `
+                <div class="preview-secao">
+                    <div class="preview-titulo">7. PONTOS GERAIS DE ATENÇÃO NA ATIVIDADE</div>
+                    <div class="preview-conteudo">${dados.pontos_atencao || 'Não informado'}</div>
+                </div>
+            `;
+            
+            return html;
+        }
+        
+        function confirmarGerarPDF() {
+            fecharModalPreview();
+            gerarPDF();
+        }
+        
+        // ========== GERAÇÃO DE PDF (MODIFICADA) ==========
+        async function gerarPDF() {
+            const btnPDF = document.getElementById('btn-gerar-pdf');
+            const textoOriginal = btnPDF.textContent;
+            
+            btnPDF.disabled = true;
+            btnPDF.textContent = '📄 Gerando PDF...';
+            btnPDF.classList.remove('pulse');
+            
+            try {
+                const response = await fetch('/api/gerar-pdf-pop/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        dados_pop: dadosColetas,
+                        session_id: sessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    adicionarMensagem('helena', `✓ PDF gerado com sucesso!`);
+                    
+                    const link = document.createElement('a');
+                    link.href = data.pdf_url;
+                    link.download = data.arquivo;
+                    link.click();
+                    
+                    btnPDF.textContent = '✓ PDF Gerado!';
+                    btnPDF.style.background = '#28a745';
+                    
+                    setTimeout(() => {
+                        btnPDF.textContent = textoOriginal;
+                        btnPDF.disabled = false;
+                        btnPDF.style.background = '';
+                    }, 3000);
+                    
+                } else {
+                    adicionarMensagem('helena', `❌ Erro: ${data.error}`);
+                    btnPDF.textContent = textoOriginal;
+                    btnPDF.disabled = false;
+                }
+                
+            } catch (error) {
+                console.error('Erro ao gerar PDF:', error);
+                adicionarMensagem('helena', '❌ Erro técnico ao gerar PDF. Tente novamente.');
+                btnPDF.textContent = textoOriginal;
+                btnPDF.disabled = false;
+            }
+        }
+        
+        // ========== AÇÕES PRINCIPAIS ==========
+        function limparFormulario() {
+            if (confirm('Tem certeza que deseja limpar todos os dados?')) {
+                document.getElementById('processo-form').reset();
+                dadosColetas = {};
+                
+                document.querySelectorAll('.validacao-feedback').forEach(el => {
+                    el.textContent = '';
+                    el.className = 'validacao-feedback';
+                });
+                
+                document.querySelectorAll('.preenchido').forEach(el => {
+                    el.classList.remove('preenchido');
+                });
+                
+                atualizarIndicadorCampos();
+                atualizarProgresso(0, '0/10 - Dados limpos');
+                
+                adicionarMensagem('helena', '🗑️ Formulário limpo! Podemos começar novamente.');
+            }
+        }
+        
+        async function reiniciarConversa() {
+            if (confirm('Tem certeza que deseja reiniciar a conversa?')) {
+                try {
+                    await fetch('/api/reiniciar/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: `session_id=${sessionId}`
+                    });
+                    
+                    chatContainer.innerHTML = '';
+                    limparFormulario();
+                    
+                    sessionId = 'user_' + Date.now();
+                    inicializarChat();
+                    
+                } catch (error) {
+                    console.error('Erro ao reiniciar:', error);
+                    adicionarMensagem('helena', '❌ Erro ao reiniciar. Recarregue a página.');
+                }
+            }
+        }
+        
+        // ========== UTILITÁRIOS ==========
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -403,6 +1513,91 @@
             }
             return cookieValue;
         }
+        
+        // ========== VALIDAÇÃO EM TEMPO REAL ==========
+        async function validarCampoServidor(campo, valor) {
+            try {
+                const response = await fetch('/api/validar-dados-pop/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        campo: campo,
+                        valor: valor
+                    })
+                });
+                
+                const data = await response.json();
+                return data;
+                
+            } catch (error) {
+                console.error('Erro na validação:', error);
+                return { valido: true, mensagem: 'Erro na validação' };
+            }
+        }
+        
+        // ========== RAG SUGESTÕES ==========
+        async function obterSugestoes(campo, contexto = '') {
+            try {
+                const response = await fetch('/api/consultar-rag-sugestoes/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        campo: campo,
+                        area: dadosColetas.area?.nome || '',
+                        contexto: contexto
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.sugestoes.length > 0) {
+                    const sugestoesTexto = data.sugestoes.join('\n\n');
+                    adicionarMensagem('helena', `💡 Sugestões para ${campo}:\n\n${sugestoesTexto}`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao obter sugestões:', error);
+            }
+        }
+        
+        // ========== EVENTOS ADICIONAIS ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            userInput.focus();
+            
+            document.querySelectorAll('input, textarea').forEach(campo => {
+                campo.addEventListener('focus', function() {
+                    if (this.value.trim() === '' && dadosColetas.area) {
+                        const campoNome = this.id.replace('_', ' ');
+                        obterSugestoes(campoNome);
+                    }
+                });
+            });
+            
+            setInterval(() => {
+                if (Object.keys(dadosColetas).length > 0) {
+                    localStorage.setItem('helena_dados_backup', JSON.stringify(dadosColetas));
+                }
+            }, 30000);
+            
+            const backup = localStorage.getItem('helena_dados_backup');
+            if (backup) {
+                try {
+                    const dadosBackup = JSON.parse(backup);
+                    if (confirm('Encontrei dados salvos anteriormente. Deseja recuperá-los?')) {
+                        dadosColetas = dadosBackup;
+                        preencherFormulario(dadosBackup);
+                    }
+                } catch (e) {
+                    console.error('Erro ao recuperar backup:', e);
+                }
+            }
+        });
     </script>
 </body>
 </html>
