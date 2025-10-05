@@ -19,20 +19,19 @@
             width: 100%;
             margin: 0;
             display: flex;
-            flex-direction: row;   /* <- lado a lado */
+            flex-direction: row;
             gap: 20px;
-            height: 100vh;         /* opcional, mas ajuda a ocupar a tela inteira */
+            height: 100vh;
             padding: 10px;
         }
         
-        /* ========== SEÇÃO DO CHAT ========== */
         .chat-section {
             background: white;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            height: 100%
+            height: 100%;
             flex: 0.45;
         }
         
@@ -48,7 +47,6 @@
         .chat-header h2 { margin: 0; font-size: 24px; }
         .chat-header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 14px; }
         
-        /* Barra de progresso */
         .progress-container {
             margin-top: 15px;
             background: rgba(255,255,255,0.2);
@@ -71,8 +69,25 @@
             opacity: 0.9;
         }
         
-        /* Botão de reiniciar */
         .reset-btn {
+            position: absolute;
+            top: 15px;
+            right: 140px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        
+        .reset-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .historico-btn {
             position: absolute;
             top: 15px;
             right: 15px;
@@ -86,7 +101,7 @@
             transition: background 0.3s;
         }
         
-        .reset-btn:hover {
+        .historico-btn:hover {
             background: rgba(255,255,255,0.3);
         }
         
@@ -135,7 +150,21 @@
         #enviar-btn:hover { background: #0E4B99; }
         #enviar-btn:disabled { background: #ccc; cursor: not-allowed; }
         
-        /* ========== MENSAGENS ========== */
+        #ajuda-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        
+        #ajuda-btn:hover {
+            background: #c82333;
+        }
+        
         .mensagem {
             padding: 12px 16px;
             border-radius: 12px;
@@ -160,7 +189,6 @@
             font-style: italic;
         }
         
-        /* ========== INTERFACES INTERATIVAS ========== */
         .interface-container {
             background: #f8f9fa;
             border: 2px solid #e9ecef;
@@ -177,7 +205,6 @@
             font-size: 16px;
         }
         
-        /* Seleção de áreas */
         .areas-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -216,7 +243,6 @@
             color: #666;
         }
         
-        /* Seleção de sistemas */
         .sistemas-container {
             margin: 15px 0;
         }
@@ -268,7 +294,51 @@
             border-color: #4CAF50;
         }
         
-        /* Botões de ação */
+        .norma-sugerida {
+            background: linear-gradient(135deg, #fff3cd, #fffaeb) !important;
+            border-color: #ff9800 !important;
+            position: relative;
+        }
+        
+        .norma-sugerida::before {
+            content: "🤖 IA";
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ff9800;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .norma-sugerida:hover {
+            background: linear-gradient(135deg, #ffe8a1, #fff3cd) !important;
+            border-color: #f57c00 !important;
+        }
+        
+        .operadores-etapa-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f4ff;
+            border: 2px dashed #1351B4;
+            border-radius: 8px;
+        }
+        
+        .operadores-etapa-titulo {
+            font-weight: bold;
+            color: #1351B4;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .operadores-etapa-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+        
         .action-buttons {
             margin-top: 15px;
             display: flex;
@@ -303,7 +373,6 @@
             background: #5a6268;
         }
         
-        /* ========== SEÇÃO DO FORMULÁRIO ========== */
         .form-section {
             background: white;
             border-radius: 15px;
@@ -325,7 +394,6 @@
         
         .form-header h2 { margin: 0; font-size: 24px; }
         
-        /* Indicador de campos preenchidos */
         .fields-indicator {
             position: absolute;
             top: 15px;
@@ -381,10 +449,9 @@
             resize: vertical;
         }
         
-        /* Validação em tempo real */
         .validacao-feedback {
             position: absolute;
-            right: 10px;
+            right: 45px;
             top: 35px;
             font-size: 18px;
         }
@@ -397,7 +464,6 @@
             color: #f44336;
         }
         
-        /* Seções do formulário */
         .form-section-header {
             background: #f8fafc;
             padding: 12px;
@@ -411,7 +477,6 @@
             font-size: 16px;
         }
         
-        /* Botões de ação do formulário */
         .form-actions {
             padding: 20px 30px;
             background: #fafafa;
@@ -458,7 +523,6 @@
             background: #0E4B99;
         }
         
-        /* ========== MODO REVISÃO DO FORMULÁRIO ========== */
         .form-section.modo-revisao .form-header {
             background: linear-gradient(135deg, #28a745, #20c997);
             animation: pulseHeader 2s infinite;
@@ -498,7 +562,6 @@
             50% { transform: scale(1.08); }
         }
         
-        /* ========== MODAL DE PREVIEW ========== */
         .modal-preview {
             display: none;
             position: fixed;
@@ -636,15 +699,276 @@
             background: #5a6268;
         }
         
-        /* ========== RESPONSIVIDADE ========== */
+        .modal-ajuda {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 55%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .modal-ajuda.ativo {
+            display: block;
+        }
+        
+        .modal-ajuda-content {
+            background: white;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-ajuda-header {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-ajuda-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        
+        .modal-ajuda-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .modal-ajuda-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .modal-ajuda-chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #f5f5f5;
+        }
+        
+        .modal-ajuda-input-section {
+            padding: 20px;
+            background: #fafafa;
+            border-top: 1px solid #ddd;
+        }
+        
+        .modal-ajuda-input-section #ajuda-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            min-height: 50px;
+        }
+        
+        .modal-ajuda-input-section #ajuda-input:focus {
+            border-color: #dc3545;
+        }
+        
+        .modal-ajuda-input-section #enviar-ajuda-btn {
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 25px;
+        }
+        
+        .modal-historico {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10001;
+            overflow-y: auto;
+        }
+        
+        .modal-historico.ativo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-historico-content {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-historico-header {
+            background: linear-gradient(135deg, #1351B4, #0E4B99);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-historico-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        
+        .modal-historico-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .modal-historico-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .modal-historico-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+        
+        .historico-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #1351B4;
+            background: #f8f9fa;
+        }
+        
+        .historico-timestamp {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .historico-tipo {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .historico-tipo.usuario {
+            background: #1351B4;
+            color: white;
+        }
+        
+        .historico-tipo.helena {
+            background: #28a745;
+            color: white;
+        }
+        
+        .historico-mensagem {
+            margin-top: 8px;
+            line-height: 1.5;
+            color: #333;
+        }
+        
+        .modal-historico-footer {
+            padding: 20px;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .btn-exportar-historico {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            background: #1351B4;
+            color: white;
+        }
+        
+        .btn-exportar-historico:hover {
+            background: #0E4B99;
+        }
+        
+        .validacao-servidor {
+            position: absolute;
+            right: 40px;
+            top: 35px;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .validacao-servidor.validando {
+            display: block;
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .validacao-servidor.valido-servidor {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .validacao-servidor.invalido-servidor {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
         @media (max-width: 1200px) {
             .container {
                 grid-template-columns: 1fr;
                 gap: 20px;
             }
             
-            .chat-section { flex: 0.4; min-width: 40%; height: 100vh; }
-            .form-section { flex: 0.6; min-width: 60%; height: 100vh; }
+            .chat-section { 
+                flex: 0.4; 
+                min-width: 40%; 
+                height: 100vh; 
+            }
+            
+            .form-section { 
+                flex: 0.6; 
+                min-width: 60%; 
+                height: 100vh; 
                 height: auto;
                 min-height: 500px;
             }
@@ -664,7 +988,6 @@
             }
         }
         
-        /* ========== ANIMAÇÕES ========== */
         .fade-in {
             animation: fadeIn 0.5s ease;
         }
@@ -687,14 +1010,13 @@
 </head>
 <body>
     <div class="container">
-        <!-- ========== SEÇÃO DO CHAT ========== -->
         <div class="chat-section">
             <div class="chat-header">
                 <button class="reset-btn" onclick="reiniciarConversa()">🔄 Reiniciar</button>
+                <button class="historico-btn" onclick="abrirModalHistorico()">📋 Histórico</button>
                 <h2>Helena - Assistente DECIPEX</h2>
                 <p>Mapeamento conversacional de POPs</p>
                 
-                <!-- Barra de progresso -->
                 <div class="progress-container">
                     <div class="progress-bar" id="progress-bar"></div>
                 </div>
@@ -710,11 +1032,11 @@
                            placeholder="Digite sua mensagem..."
                            maxlength="2000">
                     <button id="enviar-btn">Enviar</button>
+                    <button id="ajuda-btn">🆘 Preciso de ajuda</button>
                 </div>
             </div>
         </div>
         
-        <!-- ========== SEÇÃO DO FORMULÁRIO ========== -->
         <div class="form-section">
             <div class="form-header">
                 <div class="fields-indicator" id="fields-indicator">0/10 campos</div>
@@ -725,7 +1047,6 @@
                 <form id="processo-form">
                     {% csrf_token %}
                     
-                    <!-- IDENTIFICAÇÃO -->
                     <div class="form-section-header">
                         <h3>📋 Identificação do Processo</h3>
                     </div>
@@ -734,27 +1055,30 @@
                         <label>Área DECIPEX</label>
                         <input type="text" id="area_nome" name="area_nome" readonly placeholder="Será preenchido pela conversa">
                         <div class="validacao-feedback" id="valid-area"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
                     <div class="form-group">
                         <label>Código na Arquitetura de Processos</label>
                         <input type="text" id="codigo_arquitetura" name="codigo_arquitetura" placeholder="Ex: 2.3.3.1">
                         <div class="validacao-feedback" id="valid-codigo"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
                     <div class="form-group">
                         <label>Nome da Atividade</label>
                         <input type="text" id="nome_processo" name="nome_processo" placeholder="Ex: Conceder Ressarcimento a Aposentado Civil">
                         <div class="validacao-feedback" id="valid-nome"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
                     <div class="form-group">
                         <label>Processo Específico</label>
                         <input type="text" id="processo_especifico" name="processo_especifico" placeholder="Ex: Gestão de Benefícios de Assistência à Saúde">
                         <div class="validacao-feedback" id="valid-processo"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
-                    <!-- SEÇÃO 1 -->
                     <div class="form-section-header">
                         <h3>1. Entrega Esperada</h3>
                     </div>
@@ -763,9 +1087,9 @@
                         <label>Entrega Esperada da Atividade</label>
                         <textarea id="entrega_esperada" name="entrega_esperada" placeholder="Descreva o resultado/produto final da atividade..."></textarea>
                         <div class="validacao-feedback" id="valid-entrega"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
-                    <!-- SEÇÃO 2 -->
                     <div class="form-section-header">
                         <h3>2. Dispositivos Normativos</h3>
                     </div>
@@ -774,9 +1098,9 @@
                         <label>Dispositivos Normativos Aplicáveis</label>
                         <textarea id="dispositivos_normativos" name="dispositivos_normativos" placeholder="Ex: Art. 34 a 42 da IN SGP/SEDGG/ME nº 97/2022"></textarea>
                         <div class="validacao-feedback" id="valid-normativos"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
-                    <!-- SEÇÃO 3 -->
                     <div class="form-section-header">
                         <h3>3. Sistemas Utilizados</h3>
                     </div>
@@ -785,9 +1109,9 @@
                         <label>Sistemas Utilizados / Acessos Necessários</label>
                         <input type="text" id="sistemas_utilizados" name="sistemas_utilizados" readonly placeholder="Será preenchido pela conversa">
                         <div class="validacao-feedback" id="valid-sistemas"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
-                    <!-- SEÇÃO 4 -->
                     <div class="form-section-header">
                         <h3>4. Operadores</h3>
                     </div>
@@ -796,9 +1120,9 @@
                         <label>Operadores da Atividade</label>
                         <textarea id="operadores" name="operadores" placeholder="Ex: Técnico Especializado, Coordenador, Apoio-Gabinete..."></textarea>
                         <div class="validacao-feedback" id="valid-operadores"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
-                    <!-- SEÇÃO 5 -->
                     <div class="form-section-header">
                         <h3>5. Tarefas/Etapas</h3>
                     </div>
@@ -809,9 +1133,9 @@
                             <textarea id="etapas_display" name="etapas_display" readonly style="min-height: 150px;" placeholder="As etapas serão listadas aqui conforme a conversa..."></textarea>
                         </div>
                         <div class="validacao-feedback" id="valid-etapas"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
-                    <!-- SEÇÃO 6 -->
                     <div class="form-section-header">
                         <h3>6. Documentos</h3>
                     </div>
@@ -820,9 +1144,9 @@
                         <label>Documentos, Formulários e Modelos Utilizados</label>
                         <textarea id="documentos_utilizados" name="documentos_utilizados" placeholder="Liste os documentos necessários e gerados..."></textarea>
                         <div class="validacao-feedback" id="valid-documentos"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
-                    <!-- SEÇÃO 7 -->
                     <div class="form-section-header">
                         <h3>7. Pontos de Atenção</h3>
                     </div>
@@ -831,12 +1155,30 @@
                         <label>Pontos Gerais de Atenção na Atividade</label>
                         <textarea id="pontos_atencao" name="pontos_atencao" placeholder="Alertas, cuidados especiais, observações importantes..."></textarea>
                         <div class="validacao-feedback" id="valid-pontos"></div>
+                        <div class="validacao-servidor"></div>
+                    </div>
+                    
+                    <div class="form-section-header">
+                        <h3>8. Fluxos do Processo</h3>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Entrada do Processo (De quais áreas recebe insumos)</label>
+                        <textarea id="fluxos_entrada" name="fluxos_entrada" readonly placeholder="Áreas de entrada serão preenchidas pela conversa..."></textarea>
+                        <div class="validacao-feedback" id="valid-entrada"></div>
+                        <div class="validacao-servidor"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Saída do Processo (Para quais áreas entrega resultados)</label>
+                        <textarea id="fluxos_saida" name="fluxos_saida" readonly placeholder="Áreas de saída serão preenchidas pela conversa..."></textarea>
+                        <div class="validacao-feedback" id="valid-saida"></div>
+                        <div class="validacao-servidor"></div>
                     </div>
                     
                 </form>
             </div>
             
-            <!-- Ações do formulário -->
             <div class="form-actions">
                 <button type="button" class="btn-form limpar" onclick="limparFormulario()">🗑️ Limpar</button>
                 <button type="button" class="btn-form ver-preview" onclick="abrirModalPreview()" id="btn-ver-preview" disabled>👁️ Ver Preview</button>
@@ -845,7 +1187,6 @@
         </div>
     </div>
     
-    <!-- ========== MODAL DE PREVIEW DO PDF ========== -->
     <div class="modal-preview" id="modal-preview">
         <div class="modal-content-preview">
             <div class="modal-header-preview">
@@ -853,9 +1194,7 @@
                 <button class="modal-close" onclick="fecharModalPreview()">×</button>
             </div>
             
-            <div class="modal-body-preview" id="modal-body-preview">
-                <!-- Conteúdo será injetado dinamicamente -->
-            </div>
+            <div class="modal-body-preview" id="modal-body-preview"></div>
             
             <div class="modal-footer-preview">
                 <button class="btn-modal voltar" onclick="fecharModalPreview()">← Voltar para editar</button>
@@ -864,8 +1203,44 @@
         </div>
     </div>
     
+    <div class="modal-ajuda" id="modal-ajuda">
+        <div class="modal-ajuda-content">
+            <div class="modal-ajuda-header">
+                <h2>🆘 Central de Ajuda - Helena</h2>
+                <button class="modal-ajuda-close" onclick="fecharModalAjuda()">×</button>
+            </div>
+            
+            <div class="modal-ajuda-chat" id="modal-ajuda-chat"></div>
+            
+            <div class="modal-ajuda-input-section">
+                <div class="input-group">
+                    <input type="text" 
+                           id="ajuda-input" 
+                           placeholder="Descreva sua dúvida..."
+                           maxlength="2000">
+                    <button id="enviar-ajuda-btn" style="background: #dc3545;">Enviar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-historico" id="modal-historico">
+        <div class="modal-historico-content">
+            <div class="modal-historico-header">
+                <h2>📋 Histórico Completo da Conversa</h2>
+                <button class="modal-historico-close" onclick="fecharModalHistorico()">×</button>
+            </div>
+            
+            <div class="modal-historico-body" id="modal-historico-body"></div>
+            
+            <div class="modal-historico-footer">
+                <button class="btn-exportar-historico" onclick="exportarHistorico()">📥 Exportar Histórico (JSON)</button>
+                <button class="btn-modal voltar" onclick="fecharModalHistorico()">Fechar</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
-        // ========== VARIÁVEIS GLOBAIS ==========
         const chatContainer = document.getElementById('chat-container');
         const userInput = document.getElementById('user-input');
         const enviarBtn = document.getElementById('enviar-btn');
@@ -876,8 +1251,11 @@
         let processando = false;
         let dadosColetas = {};
         let sessionId = 'user_' + Date.now();
+        let historicoCompleto = [];
         
-        // ========== INICIALIZAÇÃO ==========
+        let ajudaSessionId = 'ajuda_' + Date.now();
+        let processandoAjuda = false;
+        
         inicializarChat();
         
         function inicializarChat() {
@@ -885,18 +1263,34 @@
             atualizarProgresso(0, '0/10 - Vamos começar!');
         }
         
-        // ========== EVENTOS ==========
         enviarBtn.addEventListener('click', enviarMensagem);
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !processando) enviarMensagem();
         });
         
-        // Validação em tempo real dos campos
         document.querySelectorAll('input, textarea').forEach(campo => {
             campo.addEventListener('input', () => validarCampo(campo));
+            
+            campo.addEventListener('blur', async function() {
+                const valor = this.value.trim();
+                if (valor.length > 5 && !this.hasAttribute('readonly')) {
+                    await validarCampoServidor(this, valor);
+                }
+            });
         });
         
-        // ========== FUNÇÕES PRINCIPAIS ==========
+        const ajudaBtn = document.getElementById('ajuda-btn');
+        const modalAjuda = document.getElementById('modal-ajuda');
+        const ajudaChatContainer = document.getElementById('modal-ajuda-chat');
+        const ajudaInput = document.getElementById('ajuda-input');
+        const enviarAjudaBtn = document.getElementById('enviar-ajuda-btn');
+        
+        ajudaBtn.addEventListener('click', abrirModalAjuda);
+        enviarAjudaBtn.addEventListener('click', enviarMensagemAjuda);
+        ajudaInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !processandoAjuda) enviarMensagemAjuda();
+        });
+        
         async function enviarMensagem() {
             const mensagem = userInput.value.trim();
             if (!mensagem || processando) return;
@@ -907,6 +1301,12 @@
             
             adicionarMensagem('usuario', mensagem);
             userInput.value = '';
+            
+            historicoCompleto.push({
+                timestamp: new Date().toISOString(),
+                tipo: 'usuario',
+                mensagem: mensagem
+            });
             
             const loadingId = adicionarMensagem('helena', 'Processando...', 'loading');
             
@@ -960,14 +1360,21 @@
         function processarResposta(data) {
             adicionarMensagem('helena', data.resposta || 'Não entendi. Pode reformular?');
             
-            // NOVO: se o back-end enviar um tipo de interface, renderiza a UI correspondente
-if (data.tipo_interface) {
-    criarInterface(data.tipo_interface, data.dados_interface || {});
-}
+            historicoCompleto.push({
+                timestamp: new Date().toISOString(),
+                tipo: 'helena',
+                mensagem: data.resposta || 'Não entendi. Pode reformular?',
+                dados_interface: data.tipo_interface || null,
+                dados_extraidos: data.dados_extraidos || null
+            });
+            
+            if (data.tipo_interface) {
+                criarInterface(data.tipo_interface, data.dados_interface || {});
+            }
 
             if (data.dados_extraidos) {
-                Object.assign(dadosColetas, data.dados_extraidos);
-                preencherFormulario(data.dados_extraidos);
+                dadosColetas = {...dadosColetas, ...data.dados_extraidos};
+                preencherFormulario(dadosColetas);
             }
             
             if (data.progresso) {
@@ -976,14 +1383,17 @@ if (data.tipo_interface) {
                 atualizarProgresso(porcentagem, data.progresso);
             }
             
-            // Habilitar modo revisão se conversa completa
             if (data.conversa_completa) {
                 ativarModoRevisao();
             }
         }
         
-        // ========== INTERFACES INTERATIVAS ==========
         function criarInterface(tipo, dados) {
+            const ultimaInterface = document.querySelector('.interface-container:last-of-type');
+            if (ultimaInterface && ultimaInterface.querySelector('.action-buttons')) {
+                ultimaInterface.remove();
+            }
+            
             const container = document.createElement('div');
             container.className = 'interface-container fade-in';
             
@@ -991,10 +1401,19 @@ if (data.tipo_interface) {
                 criarInterfaceAreas(container, dados);
             } else if (tipo === 'sistemas') {
                 criarInterfaceSistemas(container, dados);
+            } else if (tipo === 'normas') {
+                criarInterfaceNormas(container, dados);
+            } else if (tipo === 'operadores') {
+                criarInterfaceOperadores(container, dados);
+            } else if (tipo === 'dropdown_macro' || tipo === 'dropdown_processo' || 
+                       tipo === 'dropdown_subprocesso' || tipo === 'dropdown_atividade') {
+                criarInterfaceDropdownArquitetura(container, dados, tipo);
             } else if (tipo === 'fluxos_entrada' || tipo === 'fluxos_saida') {
                 criarInterfaceFluxos(container, dados);
             } else if (tipo === 'revisao') {
                 criarInterfaceRevisao(container, dados);
+            } else if (tipo === 'operadores_etapa') {
+                criarInterfaceOperadoresEtapa(container, dados);
             }
             
             chatContainer.appendChild(container);
@@ -1034,6 +1453,12 @@ if (data.tipo_interface) {
             container.innerHTML = `
                 <div class="interface-title">💻 Quais sistemas você utiliza neste processo?</div>
                 <div class="sistemas-container" id="sistemas-container"></div>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Outros sistemas não listados:</label>
+                    <textarea id="outros-sistemas" placeholder="Digite outros sistemas não listados, separados por vírgula..." style="width:100%; padding:10px; min-height:60px; border-radius:8px; border:2px solid #ddd;"></textarea>
+                </div>
+                
                 <div class="action-buttons">
                     <button class="btn-interface btn-secondary" onclick="pularSistemas()">Não sei / Pular</button>
                     <button class="btn-interface btn-primary" onclick="confirmarSistemas()">Confirmar Sistemas</button>
@@ -1070,10 +1495,16 @@ if (data.tipo_interface) {
                         <label for="sistema-${sistema}">${sistema}</label>
                     `;
                     
-                    div.addEventListener('click', () => {
-                        const checkbox = div.querySelector('input[type="checkbox"]');
-                        checkbox.checked = !checkbox.checked;
-                        div.classList.toggle('selected', checkbox.checked);
+                    div.addEventListener('click', (e) => {
+                        if (e.target.tagName !== 'INPUT') {
+                            const checkbox = div.querySelector('input[type="checkbox"]');
+                            checkbox.checked = !checkbox.checked;
+                            checkbox.dispatchEvent(new Event('change'));
+                        }
+                    });
+
+                    div.querySelector('input[type="checkbox"]').addEventListener('change', function() {
+                        div.classList.toggle('selected', this.checked);
                     });
                     
                     grid.appendChild(div);
@@ -1083,12 +1514,171 @@ if (data.tipo_interface) {
             });
         }
         
+        function criarInterfaceNormas(container, dados) {
+            container.innerHTML = `
+                <div class="interface-title">📋 Selecione as normas aplicáveis:</div>
+                <div style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 13px;">
+                    <strong>🤖 Sugestões da IA:</strong> Normas destacadas foram sugeridas automaticamente com base no contexto do seu processo
+                </div>
+                <div id="normas-container" style="max-height: 300px; overflow-y: auto; margin: 15px 0;"></div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Outras normas não listadas:</label>
+                    <textarea id="outras-normas" placeholder="Digite outras normas que não estão na lista..." style="width:100%; padding:10px; min-height:60px; border-radius:8px; border:2px solid #ddd;"></textarea>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-interface btn-primary" onclick="confirmarNormas()">Confirmar Normas</button>
+                </div>
+            `;
+            
+            const normasContainer = container.querySelector('#normas-container');
+            
+            if (dados.sugestoes && Array.isArray(dados.sugestoes)) {
+                dados.sugestoes.forEach((norma, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'sistema-checkbox norma-sugerida';
+                    div.innerHTML = `
+                        <input type="checkbox" id="norma-${idx}" value="${norma.nome_completo || norma}">
+                        <label for="norma-${idx}">${norma.nome_curto || norma} ${norma.nome_completo ? '- ' + norma.nome_completo : ''}</label>
+                    `;
+                    
+                    div.addEventListener('click', (e) => {
+                        if (e.target.tagName !== 'INPUT') {
+                            const checkbox = div.querySelector('input');
+                            checkbox.checked = !checkbox.checked;
+                            checkbox.dispatchEvent(new Event('change'));
+                        }
+                    });
+
+                    div.querySelector('input[type="checkbox"]').addEventListener('change', function() {
+                        div.classList.toggle('selected', this.checked);
+                    });
+                    
+                    normasContainer.appendChild(div);
+                });
+            }
+        }
+        
+        function criarInterfaceOperadores(container, dados) {
+            container.innerHTML = `
+                <div class="interface-title">👥 Quem executa esta atividade? (Selecione todos que se aplicam)</div>
+                <div class="sistemas-container" id="operadores-container"></div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Outros operadores não listados:</label>
+                    <textarea id="outros-operadores" placeholder="Digite outros operadores não listados, separados por vírgula..." style="width:100%; padding:10px; min-height:60px; border-radius:8px; border:2px solid #ddd;"></textarea>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-interface btn-primary" onclick="confirmarOperadores()">Confirmar</button>
+                </div>
+            `;
+            
+            const container_operadores = container.querySelector('#operadores-container');
+            
+            (dados.opcoes || []).forEach(operador => {
+                const div = document.createElement('div');
+                div.className = 'sistema-checkbox';
+                div.innerHTML = `
+                    <input type="checkbox" id="operador-${operador.replace(/\s+/g, '-')}" value="${operador}">
+                    <label for="operador-${operador.replace(/\s+/g, '-')}">${operador}</label>
+                `;
+
+                const checkbox = div.querySelector('input[type="checkbox"]');
+
+                div.addEventListener('click', (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                });
+
+                checkbox.addEventListener('change', function() {
+                    div.classList.toggle('selected', this.checked);
+                });
+
+                container_operadores.appendChild(div);
+            });
+        }
+        
+        function criarInterfaceDropdownArquitetura(container, dados, tipo) {
+            const titulos = {
+                'dropdown_macro': '🏛️ Selecione o Macroprocesso',
+                'dropdown_processo': '📋 Selecione o Processo',
+                'dropdown_subprocesso': '🔹 Selecione o Subprocesso',
+                'dropdown_atividade': '✅ Selecione a Atividade'
+            };
+            
+            container.innerHTML = `
+                <div class="interface-title">${titulos[tipo]}</div>
+                <select id="select-arquitetura" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                    <option value="">-- Selecione --</option>
+                </select>
+                
+                <div id="campo-customizado" style="display: none; margin-top: 15px;">
+                    <label>Digite o nome:</label>
+                    <input type="text" id="input-customizado" placeholder="Digite aqui..." style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-top: 5px;">
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn-interface btn-primary" onclick="confirmarArquitetura()">Confirmar</button>
+                </div>
+            `;
+            
+            const select = container.querySelector('#select-arquitetura');
+            
+            (dados.opcoes || []).forEach(opcao => {
+                const option = document.createElement('option');
+                option.value = opcao;
+                option.textContent = opcao;
+                select.appendChild(option);
+            });
+            
+            const optionOutro = document.createElement('option');
+            optionOutro.value = '__OUTRO__';
+            optionOutro.textContent = '➕ Nenhuma destas opções (digitar)';
+            select.appendChild(optionOutro);
+            
+            select.addEventListener('change', function() {
+                const campoCustomizado = document.getElementById('campo-customizado');
+                const inputCustomizado = document.getElementById('input-customizado');
+                
+                if (this.value === '__OUTRO__') {
+                    campoCustomizado.style.display = 'block';
+                    inputCustomizado.focus();
+                } else {
+                    campoCustomizado.style.display = 'none';
+                    inputCustomizado.value = '';
+                }
+            });
+        }
+        
         function criarInterfaceFluxos(container, dados) {
             const tipoFluxo = dados.tipo_fluxo === 'entrada' ? 'recebe insumos de' : 'entrega resultados para';
             
             container.innerHTML = `
                 <div class="interface-title">🔄 Seu processo ${tipoFluxo} outras áreas?</div>
                 <div class="areas-grid" id="fluxos-areas"></div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-weight: bold; margin-bottom: 10px;">Opções Adicionais:</div>
+                    
+                    <div style="margin: 10px 0;">
+                        <input type="checkbox" id="checkbox-area-interna" style="margin-right: 8px;">
+                        <label for="checkbox-area-interna">Outra área interna da minha coordenação geral</label>
+                        <input type="text" id="input-area-interna" placeholder="Especifique a área interna..." style="display: none; width: 100%; margin-top: 5px; padding: 8px; border: 2px solid #ddd; border-radius: 6px;">
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <input type="checkbox" id="checkbox-area-externa" style="margin-right: 8px;">
+                        <label for="checkbox-area-externa">Área externa da DECIPEX</label>
+                        <input type="text" id="input-area-externa" placeholder="Especifique a área externa..." style="display: none; width: 100%; margin-top: 5px; padding: 8px; border: 2px solid #ddd; border-radius: 6px;">
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <input type="checkbox" id="checkbox-outra-decipex" style="margin-right: 8px;">
+                        <label for="checkbox-outra-decipex">Outra área da DECIPEX não listada</label>
+                        <input type="text" id="input-outra-decipex" placeholder="Especifique a área..." style="display: none; width: 100%; margin-top: 5px; padding: 8px; border: 2px solid #ddd; border-radius: 6px;">
+                    </div>
+                </div>
+                
                 <div class="action-buttons">
                     <button class="btn-interface btn-secondary" onclick="confirmarFluxo('não')">Não</button>
                     <button class="btn-interface btn-primary" onclick="confirmarFluxo('sim')">Sim - Confirmar</button>
@@ -1112,6 +1702,18 @@ if (data.tipo_interface) {
                 
                 grid.appendChild(div);
             });
+            
+            ['interna', 'externa', 'outra-decipex'].forEach(tipo => {
+                const checkbox = container.querySelector(`#checkbox-area-${tipo}`);
+                const input = container.querySelector(`#input-area-${tipo}`);
+                
+                if (checkbox && input) {
+                    checkbox.addEventListener('change', function() {
+                        input.style.display = this.checked ? 'block' : 'none';
+                        if (!this.checked) input.value = '';
+                    });
+                }
+            });
         }
         
         function criarInterfaceRevisao(container, dados) {
@@ -1127,7 +1729,55 @@ if (data.tipo_interface) {
             `;
         }
         
-        // ========== FUNÇÕES DE CONFIRMAÇÃO ==========
+        function criarInterfaceOperadoresEtapa(container, dados) {
+            const numeroEtapa = dados.numero_etapa || '?';
+            const descricaoEtapa = dados.descricao_etapa || 'esta etapa';
+            
+            container.innerHTML = `
+                <div class="interface-title">👥 Quem executa a Etapa ${numeroEtapa}?</div>
+                <div class="operadores-etapa-container">
+                    <div class="operadores-etapa-titulo">
+                        Etapa: ${descricaoEtapa}
+                    </div>
+                    <div class="operadores-etapa-grid" id="operadores-etapa-grid"></div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Outros operadores para esta etapa:</label>
+                        <textarea id="outros-operadores-etapa" placeholder="Digite outros operadores não listados, separados por vírgula..." style="width:100%; padding:10px; min-height:60px; border-radius:8px; border:2px solid #ddd;"></textarea>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-interface btn-secondary" onclick="pularOperadoresEtapa()">Pular (usar operadores gerais)</button>
+                    <button class="btn-interface btn-primary" onclick="confirmarOperadoresEtapa()">Confirmar Operadores</button>
+                </div>
+            `;
+            
+            const grid = container.querySelector('#operadores-etapa-grid');
+            
+            (dados.opcoes_operadores || []).forEach(operador => {
+                const div = document.createElement('div');
+                div.className = 'sistema-checkbox';
+                div.innerHTML = `
+                    <input type="checkbox" id="op-etapa-${operador.replace(/\s+/g, '-')}" value="${operador}">
+                    <label for="op-etapa-${operador.replace(/\s+/g, '-')}">${operador}</label>
+                `;
+                
+                const checkbox = div.querySelector('input[type="checkbox"]');
+                
+                div.addEventListener('click', (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                });
+                
+                checkbox.addEventListener('change', function() {
+                    div.classList.toggle('selected', this.checked);
+                });
+                
+                grid.appendChild(div);
+            });
+        }
+        
         function confirmarArea() {
             const areaSelecionada = document.querySelector('.area-option.selected');
             if (!areaSelecionada) {
@@ -1146,6 +1796,12 @@ if (data.tipo_interface) {
                 sistemasSelecionados.push(checkbox.value);
             });
             
+            const outrosSistemas = document.getElementById('outros-sistemas');
+            if (outrosSistemas && outrosSistemas.value.trim()) {
+                const sistemasAdicionais = outrosSistemas.value.split(',').map(s => s.trim()).filter(s => s);
+                sistemasSelecionados.push(...sistemasAdicionais);
+            }
+            
             const resposta = sistemasSelecionados.length > 0 
                 ? sistemasSelecionados.join(', ')
                 : 'Nenhum sistema específico';
@@ -1157,12 +1813,104 @@ if (data.tipo_interface) {
             enviarResposta('não sei');
         }
         
+        function confirmarNormas() {
+            const normasSelecionadas = [];
+            
+            document.querySelectorAll('#normas-container input[type="checkbox"]:checked').forEach(cb => {
+                normasSelecionadas.push(cb.value);
+            });
+            
+            const outrasNormas = document.getElementById('outras-normas').value.trim();
+            if (outrasNormas) {
+                normasSelecionadas.push(outrasNormas);
+            }
+            
+            const resposta = normasSelecionadas.length > 0
+                ? normasSelecionadas.join('; ')
+                : 'Nenhuma norma específica';
+            
+            enviarResposta(resposta);
+        }
+        
+        function confirmarOperadores() {
+            const operadoresSelecionados = [];
+            
+            document.querySelectorAll('#operadores-container input[type="checkbox"]:checked').forEach(checkbox => {
+                operadoresSelecionados.push(checkbox.value);
+            });
+            
+            const outrosOperadores = document.getElementById('outros-operadores');
+            if (outrosOperadores && outrosOperadores.value.trim()) {
+                const operadoresAdicionais = outrosOperadores.value.split(',').map(s => s.trim()).filter(s => s);
+                operadoresSelecionados.push(...operadoresAdicionais);
+            }
+            
+            if (operadoresSelecionados.length === 0) {
+                alert('Por favor, selecione pelo menos um operador.');
+                return;
+            }
+            
+            const resposta = operadoresSelecionados.join(', ');
+            enviarResposta(resposta);
+        }
+
+        function confirmarArquitetura() {
+            const select = document.getElementById('select-arquitetura');
+            const inputCustomizado = document.getElementById('input-customizado');
+            
+            let valor;
+            
+            if (select.value === '__OUTRO__') {
+                valor = inputCustomizado.value.trim();
+                
+                if (!valor) {
+                    alert('Por favor, digite o nome no campo de texto.');
+                    inputCustomizado.focus();
+                    return;
+                }
+            } else {
+                valor = select.value;
+                
+                if (!valor || valor === '') {
+                    alert('Por favor, selecione uma opção do dropdown.');
+                    return;
+                }
+            }
+            
+            const interface = document.querySelector('.interface-container:last-child');
+            if (interface) {
+                interface.remove();
+            }
+            
+            enviarResposta(valor);
+        }
+        
         function confirmarFluxo(resposta) {
             if (resposta === 'sim') {
                 const areasSelecionadas = [];
+                
                 document.querySelectorAll('.area-option.selected').forEach(area => {
                     areasSelecionadas.push(area.querySelector('.area-codigo').textContent);
                 });
+                
+                const checkInterna = document.getElementById('checkbox-area-interna');
+                const inputInterna = document.getElementById('input-area-interna');
+                if (checkInterna && checkInterna.checked && inputInterna && inputInterna.value.trim()) {
+                    areasSelecionadas.push(`INTERNA: ${inputInterna.value.trim()}`);
+                }
+                
+                const checkExterna = document.getElementById('checkbox-area-externa');
+                const inputExterna = document.getElementById('input-area-externa');
+                if (checkExterna && checkExterna.checked && inputExterna && inputExterna.value.trim()) {
+                    areasSelecionadas.push(`EXTERNA: ${inputExterna.value.trim()}`);
+                }
+                
+                const checkOutra = document.getElementById('checkbox-outra-decipex');
+                const inputOutra = document.getElementById('input-outra-decipex');
+                if (checkOutra && checkOutra.checked && inputOutra && inputOutra.value.trim()) {
+                    areasSelecionadas.push(`OUTRA: ${inputOutra.value.trim()}`);
+                }
+                
                 enviarResposta(areasSelecionadas.length > 0 ? 'sim' : 'não');
             } else {
                 enviarResposta('não');
@@ -1177,12 +1925,37 @@ if (data.tipo_interface) {
             enviarResposta('finalizar');
         }
         
+        function confirmarOperadoresEtapa() {
+            const operadoresSelecionados = [];
+            
+            document.querySelectorAll('#operadores-etapa-grid input[type="checkbox"]:checked').forEach(checkbox => {
+                operadoresSelecionados.push(checkbox.value);
+            });
+            
+            const outrosOperadores = document.getElementById('outros-operadores-etapa');
+            if (outrosOperadores && outrosOperadores.value.trim()) {
+                const operadoresAdicionais = outrosOperadores.value.split(',').map(s => s.trim()).filter(s => s);
+                operadoresSelecionados.push(...operadoresAdicionais);
+            }
+            
+            if (operadoresSelecionados.length === 0) {
+                alert('Por favor, selecione pelo menos um operador para esta etapa.');
+                return;
+            }
+            
+            const resposta = operadoresSelecionados.join(', ');
+            enviarResposta(resposta);
+        }
+        
+        function pularOperadoresEtapa() {
+            enviarResposta('usar operadores gerais');
+        }
+        
         async function enviarResposta(resposta) {
             userInput.value = resposta;
             await enviarMensagem();
         }
         
-        // ========== FUNÇÕES DO FORMULÁRIO ==========
         function adicionarMensagem(tipo, texto, classe = '') {
             const div = document.createElement('div');
             const id = 'msg-' + Date.now() + Math.random();
@@ -1198,15 +1971,56 @@ if (data.tipo_interface) {
             Object.entries(dados).forEach(([campo, valor]) => {
                 let input = document.getElementById(campo);
                 
-                if (campo === 'area' && valor.nome) {
+                if (campo === 'codigo_processo') {
+                    input = document.getElementById('codigo_arquitetura');
+                } else if (campo === 'area' && valor.nome) {
                     input = document.getElementById('area_nome');
                     valor = `${valor.codigo} - ${valor.nome}`;
                 } else if (campo === 'sistemas' && Array.isArray(valor)) {
                     input = document.getElementById('sistemas_utilizados');
                     valor = valor.join(', ');
+                } else if (campo === 'fluxos_entrada' && Array.isArray(valor)) {
+                    input = document.getElementById('fluxos_entrada');
+                    valor = valor.length > 0 ? valor.join(', ') : 'Nenhuma área de entrada';
+                } else if (campo === 'fluxos_saida' && Array.isArray(valor)) {
+                    input = document.getElementById('fluxos_saida');
+                    valor = valor.length > 0 ? valor.join(', ') : 'Nenhuma área de saída';
                 } else if (campo === 'etapas' && Array.isArray(valor)) {
-                    input = document.getElementById('etapas_display');
-                    valor = valor.map((etapa, i) => `${i + 1}. ${etapa.descricao || etapa}`).join('\n');
+                    const etapasContainer = document.getElementById('etapas-container');
+                    if (etapasContainer) {
+                        etapasContainer.innerHTML = '';
+                        
+                        valor.forEach((etapa, i) => {
+                            const etapaBox = document.createElement('div');
+                            etapaBox.style.cssText = 'border: 2px solid #1351B4; padding: 12px; margin: 8px 0; border-radius: 8px; background: #f0f4ff;';
+                            
+                            let conteudoHTML = `
+                                <div style="font-weight: bold; color: #1351B4; margin-bottom: 5px;">
+                                    📌 Etapa ${i + 1}
+                                </div>
+                                <div style="font-size: 14px; line-height: 1.4;">
+                                    ${etapa.descricao || etapa}
+                                </div>
+                            `;
+                            
+                            if (etapa.detalhes && Array.isArray(etapa.detalhes) && etapa.detalhes.length > 0) {
+                                conteudoHTML += '<div style="margin-top: 10px; padding-left: 20px; border-left: 2px solid #1351B4;">';
+                                etapa.detalhes.forEach((detalhe, j) => {
+                                    conteudoHTML += `
+                                        <div style="font-size: 13px; color: #666; margin: 5px 0;">
+                                            ${i + 1}.${j + 1} ${detalhe}
+                                        </div>
+                                    `;
+                                });
+                                conteudoHTML += '</div>';
+                            }
+                            
+                            etapaBox.innerHTML = conteudoHTML;
+                            etapasContainer.appendChild(etapaBox);
+                        });
+                        
+                        return;
+                    }
                 }
                 
                 if (input && valor) {
@@ -1264,7 +2078,6 @@ if (data.tipo_interface) {
             }
         }
         
-        // ========== MODO REVISÃO DO FORMULÁRIO ==========
         function ativarModoRevisao() {
             const formSection = document.querySelector('.form-section');
             const btnGerarPDF = document.getElementById('btn-gerar-pdf');
@@ -1299,7 +2112,6 @@ if (data.tipo_interface) {
             adicionarMensagem('helena', '✓ POP finalizado! Você pode revisar os campos, ver o preview ou gerar o PDF final.');
         }
         
-        // ========== MODAL DE PREVIEW ==========
         function abrirModalPreview() {
             const modal = document.getElementById('modal-preview');
             const modalBody = document.getElementById('modal-body-preview');
@@ -1396,7 +2208,6 @@ if (data.tipo_interface) {
             gerarPDF();
         }
         
-        // ========== GERAÇÃO DE PDF (MODIFICADA) ==========
         async function gerarPDF() {
             const btnPDF = document.getElementById('btn-gerar-pdf');
             const textoOriginal = btnPDF.textContent;
@@ -1451,7 +2262,6 @@ if (data.tipo_interface) {
             }
         }
         
-        // ========== AÇÕES PRINCIPAIS ==========
         function limparFormulario() {
             if (confirm('Tem certeza que deseja limpar todos os dados?')) {
                 document.getElementById('processo-form').reset();
@@ -1476,7 +2286,10 @@ if (data.tipo_interface) {
         async function reiniciarConversa() {
             if (confirm('Tem certeza que deseja reiniciar a conversa?')) {
                 try {
-                    await fetch('/api/reiniciar/', {
+                    localStorage.removeItem('helena_dados_backup');
+                    sessionStorage.clear();
+                    
+                    await fetch('/api/reiniciar-conversa-helena/', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
@@ -1486,19 +2299,169 @@ if (data.tipo_interface) {
                     });
                     
                     chatContainer.innerHTML = '';
-                    limparFormulario();
+                    document.getElementById('processo-form').reset();
+                    dadosColetas = {};
+                    historicoCompleto = [];
+                    
+                    document.querySelectorAll('.validacao-feedback').forEach(el => {
+                        el.textContent = '';
+                        el.className = 'validacao-feedback';
+                    });
+                    
+                    document.querySelectorAll('.preenchido').forEach(el => {
+                        el.classList.remove('preenchido');
+                    });
+                    
+                    atualizarIndicadorCampos();
+                    atualizarProgresso(0, '0/10 - Vamos começar!');
                     
                     sessionId = 'user_' + Date.now();
+                    
                     inicializarChat();
                     
                 } catch (error) {
                     console.error('Erro ao reiniciar:', error);
-                    adicionarMensagem('helena', '❌ Erro ao reiniciar. Recarregue a página.');
+                    alert('Erro ao reiniciar. Recarregue a página manualmente (F5).');
                 }
             }
         }
         
-        // ========== UTILITÁRIOS ==========
+        function abrirModalAjuda() {
+            modalAjuda.classList.add('ativo');
+            
+            if (ajudaChatContainer.children.length === 0) {
+                adicionarMensagemAjuda('helena', 'Vi que você está em dúvida para definir alguma etapa do seu processo. Me conta o que está havendo. Eu vou te responder e você segue no formulário. Em que etapa você está?');
+            }
+            
+            ajudaInput.focus();
+        }
+        
+        function fecharModalAjuda() {
+            modalAjuda.classList.remove('ativo');
+        }
+        
+        function abrirModalHistorico() {
+            const modal = document.getElementById('modal-historico');
+            const modalBody = document.getElementById('modal-historico-body');
+            
+            modalBody.innerHTML = '';
+            
+            if (historicoCompleto.length === 0) {
+                modalBody.innerHTML = '<p style="text-align: center; color: #666;">Nenhuma mensagem no histórico ainda.</p>';
+            } else {
+                historicoCompleto.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'historico-item';
+                    
+                    const timestamp = new Date(item.timestamp).toLocaleString('pt-BR');
+                    const tipoClass = item.tipo === 'usuario' ? 'usuario' : 'helena';
+                    const tipoLabel = item.tipo === 'usuario' ? 'Você' : 'Helena';
+                    
+                    let conteudoExtra = '';
+                    if (item.dados_interface) {
+                        conteudoExtra = `<div style="font-size: 11px; color: #666; margin-top: 5px;">Interface: ${item.dados_interface}</div>`;
+                    }
+                    
+                    itemDiv.innerHTML = `
+                        <div class="historico-timestamp">
+                            ${timestamp} - Mensagem #${index + 1}
+                        </div>
+                        <div>
+                            <span class="historico-tipo ${tipoClass}">${tipoLabel}</span>
+                        </div>
+                        <div class="historico-mensagem">${item.mensagem}</div>
+                        ${conteudoExtra}
+                    `;
+                    
+                    modalBody.appendChild(itemDiv);
+                });
+            }
+            
+            modal.classList.add('ativo');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function fecharModalHistorico() {
+            const modal = document.getElementById('modal-historico');
+            modal.classList.remove('ativo');
+            document.body.style.overflow = 'auto';
+        }
+        
+        function exportarHistorico() {
+            const dataStr = JSON.stringify(historicoCompleto, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `historico_helena_${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            adicionarMensagem('helena', '📥 Histórico exportado com sucesso!');
+        }
+        
+        function adicionarMensagemAjuda(tipo, texto, classe = '') {
+            const div = document.createElement('div');
+            const id = 'msg-ajuda-' + Date.now() + Math.random();
+            div.id = id;
+            div.className = `mensagem ${tipo} ${classe}`;
+            div.textContent = texto;
+            ajudaChatContainer.appendChild(div);
+            ajudaChatContainer.scrollTop = ajudaChatContainer.scrollHeight;
+            return id;
+        }
+        
+        async function enviarMensagemAjuda() {
+            const mensagem = ajudaInput.value.trim();
+            if (!mensagem || processandoAjuda) return;
+            
+            processandoAjuda = true;
+            enviarAjudaBtn.disabled = true;
+            enviarAjudaBtn.textContent = 'Enviando...';
+            
+            adicionarMensagemAjuda('usuario', mensagem);
+            ajudaInput.value = '';
+            
+            const loadingId = adicionarMensagemAjuda('helena', 'Pensando...', 'loading');
+            
+            try {
+                const response = await fetch('/api/helena-mapeamento/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        message: mensagem,
+                        contexto: 'ajuda_mapeamento',
+                        session_id: ajudaSessionId,
+                        dados_atuais: dadosColetas
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                document.getElementById(loadingId)?.remove();
+                
+                adicionarMensagemAjuda('helena', data.resposta || 'Desculpe, não consegui processar sua pergunta.');
+                
+            } catch (error) {
+                console.error('Erro na ajuda:', error);
+                document.getElementById(loadingId)?.remove();
+                adicionarMensagemAjuda('helena', '❌ Erro ao buscar ajuda. Tente novamente.');
+            } finally {
+                processandoAjuda = false;
+                enviarAjudaBtn.disabled = false;
+                enviarAjudaBtn.textContent = 'Enviar';
+                ajudaInput.focus();
+            }
+        }
+        
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -1514,8 +2477,13 @@ if (data.tipo_interface) {
             return cookieValue;
         }
         
-        // ========== VALIDAÇÃO EM TEMPO REAL ==========
         async function validarCampoServidor(campo, valor) {
+            const campoId = campo.id || campo.name || 'campo_desconhecido';
+            const validacaoDiv = campo.parentElement.querySelector('.validacao-servidor') || criarDivValidacaoServidor(campo.parentElement);
+            
+            validacaoDiv.textContent = 'Validando...';
+            validacaoDiv.className = 'validacao-servidor validando';
+            
             try {
                 const response = await fetch('/api/validar-dados-pop/', {
                     method: 'POST',
@@ -1524,21 +2492,41 @@ if (data.tipo_interface) {
                         'X-CSRFToken': getCookie('csrftoken')
                     },
                     body: JSON.stringify({
-                        campo: campo,
+                        campo: campoId,
                         valor: valor
                     })
                 });
                 
                 const data = await response.json();
+                
+                if (data.valido) {
+                    validacaoDiv.textContent = '✓ Validado';
+                    validacaoDiv.className = 'validacao-servidor valido-servidor';
+                    setTimeout(() => {
+                        validacaoDiv.style.display = 'none';
+                    }, 3000);
+                } else {
+                    validacaoDiv.textContent = data.mensagem || '✗ Inválido';
+                    validacaoDiv.className = 'validacao-servidor invalido-servidor';
+                }
+                
                 return data;
                 
             } catch (error) {
                 console.error('Erro na validação:', error);
+                validacaoDiv.textContent = 'Erro ao validar';
+                validacaoDiv.className = 'validacao-servidor invalido-servidor';
                 return { valido: true, mensagem: 'Erro na validação' };
             }
         }
         
-        // ========== RAG SUGESTÕES ==========
+        function criarDivValidacaoServidor(parent) {
+            const div = document.createElement('div');
+            div.className = 'validacao-servidor';
+            parent.appendChild(div);
+            return div;
+        }
+        
         async function obterSugestoes(campo, contexto = '') {
             try {
                 const response = await fetch('/api/consultar-rag-sugestoes/', {
@@ -1566,7 +2554,6 @@ if (data.tipo_interface) {
             }
         }
         
-        // ========== EVENTOS ADICIONAIS ==========
         document.addEventListener('DOMContentLoaded', function() {
             userInput.focus();
             

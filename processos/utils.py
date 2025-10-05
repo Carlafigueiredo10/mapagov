@@ -1,6 +1,7 @@
 """
-Utilitários do MapaGov - Versão 2.0
+Utilitários do MapaGov - Versão 2.1
 Funções auxiliares para o sistema de Governança, Riscos e Conformidade
+Correções: Paginação PDF, Metadados, QR Code funcional
 """
 
 import re
@@ -391,7 +392,7 @@ class EstadoUtils:
 class PDFGenerator:
     """
     Gerador de PDF para Procedimentos Operacionais Padrão (POP)
-    Segue padrão gov.br com estrutura profissional
+    Versão 2.1 - Com paginação corrigida, metadados e QR Code funcional
     """
     
     COR_AZUL_GOVBR = colors.HexColor('#1351B4')
@@ -504,6 +505,7 @@ class PDFGenerator:
         
         canvas.saveState()
         
+        # Linha decorativa azul
         canvas.setStrokeColor(self.COR_AZUL_GOVBR)
         canvas.setLineWidth(0.5)
         canvas.line(2*cm, 2*cm, self.largura_pagina - 2*cm, 2*cm)
@@ -511,12 +513,14 @@ class PDFGenerator:
         canvas.setFont('Helvetica', 9)
         canvas.setFillColor(colors.grey)
         
+        # Código do processo (esquerda)
         codigo = getattr(doc, 'codigo_processo', '[Código]')
         canvas.drawString(2*cm, 1.5*cm, codigo)
         
-        pagina_atual = canvas.getPageNumber()
-        total_paginas = getattr(doc, 'total_paginas', '?')
-        texto_pagina = f"Pág. {pagina_atual - 1} de {total_paginas}"
+        # Número da página (centro) - SEM total de páginas
+        # Subtrai 1 porque a capa não conta
+        pagina_atual = canvas.getPageNumber() - 1
+        texto_pagina = f"Pág. {pagina_atual}"
         largura_texto = canvas.stringWidth(texto_pagina, 'Helvetica', 9)
         canvas.drawString(
             (self.largura_pagina - largura_texto) / 2,
@@ -524,6 +528,7 @@ class PDFGenerator:
             texto_pagina
         )
         
+        # Data de geração (direita)
         data_geracao = datetime.now().strftime("%d/%m/%Y")
         texto_data = f"Gerado pelo MapaGov em {data_geracao}"
         largura_data = canvas.stringWidth(texto_data, 'Helvetica', 9)
@@ -535,12 +540,14 @@ class PDFGenerator:
         
         canvas.restoreState()
     
-    def _gerar_capa(self, dados: Dict[str, Any]) -> List:
+    def _gerar_capa(self, dados: Dict[str, Any], url_base: Optional[str] = None) -> List:
         """Gera elementos da página de capa"""
         elementos = []
         
+        # Espaço superior
         elementos.append(Spacer(1, 6*cm))
         
+        # Título principal
         titulo = Paragraph(
             "PROCEDIMENTO<br/>OPERACIONAL<br/>PADRÃO",
             self.estilos['titulo_capa']
@@ -548,20 +555,66 @@ class PDFGenerator:
         elementos.append(titulo)
         elementos.append(Spacer(1, 2*cm))
         
+        # Nome do processo
         nome_processo = dados.get('nome_processo', '[Nome do Processo]')
         subtitulo = Paragraph(
             nome_processo.upper(),
             self.estilos['subtitulo_capa']
         )
         elementos.append(subtitulo)
+        elementos.append(Spacer(1, 1*cm))
         
-        elementos.append(Spacer(1, 8*cm))
+        # Código do processo e área (novo)
+        codigo = dados.get('codigo_processo', 'X.X.X.X')
+        area = dados.get('area', {}).get('nome', '[Área não informada]')
         
-        url_processo = f"https://mapagov.gov.br/pop/{dados.get('codigo_processo', 'xxxx')}"
+        info_processo = Paragraph(
+            f"<b>Código:</b> {codigo}<br/><b>Área:</b> {area}",
+            self.estilos['subtitulo_capa']
+        )
+        elementos.append(info_processo)
+        elementos.append(Spacer(1, 4*cm))
+        
+        # Texto explicativo do QR Code (novo)
+        texto_qr = Paragraph(
+            "Escaneie para acessar versão digital",
+            ParagraphStyle(
+                'texto_qr',
+                parent=self.estilos['subtitulo_capa'],
+                fontSize=12,
+                alignment=TA_CENTER
+            )
+        )
+        elementos.append(texto_qr)
+        elementos.append(Spacer(1, 0.5*cm))
+        
+        # QR Code com URL funcional
+        codigo_processo = dados.get('codigo_processo', 'xxxx')
+        if url_base:
+            url_processo = f"{url_base}/pop/{codigo_processo}"
+        else:
+            # URL padrão caso não seja fornecida
+            url_processo = f"https://mapagov.app/pop/{codigo_processo}"
+        
         qr_img = self._gerar_qr_code(url_processo)
         if qr_img:
             elementos.append(qr_img)
         
+        # Data de geração (novo)
+        elementos.append(Spacer(1, 0.5*cm))
+        data_geracao = datetime.now().strftime("%d/%m/%Y às %H:%M")
+        texto_data = Paragraph(
+            f"Gerado em {data_geracao}",
+            ParagraphStyle(
+                'texto_data_capa',
+                parent=self.estilos['subtitulo_capa'],
+                fontSize=10,
+                alignment=TA_CENTER
+            )
+        )
+        elementos.append(texto_data)
+        
+        # Quebra de página
         elementos.append(PageBreak())
         
         return elementos
@@ -702,13 +755,15 @@ class PDFGenerator:
         
         return elementos
     
-    def gerar_pop_completo(self, dados: Dict[str, Any], nome_arquivo: str) -> Optional[str]:
+    def gerar_pop_completo(self, dados: Dict[str, Any], nome_arquivo: str, url_base: Optional[str] = None) -> Optional[str]:
         """
         Gera PDF completo do POP
         
         Args:
             dados: Dict com estrutura completa do processo
             nome_arquivo: Nome do arquivo PDF a ser gerado
+            url_base: URL base do sistema para gerar QR Code funcional (opcional)
+                      Ex: "https://mapagov.app" gerará "https://mapagov.app/pop/2.3.3.1"
         
         Returns:
             str: Caminho completo do arquivo gerado ou None em caso de erro
@@ -732,13 +787,20 @@ class PDFGenerator:
                 bottomMargin=3*cm
             )
             
+            # Adicionar metadados ao PDF
+            doc.title = dados.get('nome_processo', 'Procedimento Operacional Padrão')
+            doc.author = dados.get('nome_usuario', 'MapaGov')
+            doc.subject = f"Procedimento Operacional Padrão - {dados.get('codigo_processo', '')}"
+            doc.creator = "MapaGov - Sistema de Governança, Riscos e Conformidade"
+            doc.keywords = "POP, Procedimento, Processo, Governança, Setor Público, DECIPEX"
+            
+            # Armazenar código do processo para uso no rodapé
             doc.codigo_processo = dados.get('codigo_processo', '[Código]')
-            doc.total_paginas = 0
             
             elementos = []
             
             # CAPA
-            elementos.extend(self._gerar_capa(dados))
+            elementos.extend(self._gerar_capa(dados, url_base))
             
             # IDENTIFICAÇÃO
             elementos.extend(self._gerar_identificacao(dados))
@@ -818,8 +880,6 @@ class PDFGenerator:
                     self._adicionar_rodape(canvas, doc)
             
             doc.build(elementos, onFirstPage=adicionar_elementos_capa, onLaterPages=adicionar_elementos_capa)
-            
-            doc.total_paginas = len(elementos) // 10
             
             print(f"✅ PDF gerado com sucesso: {caminho_completo}")
             return caminho_completo
@@ -1623,7 +1683,7 @@ def gerar_id_unico() -> str:
 # Funções auxiliares para testes
 def testar_pdf_generator():
     """Testa geração de PDF com dados de exemplo"""
-    print("🧪 Testando PDFGenerator...")
+    print("Testando PDFGenerator...")
     
     dados_teste = {
         "nome_processo": "Conceder Ressarcimento a Aposentado Civil",
@@ -1648,19 +1708,22 @@ def testar_pdf_generator():
     }
     
     generator = PDFGenerator()
-    caminho = generator.gerar_pop_completo(dados_teste, "teste_pop.pdf")
+    # Testar com URL base customizada
+    url_base = "https://mapagov.app"
+    caminho = generator.gerar_pop_completo(dados_teste, "teste_pop.pdf", url_base)
     
     if caminho:
-        print(f"✅ PDF gerado: {caminho}")
+        print(f"PDF gerado: {caminho}")
+        print(f"   URL do QR Code: {url_base}/pop/{dados_teste['codigo_processo']}")
         return True
     else:
-        print("❌ Falha ao gerar PDF")
+        print("Falha ao gerar PDF")
         return False
 
 
 def testar_base_legal_suggestor():
     """Testa sugestão de base legal"""
-    print("\n🧪 Testando BaseLegalSuggestor...")
+    print("\nTestando BaseLegalSuggestor...")
     
     suggestor = BaseLegalSuggestor()
     
@@ -1672,7 +1735,7 @@ def testar_base_legal_suggestor():
     }
     
     sugestoes1 = suggestor.sugerir_base_legal(contexto1)
-    print(f"\n📋 Teste 1 - Ressarcimento:")
+    print(f"\nTeste 1 - Ressarcimento:")
     for i, sug in enumerate(sugestoes1, 1):
         print(f"  {i}. {sug['nome_curto']} - Confiança: {sug['confianca']}%")
     
@@ -1684,20 +1747,20 @@ def testar_base_legal_suggestor():
     }
     
     sugestoes2 = suggestor.sugerir_base_legal(contexto2)
-    print(f"\n📋 Teste 2 - Licitação:")
+    print(f"\nTeste 2 - Licitação:")
     for i, sug in enumerate(sugestoes2, 1):
         print(f"  {i}. {sug['nome_curto']} - Confiança: {sug['confianca']}%")
     
     # Teste 3: Busca por área
     normas_cgben = suggestor.obter_normas_por_area("CGBEN")
-    print(f"\n📋 Teste 3 - Normas CGBEN: {len(normas_cgben)} encontradas")
+    print(f"\nTeste 3 - Normas CGBEN: {len(normas_cgben)} encontradas")
     
     return len(sugestoes1) > 0 and len(sugestoes2) > 0
 
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("MapaGov - Utils v2.0 - Testes")
+    print("MapaGov - Utils v2.1 - Testes")
     print("=" * 60)
     
     # Executar testes
@@ -1706,6 +1769,6 @@ if __name__ == "__main__":
     
     print("\n" + "=" * 60)
     print("Resultado dos Testes:")
-    print(f"  PDF Generator: {'✅ PASS' if teste_pdf else '❌ FAIL'}")
-    print(f"  Base Legal Suggestor: {'✅ PASS' if teste_legal else '❌ FAIL'}")
+    print(f"  PDF Generator: {'PASS' if teste_pdf else 'FAIL'}")
+    print(f"  Base Legal Suggestor: {'PASS' if teste_legal else 'FAIL'}")
     print("=" * 60)

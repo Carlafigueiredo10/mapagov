@@ -2,6 +2,7 @@
 
 from django.urls import path
 from . import views
+from .views import helena_mapeamento_api
 
 urlpatterns = [
     # ============================================================================
@@ -21,6 +22,7 @@ urlpatterns = [
     path('api/chat/', views.chat_api_view, name='chat-api'),
     path('api/chat-recepcao/', views.chat_recepcao_api, name='chat_recepcao_api'),
     path('api/reiniciar-conversa-helena/', views.reiniciar_conversa_helena, name='reiniciar_helena'),
+    path('api/helena-mapeamento/', helena_mapeamento_api, name='helena_mapeamento_api'),
 
     # ============================================================================
     # APIs PDF E DOCUMENTOS - NOVAS
@@ -58,7 +60,7 @@ urlpatterns = [
     # path('api/analise-artefatos/', views.analise_artefatos_api, name='analise_artefatos_api'),
 
     # ============================================================================
-    # API DE TESTE OPENAI
+    # API DE TESTE OPENAI - DESATIVADA TEMPORARIAMENTE
     # ============================================================================
-    path('api/test-openai/', views.test_openai, name='test_openai'),
+    # path('api/test-openai/', views.test_openai, name='test_openai'),
 ]
