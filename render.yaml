@@ -7,16 +7,8 @@ services:
     plan: free
     branch: main
 
-    # Build: Instala Node, builda React, depois instala Python deps
-    buildCommand: |
-      # Instalar Node.js e npm (Render já tem, mas garantir versão)
-      cd frontend &&
-      npm install &&
-      npm run build &&
-      cd .. &&
-      pip install -r requirements.txt &&
-      python manage.py migrate &&
-      python manage.py collectstatic --noinput
+    # Build: Executa script de build otimizado
+    buildCommand: bash build.sh
 
     # Start: Gunicorn com workers
     startCommand: gunicorn mapagov.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
