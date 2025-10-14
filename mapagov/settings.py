@@ -342,14 +342,18 @@ LOGS_DIR.mkdir(exist_ok=True)
 # ============================================================================
 
 if not DEBUG:
-    import sentry_sdk
-    import logging
-    from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.logging import LoggingIntegration
+    try:
+        import sentry_sdk
+        import logging
+        from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
+    except ImportError:
+        print("[WARNING] sentry-sdk não instalado. Sentry desabilitado.")
+        sentry_sdk = None
 
-    SENTRY_DSN = os.getenv('SENTRY_DSN')
+    SENTRY_DSN = os.getenv('SENTRY_DSN') if 'sentry_sdk' in locals() and sentry_sdk else None
 
-    if SENTRY_DSN:
+    if SENTRY_DSN and sentry_sdk:
         sentry_sdk.init(
             dsn=SENTRY_DSN,
             integrations=[
