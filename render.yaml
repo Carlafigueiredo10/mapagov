@@ -1,0 +1,59 @@
+services:
+  # Backend Django + Frontend React (tudo junto)
+  - type: web
+    name: mapagov
+    env: python
+    region: oregon
+    plan: free
+    branch: main
+
+    # Build: Instala Node, builda React, depois instala Python deps
+    buildCommand: |
+      # Instalar Node.js e npm (Render já tem, mas garantir versão)
+      cd frontend &&
+      npm install &&
+      npm run build &&
+      cd .. &&
+      pip install -r requirements.txt &&
+      python manage.py migrate &&
+      python manage.py collectstatic --noinput
+
+    # Start: Gunicorn com workers
+    startCommand: gunicorn mapagov.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+
+    # Variáveis de ambiente
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+
+      - key: DEBUG
+        value: False
+
+      - key: SECRET_KEY
+        generateValue: true
+
+      - key: ALLOWED_HOSTS
+        value: mapagov.onrender.com,.onrender.com
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mapagov-db
+          property: connectionString
+
+      # IMPORTANTE: Adicione sua OPENAI_API_KEY manualmente no dashboard
+      # - key: OPENAI_API_KEY
+      #   sync: false
+
+      - key: ENVIRONMENT
+        value: production
+
+    # Healthcheck
+    healthCheckPath: /
+
+  # Banco de dados PostgreSQL
+  - type: pgsql
+    name: mapagov-db
+    region: oregon
+    plan: free
+    databaseName: mapagov
+    databaseUser: mapagov_user
