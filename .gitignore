@@ -8,3 +8,13 @@ __pycache__/
 venv/
 .env
 .DS_Store
+
+# Backups e dados locais
+backups/
+chroma_db/
+logs/
+media/
+
+# IDEs
+.vscode/
+.idea/
