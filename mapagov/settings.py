@@ -147,7 +147,8 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # WhiteNoise configuration (para Render)
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Usar CompressedStaticFilesStorage SEM manifest (evita problemas com index.html)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # ============================================================================
 # SERVIR FRONTEND REACT (BUILD) - Para deploy no Render com tudo junto
@@ -157,7 +158,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 STATICFILES_DIRS = [
     BASE_DIR / 'processos' / 'static',  # Arquivos estáticos do Django
-    BASE_DIR / 'frontend' / 'dist',  # Arquivos da raiz do React (vite.svg, imagens, etc.)
+    BASE_DIR / 'frontend' / 'dist',  # Frontend React buildado
 ]
 
 # Arquivos de mídia (uploads, PDFs, etc.)
