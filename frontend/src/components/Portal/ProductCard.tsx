@@ -23,7 +23,7 @@ export default function ProductCard({ product, isActive, onClick }: ProductCardP
     >
       {product.code === 'geral' ? (
         <img
-          src="/static/img/logo_mapa.png"
+          src="/static/logo_mapa.png"
           alt="MapaGov"
           className={styles.productLogo}
         />

@@ -7,7 +7,7 @@ export default function Header() {
     <header className={styles.header}>
       <nav className={styles.nav}>
         <Link to="/" className={styles.logo}>
-          <img src="/logo_mapa.png" alt="MapaGov" className={styles.logoImg} />
+          <img src="/static/logo_mapa.png" alt="MapaGov" className={styles.logoImg} />
           <div className={styles.logoText}>
             <span className={styles.logoTitle}>MapaGov</span>
             <span className={styles.logoSubtitle}>IA a Serviço da Governança Pública</span>

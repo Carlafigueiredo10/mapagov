@@ -116,7 +116,7 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
       {/* Chat Header */}
       <div className={styles.chatHeader}>
         <div className={styles.helenaAvatar}>
-          <img src="/static/img/helena_avatar.png" alt="Helena" />
+          <img src="/static/helena_avatar.png" alt="Helena" />
         </div>
         <div className={styles.headerInfo}>
           <h2>Helena - Assistente GRC</h2>
@@ -133,7 +133,7 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
           >
             <div className={styles.messageAvatar}>
               {message.sender === 'helena' ? (
-                <img src="/static/img/helena_avatar.png" alt="Helena" />
+                <img src="/static/helena_avatar.png" alt="Helena" />
               ) : (
                 'U'
               )}
@@ -148,7 +148,7 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
         {isLoading && (
           <div className={`${styles.message} ${styles.helena}`}>
             <div className={styles.messageAvatar}>
-              <img src="/static/img/helena_avatar.png" alt="Helena" />
+              <img src="/static/helena_avatar.png" alt="Helena" />
             </div>
             <div className={styles.typingIndicator}>
               <div className={styles.typingDot}></div>
