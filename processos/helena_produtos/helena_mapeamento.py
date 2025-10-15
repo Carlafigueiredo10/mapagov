@@ -1,7 +1,5 @@
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
-from langchain.memory import ConversationBufferMemory
+# ⚡ OTIMIZAÇÃO MEMÓRIA: Lazy loading de LangChain
+# Imports movidos para dentro da função
 
 def criar_helena_mapeamento():
     """
@@ -10,6 +8,12 @@ def criar_helena_mapeamento():
     Mantém memória da conversa para dar continuidade real.
     Helena só muda de assunto quando o usuário confirmar que a dúvida foi resolvida.
     """
+
+    # ⚡ Lazy imports
+    from langchain_openai import ChatOpenAI
+    from langchain.prompts import ChatPromptTemplate
+    from langchain.chains import LLMChain
+    from langchain.memory import ConversationBufferMemory
 
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.6)
 
@@ -43,4 +47,12 @@ def criar_helena_mapeamento():
 
     return responder
 
-helena_mapeamento = criar_helena_mapeamento()
+# ⚡ LAZY LOADING: Instância criada sob demanda
+_helena_mapeamento_instance = None
+
+def helena_mapeamento(mensagem: str):
+    """Função wrapper para lazy loading da instância Helena Mapeamento"""
+    global _helena_mapeamento_instance
+    if _helena_mapeamento_instance is None:
+        _helena_mapeamento_instance = criar_helena_mapeamento()
+    return _helena_mapeamento_instance(mensagem)

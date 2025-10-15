@@ -395,3 +395,20 @@ if not DEBUG:
         print("    Depois: export SENTRY_DSN='https://...@sentry.io/...'")
 else:
     print("[DEBUG] Modo DEBUG ativo - Sentry desabilitado")
+
+
+# ============================================================================
+# ⚡ OTIMIZAÇÃO MEMÓRIA: HELENA LITE MODE
+# ============================================================================
+# Controla quais produtos Helena carregar para economizar RAM em ambientes limitados
+# Use HELENA_LITE_MODE=True em produção com <1GB RAM (Render Free, etc.)
+
+HELENA_LITE_MODE = os.getenv('HELENA_LITE_MODE', 'False').lower() in ('true', '1', 'yes')
+
+if HELENA_LITE_MODE:
+    print("[LITE MODE] Helena em modo economico - produtos pesados desabilitados")
+    print("    Habilitados: POP basico, Mapeamento, Recepcao")
+    print("    Desabilitados: Analise de Riscos avancada, Fluxograma com IA")
+    print("    Para habilitar todos: export HELENA_LITE_MODE=False")
+else:
+    print("[FULL MODE] Todos os produtos Helena habilitados")

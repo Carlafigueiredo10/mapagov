@@ -1,13 +1,15 @@
+# ⚡ OTIMIZAÇÃO MEMÓRIA: Lazy loading de LangChain
 from dotenv import load_dotenv
-load_dotenv()
-
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
 import os
+load_dotenv()
 
 def criar_helena_recepcao():
     """Helena Recepcionista - Versão Produção (sem Chroma)"""
-    
+
+    # ⚡ Lazy imports
+    from langchain_openai import ChatOpenAI
+    from langchain.prompts import ChatPromptTemplate
+
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
     
     prompt = ChatPromptTemplate.from_messages([
@@ -47,4 +49,12 @@ Histórico: {historico}"""),
     
     return responder
 
-helena_recepcao = criar_helena_recepcao()
+# ⚡ LAZY LOADING: Instância criada sob demanda
+_helena_recepcao_instance = None
+
+def helena_recepcao(mensagem: str, session_id: str = "default"):
+    """Função wrapper para lazy loading da instância Helena Recepção"""
+    global _helena_recepcao_instance
+    if _helena_recepcao_instance is None:
+        _helena_recepcao_instance = criar_helena_recepcao()
+    return _helena_recepcao_instance(mensagem, session_id)

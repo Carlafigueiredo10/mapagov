@@ -1,7 +1,8 @@
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
-from langchain.memory import ConversationBufferWindowMemory
+# ⚡ OTIMIZAÇÃO MEMÓRIA: Imports movidos para dentro da classe
+# from langchain_openai import ChatOpenAI
+# from langchain.prompts import ChatPromptTemplate
+# from langchain.chains import LLMChain
+# from langchain.memory import ConversationBufferWindowMemory
 import os
 import json
 
@@ -18,12 +19,18 @@ class HelenaFluxograma:
     }
     
     def __init__(self, dados_pdf=None):
+        # ⚡ OTIMIZAÇÃO MEMÓRIA: Lazy loading de LangChain
+        from langchain_openai import ChatOpenAI
+        from langchain.prompts import ChatPromptTemplate
+        from langchain.chains import LLMChain
+        from langchain.memory import ConversationBufferWindowMemory
+
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0.7,
             api_key=os.getenv('OPENAI_API_KEY')
         )
-        
+
         self.memory = ConversationBufferWindowMemory(
             memory_key="chat_history",
             return_messages=True,
@@ -33,7 +40,11 @@ class HelenaFluxograma:
         # Se receber dados do PDF, preencher automaticamente
         if dados_pdf:
             self._importar_dados_pdf(dados_pdf)
-        
+
+        # Armazena referência à classe para uso posterior
+        self.ChatPromptTemplate = ChatPromptTemplate
+        self.LLMChain = LLMChain
+
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", """Você é Helena, especialista em mapear processos para criar fluxogramas visuais.
             

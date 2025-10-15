@@ -1,6 +1,5 @@
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_chroma import Chroma
-from langchain.prompts import ChatPromptTemplate
+# ⚡ OTIMIZAÇÃO MEMÓRIA: LangChain imports movidos para lazy loading
+# Os imports pesados agora ocorrem apenas quando HelenaPOP é instanciada
 import os
 import json
 import re
@@ -8,7 +7,7 @@ from datetime import datetime
 from typing import List, Dict, Any
 import pandas as pd
 
-# Import absoluto correto - SEM PONTO  
+# Import absoluto correto - SEM PONTO
 from processos.utils_gerais import BaseLegalSuggestor
 
 # ============================================================================
@@ -55,6 +54,12 @@ class HelenaPOP:
     """Helena para mapeamento de POPs - versão completa integrada à DECIPEX"""
     
     def __init__(self):
+        # ⚡ OTIMIZAÇÃO MEMÓRIA: Lazy loading de LangChain
+        # LangChain só é importado se RAG for habilitado (atualmente desabilitado)
+        # from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+        # from langchain_chroma import Chroma
+        # from langchain.prompts import ChatPromptTemplate
+
         # LLM e RAG desabilitados para melhor performance
         self.vectorstore = None
         
