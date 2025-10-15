@@ -1,0 +1,48 @@
+.productCard {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+}
+
+.productCard:hover {
+  background: #edf2f7;
+  border-color: #3498DB;
+  transform: translateX(4px);
+}
+
+.productCard.active {
+  background: linear-gradient(135deg, #1B4F72 0%, #3498DB 100%);
+  color: white;
+}
+
+.productLogo {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.productIcon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.productTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.productStatus {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.productCard.active .productStatus {
+  opacity: 0.9;
+}

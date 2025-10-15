@@ -1,0 +1,497 @@
+/* Formulário POP Styles */
+.form-section {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Header */
+.form-header {
+  background: linear-gradient(135deg, #495057, #343a40);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+}
+
+.form-header h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.fields-indicator {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 12px;
+  transition: background 0.3s;
+}
+
+/* Progresso do formulário */
+.form-progress-container {
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.form-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  border-radius: 8px;
+  transition: width 0.5s ease;
+}
+
+.form-progress-text {
+  font-size: 11px;
+  margin-top: 5px;
+  opacity: 0.9;
+}
+
+/* Content */
+.form-content {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.form-section-header {
+  background: #f8fafc;
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin: 25px 0 15px 0;
+  border-left: 4px solid #1351B4;
+}
+
+.form-section-header h3 {
+  margin: 0;
+  color: #1B4F72;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-field {
+  width: 100%;
+  padding: 12px 40px 12px 12px; /* Space for validation icon */
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.form-field:focus {
+  border-color: #1351B4;
+  box-shadow: 0 0 0 3px rgba(19, 81, 180, 0.1);
+}
+
+.form-field.preenchido {
+  border-color: #28a745;
+  background: #f8fff9;
+}
+
+.form-field.valido {
+  border-color: #28a745;
+  background: #f8fff9;
+}
+
+.form-field.invalido {
+  border-color: #dc3545;
+  background: #fff8f8;
+}
+
+.form-field:read-only {
+  background: #f8f9fa;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.form-field textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Validation feedback */
+.validacao-feedback {
+  position: absolute;
+  right: 12px;
+  top: 35px;
+  pointer-events: none;
+}
+
+.icon-valido {
+  color: #28a745;
+}
+
+.icon-invalido {
+  color: #dc3545;
+}
+
+/* Etapas Display */
+.etapas-display {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  background: #f8f9fa;
+  min-height: 120px;
+}
+
+.etapa-item {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-left: 4px solid #1351B4;
+}
+
+.etapa-numero {
+  font-weight: bold;
+  color: #1351B4;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.etapa-descricao {
+  color: #495057;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.etapa-descricao strong {
+  color: #212529;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.etapa-operador {
+  color: #6c757d;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.etapa-tipo {
+  color: #6c757d;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.etapa-detalhes {
+  background: #f8f9fa;
+  border-left: 2px solid #1351B4;
+  padding: 8px 12px;
+  margin-top: 8px;
+  border-radius: 4px;
+}
+
+.detalhe-item {
+  color: #495057;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.etapa-condicionais {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.condicional-titulo {
+  font-weight: bold;
+  color: #856404;
+  margin-bottom: 6px;
+}
+
+.cenarios-lista {
+  margin-top: 8px;
+}
+
+.cenario-item {
+  background: white;
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  border-left: 3px solid #ffc107;
+}
+
+.proximo-passo {
+  color: #1351B4;
+  font-weight: 500;
+}
+
+.proxima-etapa {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.etapas-placeholder {
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Documentos Display */
+.documentos-display {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  background: #f8f9fa;
+  min-height: 120px;
+}
+
+.documento-item-form {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-left: 4px solid #28a745;
+}
+
+.documento-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.documento-tipo {
+  font-weight: bold;
+  color: #28a745;
+  font-size: 14px;
+}
+
+.documento-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.documento-badge.obrigatorio {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.documento-badge.opcional {
+  background: #d4edda;
+  color: #155724;
+}
+
+.documento-badge.gerado {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.documento-badge.utilizado {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.documento-descricao-form {
+  color: #495057;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.documento-sistema {
+  color: #6c757d;
+  font-size: 12px;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.documentos-placeholder {
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Actions */
+.form-actions {
+  padding: 20px 30px;
+  background: #fafafa;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.btn-form {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.btn-form:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-form.limpar {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-form.limpar:hover:not(:disabled) {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+.btn-form.ver-preview {
+  background: #1351B4;
+  color: white;
+}
+
+.btn-form.ver-preview:hover:not(:disabled) {
+  background: #0E4B99;
+  transform: translateY(-2px);
+}
+
+.btn-form.gerar-pdf {
+  background: #ff9800;
+  color: white;
+}
+
+.btn-form.gerar-pdf:hover:not(:disabled) {
+  background: #f57c00;
+  transform: translateY(-2px);
+}
+
+.btn-form.gerar-pdf.ativo {
+  background: linear-gradient(135deg, #ff9800, #ff6f00);
+  animation: pulseButton 2s infinite;
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+}
+
+/* Modo Revisão */
+.form-section.modo-revisao .form-header {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  animation: pulseHeader 3s infinite;
+}
+
+.form-section.modo-revisao .fields-indicator {
+  background: rgba(255, 255, 255, 0.3);
+  animation: pulseIndicator 2s infinite;
+}
+
+.form-section.modo-revisao .form-field:not(:read-only) {
+  border-color: #28a745;
+  background: #f8fff9;
+}
+
+.form-section.modo-revisao .form-field:focus {
+  border-color: #20c997;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+/* Animations */
+@keyframes pulseButton {
+  0%, 100% { 
+    transform: scale(1); 
+  }
+  50% { 
+    transform: scale(1.05); 
+  }
+}
+
+@keyframes pulseHeader {
+  0%, 100% { 
+    opacity: 1; 
+  }
+  50% { 
+    opacity: 0.95; 
+  }
+}
+
+@keyframes pulseIndicator {
+  0%, 100% { 
+    background: rgba(255, 255, 255, 0.3); 
+  }
+  50% { 
+    background: rgba(255, 255, 255, 0.5); 
+  }
+}
+
+/* Progress Colors - Applied inline based on completion percentage */
+
+/* Responsive */
+@media (max-width: 768px) {
+  .form-content {
+    padding: 20px;
+  }
+  
+  .form-actions {
+    padding: 15px 20px;
+    flex-direction: column;
+  }
+  
+  .btn-form {
+    width: 100%;
+  }
+  
+  .form-section-header {
+    margin: 20px 0 12px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-header {
+    padding: 15px;
+  }
+  
+  .form-header h2 {
+    font-size: 20px;
+  }
+  
+  .fields-indicator {
+    position: static;
+    margin: 10px auto 0;
+    display: inline-block;
+  }
+}

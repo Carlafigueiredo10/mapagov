@@ -1,0 +1,81 @@
+.portalPage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f7fafc;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Header */
+.header {
+  background: white;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.headerContent {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.logoText {
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1B4F72 0%, #3498DB 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.headerNav {
+  display: flex;
+  gap: 20px;
+}
+
+.navLink {
+  color: #4a5568;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.navLink:hover {
+  background: #f7fafc;
+  color: #1B4F72;
+}
+
+/* Main Container */
+.mainContainer {
+  flex: 1;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  gap: 20px;
+  height: calc(100vh - 100px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .headerNav {
+    display: none;
+  }
+
+  .mainContainer {
+    flex-direction: column;
+    height: auto;
+  }
+}

@@ -1,0 +1,72 @@
+/* Footer.module.css */
+
+.footer {
+  background: #2C3E50;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 4rem 0 2rem;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.footerGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+.footerBrand h4 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: #FFFFFF;
+  margin-bottom: 1rem;
+}
+
+.footerBrand p {
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.footer h5 {
+  color: #FFFFFF;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.footer ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.footer ul li {
+  margin-bottom: 0.8rem;
+}
+
+.footer ul li a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer ul li a:hover {
+  color: #3498DB;
+}
+
+.footerBottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 768px) {
+  .footerGrid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}

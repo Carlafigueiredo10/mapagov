@@ -1,0 +1,222 @@
+/* ChatRiscos.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #f5f7fa;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.helenaAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255,255,255,0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.status {
+  margin: 5px 0 0 0;
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.popInfo {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+.popInfo small {
+  opacity: 0.8;
+}
+
+.messagesContainer {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30px 20px;
+  background: #f5f7fa;
+}
+
+.message {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  align-items: flex-start;
+}
+
+.message.helena {
+  justify-content: flex-start;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0,0,0,0.1);
+}
+
+.messageContent {
+  max-width: 70%;
+  background: white;
+  padding: 16px 20px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.message.helena .messageContent {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom-left-radius: 4px;
+}
+
+.message.user .messageContent {
+  background: #4caf50;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.messageText {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.messageText p {
+  margin: 0 0 8px 0;
+  white-space: pre-wrap;
+}
+
+.messageText p:last-child {
+  margin-bottom: 0;
+}
+
+.timestamp {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* Typing indicator */
+.typing {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.typing span {
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+  animation: typing 1.4s infinite;
+}
+
+.typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-10px);
+  }
+}
+
+.inputArea {
+  background: white;
+  padding: 20px 30px;
+  border-top: 1px solid #e0e0e0;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+}
+
+/* Scrollbar customizada */
+.messagesContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messagesContainer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.messagesContainer::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.messagesContainer::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 15px 20px;
+  }
+
+  .header h2 {
+    font-size: 1.2rem;
+  }
+
+  .helenaAvatar {
+    font-size: 2.5rem;
+  }
+
+  .messagesContainer {
+    padding: 20px 15px;
+  }
+
+  .messageContent {
+    max-width: 85%;
+    padding: 12px 16px;
+  }
+
+  .inputArea {
+    padding: 15px 20px;
+  }
+}

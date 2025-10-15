@@ -1,0 +1,80 @@
+.fluxograma-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.fluxograma-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.fluxograma-header h1 {
+  font-size: 2.5rem;
+  color: #1a1a1a;
+  margin-bottom: 10px;
+}
+
+.fluxograma-header p {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.fluxograma-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.fluxograma-card {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.fluxograma-full-width {
+  grid-column: 1 / -1;
+}
+
+.card-header {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.card-header h2 {
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+}
+
+.card-header p {
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.card-body {
+  padding: 25px;
+}
+
+@media (max-width: 1024px) {
+  .fluxograma-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .fluxograma-header h1 {
+    font-size: 2rem;
+  }
+
+  .fluxograma-header p {
+    font-size: 1rem;
+  }
+
+  .card-body {
+    padding: 15px;
+  }
+}

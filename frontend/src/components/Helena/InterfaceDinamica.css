@@ -1,0 +1,178 @@
+/* Interface Dinâmica - Estilos Base */
+.interface-container {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 10px 0;
+  max-width: 90%;
+}
+
+.interface-title {
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #495057;
+  font-size: 16px;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Areas Grid */
+.areas-grid {
+  display: grid;
+  /* Reduz min width para permitir 2-3 colunas em telas menores */
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  max-height: 420px; /* evita alongar demais e empurrar chat */
+  overflow-y: auto;
+  padding-right: 4px; /* espaço pro scrollbar */
+}
+
+.area-option {
+  background: white;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+  min-height: 88px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.area-option:hover {
+  border-color: #1351B4;
+  background: #f0f4ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(19, 81, 180, 0.1);
+}
+
+.area-option.selected {
+  border-color: #1351B4;
+  background: #e6efff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(19, 81, 180, 0.2);
+}
+
+.area-codigo {
+  font-weight: bold;
+  color: #1351B4;
+  font-size: 15px;
+  margin-bottom: 2px;
+  letter-spacing: .5px;
+}
+
+.area-nome {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+/* Layout horizontal opcional para áreas – permite que o container ocupe largura total e alinhe lado a lado com outro painel */
+.areas-selector-horizontal {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Quando um wrapper externo definir display flex com gap, este container já fica compacto */
+.areas-selector-horizontal .areas-grid {
+  flex: 1;
+}
+
+/* Layout mais denso em telas muito largas */
+@media (min-width: 1400px) {
+  .areas-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+}
+
+/* Action Buttons */
+.action-buttons {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-interface {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: #1351B4;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0E4B99;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(19, 81, 180, 0.3);
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+.btn-interface:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .areas-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .interface-container {
+    padding: 15px;
+    margin: 8px 0;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .btn-interface {
+    width: 100%;
+  }
+}

@@ -1,0 +1,81 @@
+/* Message Container */
+.message-container {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.message-container.usuario {
+  align-items: flex-end;
+}
+
+.message-container.helena {
+  align-items: flex-start;
+}
+
+/* Message Wrapper - contém avatar + mensagem */
+.message-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Avatar da Helena */
+.message-avatar {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1351B4, #0E4B99);
+  padding: 3px;
+  box-shadow: 0 2px 8px rgba(19, 81, 180, 0.2);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  background: white;
+}
+
+.message {
+  padding: 12px 16px;
+  border-radius: 12px;
+  max-width: 80%;
+  min-width: 80px;
+  word-wrap: break-word;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  animation: fadeIn 0.3s ease;
+  width: fit-content;
+  white-space: pre-wrap;
+}
+
+.message.usuario {
+  background: #1351B4;
+  color: white;
+  margin-left: auto;
+}
+
+.message.helena {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.message.loading {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
