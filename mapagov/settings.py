@@ -156,8 +156,8 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Vamos servir esses arquivos como parte do Django
 
 STATICFILES_DIRS = [
-    BASE_DIR / 'frontend' / 'dist',  # Frontend React buildado
     BASE_DIR / 'processos' / 'static',  # Arquivos estáticos do Django
+    BASE_DIR / 'frontend' / 'dist',  # Arquivos da raiz do React (vite.svg, imagens, etc.)
 ]
 
 # Arquivos de mídia (uploads, PDFs, etc.)

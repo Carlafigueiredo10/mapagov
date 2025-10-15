@@ -13,6 +13,8 @@ urlpatterns = [
 # Servir arquivos de mídia (uploads, PDFs) em desenvolvimento
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # Servir assets do React em desenvolvimento
+    urlpatterns += static('/assets/', document_root=settings.BASE_DIR / 'frontend' / 'dist' / 'assets')
 
 # ============================================================================
 # SERVIR FRONTEND REACT - Fallback para SPA (Single Page Application)
@@ -25,7 +27,7 @@ from django.views.generic import TemplateView
 # Servir index.html do React para todas as rotas do frontend
 # IMPORTANTE: Isso deve vir por último, depois de todas as URLs da API
 urlpatterns += [
-    re_path(r'^(?!api/|admin/|static/|media/).*$',
+    re_path(r'^(?!api/|admin/|static/|media/|assets/).*$',
             TemplateView.as_view(template_name='index.html'),
             name='react-frontend'),
 ]

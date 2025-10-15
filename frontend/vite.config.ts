@@ -8,6 +8,9 @@ export default defineConfig({
   // Adicione o plugin aqui
   plugins: [react()], // ESLint temporariamente desabilitado
 
+  // Base URL para assets em produção (Django WhiteNoise)
+  base: '/static/',
+
   server: {
     port: 5173,
     strictPort: true, // Não tenta outras portas se 5173 estiver ocupada
