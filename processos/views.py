@@ -312,13 +312,12 @@ def chat_api_view(request):
 
             return JsonResponse(resultado)
         
-        # P6: Relatório de Riscos
-        elif contexto == 'relatorio_riscos':
-            # 🚀 OTIMIZAÇÃO: Import lazy
-            from .helena_produtos.helena_relatorio_riscos import HelenaRelatorioRiscos
-            helena = HelenaRelatorioRiscos()
-            resultado = helena.processar_mensagem(user_message)
-            return JsonResponse(resultado)
+        # P6: Relatório de Riscos (DESATIVADO - arquivo deletado)
+        # elif contexto == 'relatorio_riscos':
+        #     from .helena_produtos.helena_relatorio_riscos import HelenaRelatorioRiscos
+        #     helena = HelenaRelatorioRiscos()
+        #     resultado = helena.processar_mensagem(user_message)
+        #     return JsonResponse(resultado)
         
         # P7: Plano de Ação
         elif contexto == 'plano_acao':
@@ -352,13 +351,12 @@ def chat_api_view(request):
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
         
-        # P11: Análise de Artefatos
-        elif contexto == 'artefatos':
-            # 🚀 OTIMIZAÇÃO: Import lazy
-            from .helena_produtos.helena_artefatos import HelenaArtefatos
-            helena = HelenaArtefatos()
-            resultado = helena.processar_mensagem(user_message)
-            return JsonResponse(resultado)
+        # P11: Análise de Artefatos (DESATIVADO - arquivo renomeado para helena_artefatos_comunicacao.py)
+        # elif contexto == 'artefatos':
+        #     from .helena_produtos.helena_artefatos import HelenaArtefatos
+        #     helena = HelenaArtefatos()
+        #     resultado = helena.processar_mensagem(user_message)
+        #     return JsonResponse(resultado)
         
         # Contexto não reconhecido
         else:
