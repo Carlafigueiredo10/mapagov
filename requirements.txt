@@ -102,6 +102,7 @@ pip==25.2
 posthog==5.4.0
 propcache==0.3.2
 protobuf==6.32.1
+psycopg2-binary==2.9.10
 pyarrow==21.0.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
