@@ -10,9 +10,10 @@ from django.views.decorators.http import require_http_methods
 from django.conf import settings
 import pypdf
 from datetime import datetime
-from .helena_produtos.helena_analise_riscos import analyze_risks_helena
+# ⚡ OTIMIZAÇÃO MEMÓRIA: analyze_risks_helena movido para lazy import (não usado no startup)
+# from .helena_produtos.helena_analise_riscos import analyze_risks_helena
 from .utils import (
-    ValidadorUtils, FormatadorUtils, CodigoUtils, 
+    ValidadorUtils, FormatadorUtils, CodigoUtils,
     ArquivoUtils, LogUtils, SegurancaUtils,
     validar_entrada_helena, preparar_dados_para_pdf,
     PDFGenerator  # ← ADICIONADO
