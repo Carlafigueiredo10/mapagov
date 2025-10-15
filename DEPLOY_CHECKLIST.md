@@ -252,6 +252,34 @@ git push
 
 ---
 
+### ❌ Erro: Network Error no chat (produção)
+
+**Causa:** Frontend fazendo requisições para `http://localhost:8000` em produção
+
+**Sintomas:**
+- Site carrega, mas chat mostra "Erro de conexão. Tente novamente."
+- DevTools mostra "Network Error" nas requisições
+- Console mostra CORS ou conexão recusada
+
+**Solução:** Usar URL relativa em produção:
+
+```typescript
+// frontend/src/services/api.ts e riscosApi.ts
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+  (import.meta.env.MODE === 'production' ? '' : 'http://localhost:8000');
+```
+
+Rebuild e commitar:
+```bash
+cd frontend
+npm run build
+git add -f frontend/dist/
+git commit -m "fix: API usa URL relativa em produção"
+git push
+```
+
+---
+
 ## 🏗️ Arquitetura de Servir Assets (React + Django)
 
 ### Como funciona em Produção:
@@ -296,6 +324,10 @@ Usuário → https://mapagov.onrender.com/
 
 **PEGADINHA #7:** Se `/assets/` NÃO estiver na regex de exclusão, Django retorna `index.html` para requisições de `.js`!
 
+**PEGADINHA #8:** API URL hardcoded para `localhost` causa "Network Error" em produção!
+- Frontend precisa usar URL relativa (`''`) em produção
+- Solução: `import.meta.env.MODE === 'production' ? '' : 'http://localhost:8000'`
+
 ---
 
 ## 📦 Estrutura de Arquivos Críticos
@@ -310,13 +342,18 @@ mapagov/
 │   ├── settings.py             # Configuração Django
 │   │   ├── STATICFILES_DIRS    # Inclui frontend/dist/
 │   │   ├── TEMPLATES['DIRS']   # Inclui frontend/dist/
+│   │   ├── STATICFILES_STORAGE # CompressedStaticFilesStorage (SEM Manifest!)
 │   │   └── ALLOWED_HOSTS       # .onrender.com
 │   └── urls.py                 # Catch-all do React
 ├── processos/
 │   ├── urls.py                 # APIs e rotas
 │   └── views.py                # Funções das APIs
 └── frontend/
-    ├── vite.config.ts          # base: condicional
+    ├── vite.config.ts          # base: condicional (prod vs dev)
+    ├── src/
+    │   └── services/
+    │       ├── api.ts          # API_BASE_URL relativa em prod
+    │       └── riscosApi.ts    # API_BASE_URL relativa em prod
     ├── dist/                   # Build de produção (COMMITADO!)
     │   ├── index.html
     │   └── assets/
@@ -435,6 +472,23 @@ Closes #XX
 
 ---
 
+---
+
+## 📝 Histórico de Correções
+
+| Deploy | Problema | Solução |
+|--------|----------|---------|
+| #1-5 | SQLite em produção | PostgreSQL configurado |
+| #6-10 | Dependências faltando | requirements.txt completo |
+| #11-20 | Views/URLs quebrados | Comentar rotas inexistentes |
+| #21-25 | Frontend não commitado | `git add -f frontend/dist/` |
+| #26-30 | Django servindo HTML antigo | Comentar rotas Django |
+| #31 | WhiteNoise Manifest corrompe HTML | Usar CompressedStaticFilesStorage |
+| #32 | 502 Bad Gateway resolvido | ✅ SITE NO AR! |
+| #33 | Network Error no chat | URL relativa em api.ts/riscosApi.ts |
+
+---
+
 **Última atualização:** 2025-10-15
-**Versão:** 1.0
+**Versão:** 1.1
 **Autor:** Equipe MapaGov com Claude Code
