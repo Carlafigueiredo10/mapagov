@@ -240,6 +240,48 @@ git push
 
 ---
 
+### ❌ Erro: Worker killed by SIGKILL (Out of Memory)
+
+**Causa:** Render Free Tier tem apenas 512MB RAM. Imports pesados (LangChain, ChromaDB, OpenAI) no topo do arquivo carregam no startup e estouram memória.
+
+**Sintomas:**
+- Worker inicia mas é morto segundos depois
+- Logs mostram: `Worker (pid:XX) was sent SIGKILL! Perhaps out of memory?`
+- Site retorna 502 Bad Gateway
+- Backend funciona local mas falha em produção
+
+**Solução:** Lazy Loading - importar apenas quando necessário
+
+```python
+# ❌ ERRADO - Import no topo (carrega no startup)
+from .helena_produtos.helena_pop import HelenaPOP
+from langchain_chroma import Chroma
+
+def chat_api_view(request):
+    helena = HelenaPOP()  # Já está carregado
+    ...
+
+# ✅ CORRETO - Import dentro da função (lazy load)
+def chat_api_view(request):
+    # 🚀 OTIMIZAÇÃO: Import lazy - só carrega quando realmente necessário
+    from .helena_produtos.helena_pop import HelenaPOP
+    helena = HelenaPOP()
+    ...
+```
+
+**PEGADINHA #10:** Sempre use **lazy imports** para módulos pesados (LangChain, ChromaDB, pandas, etc.)!
+- Imports no topo = carregam no startup = matam worker por OOM
+- Imports dentro das funções = só carregam quando usuário usar = economiza memória
+
+**Checklist de Lazy Loading:**
+- [ ] Nenhum import de `langchain*` no topo de views.py
+- [ ] Nenhum import de `chroma*` no topo de views.py
+- [ ] Nenhum import de `helena_produtos.*` no topo (exceto utils leves)
+- [ ] Todos os produtos Helena importados dentro das funções
+- [ ] Pandas/numpy importados apenas onde necessário
+
+---
+
 ### ❌ Site mostra templates Django antigos (não React)
 
 **Causa:** Rotas Django em `processos/urls.py` interceptando antes do catch-all do React
@@ -495,9 +537,12 @@ Closes #XX
 | #32 | 502 Bad Gateway resolvido | ✅ SITE NO AR! |
 | #33 | Network Error no chat | URL relativa em api.ts/riscosApi.ts |
 | #34 | Imagens 404 (caminhos errados) | Remover `/img/` dos caminhos no código |
+| #35-37 | API funcionando, imagens corrigidas | ✅ Frontend 100% funcional |
+| #38-39 | Worker morto por imports deletados | Comentar imports helena_relatorio_riscos |
+| #40 | Worker SIGKILL - Out of Memory | Lazy loading de helena_analise_riscos |
 
 ---
 
 **Última atualização:** 2025-10-15
-**Versão:** 1.2
+**Versão:** 1.3 (adicionada seção Lazy Loading)
 **Autor:** Equipe MapaGov com Claude Code
