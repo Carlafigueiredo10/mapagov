@@ -4,7 +4,7 @@ import axios from 'axios';
 // Em produção (build), se VITE_API_URL não estiver definido, usa URL relativa
 // Em dev, usa localhost:8000
 const API_BASE_URL = import.meta.env.VITE_API_URL ||
-  (import.meta.env.MODE === 'production' ? '' : 'http://localhost:8000');
+  (import.meta.env.PROD ? '' : 'http://localhost:8000');
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,

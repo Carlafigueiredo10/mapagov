@@ -11,7 +11,7 @@ import type {
 
 // URL da API - usa variável de ambiente ou URL relativa em produção
 const API_BASE_URL = import.meta.env.VITE_API_URL ||
-  (import.meta.env.MODE === 'production' ? '' : 'http://localhost:8000');
+  (import.meta.env.PROD ? '' : 'http://localhost:8000');
 
 // Instância do axios configurada
 const apiClient = axios.create({
