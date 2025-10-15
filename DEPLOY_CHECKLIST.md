@@ -34,6 +34,7 @@ npm run build
 # Verificar se gerou arquivos
 ls dist/index.html          # Deve existir (~480 bytes)
 ls dist/assets/             # Deve ter vários arquivos .js e .css
+ls dist/*.png dist/*.svg    # Verificar se imagens foram copiadas
 
 # Adicionar ao Git (dist está no .gitignore!)
 git add -f frontend/dist/
@@ -41,6 +42,8 @@ git status  # Verificar que dist/ está sendo commitado
 ```
 
 **PEGADINHA #1:** `frontend/dist/` está no `.gitignore`! Sempre usar `-f` para forçar.
+
+**PEGADINHA #9:** Imagens precisam estar em `frontend/public/` ou `frontend/dist/` (raiz) e serem referenciadas como `/static/helena_avatar.png` (sem subpasta `/img/`)!
 
 ---
 
@@ -328,6 +331,11 @@ Usuário → https://mapagov.onrender.com/
 - Frontend precisa usar URL relativa (`''`) em produção
 - Solução: `import.meta.env.MODE === 'production' ? '' : 'http://localhost:8000'`
 
+**PEGADINHA #9:** Imagens referenciadas com caminhos incorretos (ex: `/static/img/logo.png`) não aparecem!
+- Vite copia imagens de `frontend/public/` para `frontend/dist/` (raiz, sem subpastas)
+- Django WhiteNoise serve em `/static/logo.png` (não `/static/img/`)
+- Sempre verificar caminhos após build: usar DevTools → Network para ver 404s
+
 ---
 
 ## 📦 Estrutura de Arquivos Críticos
@@ -486,9 +494,10 @@ Closes #XX
 | #31 | WhiteNoise Manifest corrompe HTML | Usar CompressedStaticFilesStorage |
 | #32 | 502 Bad Gateway resolvido | ✅ SITE NO AR! |
 | #33 | Network Error no chat | URL relativa em api.ts/riscosApi.ts |
+| #34 | Imagens 404 (caminhos errados) | Remover `/img/` dos caminhos no código |
 
 ---
 
 **Última atualização:** 2025-10-15
-**Versão:** 1.1
+**Versão:** 1.2
 **Autor:** Equipe MapaGov com Claude Code

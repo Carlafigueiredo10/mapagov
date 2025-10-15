@@ -7,11 +7,10 @@ from dotenv import load_dotenv
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from django.shortcuts import render
 from django.conf import settings
 import pypdf
 from datetime import datetime
-from .helena_risks import analyze_risks_helena
+from .helena_produtos.helena_analise_riscos import analyze_risks_helena
 from .utils import (
     ValidadorUtils, FormatadorUtils, CodigoUtils, 
     ArquivoUtils, LogUtils, SegurancaUtils,
@@ -20,29 +19,10 @@ from .utils import (
 )
 
 # ============================================================================
-# VIEWS PARA TEMPLATES (PÁGINAS)
+# VIEWS ANTIGAS REMOVIDAS - MIGRADAS PARA REACT
 # ============================================================================
-
-def landing_temp(request):
-    """Página inicial do sistema"""
-    return render(request, 'landing.html')
-
-def portal_temp(request):
-    """Portal do sistema"""
-    return render(request, 'portal.html')
-
-def chat_temp(request):
-    """Página do chat com Helena"""
-    return render(request, 'chat.html')
-
-def riscos_fluxo(request):
-    """Página do fluxo de análise de riscos"""
-    return render(request, 'riscos/fluxo.html')
-
-def fluxograma_temp(request):
-    """Página do gerador de fluxogramas via PDF"""
-    return render(request, 'fluxograma.html')
-
+# Todas as views de templates (landing, portal, chat, etc.) foram removidas.
+# O frontend agora é 100% React, servido pelo catch-all do mapagov/urls.py
 # ============================================================================
 # APIs - CHAT COM HELENA (SISTEMA MULTI-PRODUTO) - VERSÃO COM SESSÃO PERSISTENTE
 # ============================================================================
@@ -293,31 +273,43 @@ def chat_api_view(request):
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
         
-        # P5: Análise de Riscos (com sessão)
+        # P5: Análise de Riscos (com sessão) - MODO CONVERSACIONAL HÍBRIDO
         elif contexto == 'analise_riscos':
             # 🚀 OTIMIZAÇÃO: Import lazy
             from .helena_produtos.helena_analise_riscos import HelenaAnaliseRiscos
-            
+
             session_key = 'helena_riscos_state'
-            
+
             if session_key not in request.session:
                 helena = HelenaAnaliseRiscos()
             else:
                 helena = HelenaAnaliseRiscos()
                 state = request.session[session_key]
+                # Restaurar estado completo da classe conversacional
                 helena.estado = state.get('estado', 'inicial')
                 helena.dados_processo = state.get('dados_processo', {})
-                helena.riscos_identificados = state.get('riscos_identificados', [])
-            
+                helena.respostas_brutas = state.get('respostas_brutas', {})
+                helena.respostas_normalizadas = state.get('respostas_normalizadas', {})
+                helena.etapa_atual = state.get('etapa_atual', 0)
+                helena.conversas = state.get('conversas', [])
+                helena.pergunta_atual_idx = state.get('pergunta_atual_idx', 0)
+                helena.secao_atual_idx = state.get('secao_atual_idx', 0)
+
             resultado = helena.processar_mensagem(user_message)
-            
+
+            # Salvar estado completo
             request.session[session_key] = {
                 'estado': helena.estado,
                 'dados_processo': helena.dados_processo,
-                'riscos_identificados': helena.riscos_identificados
+                'respostas_brutas': helena.respostas_brutas,
+                'respostas_normalizadas': helena.respostas_normalizadas,
+                'etapa_atual': helena.etapa_atual,
+                'conversas': helena.conversas,
+                'pergunta_atual_idx': helena.pergunta_atual_idx,
+                'secao_atual_idx': helena.secao_atual_idx
             }
             request.session.modified = True
-            
+
             return JsonResponse(resultado)
         
         # P6: Relatório de Riscos
@@ -807,8 +799,11 @@ def fluxograma_from_pdf(request):
         }, status=500)
 
 def analyze_pop_content(text):
-    """Extrai informações estruturadas do POP"""
-    
+    """
+    Extrai informações estruturadas do POP
+    VERSÃO 2.0 - Compatível com POPs antigos E novos (helena_pop.py)
+    """
+
     info = {
         'titulo': '',
         'codigo': '',
@@ -820,53 +815,127 @@ def analyze_pop_content(text):
         'operadores': [],
         'responsavel': ''
     }
-    
+
     lines = text.split('\n')
-    
+
+    # Detectar formato do POP
+    is_new_format = '3. SISTEMAS UTILIZADOS/ ACESSOS NECESSÁRIOS' in text or 'sistemas_utilizados' in text.lower()
+
     for i, line in enumerate(lines):
         line = line.strip()
         if not line:
             continue
-        
-        if any(palavra in line.upper() for palavra in ['CONCEDER', 'CONCESSÃO', 'RESSARCIMENTO', 'AUXÍLIO', 'APOSENTADO']):
+
+        # TÍTULO/ATIVIDADE
+        if any(palavra in line.upper() for palavra in ['CONCEDER', 'CONCESSÃO', 'RESSARCIMENTO', 'AUXÍLIO', 'APOSENTADO', 'REVERSÃO']):
             if len(line) > 10 and not info['titulo']:
                 info['titulo'] = line
                 info['atividade'] = line
-        
+
+        # CÓDIGO DO PROCESSO
         if not info['codigo']:
             import re
+            # Padrão: X.X.X.X ou similar
             codigo_match = re.search(r'\b\d+\.\d+\.\d+\.\d+\b', line)
             if codigo_match:
                 info['codigo'] = codigo_match.group()
-        
-        if 'MACROPROCESSO:' in line.upper():
-            info['macroprocesso'] = line.split(':', 1)[1].strip() if ':' in line else ''
-        
+
+        # MACROPROCESSO
+        if 'MACROPROCESSO:' in line.upper() or 'MACROPROCESSO' in line.upper():
+            partes = line.split(':', 1)
+            if len(partes) > 1:
+                info['macroprocesso'] = partes[1].strip()
+
+        # PROCESSO
         if 'PROCESSO:' in line.upper() and not info['processo']:
-            info['processo'] = line.split(':', 1)[1].strip() if ':' in line else ''
-        
-        sistemas_conhecidos = ['SIGEPE', 'SouGov', 'SEI', 'SIAPE', 'CADSIAPE']
+            partes = line.split(':', 1)
+            if len(partes) > 1:
+                info['processo'] = partes[1].strip()
+
+        # SISTEMAS - LISTA COMPLETA (50+ sistemas da HelenaPOP)
+        # 1. Sistemas conhecidos - MESMA FONTE que helena_pop.py
+        sistemas_conhecidos = [
+            # Gestão de Pessoal
+            'SIAPE', 'E-SIAPE', 'SIGEPE', 'SIGEP - AFD', 'E-Pessoal TCU', 'SIAPNET', 'SIGAC',
+            # Documentos
+            'SEI', 'DOINET', 'DOU', 'SOUGOV', 'PETRVS',
+            # Transparência
+            'Portal da Transparência', 'CNIS', 'Site CGU-PAD',
+            'Sistema de Pesquisa Integrada do TCU', 'Consulta CPF RFB',
+            # Previdência
+            'SISTEMA COMPREV', 'BG COMPREV',
+            # Comunicação
+            'TEAMS', 'OUTLOOK',
+            # Outros
+            'DW', 'CADSIAPE', 'SIAPE-Saúde', 'SISAC', 'SCDP',
+            'SICONV', 'SIGEF', 'SIAFI', 'SouGov.br',
+            # Variações comuns
+            'SouGov', 'e-Pessoal', 'ePessoal', 'SIGEPE-Saúde'
+        ]
+
+        # Detecta sistemas na linha atual (case-insensitive)
+        line_upper = line.upper()
         for sistema in sistemas_conhecidos:
-            if sistema in line and sistema not in info['sistemas']:
-                info['sistemas'].append(sistema)
-        
-        if any(palavra in line for palavra in ['Lei nº', 'Lei no', 'IN nº', 'Instrução Normativa', 'Decreto']):
+            sistema_upper = sistema.upper()
+            if sistema_upper in line_upper:
+                # Adiciona o sistema com capitalização original
+                if sistema not in info['sistemas']:
+                    info['sistemas'].append(sistema)
+
+        # 2. Padrão de seção "3. SISTEMAS UTILIZADOS"
+        if i > 0 and '3.' in lines[i-1] and 'SISTEMA' in lines[i-1].upper():
+            # Próximas linhas são sistemas até encontrar próxima seção (4., linha vazia, etc)
+            j = i
+            while j < len(lines) and lines[j].strip():
+                sistema_line = lines[j].strip()
+                # Para quando encontrar próxima seção numerada
+                if re.match(r'^\d+\.', sistema_line):
+                    break
+                # Adiciona se não for vazio e não for título
+                if sistema_line and 'SISTEMA' not in sistema_line.upper():
+                    if sistema_line not in info['sistemas']:
+                        info['sistemas'].append(sistema_line)
+                j += 1
+
+        # 3. Detecção inteligente de sistemas (palavras-chave)
+        if any(kw in line.upper() for kw in ['ACESSO AO', 'LOGIN', 'MÓDULO', 'PORTAL']):
+            # Tenta extrair nome do sistema
+            palavras = line.split()
+            for palavra in palavras:
+                if len(palavra) > 3 and palavra.isupper():
+                    if palavra not in info['sistemas'] and palavra not in ['ACESSO', 'LOGIN', 'MÓDULO', 'PORTAL']:
+                        info['sistemas'].append(palavra)
+
+        # NORMATIVOS
+        if any(palavra in line for palavra in ['Lei nº', 'Lei no', 'Lei n°', 'IN nº', 'Instrução Normativa', 'Decreto', 'Portaria']):
             normativo = line[:150]
             if normativo not in info['normativos'] and len(info['normativos']) < 5:
                 info['normativos'].append(normativo)
-        
-        operadores_tipos = ['TÉCNICO ESPECIALIZADO', 'COORDENADOR', 'APOIO GABINETE', 'APOIO-GABINETE']
+
+        # OPERADORES
+        operadores_tipos = ['TÉCNICO ESPECIALIZADO', 'COORDENADOR', 'APOIO GABINETE', 'APOIO-GABINETE', 'OPERADOR']
         for operador in operadores_tipos:
             if operador in line.upper() and operador not in [o.upper() for o in info['operadores']]:
                 info['operadores'].append(operador.title())
-        
-        if any(palavra in line.upper() for palavra in ['DECIPEX', 'CGBEN', 'COAUX']) and not info['responsavel']:
+
+        # RESPONSÁVEL
+        if any(palavra in line.upper() for palavra in ['DECIPEX', 'CGBEN', 'COAUX', 'RESPONSÁVEL']) and not info['responsavel']:
             info['responsavel'] = line
-    
-    info['sistemas'] = list(set(info['sistemas']))
+
+    # Limpeza final
+    info['sistemas'] = list(set(info['sistemas']))[:10]  # Limita a 10 sistemas únicos
     info['normativos'] = info['normativos'][:3]
     info['operadores'] = list(set(info['operadores']))[:3]
-    
+
+    # LOG de debug
+    print(f"\n{'='*80}")
+    print("📄 ANÁLISE DE POP CONCLUÍDA")
+    print(f"   Título: {info['titulo'][:50]}...")
+    print(f"   Código: {info['codigo']}")
+    print(f"   Sistemas encontrados ({len(info['sistemas'])}): {info['sistemas']}")
+    print(f"   Formato detectado: {'NOVO (helena_pop)' if is_new_format else 'ANTIGO'}")
+    print(f"{'='*80}\n")
+
     return info
 
 # ============================================================================
