@@ -4,12 +4,14 @@ import react from '@vitejs/plugin-react'
 // @ts-ignore
 import vitePluginEslint from 'vite-plugin-eslint'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   // Adicione o plugin aqui
   plugins: [react()], // ESLint temporariamente desabilitado
 
   // Base URL para assets em produção (Django WhiteNoise)
-  base: '/static/',
+  // Em dev: '/' (raiz)
+  // Em prod: '/static/' (Django collectstatic)
+  base: mode === 'production' ? '/static/' : '/',
 
   server: {
     port: 5173,
@@ -18,4 +20,4 @@ export default defineConfig({
     // Em desenvolvimento: http://localhost:8000
     // Em produção: https://mapagov-api.onrender.com
   },
-})
+}))
