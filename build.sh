@@ -11,7 +11,7 @@ echo "======================================"
 echo ""
 echo "📦 Buildando frontend React..."
 cd frontend
-npm ci  # Install com cache (mais rápido que npm install)
+npm install  # Instala dependências do package.json
 npm run build
 cd ..
 
