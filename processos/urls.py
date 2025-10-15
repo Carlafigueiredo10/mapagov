@@ -18,42 +18,44 @@ urlpatterns = [
     # path('fluxograma/', views.fluxograma_temp, name='fluxograma'),  # Agora servido pelo React
 
     # ============================================================================
-    # APIs HELENA - CHAT CONVERSACIONAL
+    # APIs HELENA - CHAT CONVERSACIONAL (BÁSICAS - FUNCIONAIS)
     # ============================================================================
-    
+
     path('api/chat/', views.chat_api_view, name='chat-api'),
     path('api/chat-recepcao/', views.chat_recepcao_api, name='chat_recepcao_api'),
-    path('api/reiniciar-conversa-helena/', views.reiniciar_conversa_helena, name='reiniciar_helena'),
-    path('api/pop-autosave/', views.autosave_pop, name='pop_autosave'),
-    path('api/pop-backup-session/', views.backup_session_pops, name='pop_backup_session'),
-    path('api/pop-restore-snapshot/', views.restore_pop_snapshot, name='pop_restore_snapshot'),
-    path('api/pop-snapshot-milestone/', views.marcar_milestone_snapshot, name='pop_snapshot_milestone'),
-    path('api/pop-snapshot-diff/', views.diff_snapshots, name='pop_snapshot_diff'),
-    path('api/pop-historico/<int:pop_id>/', views.listar_historico_pop, name='pop_historico'),
     path('api/helena-mapeamento/', helena_mapeamento_api, name='helena_mapeamento_api'),
-    path('api/helena-ajuda-arquitetura/', views.helena_ajuda_arquitetura, name='helena_ajuda_arquitetura'),
+
+    # APIs de autosave/snapshot/histórico - TEMPORARIAMENTE DESABILITADAS (views não commitadas)
+    # path('api/reiniciar-conversa-helena/', views.reiniciar_conversa_helena, name='reiniciar_helena'),
+    # path('api/pop-autosave/', views.autosave_pop, name='pop_autosave'),
+    # path('api/pop-backup-session/', views.backup_session_pops, name='pop_backup_session'),
+    # path('api/pop-restore-snapshot/', views.restore_pop_snapshot, name='pop_restore_snapshot'),
+    # path('api/pop-snapshot-milestone/', views.marcar_milestone_snapshot, name='pop_snapshot_milestone'),
+    # path('api/pop-snapshot-diff/', views.diff_snapshots, name='pop_snapshot_diff'),
+    # path('api/pop-historico/<int:pop_id>/', views.listar_historico_pop, name='pop_historico'),
+    # path('api/helena-ajuda-arquitetura/', views.helena_ajuda_arquitetura, name='helena_ajuda_arquitetura'),
 
     # ============================================================================
-    # APIs PDF E DOCUMENTOS - NOVAS
+    # APIs PDF E DOCUMENTOS (FUNCIONAIS)
     # ============================================================================
-    
+
     path('api/gerar-pdf-pop/', views.gerar_pdf_pop, name='gerar_pdf_pop'),
     path('api/download-pdf/<str:nome_arquivo>/', views.download_pdf, name='download_pdf'),
     path('api/validar-dados-pop/', views.validar_dados_pop, name='validar_dados_pop'),
-    path('api/validar-codigo-processo/', views.validar_codigo_processo, name='validar_codigo_processo'),
+    # path('api/validar-codigo-processo/', views.validar_codigo_processo, name='validar_codigo_processo'),  # View não existe
 
     # ============================================================================
-    # APIs RAG E SUGESTÕES - NOVAS
+    # APIs RAG E SUGESTÕES (FUNCIONAIS)
     # ============================================================================
-    
+
     path('api/consultar-rag-sugestoes/', views.consultar_rag_sugestoes, name='consultar_rag'),
 
     # ============================================================================
-    # APIs EXTRAÇÃO E ANÁLISE PDF - EXISTENTES
+    # APIs EXTRAÇÃO E ANÁLISE PDF (FUNCIONAIS)
     # ============================================================================
-    
+
     path('api/extract-pdf/', views.extract_pdf_text, name='extract_pdf'),
-    path('api/analyze-risks/', views.analyze_risks_helena, name='analyze_risks'),
+    # path('api/analyze-risks/', views.analyze_risks_helena, name='analyze_risks'),  # View não existe
     path('api/fluxograma-from-pdf/', views.fluxograma_from_pdf, name='fluxograma_from_pdf'),
 
     # ============================================================================
