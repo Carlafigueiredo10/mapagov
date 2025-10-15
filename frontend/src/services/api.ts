@@ -1,7 +1,10 @@
 import axios from 'axios';
 
-// URL da API - usa variável de ambiente ou fallback para desenvolvimento
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// URL da API - usa variável de ambiente ou URL relativa em produção
+// Em produção (build), se VITE_API_URL não estiver definido, usa URL relativa
+// Em dev, usa localhost:8000
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+  (import.meta.env.MODE === 'production' ? '' : 'http://localhost:8000');
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
