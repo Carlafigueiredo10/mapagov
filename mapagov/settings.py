@@ -17,8 +17,14 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-ol5&1dnbx!nzm!4hl6!yk1aah8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-# --- CORRIGIDO PARA RENDER ---
-ALLOWED_HOSTS = ['mapagov.onrender.com', '.onrender.com', 'localhost', '127.0.0.1']
+# --- ALLOWED HOSTS: Render + Google Cloud ---
+ALLOWED_HOSTS = [
+    'mapagov.onrender.com',
+    '.onrender.com',
+    'localhost',
+    '127.0.0.1',
+    '.run.app',  # Google Cloud Run
+]
 
 # ============================================================================
 # CONFIGURAÇÕES DE SEGURANÇA PARA PRODUÇÃO
@@ -93,11 +99,29 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mapagov.wsgi.application'
 
-# Database (Postgres via DATABASE_URL ou fallback para SQLite)
+# ============================================================================
+# DATABASE CONFIGURATION: Suporta Render, Google Cloud SQL e local
+# ============================================================================
 DATABASE_URL = os.getenv('DATABASE_URL')
-if DATABASE_URL:
+CLOUD_SQL_CONNECTION_NAME = os.getenv('CLOUD_SQL_CONNECTION_NAME')  # formato: project:region:instance
+
+if CLOUD_SQL_CONNECTION_NAME:
+    # Google Cloud SQL via Unix socket
+    print(f"[DATABASE] Usando Cloud SQL: {CLOUD_SQL_CONNECTION_NAME}")
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'mapagov'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': f'/cloudsql/{CLOUD_SQL_CONNECTION_NAME}',  # Unix socket
+            'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        }
+    }
+elif DATABASE_URL:
+    # Render ou qualquer PostgreSQL via URL
     parsed = urlparse(DATABASE_URL)
-    # Suporta formatos: postgres://user:pass@host:port/dbname
+    print(f"[DATABASE] Usando PostgreSQL: {parsed.hostname}")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -113,6 +137,8 @@ if DATABASE_URL:
         }
     }
 else:
+    # Desenvolvimento local com SQLite
+    print("[DATABASE] Usando SQLite (desenvolvimento local)")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
