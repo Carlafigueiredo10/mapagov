@@ -147,7 +147,9 @@ else:
     }
 
 # 🔥 FASE 1: Forçar PostgreSQL em produção (segurança + escalabilidade)
-if not DEBUG and DATABASES['default']['ENGINE'].endswith('sqlite3'):
+# Permite SQLite apenas durante collectstatic no Docker build (SKIP_DB_CHECK=1)
+SKIP_DB_CHECK = os.getenv('SKIP_DB_CHECK', '0') == '1'
+if not DEBUG and not SKIP_DB_CHECK and DATABASES['default']['ENGINE'].endswith('sqlite3'):
     raise RuntimeError(
         "❌ PRODUÇÃO COM SQLITE DETECTADA! SQLite não suporta concorrência e não escala.\n"
         "Defina DATABASE_URL para PostgreSQL: export DATABASE_URL='postgresql://user:pass@host:5432/dbname'\n"

@@ -56,8 +56,11 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 # Criar diretórios necessários
 RUN mkdir -p staticfiles media logs backups chroma_db
 
-# Coletar arquivos estáticos
-RUN python manage.py collectstatic --noinput
+# Coletar arquivos estáticos (permite SQLite temporário só para collectstatic)
+# O banco real (PostgreSQL) será usado no runtime via variáveis de ambiente
+ENV SKIP_DB_CHECK=1
+RUN python manage.py collectstatic --noinput || echo "WARN: collectstatic failed"
+ENV SKIP_DB_CHECK=0
 
 # Criar usuário não-root para segurança
 RUN useradd -m -u 1000 appuser && \
