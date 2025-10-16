@@ -31,7 +31,7 @@ ALLOWED_HOSTS = [
 # ============================================================================
 if not DEBUG:
     # HTTPS/SSL
-    SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT = False  # Cloud Run proxy já gerencia HTTPS
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
@@ -182,10 +182,15 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 # O frontend React buildado (npm run build) gera arquivos em frontend/dist/
 # Vamos servir esses arquivos como parte do Django
 
+# Configurar STATICFILES_DIRS apenas com diretórios que existem
 STATICFILES_DIRS = [
     BASE_DIR / 'processos' / 'static',  # Arquivos estáticos do Django
-    BASE_DIR / 'frontend' / 'dist',  # Frontend React buildado
 ]
+
+# Adicionar frontend/dist apenas se existir (evita WARNING W004)
+frontend_dist = BASE_DIR / 'frontend' / 'dist'
+if frontend_dist.exists():
+    STATICFILES_DIRS.append(frontend_dist)
 
 # Arquivos de mídia (uploads, PDFs, etc.)
 MEDIA_URL = '/media/'
