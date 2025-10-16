@@ -26,6 +26,17 @@ ALLOWED_HOSTS = [
     '.run.app',  # Google Cloud Run
 ]
 
+# CSRF Trusted Origins (para formulários de login/admin)
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.run.app',  # Google Cloud Run
+    'https://mapagov.onrender.com',
+]
+
+# Adicionar origens de produção via variável de ambiente
+csrf_origins_env = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if csrf_origins_env:
+    CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in csrf_origins_env.split(',')])
+
 # ============================================================================
 # CONFIGURAÇÕES DE SEGURANÇA PARA PRODUÇÃO
 # ============================================================================
