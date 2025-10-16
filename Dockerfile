@@ -13,14 +13,14 @@ WORKDIR /app/frontend
 # Copiar apenas package files primeiro (cache layer)
 COPY frontend/package*.json ./
 
-# Instalar dependências
-RUN npm ci --only=production || echo "WARN: npm ci failed, frontend may not work"
+# Instalar dependências (incluindo devDependencies para o build)
+RUN npm ci || echo "WARN: npm ci failed, frontend may not work"
 
 # Copiar código fonte do frontend
 COPY frontend/ ./
 
 # Build do frontend para produção
-RUN npm run build || mkdir -p dist && echo "WARN: Frontend build failed, using empty dist"
+RUN npm run build
 
 # ============================================================================
 # STAGE 2: Backend Python + Django
