@@ -134,11 +134,6 @@ class HelenaPOP:
                 "exemplo": "Ex: Art. 34 da IN SGP/SEDGG/ME nº 97/2022, Lei 8.112/90"
             },
             {
-                "nome": "pontos_atencao",
-                "pergunta": "⚠️ Há algum ponto especial de atenção ou cuidado nesta atividade?\n\nAlgo que você sempre lembra: \"Ao fazer isso, é importante ter atenção a...\"",
-                "exemplo": "Ex: Auditar situação desde centralização, Observar prazos de retroatividade"
-            },
-            {
                 "nome": "operadores",
                 "pergunta": "Quem são os responsáveis por executar esta atividade?",
                 "exemplo": "Ex: Técnico Especializado, Coordenador, Apoio-gabinete"
@@ -259,6 +254,8 @@ class HelenaPOP:
                 return self._processar_campos(mensagem)
             elif self.estado == "documentos":
                 return self._processar_documentos(mensagem)
+            elif self.estado == "pontos_atencao":
+                return self._processar_pontos_atencao(mensagem)
             elif self.estado == "pre_etapas":
                 return self._processar_pre_etapas(mensagem)
             elif self.estado == "fluxos_entrada":
@@ -581,23 +578,23 @@ class HelenaPOP:
                     "proximo_estado": "campos"
                 }
             
-            elif campo_num == 6:
-                # Editar pontos de atenção
+            elif campo_num == 7:
+                # Editar pontos de atenção (NOVO: Agora é campo 7, depois de documentos)
                 self.editando_campo = "pontos_atencao"
-                self.etapa_atual_campo = 4
-                self.estado = "campos"
+                self.estado = "pontos_atencao"
                 valor_atual = self.dados.get("pontos_atencao", "")
+                nome_exibir = self.nome_usuario or self.nome_temporario or "você"
                 return {
-                    "resposta": f"Valor atual: {valor_atual}\n\n⚠️ Há algum ponto especial de atenção ou cuidado nesta atividade?\n\nAlgo que você sempre lembra: \"Ao fazer isso, é importante ter atenção a...\"\n\nEx: Auditar situação desde centralização, Observar prazos de retroatividade",
+                    "resposta": f"Valor atual: {valor_atual}\n\n{nome_exibir}, ao pensar na sua atividade, tem algo que você acha importante chamar atenção?\n\n🚨 Essa é a hora de dizer pra quem for usar seu POP: PRESTE ATENÇÃO NESSE PONTO!\n\nEx: Auditar situação desde centralização, Observar prazos de retroatividade",
                     "tipo_interface": "texto",
                     "dados_interface": {},
                     "dados_extraidos": {},
                     "conversa_completa": False,
                     "progresso": "10/10",
-                    "proximo_estado": "campos"
+                    "proximo_estado": "pontos_atencao"
                 }
 
-            elif campo_num == 7:
+            elif campo_num == 6:
                 # Editar operadores
                 self.editando_campo = "operadores"
                 self.etapa_atual_campo = 5
@@ -758,10 +755,12 @@ class HelenaPOP:
 
                 return {
                     "resposta": (
-                        f"Perfeito, {self.nome_usuario}! Você trabalha na {self.AREAS_DECIPEX[area_id]['nome']}.\n\n"
-                        f"Agora vamos localizar seu **MACROPROCESSO** na arquitetura da DECIPEX. Essa lista já foi levantada anteriormente.\n\n"
-                        f"Macroprocesso é a gestão de um aglomerado de processos e atividades. Veja as opções na lista.\n\n"
-                        f"Mas se tiver em dúvida em qual macroprocesso sua atividade se encaixa, é só clicar em \"Preciso de Ajuda\" e me contar em detalhes o que você faz e eu te ajudo a definir."
+                        f"👋 Perfeito, {self.nome_usuario}!\n"
+                        f"Você atua na {self.AREAS_DECIPEX[area_id]['nome']}, certo?\n\n"
+                        f"Agora vamos localizar o macroprocesso da sua atividade na arquitetura da DECIPEX.\n\n"
+                        f"🧩 Um macroprocesso é um grupo de processos e atividades que têm o mesmo objetivo.\n\n"
+                        f"👉 Escolha na lista o que mais se parece com o que você faz.\n\n"
+                        f"💡 Se não tiver certeza, clique em \"Preciso de Ajuda\" e me conte o que faz no dia a dia — eu te ajudo a definir onde se encaixa."
                     ),
                     "tipo_interface": "dropdown_macro",
                     "dados_interface": {
@@ -833,7 +832,7 @@ class HelenaPOP:
 
             processos = self.arquitetura.obter_processos_por_macro(self.macro_selecionado)
             return {
-                "resposta": f"Então seu macroprocesso é **{self.macro_selecionado}**. Entendi!\n\nAgora vamos detalhar em mais 3 níveis para localizar exatamente sua atividade:\n\n📍 **Nível 1: PROCESSO**\n\n📍 **Nível 2: SUBPROCESSO**\n\n📍 **Nível 3: ATIVIDADE**\n\nComeçando pelo PROCESSO, selecione abaixo a opção que melhor se encaixa. Se não achar nada parecido com sua atividade temos o campo em aberto para você digitar.",
+                "resposta": f"Perfeito — seu macroprocesso é {self.macro_selecionado} 🧩\n\nAgora vamos aprofundar um pouco mais pra identificar exatamente sua atividade.\n\nVamos passo a passo:\n\n1️⃣ Processo: qual grupo principal de tarefas você executa?\n2️⃣ Subprocesso: dentro desse grupo, há uma parte mais específica?\n3️⃣ Atividade: o que você realmente faz no dia a dia?\n\n🔍 Começando pelo Processo, escolha na lista o que mais se parece com o seu trabalho.\n\n💡 Se tiver dúvida, pode pedir ajuda antes de escolher — eu te guio pra encontrar o melhor encaixe.\n\n✏️ E se mesmo assim não encontrar, é só digitar manualmente o que você faz que eu ajusto depois com você.",
                 "tipo_interface": "dropdown_processo_com_texto_livre",
                 "dados_interface": {"opcoes": processos, "permitir_texto_livre": True},
                 "dados_extraidos": {"macroprocesso": self.macro_selecionado},
@@ -891,7 +890,7 @@ class HelenaPOP:
 
             nome_exibir = self.nome_usuario or self.nome_temporario or "você"
             return {
-                "resposta": f"Processo: **{self.processo_selecionado}**. Pronto!\n\nAgora vamos mais um degrau: **SUBPROCESSO**.\n\nSelecione abaixo a opção que melhor se encaixa. Se não achar nada parecido com sua atividade temos o campo em aberto para você digitar.",
+                "resposta": f"Processo: {self.processo_selecionado}. Pronto!\n\nAgora vamos aprofundar um pouco mais para identificar o subprocesso — a parte mais específica dentro desse trabalho.\n\n👉 Selecione abaixo a opção que mais se encaixa com sua atuação.\n\n💬 Se tiver dúvida, o melhor é clicar em \"Preciso de Ajuda\".\nAssim eu posso entender melhor o que você faz e te ajudar a encontrar o subprocesso certo.\n\n✏️ Só se nenhuma sugestão minha fizer sentido, aí sim você pode digitar manualmente o que faz no dia a dia.",
                 "tipo_interface": "dropdown_subprocesso_com_texto_livre",
                 "dados_interface": {"opcoes": subprocessos, "permitir_texto_livre": True},
                 "dados_extraidos": {"processo": self.processo_selecionado},
@@ -928,7 +927,7 @@ class HelenaPOP:
             )
             nome_exibir = self.nome_usuario or self.nome_temporario or "você"
             return {
-                "resposta": f"Subprocesso: **{self.subprocesso_selecionado}**. Ótimo!\n\n**Último degrau: ATIVIDADE** (o trabalho específico que você executa).\n\nSelecione abaixo a opção que melhor se encaixa. Se não achar nada parecido com sua atividade temos o campo em aberto para você digitar.",
+                "resposta": f"Subprocesso: {self.subprocesso_selecionado}. Ótimo!\n\nAgora chegamos à parte mais importante: a atividade — o que você realmente faz no seu dia a dia.\n\n👉 Selecione abaixo a opção que melhor representa seu trabalho.\n\n💬 Se ficar em dúvida, clique em \"Preciso de Ajuda\".\nAssim eu entendo sua rotina e te ajudo a encontrar a descrição mais fiel à sua função.\n\n✏️ Só se nenhuma sugestão minha fizer sentido, aí sim você pode digitar manualmente o que faz.",
                 "tipo_interface": "dropdown_atividade_com_texto_livre",
                 "dados_interface": {"opcoes": atividades, "permitir_texto_livre": True},
                 "dados_extraidos": {"subprocesso": self.subprocesso_selecionado},
@@ -1008,7 +1007,7 @@ class HelenaPOP:
             if sugestao_ia:
                 # Se conseguiu gerar sugestão, mostrar ao usuário
                 return {
-                    "resposta": f"Perfeito! Mapeamos sua atividade: {self.atividade_selecionada}.\n\nAgora vamos pra uma parte importante. Qual o resultado final dessa atividade?\n\nPense no que é entregue quando o processo termina. Por exemplo: Auxílio concedido, Requerimento analisado, Cadastro atualizado, Irregularidade apurada, Pagamento corrigido, Formulário protocolado.\n\nQual é o resultado final desta atividade?",
+                    "resposta": f"Perfeito! Mapeamos sua atividade: {self.atividade_selecionada}.\n\nAgora vamos para uma parte importante: qual é o resultado final dessa atividade?\n\n💭 Pense no que é entregue quando o processo termina.\nExemplos: Auxílio concedido, Requerimento analisado, Cadastro atualizado, Irregularidade apurada, Pagamento corrigido, Formulário protocolado...",
                     "tipo_interface": "texto",
                     "dados_interface": {
                         "sugestao_ia": sugestao_ia,
@@ -1029,7 +1028,7 @@ class HelenaPOP:
             else:
                 # Fallback caso a IA falhe
                 return {
-                    "resposta": f"Perfeito! Mapeamos sua atividade: {self.atividade_selecionada}.\n\nAgora vamos pra uma parte importante. Qual o resultado final dessa atividade?\n\nPense no que é entregue quando o processo termina. Por exemplo: Auxílio concedido, Requerimento analisado, Cadastro atualizado, Irregularidade apurada, Pagamento corrigido, Formulário protocolado.\n\nQual é o resultado final desta atividade?",
+                    "resposta": f"Perfeito! Mapeamos sua atividade: {self.atividade_selecionada}.\n\nAgora vamos para uma parte importante: qual é o resultado final dessa atividade?\n\n💭 Pense no que é entregue quando o processo termina.\nExemplos: Auxílio concedido, Requerimento analisado, Cadastro atualizado, Irregularidade apurada, Pagamento corrigido, Formulário protocolado...",
                     "tipo_interface": "texto",
                     "dados_interface": {},
                     "dados_extraidos": {
@@ -1110,15 +1109,27 @@ class HelenaPOP:
         self.etapa_atual_campo = 3
         campo_atual = self.campos_principais[self.etapa_atual_campo]
         
-        resposta_sistemas = f"Sistemas registrados: {', '.join(self.sistemas_selecionados) if self.sistemas_selecionados else 'Nenhum sistema específico'}.\n\n"
-        
+        # Nova mensagem de transição Sistemas → Normas
+        total_sistemas = len(self.sistemas_selecionados) if self.sistemas_selecionados else 0
+        resposta_sistemas = f"✅ Sistemas registrados!\nDá uma conferida depois no item 2 do POP — todos os sistemas já estão listados lá.\n\n"
+
         # Verificar se o próximo campo é dispositivos_normativos para sugerir base legal
         if campo_atual["nome"] == "dispositivos_normativos":
             sugestoes = self._sugerir_base_legal_contextual()
-            
+
+            # Mensagem educativa explicando as 3 opções
+            mensagem_educativa = (
+                "Agora vamos pro próximo passo: 3️⃣ Dispositivos Normativos 📜\n\n"
+                "Aqui eu vou te mostrar três possibilidades:\n\n"
+                "1️⃣ Sugestões automáticas de normas que provavelmente se aplicam à sua atividade.\n"
+                "2️⃣ Lista completa com todas as normas disponíveis, caso queira explorar.\n"
+                "3️⃣ \"Não encontrei a norma da minha atividade\" — essa opção te leva ao Assistente de IA do Sigepe Legis, onde você pode pesquisar normas específicas pelo nome.\n\n"
+                "👉 Selecione abaixo a opção que melhor te atende."
+            )
+
             if sugestoes:
                 return {
-                    "resposta": f"{resposta_sistemas}{campo_atual['pergunta']}",
+                    "resposta": f"{resposta_sistemas}{mensagem_educativa}",
                     "tipo_interface": "normas",
                     "dados_interface": {
                         "sugestoes": sugestoes,
@@ -1131,10 +1142,23 @@ class HelenaPOP:
                     "proximo_estado": "campos"
                 }
         
+        # Fallback se não for dispositivos_normativos ou não houver sugestões
+        mensagem_educativa_fallback = (
+            "Agora vamos pro **3. Dispositivos Normativos**. Nesse item vou te oferecer:\n\n"
+            "1. Sugestões para este processo - normas que eu acho que têm vinculação com sua atividade.\n"
+            "2. A opção de visualizar todas as normas disponíveis.\n"
+            "3. A opção \"Não encontrei a norma da minha atividade\" - onde você será encaminhado à Assistente de IA do Sigepe Legis e pode pesquisar pelo nome as normas da sua atividade.\n\n"
+            "Agora selecione abaixo as opções que melhor te atendem:"
+        )
+
         return {
-            "resposta": f"{resposta_sistemas}{campo_atual['pergunta']} {campo_atual['exemplo']}",
-            "tipo_interface": "texto",
-            "dados_interface": {},
+            "resposta": f"{resposta_sistemas}{mensagem_educativa_fallback}",
+            "tipo_interface": "normas",
+            "dados_interface": {
+                "sugestoes": [],
+                "campo_livre": True,
+                "multipla_selecao": True
+            },
             "dados_extraidos": {"sistemas": self.sistemas_selecionados},
             "conversa_completa": False,
             "progresso": self._calcular_progresso(),
@@ -1179,8 +1203,9 @@ class HelenaPOP:
             # ✅ NOVO: Se acabou de coletar operadores, ir para fluxos_entrada
             if campo_atual["nome"] == "operadores":
                 self.estado = "fluxos_entrada"
+                nome_atividade = self.dados.get("nome_processo", "sua atividade")
                 return {
-                    "resposta": f"Ótimo! Operadores registrados.\n\nAgora vamos começar a falar do seu processo. **De onde ele vem?** Ou seja, como ele chega até você?",
+                    "resposta": f"👏 Operadores registrados!\nAgora, no item 4 do POP, já sabemos quem atua para garantir que sua atividade — \"{nome_atividade}\" — seja concluída com sucesso.\n\n📨 Vamos falar agora sobre como esse processo chega até você.\n\nDe onde vem a atividade que você analisa?\n💭 Pode ser um sistema, uma unidade, outro servidor, uma fila de tarefas ou até um protocolo encaminhado.",
                     "tipo_interface": "fluxos_entrada",
                     "dados_interface": {},
                     "dados_extraidos": {campo_atual["nome"]: self.dados[campo_atual["nome"]]},
@@ -1194,8 +1219,10 @@ class HelenaPOP:
             # NOVO: Se acabou de coletar entrega_esperada (índice 2), ir para sistemas
             if campo_atual["nome"] == "entrega_esperada":
                 self.estado = "sistemas"
+                nome_exibir = self.nome_usuario or self.nome_temporario or "você"
+                resultado_texto = mensagem[:80] if len(mensagem) <= 80 else mensagem[:77] + "..."
                 return {
-                    "resposta": f"Anotado! {mensagem[:50]}{'...' if len(mensagem) > 50 else ''}\n\nAgora vamos selecionar quais sistemas são usados durante o processo:",
+                    "resposta": f"✅ Fase concluída!\n\nChegamos ao resultado final da sua atividade:\n🏁 \"{resultado_texto}\"\n\nExcelente, {nome_exibir}! Agora vamos entender como o trabalho acontece na prática.\n\n💻 Primeiro ponto: sistemas utilizados.\n\nQuais sistemas são necessários para executar essa atividade — sejam acessados por você ou por outras pessoas envolvidas no processo?",
                     "tipo_interface": "sistemas",
                     "dados_interface": {
                         "sistemas_por_categoria": self.SISTEMAS_DECIPEX,
@@ -1229,7 +1256,7 @@ class HelenaPOP:
                 
                 if proximo_campo["nome"] == "operadores":
                     return {
-                        "resposta": f"Anotado! {mensagem[:50]}{'...' if len(mensagem) > 50 else ''}\n\n{proximo_campo['pergunta']}",
+                        "resposta": f"📚 Certo — os dispositivos normativos ficam registrados no item 3 do POP.\n\nAgora vamos para o próximo ponto: as pessoas envolvidas no processo. 👥\n\nQuero entender quem participa dessa atividade — desde quem inicia ou protocola, até quem analisa, valida ou conclui o trabalho.\n\n💡 Pense em todos que têm alguma responsabilidade ou interação nessa etapa, mesmo que antes ou depois de você.\n\n✏️ Me conte: quem são todos os envolvidos que fazem sua atividade acontecer?",
                         "tipo_interface": "operadores",
                         "dados_interface": {
                             "opcoes": self.OPERADORES_DECIPEX
@@ -1259,10 +1286,6 @@ class HelenaPOP:
                         }
                     else:
                         resposta = f"Anotado! {mensagem[:50]}{'...' if len(mensagem) > 50 else ''}\n\n{proximo_campo['pergunta']} {proximo_campo['exemplo']}"
-                elif proximo_campo["nome"] == "pontos_atencao":
-                    # Mensagem personalizada para pontos de atenção
-                    nome_exibir = self.nome_usuario or self.nome_temporario or "você"
-                    resposta = f"Anotado! Os Dispositivos Normativos já estão no item 2 do POP.\n\nAgora, {nome_exibir}, pense um pouco e me diga: há algo que você sempre lembra: \"Ao fazer isso, é importante ter atenção a...\" algo que você colocar no POP como - Pontos Gerais de Atenção na Atividade?\n\n{proximo_campo['exemplo']}"
                 else:
                     resposta = f"Anotado! {mensagem[:50]}{'...' if len(mensagem) > 50 else ''}\n\n{proximo_campo['pergunta']} {proximo_campo['exemplo']}"
 
@@ -1280,10 +1303,10 @@ class HelenaPOP:
                 self.estado = "pre_etapas"
                 nome_exibir = self.nome_usuario or self.nome_temporario or "você"
                 return {
-                    "resposta": f"Perfeito, {nome_exibir}! Já temos: a identificação da sua atividade, os dispositivos normativos, os sistemas utilizados e os operadores envolvidos. Muita coisa!\n\nMas agora entramos na parte principal, no coração do mapeamento.\n\nPronto pra isso?",
+                    "resposta": f"Perfeito, {nome_exibir}! Já temos: a identificação da sua atividade, os dispositivos normativos, os sistemas utilizados e os operadores envolvidos. Muita coisa!\n\nMas agora entramos na parte principal, no coração do mapeamento: **as etapas**.\n\nEssa parte exige muitos detalhes, então se quiser dar um tempo, beber uma água 💧, pegar um café ☕ (ou um chá 🍵), a hora é agora! Vou salvar o que fizemos até aqui.\n\nQuando estiver pronto, clique em **Continuar**.\n\nPronto pra isso?",
                     "tipo_interface": "texto",
                     "dados_interface": {
-                        "botoes": ["Sim", "Não"]
+                        "botoes": ["Continuar", "Depois"]
                     },
                     "dados_extraidos": {campo_atual["nome"]: self.dados[campo_atual["nome"]]},
                     "conversa_completa": False,
@@ -1341,16 +1364,20 @@ class HelenaPOP:
                         "proximo_estado": "revisao"
                     }
 
-                # NOVO: Documentos vêm depois de etapas, então vai para fluxos
-                self.estado = "fluxos_entrada"
+                # Documentos finalizados → Ir para Pontos de Atenção (último campo antes da revisão)
+                self.estado = "pontos_atencao"
+                nome_exibir = self.nome_usuario or self.nome_temporario or "você"
                 return {
-                    "resposta": f"Ótimo! Registrei {len(documentos_lista)} documento(s). Agora vamos aos FLUXOS DE ENTRADA.",
-                    "tipo_interface": "fluxos_entrada",
-                    "dados_interface": {},
+                    "resposta": f"Ótimo! Registrei {len(documentos_lista)} documento(s).\n\nAgora terminamos de mapear nosso processo, {nome_exibir}! Mas falta um último ponto importante pra refletirmos juntos.\n\nAo pensar na sua atividade, tem algo que você acha importante chamar atenção?",
+                    "tipo_interface": "texto",
+                    "dados_interface": {
+                        "placeholder": "Ex: Auditar situação desde centralização, Observar prazos de retroatividade",
+                        "hint": "🚨 Essa é a hora de dizer pra quem for usar seu POP: PRESTE ATENÇÃO NESSE PONTO!"
+                    },
                     "dados_extraidos": {"documentos_utilizados": documentos_lista},
                     "conversa_completa": False,
                     "progresso": self._calcular_progresso(),
-                    "proximo_estado": "fluxos_entrada"
+                    "proximo_estado": "pontos_atencao"
                 }
             else:
                 return {
@@ -1375,6 +1402,85 @@ class HelenaPOP:
                 "proximo_estado": "documentos"
             }
 
+    def _processar_pontos_atencao(self, mensagem):
+        """
+        Processa pontos de atenção especiais do processo.
+        Última etapa antes da revisão final.
+        """
+        resposta_lower = mensagem.lower().strip()
+        nome_exibir = self.nome_usuario or self.nome_temporario or "você"
+
+        # Aceitar respostas negativas (sem pontos de atenção)
+        if resposta_lower in ["não", "nao", "não há", "nao ha", "nenhum", "não tem", "nao tem", "sem pontos", "pular", "skip"]:
+            self.dados["pontos_atencao"] = "Não há pontos especiais de atenção."
+
+            # Se está editando, voltar para revisão
+            if self.editando_campo == "pontos_atencao":
+                self.editando_campo = None
+                self.estado = "revisao"
+                return {
+                    "resposta": f"Pontos de atenção atualizados! Aqui está o resumo:",
+                    "tipo_interface": "revisao",
+                    "dados_interface": {
+                        "dados_completos": self._gerar_dados_completos_pop(),
+                        "codigo_gerado": self._gerar_codigo_processo()
+                    },
+                    "dados_extraidos": {"pontos_atencao": "Não há pontos especiais de atenção."},
+                    "conversa_completa": False,
+                    "progresso": "10/10",
+                    "proximo_estado": "revisao"
+                }
+
+            # Fluxo normal - ir para revisão
+            self.estado = "revisao"
+            return {
+                "resposta": f"Perfeito, {nome_exibir}! Seu POP está completo. Vou gerar o código do processo e mostrar um resumo para sua revisão.",
+                "tipo_interface": "revisao",
+                "dados_interface": {
+                    "dados_completos": self._gerar_dados_completos_pop(),
+                    "codigo_gerado": self._gerar_codigo_processo()
+                },
+                "dados_extraidos": {"pontos_atencao": "Não há pontos especiais de atenção."},
+                "conversa_completa": True,
+                "progresso": "10/10",
+                "proximo_estado": "revisao"
+            }
+
+        # Usuário forneceu pontos de atenção
+        self.dados["pontos_atencao"] = mensagem.strip()
+
+        # Se está editando, voltar para revisão
+        if self.editando_campo == "pontos_atencao":
+            self.editando_campo = None
+            self.estado = "revisao"
+            return {
+                "resposta": f"Pontos de atenção atualizados! Aqui está o resumo:",
+                "tipo_interface": "revisao",
+                "dados_interface": {
+                    "dados_completos": self._gerar_dados_completos_pop(),
+                    "codigo_gerado": self._gerar_codigo_processo()
+                },
+                "dados_extraidos": {"pontos_atencao": mensagem.strip()},
+                "conversa_completa": False,
+                "progresso": "10/10",
+                "proximo_estado": "revisao"
+            }
+
+        # Fluxo normal - ir para revisão
+        self.estado = "revisao"
+        return {
+            "resposta": f"Excelente, {nome_exibir}! Anotei esse ponto importante.\n\nSeu POP está completo! Vou gerar o código do processo e mostrar um resumo para sua revisão.",
+            "tipo_interface": "revisao",
+            "dados_interface": {
+                "dados_completos": self._gerar_dados_completos_pop(),
+                "codigo_gerado": self._gerar_codigo_processo()
+            },
+            "dados_extraidos": {"pontos_atencao": mensagem.strip()},
+            "conversa_completa": True,
+            "progresso": "10/10",
+            "proximo_estado": "revisao"
+        }
+
     def _processar_pre_etapas(self, mensagem):
         """Transição motivacional antes de mapear as etapas"""
         msg_lower = mensagem.lower().strip()
@@ -1387,7 +1493,7 @@ class HelenaPOP:
             # Avançar para etapas
             self.estado = "etapas"
             return {
-                "resposta": f"Então agora vamos mapear as etapas do processo, {nome_exibir}! Me diga agora a **Etapa 1**: a primeira coisa que você faz ao começar sua atividade.",
+                "resposta": f"Então agora vamos mapear as etapas do processo, {nome_exibir}! Por favor, inclua o máximo de detalhes possíveis. É a partir dessas informações que faremos toda a análise e servirá para treinar novos servidores na sua atividade.\n\n🧩 **Etapa 1: Início do Processo**\nObjetivo: mapear como tudo começa.\n\n**Pergunta:**\n👉 Qual é a primeira coisa que acontece nesse processo?\n\n**Exemplos:**\n🔹 Antes de chegar até você: cadastrar, protocolar, atribuir.\n🔹 Feito por você: acessar sistema, verificar fila, consultar planilha.",
                 "tipo_interface": "texto",
                 "dados_interface": {},
                 "dados_extraidos": {},
@@ -1453,10 +1559,10 @@ class HelenaPOP:
         nome_exibir = self.nome_usuario or self.nome_temporario or "você"
 
         return {
-            "resposta": f"Perfeito, {nome_exibir}! Já temos: a identificação da sua atividade, os dispositivos normativos, os sistemas utilizados, os operadores envolvidos e de onde o processo vem. Muita coisa!\n\nMas agora entramos na parte principal, no coração do mapeamento.\n\nPronto pra isso?",
+            "resposta": f"Perfeito, {nome_exibir}! Já temos: a identificação da sua atividade, os dispositivos normativos, os sistemas utilizados, os operadores envolvidos e de onde o processo vem. Muita coisa!\n\nMas agora entramos na parte principal, no coração do mapeamento: **as etapas**.\n\nEssa parte exige muitos detalhes, então se quiser dar um tempo, beber uma água 💧, pegar um café ☕ (ou um chá 🍵), a hora é agora! Vou salvar o que fizemos até aqui.\n\nQuando estiver pronto, clique em **Continuar**.\n\nPronto pra isso?",
             "tipo_interface": "texto",
             "dados_interface": {
-                "botoes": ["Sim", "Não"]
+                "botoes": ["Continuar", "Depois"]
             },
             "dados_extraidos": {"fluxos_entrada": self.fluxos_entrada},
             "conversa_completa": False,
@@ -1540,7 +1646,8 @@ class HelenaPOP:
             if resposta_condicionais not in respostas_validas:
                 print(f"[DEBUG-PROTEÇÃO] Mensagem '{mensagem}' não é resposta de condicionais válida. Ignorando este bloco.")
                 # Não processar - deixar cair no próximo bloco (operadores de etapa)
-                # NÃO FAZ RETURN - continua para o próximo if
+                # NÃO FAZ RETURN - mas precisa PASSAR ADIANTE para o elif aguardando_operadores_etapa
+                pass  # IMPORTANTE: este bloco não deve processar
 
             # Opção: Usuário voltou da tela de ajuda (entendeu a explicação)
             # Deve voltar para a pergunta original: tem condicionais?
@@ -1639,7 +1746,7 @@ Seja objetiva e termine perguntando: "A etapa '{self.etapa_temporaria}' tem esse
                 return self._criar_resposta_com_tempo_real(resposta_base)
 
         # Se está aguardando tipo de condicional (binário ou múltiplos)
-        if self.aguardando_tipo_condicional:
+        elif self.aguardando_tipo_condicional:
             tipo_escolhido = mensagem.lower().strip()
             numero_etapa = len(self.etapas_processo) + 1
             self.aguardando_tipo_condicional = False
@@ -1670,7 +1777,7 @@ Seja objetiva e termine perguntando: "A etapa '{self.etapa_temporaria}' tem esse
             }
 
         # Se está aguardando o que fazer antes da decisão
-        if self.aguardando_antes_decisao:
+        elif self.aguardando_antes_decisao:
             self.antes_decisao = mensagem.strip()
             self.aguardando_antes_decisao = False
             numero_etapa = len(self.etapas_processo) + 1
@@ -1711,7 +1818,7 @@ Seja objetiva e termine perguntando: "A etapa '{self.etapa_temporaria}' tem esse
                 }
 
         # ========== NOVO FLUXO: Coletar descrições dos cenários primeiro ==========
-        if self.aguardando_cenarios:
+        elif self.aguardando_cenarios:
             import json
             try:
                 # Espera JSON com APENAS as descrições dos cenários
@@ -1769,7 +1876,7 @@ Seja objetiva e termine perguntando: "A etapa '{self.etapa_temporaria}' tem esse
                 }
 
         # ========== NOVO: Aguardando subetapas de um cenário específico ==========
-        if self.aguardando_subetapas_cenario:
+        elif self.aguardando_subetapas_cenario:
             numero_etapa = len(self.etapas_processo) + 1
             cenario_atual = self.cenarios_coletados[self.cenario_atual_detalhando]
 
@@ -1849,11 +1956,12 @@ Seja objetiva e termine perguntando: "A etapa '{self.etapa_temporaria}' tem esse
                 }
 
         # Se está aguardando operador da etapa
-        print(f"[DEBUG] aguardando_operadores_etapa = {self.aguardando_operadores_etapa}")
-        if self.aguardando_operadores_etapa:
+        elif self.aguardando_operadores_etapa:
+            print(f"[DEBUG] aguardando_operadores_etapa = {self.aguardando_operadores_etapa}")
             print(f"[DEBUG] ENTROU NO IF DE OPERADORES! Mensagem: '{mensagem}'")
             self.operadores_etapa_atual = [mensagem.strip()]
             self.aguardando_operadores_etapa = False
+            self.aguardando_detalhes = False  # ✅ CRITICAL FIX: Clear this flag to prevent infinite loop
             numero_etapa = len(self.etapas_processo) + 1
 
             # Agora pergunta sobre condicionais ANTES dos detalhes
@@ -1872,8 +1980,8 @@ Seja objetiva e termine perguntando: "A etapa '{self.etapa_temporaria}' tem esse
             }
             print(f"[DEBUG] Retornando resposta_base com tipo_interface = condicionais")
             return self._criar_resposta_com_tempo_real(resposta_base)
-        
-        if len(mensagem.strip()) < 10 and resposta_lower not in ["não", "nao", "não há mais", "sim", "s"]:
+
+        elif len(mensagem.strip()) < 10 and resposta_lower not in ["não", "nao", "não há mais", "sim", "s"]:
             return {
                 "resposta": f"Por favor, descreva a etapa de forma mais completa (mínimo 10 caracteres). Exemplo do POP anexo: 'Analisar requerimentos Sigepe de Plano de Saúde Particular'",
                 "tipo_interface": "texto",
@@ -1883,8 +1991,8 @@ Seja objetiva e termine perguntando: "A etapa '{self.etapa_temporaria}' tem esse
                 "progresso": self._calcular_progresso(),
                 "proximo_estado": "etapas"
             }
-        
-        if not self.aguardando_detalhes:
+
+        elif not self.aguardando_detalhes:
             if resposta_lower in ["não", "nao", "não há mais", "fim", "finalizar"]:
                 if self.etapas_processo:
                     self.dados["etapas"] = self.etapas_processo
@@ -1936,9 +2044,10 @@ Seja objetiva e termine perguntando: "A etapa '{self.etapa_temporaria}' tem esse
             self.aguardando_operadores_etapa = True
             print(f"[DEBUG-SETANDO] aguardando_operadores_etapa setado para TRUE. Etapa: {mensagem.strip()[:50]}")
             numero_etapa = len(self.etapas_processo) + 1
-            
+            etapa_digitada = mensagem.strip()
+
             return {
-                "resposta": f"Etapa {numero_etapa} registrada. Vamos detalhar essa etapa.",
+                "resposta": f"Então essa é a **{numero_etapa}ª etapa** da sua atividade: *\"{etapa_digitada}\"*\n\nAgora me diga: **Quem realiza essa etapa?**",
                 "tipo_interface": "operadores_etapa",
                 "dados_interface": {
                     "opcoes": self.OPERADORES_DECIPEX,
@@ -2119,7 +2228,7 @@ Seja objetiva e termine perguntando: "A etapa '{self.etapa_temporaria}' tem esse
                 "4": {"campo": "entrega_esperada", "label": "Entrega esperada/Resultado final"},
                 "5": {"campo": "dispositivos_normativos", "label": "Normas e dispositivos legais"},
                 "6": {"campo": "operadores", "label": "Responsáveis pela execução"},
-                "7": {"campo": "pontos_atencao", "label": "Pontos de atenção"},
+                "7": {"campo": "pontos_atencao", "label": "Pontos de atenção (Item 9 do POP)"},
                 "8": {"campo": "documentos_utilizados", "label": "Documentos necessários"},
                 "9": {"campo": "etapas", "label": "Etapas do processo"},
                 "10": {"campo": "fluxos", "label": "Fluxos de entrada e saída"}
@@ -2532,8 +2641,55 @@ Exemplos de respostas válidas:
         }
 
     def reiniciar_conversa(self):
-        """Reinicia a conversa do zero"""
-        self.__init__()
+        """Reinicia a conversa do zero - limpa TODOS os estados explicitamente"""
+        # Resetar estado principal
+        self.estado = "nome"
+        self.dados = {}
+        self.nome_usuario = ""
+        self.nome_temporario = ""
+        self.editando_campo = None
+
+        # Resetar seleções de arquitetura
+        self.area_selecionada = None
+        self.macro_selecionado = None
+        self.processo_selecionado = None
+        self.subprocesso_selecionado = None
+        self.atividade_selecionada = None
+
+        # Resetar coleções
+        self.sistemas_selecionados = []
+        self.documentos_processo = []
+        self.etapas_processo = []
+        self.detalhes_etapa_atual = []
+        self.fluxos_entrada = []
+        self.fluxos_saida = []
+        self.conversas = []
+
+        # Resetar flags de controle
+        self.aguardando_tipo_documento = False
+        self.documento_temporario = ""
+        self.aguardando_detalhes = False
+        self.aguardando_operadores_etapa = False
+        self.operadores_etapa_atual = []
+        self.aguardando_condicionais = False
+        self.aguardando_pergunta_condicionais = False
+        self.etapa_tem_condicionais = False
+        self.aguardando_tipo_condicional = False
+        self.tipo_condicional = None
+        self.aguardando_antes_decisao = False
+        self.antes_decisao = None
+        self.aguardando_cenarios = False
+        self.cenarios_condicionais = []
+        self.aguardando_subetapas_cenario = False
+        self.cenario_atual_detalhando = None
+        self.cenarios_coletados = []
+        self.etapa_temporaria = None
+
+        # Resetar modo
+        self.modo_tempo_real = False
+        self.etapa_atual_campo = 0
+
+        print("[DEBUG] reiniciar_conversa() - todos os estados foram limpos explicitamente")
         
     def obter_codigo_gerado(self):
         """Retorna o código gerado para o processo"""

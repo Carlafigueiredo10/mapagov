@@ -17,6 +17,7 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
   const [normasSelecionadas, setNormasSelecionadas] = useState<string[]>([]);
   const [categoriaAberta, setCategoriaAberta] = useState<string | null>(null);
   const [mostrarTodas, setMostrarTodas] = useState(false);
+  const [mostrarNormasManuais, setMostrarNormasManuais] = useState(false);
   const [normasManuais, setNormasManuais] = useState<string[]>(['']);
 
 
@@ -222,55 +223,70 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
         </div>
       )}
 
-      {/* Seção de Normas Manuais + IA Legis */}
-      <div className="normas-manuais-section">
-        <div className="normas-manuais-header">
-          <h3>💡 Não encontrou a norma que procura?</h3>
+      {/* Botão: Não Encontrei a Norma */}
+      {!mostrarNormasManuais && (
+        <div className="nao-encontrei-section">
+          <button
+            className="btn-nao-encontrei"
+            onClick={() => setMostrarNormasManuais(true)}
+            type="button"
+          >
+            ⚠️ Não encontrei a norma da minha atividade
+          </button>
         </div>
+      )}
 
-        <button
-          className="btn-ia-legis"
-          onClick={abrirIALegis}
-          type="button"
-        >
-          🤖 Consultar IA Legis (Sigepe)
-        </button>
-
-        <div className="normas-manuais-descricao">
-          Ou adicione manualmente:
-        </div>
-
-        {normasManuais.map((norma, index) => (
-          <div key={index} className="norma-manual-row">
-            <input
-              type="text"
-              className="norma-manual-input"
-              placeholder="Ex: Art. 34 da IN SGP nº 97/2022"
-              value={norma}
-              onChange={(e) => atualizarNormaManual(index, e.target.value)}
-              maxLength={300}
-            />
-            {normasManuais.length > 1 && (
-              <button
-                className="btn-remover-norma"
-                onClick={() => removerCampoNormaManual(index)}
-                type="button"
-                title="Remover norma"
-              >
-                ✕
-              </button>
-            )}
+      {/* Seção de Normas Manuais + IA Legis (Expansível) */}
+      {mostrarNormasManuais && (
+        <div className="normas-manuais-section">
+          <div className="normas-manuais-header">
+            <h3>💡 Não encontrou a norma que procura?</h3>
           </div>
-        ))}
 
-        <button
-          className="btn-adicionar-norma"
-          onClick={adicionarCampoNormaManual}
-          type="button"
-        >
-          ➕ Adicionar Outra Norma
-        </button>
-      </div>
+          <button
+            className="btn-ia-legis"
+            onClick={abrirIALegis}
+            type="button"
+          >
+            🤖 Consultar IA Legis (Sigepe)
+          </button>
+
+          <div className="normas-manuais-descricao">
+            Ou adicione manualmente:
+          </div>
+
+          {normasManuais.map((norma, index) => (
+            <div key={index} className="norma-manual-row">
+              <input
+                type="text"
+                className="norma-manual-input"
+                placeholder="Ex: Art. 34 da IN SGP nº 97/2022"
+                value={norma}
+                onChange={(e) => atualizarNormaManual(index, e.target.value)}
+                maxLength={300}
+              />
+              {normasManuais.length > 1 && (
+                <button
+                  className="btn-remover-norma"
+                  onClick={() => removerCampoNormaManual(index)}
+                  type="button"
+                  title="Remover norma"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+
+          <button
+            className="btn-adicionar-norma"
+            onClick={adicionarCampoNormaManual}
+            type="button"
+          >
+            ➕ Adicionar Outra Norma
+          </button>
+        </div>
+      )}
 
       {/* Contador e Limpar */}
       <div className="contador-e-limpar">
@@ -416,6 +432,31 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
 
         .btn-visualizar-mais:hover {
           background: #5a6268;
+        }
+
+        .nao-encontrei-section {
+          margin: 1.5rem 0;
+          text-align: center;
+        }
+
+        .btn-nao-encontrei {
+          padding: 1rem 2rem;
+          background: #ffc107;
+          color: #856404;
+          border: 2px solid #ffc107;
+          border-radius: 8px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+        }
+
+        .btn-nao-encontrei:hover {
+          background: #ffca2c;
+          border-color: #ffca2c;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(255, 193, 7, 0.3);
         }
 
         .categorias-acordeao {

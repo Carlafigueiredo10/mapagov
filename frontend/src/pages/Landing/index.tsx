@@ -50,7 +50,7 @@ export default function Landing() {
               <Link to="/portal" className={styles.helenaPreviewLink}>
                 <div className={styles.helenaPreview}>
                   <div className={styles.helenaAvatar}>
-                    <img src="/static/helena_em_pe.png" alt="Helena - IA Assistente" />
+                    <img src="/helena_em_pe.png" alt="Helena - IA Assistente" />
                   </div>
                   <h4 className={styles.helenaTitle}>Helena - IA Assistente</h4>
 

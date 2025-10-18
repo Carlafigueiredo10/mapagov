@@ -2,6 +2,55 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 IMPORTANT: Working with Users of Different Experience Levels
+
+**Remember:** Not all users are experienced developers. When working with beginners or intermediate users:
+
+1. **Always verify before asking users to edit**
+   - Read files FIRST before asking users to modify them
+   - Check current state before assuming what needs to change
+   - Use `cat`, `grep`, or `Read` to verify file contents
+
+2. **Check the basics first**
+   - Before diving into complex solutions, verify simple things (file paths, typos, environment variables)
+   - Don't assume users did basic setup steps correctly
+   - Ask "did you run X command?" instead of assuming they did
+
+3. **Explain what commands do**
+   - Don't just give commands - explain what they will accomplish
+   - Break down complex commands into simpler parts when possible
+   - Tell users what output to expect
+
+4. **One step at a time**
+   - Give ONE command, wait for result, then proceed
+   - Don't send multiple sequential commands unless they can run in parallel
+   - Verify each step worked before moving to the next
+
+5. **Be patient with trial and error**
+   - Users may need to try things multiple times
+   - Don't get frustrated if solutions don't work immediately
+   - Always check if your previous suggestion actually got applied before trying a new one
+
+6. **Remember context**
+   - Users may be working in different environments (local terminal vs Cloud Shell vs VSCode terminal)
+   - File paths differ between Windows/Linux/Cloud environments
+   - What works locally might not work in CI/CD or cloud deployments
+
+7. **⚠️ CRITICAL: React Frontend + Django Integration**
+   - **NEVER** uncomment the React fallback route in `mapagov/urls.py` (lines ~30-34) without first verifying:
+     - ✅ `frontend/dist/index.html` exists locally
+     - ✅ `npm run build` completes successfully
+     - ✅ `collectstatic` copies `index.html` to `staticfiles/` in production
+   - **WHY:** The fallback tries to serve `index.html`. If it doesn't exist → `TemplateDoesNotExist` error
+   - **SEQUENCE:**
+     1. Fix frontend build (`npm run build` must succeed)
+     2. Verify `frontend/dist/index.html` exists
+     3. Check `STATICFILES_DIRS` includes `frontend/dist`
+     4. Test `collectstatic` locally
+     5. ONLY THEN uncomment the fallback route
+     6. Build Docker → Deploy
+   - **NEVER assume** frontend build worked just because Docker build succeeded (Dockerfile has `|| mkdir -p dist` fallback that hides errors)
+
 ## Project Overview
 
 **MapaGov** is a public sector governance system that combines process mapping, risk analysis, and compliance management with AI-powered conversational assistance. The project uses a **React 19 + TypeScript frontend** (recently migrated from HTML templates) and a **Django 5.2 + Python 3.13 backend** with OpenAI GPT-4 integration via LangChain.
@@ -25,6 +74,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Key Django Apps
 - **processos**: Main application containing all POP (Standard Operating Procedure) logic, Helena AI products, and APIs
 - **processos/helena_produtos/**: Modular AI products (POP mapping, risk analysis, flowcharts, etc.)
+
+### Database (Development vs Production)
+- **Development**: SQLite (default, `db.sqlite3`)
+- **Production**: PostgreSQL via Cloud SQL (requires `DATABASE_URL` environment variable)
+- Migration is automatic when `DATABASE_URL` is set - Django detects and uses PostgreSQL
+- See [DEPLOY_GOOGLE_CLOUD.md](DEPLOY_GOOGLE_CLOUD.md) for Cloud SQL setup instructions
 
 ## Common Development Commands
 
@@ -90,28 +145,36 @@ python manage.py verify_database --max-latency-ms 800
 python manage.py cleanup_pops
 ```
 
-### Database Migration to PostgreSQL
+### Switching to PostgreSQL (Development → Production)
 
-The project supports both SQLite (dev) and PostgreSQL (production):
+The project automatically detects and uses PostgreSQL when `DATABASE_URL` is set:
 
 1. Set `DATABASE_URL` environment variable:
-   ```
-   DATABASE_URL=postgres://user:pass@host:5432/dbname
+   ```bash
+   # Local PostgreSQL
+   export DATABASE_URL=postgresql://user:pass@localhost:5432/mapagov
+
+   # Or Cloud SQL (production)
+   export DATABASE_URL=postgresql://user:pass@/mapagov?host=/cloudsql/PROJECT:REGION:INSTANCE
    ```
 
-2. Run migrations:
+2. Run migrations (Django auto-detects PostgreSQL):
    ```bash
    python manage.py migrate
    ```
 
-3. Optional data migration from SQLite:
+3. Optional: Migrate existing data from SQLite:
    ```bash
+   # Export from SQLite
    python manage.py dumpdata auth.user processos.POP processos.POPSnapshot processos.POPChangeLog > dump_pops.json
-   # Switch to PostgreSQL
+
+   # Switch to PostgreSQL (set DATABASE_URL)
+
+   # Import to PostgreSQL
    python manage.py loaddata dump_pops.json
    ```
 
-See `MIGRATION_POSTGRES.md` for detailed migration procedures.
+For Cloud SQL setup in production, see [DEPLOY_GOOGLE_CLOUD.md](DEPLOY_GOOGLE_CLOUD.md) "PARTE 1: Criar Banco de Dados".
 
 ## Code Architecture
 
@@ -371,11 +434,46 @@ Files backed up:
 ### Production Settings
 
 - **Frontend**: Vercel (or build + serve static via Django)
-- **Backend**: Railway / Render (configured for Render with WhiteNoise)
+- **Backend**: Google Cloud Run / Railway / Render (configured for Render with WhiteNoise)
 - **Database**: PostgreSQL (required for production)
 - **Static files**: Collected via `python manage.py collectstatic`
 
-### Render Deployment
+### Google Cloud Run Deployment (Primary - LIVE)
+
+**Current Production:** https://mapagov-113328225062.us-central1.run.app
+
+Successfully deployed with:
+- **Cloud Run**: Serverless container platform
+- **Cloud SQL PostgreSQL**: Managed database
+- **Secret Manager**: Secure credential storage
+- **Multi-stage Docker build**: Frontend (Vite) + Backend (Django) in single container
+
+**⚠️ CRITICAL LESSONS LEARNED from Google Cloud Deploy:**
+
+1. **Dockerfile Frontend Build Issues:**
+   - ❌ **NEVER use `npm ci --only=production`** - Vite is in devDependencies and won't be installed!
+   - ❌ **NEVER hide build errors** with `|| mkdir -p dist` - fail-fast is better than silent failures
+   - ✅ **Always verify** `frontend/dist/index.html` exists and has content (> 0 bytes) before deploying
+   - ✅ Use full `npm ci` to install ALL dependencies needed for build
+
+2. **Django Settings Gotchas:**
+   - **CSRF_TRUSTED_ORIGINS** must include FULL domain (no wildcards): `https://mapagov-123.run.app`
+   - **SKIP_DB_CHECK** flag needed during Docker build to allow `collectstatic` without PostgreSQL
+   - **React fallback route** (`mapagov/urls.py` lines 30-34) MUST be commented until frontend build is verified working
+
+3. **Cloud Shell vs Local:**
+   - Cloud Shell has 5GB limit - clean `~/.cache/*` regularly
+   - Always `git pull origin main` in Cloud Shell before building
+   - Or use local terminal (with gcloud installed) to avoid sync issues
+
+4. **Service Management:**
+   - **ALWAYS** run `gcloud run services list` before deploy to check existing service names
+   - Use exact same service name to update (not create duplicate)
+   - Example: `gcloud run deploy mapagov` (updates), NOT `mapagov-backend` (creates new)
+
+**Complete troubleshooting guide:** See [DEPLOY_GOOGLE_CLOUD.md](DEPLOY_GOOGLE_CLOUD.md) section "Problemas Resolvidos Durante o Deploy"
+
+### Render Deployment (Legacy - Configured)
 
 Configured for Render:
 - `Procfile`: Gunicorn WSGI server
@@ -403,9 +501,8 @@ While the project doesn't have formal test coverage yet, you can:
 ## Additional Documentation
 
 - **README.md**: Comprehensive setup guide and feature list
-- **MIGRAÇÃO_REACT.md**: React migration history and benefits
-- **MIGRATION_POSTGRES.md**: PostgreSQL migration procedures and checklist
-- **FASE_6_AUTOSAVE_COMPLETO.md**: Auto-save system implementation details
+- **DEPLOY_GOOGLE_CLOUD.md**: Complete Google Cloud Run deployment guide with troubleshooting (⭐ Essential reading!)
+- **DESENVOLVIMENTO.md**: Development notes and technical details
 
 ## Git Workflow
 
@@ -422,5 +519,6 @@ For questions about:
 - **API endpoints**: See `processos/urls.py`
 - **Helena AI products**: Explore `processos/helena_produtos/` modules
 - **React components**: Navigate `frontend/src/components/Helena/`
-- **Database migrations**: Read `MIGRATION_POSTGRES.md`
-- **Auto-save system**: Consult `FASE_6_AUTOSAVE_COMPLETO.md`
+- **Database setup**: See "Database (Development vs Production)" section above or `DEPLOY_GOOGLE_CLOUD.md`
+- **Auto-save system**: See `frontend/src/hooks/useAutoSave.ts` implementation
+- **Deployment issues**: Read `DEPLOY_GOOGLE_CLOUD.md` troubleshooting section

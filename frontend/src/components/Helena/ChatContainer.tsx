@@ -47,9 +47,27 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
   // Auto-save automático
   const { saveNow } = useAutoSave({ interval: 30000, enabled: true });
 
-  // Auto-scroll para última mensagem
+  // Auto-scroll inteligente: se última mensagem tem interface, rola para o início da mensagem
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length === 0) return;
+
+    const ultimaMensagem = messages[messages.length - 1];
+
+    // Se a última mensagem da Helena tem interface, rolar para o início da mensagem (não para o final)
+    if (ultimaMensagem.tipo === 'helena' && ultimaMensagem.interface) {
+      // Pequeno delay para garantir que o DOM foi renderizado
+      setTimeout(() => {
+        const messageElements = document.querySelectorAll('.message-container.helena');
+        const ultimoElemento = messageElements[messageElements.length - 1];
+
+        if (ultimoElemento) {
+          ultimoElemento.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } else {
+      // Mensagens normais: scroll para o final
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   // Focar input quando não está processando

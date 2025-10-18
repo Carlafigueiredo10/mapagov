@@ -12,6 +12,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 120000, // 2 minutos - aumentado para processar condicionais complexas
+  withCredentials: true, // CRITICO: Permite envio de cookies para sessao Django
 });
 
 // Adiciona header X-Requested-With para evitar bloqueio CORS

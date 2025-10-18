@@ -62,27 +62,27 @@ def chat_api_view(request):
         
         # HELENA MAPEAMENTO: Chat simples, sem sessão persistente
         if contexto == 'mapeamento':
-            # 🚀 OTIMIZAÇÃO: Import lazy
+            # OTIMIZACAO: Import lazy
             from .helena_produtos.helena_mapeamento import helena_mapeamento
             resposta = helena_mapeamento(user_message)
             return JsonResponse({'resposta': resposta, 'success': True})
         
         # P1: Gerador de POP (RENOVADO - com sessão completa)
         if contexto in ['gerador_pop', 'mapeamento_natural']:
-            # 🚀 OTIMIZAÇÃO: Import lazy - só carrega quando necessário
+            # OTIMIZACAO: Import lazy - so carrega quando necessario
             from .helena_produtos.helena_pop import HelenaPOP
-            
-            # Chave única para este contexto na sessão
-            session_key = 'helena_pop_state'
-            
-            # 🔧 CORREÇÃO: Verificar se sessão existe e tem dados válidos
+
+            # FIX: Usar session_id do frontend para criar chave unica
+            session_key = f'helena_pop_state_{session_id}'
+
+            # CORRECAO: Verificar se sessao existe e tem dados validos
             if session_key not in request.session or not request.session.get(session_key):
                 # Primeira mensagem - criar nova Helena
                 helena = HelenaPOP()
-                
-                # 📊 DEBUG PONTO A - APÓS CRIAÇÃO
+
+                # DEBUG PONTO A - APOS CRIACAO
                 print(f"\n{'='*80}")
-                print(f"🟢 PONTO A - NOVA HELENA CRIADA")
+                print(f"[OK] PONTO A - NOVA HELENA CRIADA")
                 print(f"   Estado atual: {helena.estado}")
                 print(f"   Etapa atual: {helena.etapa_atual_campo}/{len(helena.etapas_processo)}")
                 print(f"   Sistemas selecionados: {helena.sistemas_selecionados}")
@@ -91,13 +91,15 @@ def chat_api_view(request):
             else:
                 # Mensagens seguintes - restaurar estado COMPLETO
                 state = request.session[session_key]
-                
-                # ✅ CRITICAL: Criar Helena vazia primeiro
+
+                # CRITICAL: Criar Helena vazia primeiro
                 helena = HelenaPOP()
-                
-                # ✅ CRITICAL: Restaurar estado ANTES de processar
+
+                # CRITICAL: Restaurar estado ANTES de processar
                 helena.estado = state.get('estado', 'nome')
                 helena.nome_usuario = state.get('nome_usuario')
+                helena.nome_temporario = state.get('nome_temporario', '')
+                helena.editando_campo = state.get('editando_campo')
                 helena.area_selecionada = state.get('area_selecionada')
                 helena.macro_selecionado = state.get('macro_selecionado')
                 helena.processo_selecionado = state.get('processo_selecionado')
@@ -105,22 +107,37 @@ def chat_api_view(request):
                 helena.atividade_selecionada = state.get('atividade_selecionada')
                 helena.dados = state.get('dados', {})
                 helena.sistemas_selecionados = state.get('sistemas_selecionados', [])
-                
-                # ✅ NOVOS CAMPOS: Restaurar estado completo de etapas e detalhes
+
+                # CAMPOS DE ETAPAS: Restaurar estado completo
                 helena.documentos_processo = state.get('documentos_processo', [])
                 helena.etapa_temporaria = state.get('etapa_temporaria', '')
                 helena.aguardando_detalhes = state.get('aguardando_detalhes', False)
                 helena.detalhes_etapa_atual = state.get('detalhes_etapa_atual', [])
-                
                 helena.etapas_processo = state.get('etapas_processo', [])
                 helena.etapa_atual_campo = state.get('etapa_atual_campo', 0)
                 helena.fluxos_entrada = state.get('fluxos_entrada', [])
                 helena.fluxos_saida = state.get('fluxos_saida', [])
                 helena.conversas = state.get('conversas', [])
-                
-                # 📊 DEBUG PONTO A - APÓS RESTAURAÇÃO
+
+                # CAMPOS CONDICIONAIS CRÍTICOS (FIX: Etapas condicionais sumindo)
+                helena.aguardando_operadores_etapa = state.get('aguardando_operadores_etapa', False)
+                helena.operadores_etapa_atual = state.get('operadores_etapa_atual', [])
+                helena.aguardando_pergunta_condicionais = state.get('aguardando_pergunta_condicionais', False)
+                helena.etapa_tem_condicionais = state.get('etapa_tem_condicionais', False)
+                helena.aguardando_tipo_condicional = state.get('aguardando_tipo_condicional', False)
+                helena.tipo_condicional = state.get('tipo_condicional')
+                helena.aguardando_antes_decisao = state.get('aguardando_antes_decisao', False)
+                helena.antes_decisao = state.get('antes_decisao')
+                helena.aguardando_cenarios = state.get('aguardando_cenarios', False)
+                helena.aguardando_subetapas_cenario = state.get('aguardando_subetapas_cenario', False)
+                helena.cenario_atual_detalhando = state.get('cenario_atual_detalhando')
+                helena.cenarios_coletados = state.get('cenarios_coletados', [])
+                helena.aguardando_condicionais = state.get('aguardando_condicionais', False)
+                helena.modo_tempo_real = state.get('modo_tempo_real', False)
+
+                # DEBUG PONTO A - APOS RESTAURACAO
                 print(f"\n{'='*80}")
-                print(f"🔵 PONTO A - HELENA RESTAURADA DA SESSÃO")
+                print(f"[RESTORE] PONTO A - HELENA RESTAURADA DA SESSAO")
                 print(f"   Estado atual: {helena.estado}")
                 print(f"   Nome: {helena.nome_usuario}")
                 print(f"   Área: {helena.area_selecionada}")
@@ -129,47 +146,49 @@ def chat_api_view(request):
                 print(f"   Dados preenchidos: {list(helena.dados.keys())}")
                 print(f"{'='*80}\n")
             
-            # Processar mensagem do usuário
+            # Processar mensagem do usuario
             resultado = helena.processar_mensagem(user_message)
-            
-            # 📊 DEBUG PONTO B - APÓS PROCESSAMENTO
+
+            # DEBUG PONTO B - APOS PROCESSAMENTO
             print(f"\n{'='*80}")
-            print(f"🟡 PONTO B - APÓS PROCESSAR MENSAGEM: '{user_message[:50]}...'")
+            print(f"[PROCESS] PONTO B - APOS PROCESSAR MENSAGEM: '{user_message[:50]}...'")
             print(f"   Estado retornado: {helena.estado}")
             print(f"   Etapa atual: {helena.etapa_atual_campo}/{len(helena.etapas_processo)}")
             print(f"   Sistemas selecionados: {helena.sistemas_selecionados}")
             print(f"   Dados extraídos no resultado: {resultado.get('dados_extraidos', {})}")
             print(f"   Conversa completa: {resultado.get('conversa_completa', False)}")
             print(f"{'='*80}\n")
-            
-            # 🔧 CRÍTICO: Validar estado antes de salvar
+
+            # CRITICO: Validar estado antes de salvar
             estado_antes_validacao = helena.estado
             if helena.estado == "nome" and helena.nome_usuario:
                 # Bug detectado: estado voltou para início mas tem dados
-                print(f"\n{'⚠️ '*40}")
-                print("⚠️ BUG DETECTADO: Estado resetou incorretamente!")
+                print(f"\n{'[WARN] '*10}")
+                print("[WARN] BUG DETECTADO: Estado resetou incorretamente!")
                 print(f"   Estado atual: {helena.estado}")
                 print(f"   Nome usuário: {helena.nome_usuario}")
                 print(f"   Sistemas: {helena.sistemas_selecionados}")
                 print(f"   Área: {helena.area_selecionada}")
-                print(f"{'⚠️ '*40}\n")
+                print(f"{'[WARN] '*10}\n")
                 
                 # Tentar recuperar estado correto baseado em dados preenchidos
                 if helena.sistemas_selecionados and len(helena.sistemas_selecionados) > 0:
-                    print("🔧 CORREÇÃO: Restaurando estado para 'campos' (sistemas já selecionados)")
+                    print("[FIX] CORRECAO: Restaurando estado para 'campos' (sistemas ja selecionados)")
                     helena.estado = "campos"
                 elif helena.area_selecionada:
-                    print("🔧 CORREÇÃO: Restaurando estado para 'arquitetura' (área já selecionada)")
+                    print("[FIX] CORRECAO: Restaurando estado para 'arquitetura' (area ja selecionada)")
                     helena.estado = "arquitetura"
                 
-                print(f"✅ Estado corrigido: {estado_antes_validacao} → {helena.estado}\n")
+                print(f"[OK] Estado corrigido: {estado_antes_validacao} -> {helena.estado}\n")
             
-            print(f"💾 Preparando para salvar estado: {helena.estado}")
+            print(f"[SAVE] Preparando para salvar estado: {helena.estado}")
             
             # Salvar estado atualizado na sessão
             request.session[session_key] = {
                 'estado': helena.estado,
                 'nome_usuario': helena.nome_usuario,
+                'nome_temporario': helena.nome_temporario if hasattr(helena, 'nome_temporario') else '',
+                'editando_campo': helena.editando_campo if hasattr(helena, 'editando_campo') else None,
                 'area_selecionada': helena.area_selecionada,
                 'macro_selecionado': helena.macro_selecionado,
                 'processo_selecionado': helena.processo_selecionado,
@@ -177,26 +196,41 @@ def chat_api_view(request):
                 'atividade_selecionada': helena.atividade_selecionada,
                 'dados': helena.dados,
                 'sistemas_selecionados': helena.sistemas_selecionados,
-                
-                # ✅ NOVOS CAMPOS: Salvar estado completo de etapas e detalhes
+
+                # CAMPOS DE ETAPAS: Salvar estado completo
                 'documentos_processo': helena.documentos_processo if hasattr(helena, 'documentos_processo') else [],
                 'etapa_temporaria': helena.etapa_temporaria if hasattr(helena, 'etapa_temporaria') else '',
                 'aguardando_detalhes': helena.aguardando_detalhes if hasattr(helena, 'aguardando_detalhes') else False,
                 'detalhes_etapa_atual': helena.detalhes_etapa_atual if hasattr(helena, 'detalhes_etapa_atual') else [],
-                
                 'etapas_processo': helena.etapas_processo,
                 'etapa_atual_campo': helena.etapa_atual_campo,
                 'fluxos_entrada': helena.fluxos_entrada,
                 'fluxos_saida': helena.fluxos_saida,
-                'conversas': helena.conversas
+                'conversas': helena.conversas,
+
+                # CAMPOS CONDICIONAIS CRÍTICOS (FIX: Etapas condicionais sumindo)
+                'aguardando_operadores_etapa': helena.aguardando_operadores_etapa if hasattr(helena, 'aguardando_operadores_etapa') else False,
+                'operadores_etapa_atual': helena.operadores_etapa_atual if hasattr(helena, 'operadores_etapa_atual') else [],
+                'aguardando_pergunta_condicionais': helena.aguardando_pergunta_condicionais if hasattr(helena, 'aguardando_pergunta_condicionais') else False,
+                'etapa_tem_condicionais': helena.etapa_tem_condicionais if hasattr(helena, 'etapa_tem_condicionais') else False,
+                'aguardando_tipo_condicional': helena.aguardando_tipo_condicional if hasattr(helena, 'aguardando_tipo_condicional') else False,
+                'tipo_condicional': helena.tipo_condicional if hasattr(helena, 'tipo_condicional') else None,
+                'aguardando_antes_decisao': helena.aguardando_antes_decisao if hasattr(helena, 'aguardando_antes_decisao') else False,
+                'antes_decisao': helena.antes_decisao if hasattr(helena, 'antes_decisao') else None,
+                'aguardando_cenarios': helena.aguardando_cenarios if hasattr(helena, 'aguardando_cenarios') else False,
+                'aguardando_subetapas_cenario': helena.aguardando_subetapas_cenario if hasattr(helena, 'aguardando_subetapas_cenario') else False,
+                'cenario_atual_detalhando': helena.cenario_atual_detalhando if hasattr(helena, 'cenario_atual_detalhando') else None,
+                'cenarios_coletados': helena.cenarios_coletados if hasattr(helena, 'cenarios_coletados') else [],
+                'aguardando_condicionais': helena.aguardando_condicionais if hasattr(helena, 'aguardando_condicionais') else False,
+                'modo_tempo_real': helena.modo_tempo_real if hasattr(helena, 'modo_tempo_real') else False
             }
             
-            # Forçar Django a salvar a sessão modificada
+            # Forcar Django a salvar a sessao modificada
             request.session.modified = True
-            
-            # 📊 DEBUG PONTO C - APÓS SALVAR
+
+            # DEBUG PONTO C - APOS SALVAR
             print(f"\n{'='*80}")
-            print(f"🟢 PONTO C - ESTADO SALVO NA SESSÃO")
+            print(f"[OK] PONTO C - ESTADO SALVO NA SESSAO")
             print(f"   Estado salvo: {helena.estado}")
             print(f"   Etapa salva: {helena.etapa_atual_campo}/{len(helena.etapas_processo)}")
             print(f"   Sistemas salvos: {helena.sistemas_selecionados}")
@@ -214,9 +248,9 @@ def chat_api_view(request):
             
             return JsonResponse(resultado)
         
-        # P2: Gerador de Fluxograma (com sessão)
+        # P2: Gerador de Fluxograma (com sessao)
         elif contexto == 'fluxograma':
-            # 🚀 OTIMIZAÇÃO: Import lazy
+            # OTIMIZACAO: Import lazy
             from .helena_produtos.helena_fluxograma import HelenaFluxograma
             
             session_key = 'helena_fluxograma_state'
@@ -241,9 +275,9 @@ def chat_api_view(request):
             
             return JsonResponse(resultado)
         
-        # P3: Dossiê PDF (com sessão)
+        # P3: Dossie PDF (com sessao)
         elif contexto == 'dossie':
-            # 🚀 OTIMIZAÇÃO: Import lazy
+            # OTIMIZACAO: Import lazy
             from .helena_produtos.helena_dossie import HelenaDossie
             
             session_key = 'helena_dossie_state'
@@ -268,15 +302,15 @@ def chat_api_view(request):
         
         # P4: Dashboard
         elif contexto == 'dashboard':
-            # 🚀 OTIMIZAÇÃO: Import lazy
+            # OTIMIZACAO: Import lazy
             from .helena_produtos.helena_dashboard import HelenaDashboard
             helena = HelenaDashboard()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
         
-        # P5: Análise de Riscos (com sessão) - MODO CONVERSACIONAL HÍBRIDO
+        # P5: Analise de Riscos (com sessao) - MODO CONVERSACIONAL HIBRIDO
         elif contexto == 'analise_riscos':
-            # 🚀 OTIMIZAÇÃO: Import lazy
+            # OTIMIZACAO: Import lazy
             from .helena_produtos.helena_analise_riscos import HelenaAnaliseRiscos
 
             session_key = 'helena_riscos_state'
@@ -320,17 +354,17 @@ def chat_api_view(request):
         #     resultado = helena.processar_mensagem(user_message)
         #     return JsonResponse(resultado)
         
-        # P7: Plano de Ação
+        # P7: Plano de Acao
         elif contexto == 'plano_acao':
-            # 🚀 OTIMIZAÇÃO: Import lazy
+            # OTIMIZACAO: Import lazy
             from .helena_produtos.helena_plano_acao import HelenaPlanoAcao
             helena = HelenaPlanoAcao()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
         
-        # P8: Dossiê de Governança
+        # P8: Dossie de Governanca
         elif contexto == 'governanca':
-            # 🚀 OTIMIZAÇÃO: Import lazy
+            # OTIMIZACAO: Import lazy
             from .helena_produtos.helena_governanca import HelenaGovernanca
             helena = HelenaGovernanca()
             resultado = helena.processar_mensagem(user_message)
@@ -338,15 +372,15 @@ def chat_api_view(request):
         
         # P9: Gerador de Documentos
         elif contexto == 'documentos':
-            # 🚀 OTIMIZAÇÃO: Import lazy
+            # OTIMIZACAO: Import lazy
             from .helena_produtos.helena_documentos import HelenaDocumentos
             helena = HelenaDocumentos()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
         
-        # P10: Relatório de Conformidade
+        # P10: Relatorio de Conformidade
         elif contexto == 'conformidade':
-            # 🚀 OTIMIZAÇÃO: Import lazy
+            # OTIMIZACAO: Import lazy
             from .helena_produtos.helena_conformidade import HelenaConformidade
             helena = HelenaConformidade()
             resultado = helena.processar_mensagem(user_message)
@@ -367,7 +401,7 @@ def chat_api_view(request):
             }, status=400)
             
     except Exception as e:
-        print(f"❌ Erro na API Helena: {e}")
+        print(f"[ERROR] Erro na API Helena: {e}")
         import traceback
         traceback.print_exc()
         
@@ -419,13 +453,96 @@ def helena_mapeamento_api(request):
         })
         
     except Exception as e:
-        print(f"❌ Erro na Helena Mapeamento: {e}")
+        print(f"[ERROR] Erro na Helena Mapeamento: {e}")
         import traceback
         traceback.print_exc()
         
         return JsonResponse({
             'resposta': f'Erro ao processar mensagem: {str(e)}',
             'success': False
+        }, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def helena_ajuda_arquitetura(request):
+    """
+    API para Helena Ajuda Inteligente - Classificação de Atividade na Arquitetura
+    Analisa descrição do usuário e sugere arquitetura completa (Macro/Processo/Subprocesso/Atividade)
+    """
+    try:
+        data = json.loads(request.body)
+        descricao = data.get('descricao', '')
+        nivel_atual = data.get('nivel_atual', 'macro')
+        contexto = data.get('contexto', {})
+        session_id = data.get('session_id', 'default')
+
+        if not descricao or len(descricao.strip()) < 10:
+            return JsonResponse({
+                'success': False,
+                'error': 'Por favor, descreva sua atividade com pelo menos 10 caracteres.'
+            }, status=400)
+
+        # Import lazy da função de análise
+        from .helena_ajuda_inteligente import analisar_atividade_com_helena, validar_sugestao_contra_csv
+        from .dados_decipex import ArquiteturaDecipex
+
+        print(f"\n[HELENA-AJUDA] Analisando atividade...")
+        print(f"   Descrição: {descricao[:100]}...")
+        print(f"   Nível atual: {nivel_atual}")
+        print(f"   Contexto: {contexto}")
+
+        # Chamar Helena Ajuda Inteligente
+        resultado = analisar_atividade_com_helena(
+            descricao_usuario=descricao,
+            nivel_atual=nivel_atual,
+            contexto_ja_selecionado=contexto
+        )
+
+        if not resultado.get('sucesso'):
+            return JsonResponse({
+                'success': False,
+                'error': resultado.get('erro', 'Erro desconhecido ao analisar atividade'),
+                'resposta_bruta': resultado.get('resposta_bruta')
+            }, status=500)
+
+        # Validar sugestão contra CSV de arquitetura
+        arquitetura = ArquiteturaDecipex()
+        validacao = validar_sugestao_contra_csv(resultado['sugestao'], arquitetura)
+
+        # Log da análise
+        LogUtils.criar_log_entrada(
+            usuario=session_id,
+            acao="helena_ajuda_arquitetura",
+            dados={
+                "descricao_tamanho": len(descricao),
+                "nivel": nivel_atual,
+                "confianca": resultado.get('confianca', 'media')
+            }
+        )
+
+        print(f"[HELENA-AJUDA] Sugestão gerada com sucesso!")
+        print(f"   Macroprocesso: {resultado['sugestao']['macroprocesso']}")
+        print(f"   Processo: {resultado['sugestao']['processo']}")
+        print(f"   Subprocesso: {resultado['sugestao']['subprocesso']}")
+        print(f"   Atividade: {resultado['sugestao']['atividade']}")
+        print(f"   Confiança: {resultado.get('confianca', 'media')}")
+
+        return JsonResponse({
+            'success': True,
+            'sugestao': resultado['sugestao'],
+            'justificativa': resultado.get('justificativa', ''),
+            'confianca': resultado.get('confianca', 'media'),
+            'validacao': validacao
+        })
+
+    except Exception as e:
+        print(f"[ERROR] Erro na Helena Ajuda Arquitetura: {e}")
+        import traceback
+        traceback.print_exc()
+
+        return JsonResponse({
+            'success': False,
+            'error': f'Erro ao processar análise: {str(e)}'
         }, status=500)
 
 @csrf_exempt
@@ -486,7 +603,7 @@ def gerar_pdf_pop(request):
             }
         )
         
-        print(f"✅ PDF gerado com sucesso: {pdf_path}")
+        print(f"[OK] PDF gerado com sucesso: {pdf_path}")
         
         # Retornar sucesso com URLs
         return JsonResponse({
@@ -498,7 +615,7 @@ def gerar_pdf_pop(request):
         })
         
     except Exception as e:
-        print(f"❌ Erro ao gerar PDF: {e}")
+        print(f"[ERROR] Erro ao gerar PDF: {e}")
         import traceback
         traceback.print_exc()
         
@@ -684,7 +801,7 @@ def reiniciar_conversa_helena(request):
             dados={"sessoes_limpas": session_keys}
         )
         
-        print("🔄 Conversa reiniciada - Todas as sessões foram limpas")
+        print("[RESET] Conversa reiniciada - Todas as sessoes foram limpas")
         
         return JsonResponse({
             'success': True,
@@ -928,7 +1045,7 @@ def analyze_pop_content(text):
 
     # LOG de debug
     print(f"\n{'='*80}")
-    print("📄 ANÁLISE DE POP CONCLUÍDA")
+    print("[ANALYSIS] ANALISE DE POP CONCLUIDA")
     print(f"   Título: {info['titulo'][:50]}...")
     print(f"   Código: {info['codigo']}")
     print(f"   Sistemas encontrados ({len(info['sistemas'])}): {info['sistemas']}")
@@ -946,15 +1063,15 @@ def analyze_pop_content(text):
 def chat_recepcao_api(request):
     """API para Helena Recepcionista - Landing Page"""
     try:
-        print("🔵 Requisição recebida em /api/chat-recepcao/")
+        print("[CHAT] Requisicao recebida em /api/chat-recepcao/")
         
         # Parse do JSON
         data = json.loads(request.body)
         mensagem = data.get('message', '')
         session_id = data.get('session_id', 'default')
         
-        print(f"🔵 Mensagem: {mensagem}")
-        print(f"🔵 Session ID: {session_id}")
+        print(f"[CHAT] Mensagem: {mensagem}")
+        print(f"[CHAT] Session ID: {session_id}")
         
         if not mensagem:
             return JsonResponse({
@@ -964,10 +1081,10 @@ def chat_recepcao_api(request):
         
         # Importar e chamar Helena com session_id
         from .helena_produtos.helena_recepcao import helena_recepcao
-        print("🔵 Helena importada")
+        print("[CHAT] Helena importada")
         
         resposta = helena_recepcao(mensagem, session_id)
-        print(f"🔵 Resposta: {resposta[:100]}...")
+        print(f"[CHAT] Resposta: {resposta[:100]}...")
         
         return JsonResponse({
             'resposta': resposta,
@@ -975,7 +1092,7 @@ def chat_recepcao_api(request):
         })
         
     except Exception as e:
-        print(f"🔴 ERRO: {str(e)}")
+        print(f"[ERROR] ERRO: {str(e)}")
         import traceback
         traceback.print_exc()
         

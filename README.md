@@ -2,6 +2,23 @@
 
 Sistema integrado para mapeamento de processos, análise de riscos e conformidade para o setor público, com IA conversacional Helena.
 
+## 🚨 **LEIA ANTES DE DESENVOLVER**
+
+**⚠️ Para assistentes de IA e desenvolvedores:** Leia [DESENVOLVIMENTO.md](DESENVOLVIMENTO.md) ANTES de fazer qualquer alteração no código!
+
+Este arquivo contém regras essenciais para evitar retrabalho e proteger o código em produção.
+
+---
+
+## 🌐 **Sistema em Produção!**
+
+**URL Ativa:** https://mapagov-113328225062.us-central1.run.app
+
+- ✅ Frontend React + Backend Django funcionando
+- ✅ PostgreSQL Cloud SQL
+- ✅ Deploy automático via Google Cloud Run
+- ✅ Documentação completa em [DEPLOY_GOOGLE_CLOUD.md](DEPLOY_GOOGLE_CLOUD.md)
+
 ## 🚀 **Arquitetura do Sistema**
 
 ### **Frontend (React/TypeScript)**
@@ -170,26 +187,21 @@ npm run lint                     # Verificar ESLint
 - **IA/LLM:** OpenAI GPT-4, LangChain
 - **Frontend:** React 19, TypeScript, Zustand, Vite
 - **Backend:** Django 5.2, DRF, CORS
-- **Banco:** SQLite (dev), PostgreSQL (prod)
-- **Deploy:** Vercel (frontend), Railway (backend)
+- **Banco:** SQLite (dev), PostgreSQL (prod via Cloud SQL)
+- **Deploy:** Google Cloud Run (produção) | Render (legacy configurado)
 
 ## 🔧 **Configuração Avançada**
 
 ### 📦 Migração para PostgreSQL
-O projeto agora suporta Postgres via variável `DATABASE_URL` (fallback para SQLite em desenvolvimento). 
+O projeto detecta e usa PostgreSQL automaticamente quando a variável `DATABASE_URL` está definida (fallback para SQLite em desenvolvimento).
 
-Passos completos: ver arquivo `MIGRATION_POSTGRES.md`.
+**Resumo rápido:**
+1. Configurar PostgreSQL (local ou Cloud SQL)
+2. Definir `DATABASE_URL=postgresql://user:pass@host:5432/mapagov`
+3. `python manage.py migrate` (Django detecta PostgreSQL automaticamente)
+4. (Opcional) Migrar dados: `dumpdata` do SQLite → `loaddata` no PostgreSQL
 
-Resumo rápido:
-1. Criar instância Postgres
-2. Definir `DATABASE_URL=postgres://user:pass@host:5432/db`
-3. `pip install -r requirements.txt`
-4. `python manage.py migrate`
-5. (Opcional) `dumpdata` do SQLite → `loaddata` no Postgres
-6. Testar endpoints críticos (autosave, backup, restore, diff)
-7. Criar índices recomendados (consultar guia)
-
-Arquivo detalhado: `MIGRATION_POSTGRES.md`
+**Para Cloud SQL em produção:** Ver [DEPLOY_GOOGLE_CLOUD.md](DEPLOY_GOOGLE_CLOUD.md) "PARTE 1: Criar Banco de Dados"
 
 ### 💾 Backups & Restauração
 Após a migração para Postgres é fundamental automatizar backups lógicos dos dados de POPs, snapshots e changelog.
@@ -287,14 +299,36 @@ CORS_ALLOWED_ORIGINS=http://localhost:5174,http://127.0.0.1:5174
 ```
 
 ### **Deploy Produção**
+
+#### **Google Cloud Run (Produção Atual)** 🎉
+**URL Ativa:** https://mapagov-113328225062.us-central1.run.app
+
+```bash
+# Pré-requisitos: gcloud CLI instalado e autenticado
+gcloud auth login
+gcloud config set project neat-environs-472910-g9
+
+# Build da imagem Docker
+gcloud builds submit --tag gcr.io/neat-environs-472910-g9/mapagov
+
+# Deploy no Cloud Run
+gcloud run deploy mapagov \
+  --image gcr.io/neat-environs-472910-g9/mapagov:latest \
+  --region us-central1 \
+  --platform managed \
+  --allow-unauthenticated
+```
+
+**Documentação completa:** Ver [DEPLOY_GOOGLE_CLOUD.md](DEPLOY_GOOGLE_CLOUD.md) com troubleshooting detalhado!
+
+#### **Render/Vercel (Configurado, não em uso)**
 ```bash
 # Frontend (Vercel)
 npm run build
 vercel --prod
 
-# Backend (Railway)
-railway login
-railway up
+# Backend (Render)
+# Configurado via dashboard
 ```
 
 ## 📊 **Status do Projeto**
@@ -308,8 +342,14 @@ railway up
 - **APIs REST** - Backend Django robusto
 - **Migração HTML→React** - Chat modernizado
 
+### **🎉 Deploy em Produção**
+- **✅ Google Cloud Run** - Sistema 100% funcional em https://mapagov-113328225062.us-central1.run.app
+- **✅ Cloud SQL PostgreSQL** - Banco de dados gerenciado
+- **✅ Secret Manager** - Credenciais seguras
+- **✅ Multi-stage Docker** - Frontend (Vite) + Backend (Django) em 1 container
+
 ### **🔄 Em Desenvolvimento**
-- **Deploy Produção** - Configuração Vercel/Railway
+- **Domínio Customizado** - mapagov.com.br (opcional)
 - **Testes Unitários** - Cobertura de código
 - **Novos Produtos Helena** - Dashboard, Conformidade
 - **Integração Completa** - Unificação de funcionalidades
@@ -320,7 +360,10 @@ railway up
 1. Clone o repositório
 2. Siga o setup completo acima
 3. Teste o sistema localmente
-4. Leia `MIGRAÇÃO_REACT.md` para contexto
+4. Leia documentação adicional:
+   - `DEPLOY_GOOGLE_CLOUD.md` - Deploy em produção (⭐ essencial!)
+   - `CLAUDE.md` - Instruções para Claude Code e contexto do projeto
+   - `DESENVOLVIMENTO.md` - Notas técnicas de desenvolvimento
 5. Abra issues/PRs conforme necessário
 
 ### **Fluxo de Desenvolvimento**

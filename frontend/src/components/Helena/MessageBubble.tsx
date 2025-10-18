@@ -39,7 +39,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
         {message.tipo === 'helena' && (
           <div className="message-avatar">
             <img
-              src="/static/helena_mapeamento.png"
+              src="/helena_mapeamento.png"
               alt="Helena"
               className="avatar-image"
             />

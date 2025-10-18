@@ -25,6 +25,9 @@ urlpatterns = [
     path('api/chat-recepcao/', views.chat_recepcao_api, name='chat_recepcao_api'),
     path('api/helena-mapeamento/', helena_mapeamento_api, name='helena_mapeamento_api'),
 
+    # Helena Ajuda Inteligente - Classificação de Atividade (ATIVA)
+    path('api/helena-ajuda-arquitetura/', views.helena_ajuda_arquitetura, name='helena_ajuda_arquitetura'),
+
     # APIs de autosave/snapshot/histórico - TEMPORARIAMENTE DESABILITADAS (views não commitadas)
     # path('api/reiniciar-conversa-helena/', views.reiniciar_conversa_helena, name='reiniciar_helena'),
     # path('api/pop-autosave/', views.autosave_pop, name='pop_autosave'),
@@ -33,7 +36,6 @@ urlpatterns = [
     # path('api/pop-snapshot-milestone/', views.marcar_milestone_snapshot, name='pop_snapshot_milestone'),
     # path('api/pop-snapshot-diff/', views.diff_snapshots, name='pop_snapshot_diff'),
     # path('api/pop-historico/<int:pop_id>/', views.listar_historico_pop, name='pop_historico'),
-    # path('api/helena-ajuda-arquitetura/', views.helena_ajuda_arquitetura, name='helena_ajuda_arquitetura'),
 
     # ============================================================================
     # APIs PDF E DOCUMENTOS (FUNCIONAIS)

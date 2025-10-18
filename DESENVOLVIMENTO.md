@@ -6,6 +6,8 @@ Este arquivo contém orientações essenciais para desenvolver o MapaGov. **LEIA
 
 ## 🚨 REGRAS DE OURO (NUNCA QUEBRE!)
 
+PROTEÇÃO DO CÓDIGO EM PRODUÇÃO. se precisar arrumar o codigo em desenvolvimento, a prioridade é produção, compatibilize.
+
 ### 1. **NUNCA altere código sem entender o contexto atual**
 - ❌ NÃO rode comandos automaticamente
 - ✅ SEMPRE pergunte ao desenvolvedor:
@@ -13,21 +15,12 @@ Este arquivo contém orientações essenciais para desenvolver o MapaGov. **LEIA
   - "O que está funcionando agora?"
   - "Qual o objetivo desta sessão?"
 
-### 2. **SEMPRE peça aprovação ANTES de fazer alterações**
-- ❌ NÃO edite arquivos sem mostrar o ANTES/DEPOIS
-- ✅ SEMPRE mostre:
-  ```
-  Arquivo: X
-  Linha: Y
-  ANTES: código atual
-  DEPOIS: código proposto
-  PODE FAZER? (SIM/NÃO)
-  ```
+```
 
 ### 3. **NUNCA assuma que algo "óbvio" precisa ser feito**
 - ❌ "Vou instalar as dependências automaticamente"
 - ❌ "Vou fazer commit das alterações"
-- ✅ SEMPRE pergunte: "Posso fazer X?"
+- ✅ SEMPRE explqiue: "Preciso fazer X para"
 
 ### 4. **RESPEITE o nível de experiência do desenvolvedor**
 - Nem todos são desenvolvedores sênior
@@ -45,7 +38,6 @@ Antes de fazer QUALQUER coisa, faça estas perguntas:
 □ O que está funcionando atualmente?
 □ O que NÃO está funcionando?
 □ Houve algum deploy recente?
-□ Há quanto tempo o backend está no ar sem problemas?
 □ Posso fazer alterações ou só investigar?
 ```
 

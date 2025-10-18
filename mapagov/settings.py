@@ -26,10 +26,17 @@ ALLOWED_HOSTS = [
     '.run.app',  # Google Cloud Run
 ]
 
-# CSRF Trusted Origins (para formulários de login/admin)
+# CSRF Trusted Origins (para formulários de login/admin + cookies)
 CSRF_TRUSTED_ORIGINS = [
     'https://*.run.app',  # Google Cloud Run
     'https://mapagov.onrender.com',
+    # Desenvolvimento local (necessário para cookies CORS)
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://127.0.0.1:5175',
 ]
 
 # Adicionar origens de produção via variável de ambiente
@@ -45,6 +52,7 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = False  # Cloud Run proxy já gerencia HTTPS
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'None'  # Necessário para CORS com cookies
 
     # HSTS (HTTP Strict Transport Security)
     SECURE_HSTS_SECONDS = 31536000  # 1 ano
@@ -55,6 +63,11 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = 'DENY'
+else:
+    # Desenvolvimento local - permitir cookies sem HTTPS
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Lax funciona melhor em desenvolvimento local
 
 # Application definition
 INSTALLED_APPS = [

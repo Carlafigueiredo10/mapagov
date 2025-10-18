@@ -9,8 +9,9 @@ export default defineConfig(({ mode }) => ({
   plugins: [react()], // ESLint temporariamente desabilitado
 
   // Base URL para assets em produção (Django WhiteNoise)
-  // Em dev: '/' (raiz)
+  // Em dev: '/' (raiz - Vite serve assets de /public)
   // Em prod: '/static/' (Django collectstatic)
+  // IMPORTANTE: Componentes devem usar caminhos SEM /static/ - o build adiciona automaticamente
   base: mode === 'production' ? '/static/' : '/',
 
   server: {

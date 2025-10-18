@@ -17,10 +17,10 @@ class ArquiteturaDecipex:
                 reader = csv.DictReader(f)
                 for row in reader:
                     dados.append(row)
-            print(f"✅ CSV carregado: {len(dados)} linhas")
+            print(f"[OK] CSV carregado: {len(dados)} linhas")
             return dados
         except Exception as e:
-            print(f"❌ Erro ao ler CSV: {e}")
+            print(f"[ERROR] Erro ao ler CSV: {e}")
             return []
     
     def obter_macroprocessos_unicos(self):

@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+ENV/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+media/
+logs/
+
+# Frontend
+frontend/node_modules/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local
+
+# Backups
+backups/
+chroma_db/
+
+# Build artifacts
+staticfiles/
+frontend/dist/

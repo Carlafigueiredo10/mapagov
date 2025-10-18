@@ -52,7 +52,7 @@ const ModalAjudaHelena: React.FC<ModalAjudaHelenaProps> = ({
       <div className="modal-ajuda-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-ajuda-header">
           <div className="modal-ajuda-avatar">
-            <img src="/static/helena_avatar.png" alt="Helena" />
+            <img src="/helena_avatar.png" alt="Helena" />
           </div>
           <div className="modal-ajuda-title">
             <h3>🆘 Preciso de Ajuda</h3>

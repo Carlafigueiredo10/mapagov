@@ -10,6 +10,7 @@ const FormularioPOP: React.FC = () => {
   const [formData, setFormData] = useState(dadosPOP);
   const [validacoes, setValidacoes] = useState<Record<string, 'valido' | 'invalido' | ''>>({});
   const [camposPreenchidos, setCamposPreenchidos] = useState(0);
+  const [ultimoCampoPreenchido, setUltimoCampoPreenchido] = useState<string | null>(null);
 
   // Lista de todos os campos do formulário
   const todosCampos = useMemo(() => [
@@ -23,6 +24,50 @@ const FormularioPOP: React.FC = () => {
   useEffect(() => {
     setFormData(dadosPOP);
   }, [dadosPOP]);
+
+  // Auto-scroll quando campo é preenchido
+  useEffect(() => {
+    // Detectar qual campo foi preenchido (comparar formData anterior com atual)
+    const camposAtuais = Object.keys(dadosPOP);
+
+    for (const campo of camposAtuais) {
+      const valorNovo = dadosPOP[campo as keyof typeof dadosPOP];
+      const valorAntigo = formData[campo as keyof typeof formData];
+
+      // Verificar se o campo foi preenchido AGORA
+      const foiPreenchidoAgora =
+        valorNovo &&
+        (valorAntigo === undefined || valorAntigo === null || valorAntigo === '' ||
+         (Array.isArray(valorAntigo) && valorAntigo.length === 0)) &&
+        (typeof valorNovo === 'string' && valorNovo.trim().length > 0 ||
+         Array.isArray(valorNovo) && valorNovo.length > 0 ||
+         typeof valorNovo === 'object' && Object.keys(valorNovo).length > 0);
+
+      if (foiPreenchidoAgora && campo !== ultimoCampoPreenchido) {
+        setUltimoCampoPreenchido(campo);
+
+        // Fazer scroll suave até o campo recém-preenchido
+        setTimeout(() => {
+          const elemento = document.getElementById(campo);
+          if (elemento) {
+            elemento.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+              inline: 'nearest'
+            });
+
+            // Animação de destaque (pulso)
+            elemento.classList.add('campo-destacado');
+            setTimeout(() => {
+              elemento.classList.remove('campo-destacado');
+            }, 2000);
+          }
+        }, 300); // Delay para garantir que o DOM foi atualizado
+
+        break; // Processar apenas o primeiro campo mudado
+      }
+    }
+  }, [dadosPOP, formData, ultimoCampoPreenchido]);
 
   // Calcular campos preenchidos
   useEffect(() => {
@@ -157,22 +202,22 @@ const FormularioPOP: React.FC = () => {
         <div className="form-section-header">
           <h3>1. Entrega Esperada</h3>
         </div>
-        
-        {renderCampo('entrega_esperada', 'Entrega Esperada da Atividade', 'textarea')}
 
-        {/* Normativos */}
-        <div className="form-section-header">
-          <h3>2. Dispositivos Normativos</h3>
-        </div>
-        
-        {renderCampo('dispositivos_normativos', 'Dispositivos Normativos Aplicáveis', 'textarea')}
+        {renderCampo('entrega_esperada', 'Entrega Esperada da Atividade', 'textarea')}
 
         {/* Sistemas */}
         <div className="form-section-header">
-          <h3>3. Sistemas Utilizados</h3>
+          <h3>2. Sistemas Utilizados</h3>
         </div>
-        
-        {renderCampo('sistemas', 'Sistemas Utilizados / Acessos Necessários', 'input', true)}
+
+        {renderCampo('sistemas', 'Sistemas Utilizados / Acessos Necessários', 'textarea', true)}
+
+        {/* Normativos */}
+        <div className="form-section-header">
+          <h3>3. Dispositivos Normativos</h3>
+        </div>
+
+        {renderCampo('dispositivos_normativos', 'Dispositivos Normativos Aplicáveis', 'textarea')}
 
         {/* Operadores */}
         <div className="form-section-header">

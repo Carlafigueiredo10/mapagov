@@ -26,17 +26,20 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
   useEffect(() => {
     const welcomeMessage: PortalChatMessage = {
       id: 'welcome',
-      text: `<strong>Oi, eu sou a Helena!</strong> ✨ Sua assistente em <strong>Governança, Riscos e Conformidade</strong> no setor público.
+      text: `Oi! 👋<br>
+      Eu sou a <strong>Helena</strong>, sua agente de Inteligência Artificial aqui no MapaGov.
       <br><br>
-      Eu sei bastante sobre <strong>mapeamento de processos</strong>, normas de GRC e estou sempre me atualizando para trazer as melhores práticas pra você.
+      Meu papel é te guiar dentro deste projeto — ajudando a organizar processos, criar fluxogramas, montar POPs, gerar dossiês ou apoiar em análises, tudo a partir desta plataforma.
       <br><br>
-      Aqui dentro eu posso te ajudar a:
-      <br>• Transformar atividades em <strong>POPs claros e estruturados</strong>
-      <br>• Mapear riscos e controles de forma prática
-      <br>• Gerar <strong>fluxogramas visuais</strong> para entender cada etapa
-      <br>• Organizar documentos com base em normas e regulamentos oficiais
+      Ali no lado esquerdo, você vai ver o <strong>catálogo de produtos do MapaGov</strong>.<br>
+      É por lá que você pode explorar as ferramentas disponíveis e acompanhar o que está sendo desenvolvido.
       <br><br>
-      💡 É só escolher um produto no menu lateral ou falar comigo direto no chat. Me diz seu nome, manda suas dúvidas, e eu vou te guiar por aqui! 🚀`,
+      Antes de começarmos, me conta um pouco sobre você:<br>
+      <strong>em que área trabalha ou com que tipo de atividade lida no dia a dia?</strong>
+      <br><br>
+      Assim eu consigo entender melhor seu contexto e te mostrar os caminhos mais úteis pra sua rotina.
+      <br><br>
+      Pode falar livremente — eu estou aqui pra ouvir e te ajudar no que precisar. 🌿`,
       sender: 'helena',
       timestamp: new Date(),
     };
@@ -116,7 +119,7 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
       {/* Chat Header */}
       <div className={styles.chatHeader}>
         <div className={styles.helenaAvatar}>
-          <img src="/static/helena_avatar.png" alt="Helena" />
+          <img src="/helena_avatar.png" alt="Helena" />
         </div>
         <div className={styles.headerInfo}>
           <h2>Helena - Assistente GRC</h2>
@@ -133,7 +136,7 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
           >
             <div className={styles.messageAvatar}>
               {message.sender === 'helena' ? (
-                <img src="/static/helena_avatar.png" alt="Helena" />
+                <img src="/helena_avatar.png" alt="Helena" />
               ) : (
                 'U'
               )}
@@ -148,7 +151,7 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
         {isLoading && (
           <div className={`${styles.message} ${styles.helena}`}>
             <div className={styles.messageAvatar}>
-              <img src="/static/helena_avatar.png" alt="Helena" />
+              <img src="/helena_avatar.png" alt="Helena" />
             </div>
             <div className={styles.typingIndicator}>
               <div className={styles.typingDot}></div>

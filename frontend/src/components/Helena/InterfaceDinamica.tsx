@@ -185,14 +185,14 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
 
             <div className="sugestao-ia-section">
               <div className="sugestao-header">
-                <span className="icone-ia">✨</span>
-                <h3>Minha sugestão como resultado final da sua atividade é:</h3>
+                <span className="icone-ia">🧠</span>
+                <h3>Com base no que você descreveu até agora, minha sugestão de resultado final é:</h3>
               </div>
               <div className="sugestao-conteudo">
-                {sugestaoIA}
+                👉 "{sugestaoIA}"
               </div>
               <p className="sugestao-info">
-                Baseado no contexto da atividade mapeada. Você pode usar essa sugestão ou escrever sua própria resposta.
+                Você pode usar essa sugestão se ela fizer sentido — ou ajustar manualmente para refletir melhor o que é entregue no seu trabalho.
               </p>
             </div>
 
@@ -272,9 +272,40 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
         );
       }
 
-      // ✅ CORREÇÃO: Não renderizar interface genérica de texto
-      // Essas mensagens já estão no texto da Helena, não precisam de caixa separada
-      console.log('⚠️ Interface tipo "texto" ignorada (já incluída na mensagem da Helena)');
+      // Verificar se há botões para renderizar
+      const botoes = (dados as { botoes?: string[] })?.botoes;
+
+      if (botoes && Array.isArray(botoes) && botoes.length > 0) {
+        // Renderizar botões
+        return (
+          <div className="interface-container fade-in">
+            <div className="action-buttons" style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              {botoes.map((botao, index) => (
+                <button
+                  key={index}
+                  className={`btn-interface ${index === 0 ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => handleConfirm(botao)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem 1.5rem',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    background: index === 0 ? '#007bff' : '#6c757d',
+                    color: 'white'
+                  }}
+                >
+                  {botao}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      // Mensagens de texto sem botões: não renderizar (já estão na mensagem da Helena)
       return null;
     }
 

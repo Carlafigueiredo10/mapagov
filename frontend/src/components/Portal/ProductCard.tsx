@@ -14,6 +14,7 @@ export default function ProductCard({ product, isActive, onClick }: ProductCardP
       onClick={onClick}
       role="button"
       tabIndex={0}
+      title={product.description} // Tooltip nativo ao passar o mouse
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -23,7 +24,7 @@ export default function ProductCard({ product, isActive, onClick }: ProductCardP
     >
       {product.code === 'geral' ? (
         <img
-          src="/static/logo_mapa.png"
+          src="/logo_mapa.png"
           alt="MapaGov"
           className={styles.productLogo}
         />
