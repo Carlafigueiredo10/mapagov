@@ -2,6 +2,23 @@ import { useState, useCallback } from 'react';
 import { useChatStore } from '../store/chatStore';
 import { chatHelena, chatAjuda, gerarPDF, type ChatRequest, type ChatResponse } from '../services/helenaApi';
 
+// Frases humanizadas de carregamento (randomizadas)
+const frasesCarregamento = [
+  'Pensando...',
+  'Analisando...',
+  'Deixa eu ver...',
+  'Hmmm...',
+  'Processando sua resposta...',
+  'Avaliando...',
+  'Entendendo...',
+  'Verificando...'
+];
+
+const obterFraseAleatoria = () => {
+  const indice = Math.floor(Math.random() * frasesCarregamento.length);
+  return frasesCarregamento[indice];
+};
+
 export const useChat = (onAutoSave?: () => Promise<void>) => {
   const {
     messages,
@@ -35,8 +52,8 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         adicionarMensagemRapida('usuario', texto);
       }
 
-      // Adicionar loading
-      const loadingId = adicionarMensagemRapida('helena', 'Processando...', { loading: true });
+      // Adicionar loading com frase humanizada aleatória
+      const loadingId = adicionarMensagemRapida('helena', obterFraseAleatoria(), { loading: true });
 
       // Fazer request
       const request: ChatRequest = {

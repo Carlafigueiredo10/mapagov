@@ -23,6 +23,7 @@ import InterfaceFluxosEntrada from './InterfaceFluxosEntrada';
 import InterfaceFluxosSaida from './InterfaceFluxosSaida';
 import InterfaceRevisao from './InterfaceRevisao';
 import InterfaceSelecaoEdicao from './InterfaceSelecaoEdicao';
+import InterfaceEditarEtapas from './InterfaceEditarEtapas';
 import InterfaceFinal from './InterfaceFinal';
 
 // TIPOS E INTERFACES GLOBAIS (sem duplicatas)
@@ -361,8 +362,377 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
     case 'selecao_edicao':
       return <InterfaceSelecaoEdicao dados={dados || undefined} onConfirm={handleConfirm} />;
 
+    case 'editar_etapas':
+      return <InterfaceEditarEtapas dados={dados || undefined} onConfirm={handleConfirm} />;
+
     case 'final':
       return <InterfaceFinal dados={dados || undefined} onConfirm={handleConfirm} />;
+
+    case 'texto_com_alternativa': {
+      // Interface híbrida: texto livre COM botão para dropdowns
+      const placeholder = (dados as { placeholder?: string })?.placeholder || 'Digite sua resposta...';
+      const hint = (dados as { hint?: string })?.hint;
+      const botaoAlternativo = (dados as { botao_alternativo?: { label: string; acao: string } })?.botao_alternativo;
+
+      return (
+        <div className="interface-container fade-in">
+          <div className="texto-com-alternativa-container">
+            {/* Campo de texto livre */}
+            <div className="input-group">
+              <input
+                type="text"
+                className="form-control"
+                placeholder={placeholder}
+                id="input-texto-livre"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const valor = (e.target as HTMLInputElement).value.trim();
+                    if (valor) {
+                      handleConfirm(valor);
+                    }
+                  }
+                }}
+              />
+              <button
+                className="btn-interface btn-primary"
+                onClick={() => {
+                  const input = document.getElementById('input-texto-livre') as HTMLInputElement;
+                  const valor = input?.value.trim();
+                  if (valor) {
+                    handleConfirm(valor);
+                  }
+                }}
+              >
+                Enviar
+              </button>
+            </div>
+
+            {hint && (
+              <div className="hint-text">
+                {hint}
+              </div>
+            )}
+
+            {/* Botão alternativo (navegar manualmente) */}
+            {botaoAlternativo && (
+              <div className="alternativa-section">
+                <div className="divider">
+                  <span>OU</span>
+                </div>
+                <button
+                  className="btn-interface btn-secondary-outline"
+                  onClick={() => handleConfirm('USAR_DROPDOWNS')}
+                >
+                  {botaoAlternativo.label}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <style>{`
+            .texto-com-alternativa-container {
+              width: 100%;
+              max-width: 600px;
+              margin: 0 auto;
+            }
+
+            .input-group {
+              display: flex;
+              gap: 0.5rem;
+              margin-bottom: 1rem;
+            }
+
+            .form-control {
+              flex: 1;
+              padding: 0.75rem 1rem;
+              border: 2px solid #e0e0e0;
+              border-radius: 8px;
+              font-size: 1rem;
+              transition: border-color 0.2s;
+            }
+
+            .form-control:focus {
+              outline: none;
+              border-color: #007bff;
+            }
+
+            .btn-primary {
+              background: #007bff;
+              color: white;
+              padding: 0.75rem 1.5rem;
+              border: none;
+              border-radius: 8px;
+              font-weight: 500;
+              cursor: pointer;
+              transition: background 0.2s;
+            }
+
+            .btn-primary:hover {
+              background: #0056b3;
+            }
+
+            .hint-text {
+              font-size: 0.9rem;
+              color: #666;
+              margin-bottom: 1.5rem;
+              padding: 0.5rem;
+              background: #f8f9fa;
+              border-radius: 6px;
+              border-left: 3px solid #007bff;
+            }
+
+            .alternativa-section {
+              margin-top: 2rem;
+            }
+
+            .divider {
+              text-align: center;
+              position: relative;
+              margin: 1.5rem 0;
+            }
+
+            .divider span {
+              background: white;
+              padding: 0 1rem;
+              color: #999;
+              font-weight: 500;
+              font-size: 0.9rem;
+              position: relative;
+              z-index: 1;
+            }
+
+            .divider::before {
+              content: '';
+              position: absolute;
+              top: 50%;
+              left: 0;
+              right: 0;
+              height: 1px;
+              background: #e0e0e0;
+              z-index: 0;
+            }
+
+            .btn-secondary-outline {
+              width: 100%;
+              padding: 0.75rem 1.5rem;
+              border: 2px solid #6c757d;
+              background: white;
+              color: #6c757d;
+              border-radius: 8px;
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.2s;
+            }
+
+            .btn-secondary-outline:hover {
+              background: #6c757d;
+              color: white;
+            }
+          `}</style>
+        </div>
+      );
+    }
+
+    case 'confirmacao_arquitetura': {
+      // Interface de confirmação da sugestão Helena
+      const sugestao = (dados as { sugestao?: any })?.sugestao;
+      const botoes = (dados as { botoes?: string[] })?.botoes || ['✅ Confirmar e Continuar', '✏️ Ajustar Manualmente'];
+
+      if (!sugestao) {
+        return null;
+      }
+
+      return (
+        <div className="interface-container fade-in">
+          <div className="confirmacao-arquitetura-container">
+            <div className="sugestao-card">
+              <div className="sugestao-header">
+                <span className="icone-check">✨</span>
+                <h3>Sugestão Helena</h3>
+              </div>
+
+              <div className="sugestao-detalhes">
+                <div className="item">
+                  <span className="label">📋 Macroprocesso:</span>
+                  <span className="valor">{sugestao.macroprocesso}</span>
+                </div>
+                <div className="item">
+                  <span className="label">📋 Processo:</span>
+                  <span className="valor">{sugestao.processo}</span>
+                </div>
+                <div className="item">
+                  <span className="label">📋 Subprocesso:</span>
+                  <span className="valor">{sugestao.subprocesso}</span>
+                </div>
+                <div className="item">
+                  <span className="label">📋 Atividade:</span>
+                  <span className="valor">{sugestao.atividade}</span>
+                </div>
+                {sugestao.codigo_sugerido && (
+                  <div className="item codigo">
+                    <span className="label">🔢 CPF:</span>
+                    <span className="valor codigo-valor">{sugestao.codigo_sugerido}</span>
+                  </div>
+                )}
+                {sugestao.resultado_final && (
+                  <div className="item">
+                    <span className="label">🎯 Resultado Final:</span>
+                    <span className="valor">{sugestao.resultado_final}</span>
+                  </div>
+                )}
+                {sugestao.justificativa && (
+                  <div className="justificativa">
+                    <span className="label">💡 Justificativa:</span>
+                    <p>{sugestao.justificativa}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="action-buttons">
+              {botoes.map((botao, index) => (
+                <button
+                  key={index}
+                  className={`btn-interface ${index === 0 ? 'btn-success' : 'btn-secondary-outline'}`}
+                  onClick={() => {
+                    if (index === 0) {
+                      // Confirmar - enviar comando de preenchimento
+                      const comando = JSON.stringify({
+                        acao: 'preencher_arquitetura_completa',
+                        sugestao: sugestao
+                      });
+                      handleConfirm(comando);
+                    } else {
+                      // Ajustar manualmente - usar dropdowns
+                      handleConfirm('USAR_DROPDOWNS');
+                    }
+                  }}
+                >
+                  {botao}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <style>{`
+            .confirmacao-arquitetura-container {
+              width: 100%;
+              max-width: 700px;
+              margin: 0 auto;
+            }
+
+            .sugestao-card {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              border-radius: 12px;
+              padding: 1.5rem;
+              color: white;
+              box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+              margin-bottom: 1.5rem;
+            }
+
+            .sugestao-header {
+              display: flex;
+              align-items: center;
+              gap: 0.75rem;
+              margin-bottom: 1.25rem;
+              padding-bottom: 1rem;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            }
+
+            .icone-check {
+              font-size: 1.75rem;
+            }
+
+            .sugestao-header h3 {
+              margin: 0;
+              font-size: 1.25rem;
+              font-weight: 600;
+            }
+
+            .sugestao-detalhes {
+              display: flex;
+              flex-direction: column;
+              gap: 0.75rem;
+            }
+
+            .item {
+              display: flex;
+              gap: 0.5rem;
+              align-items: baseline;
+            }
+
+            .item .label {
+              font-weight: 600;
+              min-width: 140px;
+              opacity: 0.9;
+            }
+
+            .item .valor {
+              flex: 1;
+              font-weight: 400;
+            }
+
+            .item.codigo {
+              background: rgba(255, 255, 255, 0.15);
+              padding: 0.5rem;
+              border-radius: 6px;
+              margin-top: 0.25rem;
+            }
+
+            .codigo-valor {
+              font-family: 'Courier New', monospace;
+              font-weight: 600;
+              font-size: 1.05rem;
+            }
+
+            .justificativa {
+              margin-top: 1rem;
+              padding-top: 1rem;
+              border-top: 1px solid rgba(255, 255, 255, 0.3);
+            }
+
+            .justificativa .label {
+              display: block;
+              font-weight: 600;
+              margin-bottom: 0.5rem;
+            }
+
+            .justificativa p {
+              margin: 0;
+              line-height: 1.6;
+              opacity: 0.95;
+            }
+
+            .action-buttons {
+              display: flex;
+              gap: 1rem;
+            }
+
+            .action-buttons button {
+              flex: 1;
+              padding: 0.875rem 1.5rem;
+              border: none;
+              border-radius: 8px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s;
+              font-size: 1rem;
+            }
+
+            .btn-success {
+              background: #28a745;
+              color: white;
+            }
+
+            .btn-success:hover {
+              background: #218838;
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+            }
+          `}</style>
+        </div>
+      );
+    }
 
     default:
       return (
