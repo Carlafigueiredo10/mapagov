@@ -1,0 +1,127 @@
+/* Transição Épica - Gamificação */
+
+.transicao-epica-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  margin: 2rem 0;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.transicao-epica-container.background-especial {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+}
+
+.progresso-badge {
+  background: #4CAF50;
+  color: white;
+  padding: 0.5rem 1.5rem;
+  border-radius: 50px;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+  animation: fadeInDown 0.6s ease;
+}
+
+.botoes-transicao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.botao-transicao {
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.botao-transicao:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.botao-transicao:active {
+  transform: translateY(0);
+}
+
+/* Botão Principal Pulsante */
+.botao-pulsante-centro {
+  background-color: #4CAF50;
+  color: white;
+  font-size: 1.3rem;
+  animation: pulse 2s infinite;
+}
+
+.botao-pulsante-centro:hover {
+  background-color: #45a049;
+  animation: none; /* Para animação ao hover */
+}
+
+/* Botão Secundário Discreto */
+.link-discreto {
+  background: transparent;
+  color: #666;
+  font-size: 0.9rem;
+  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+}
+
+.link-discreto:hover {
+  color: #333;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: #ddd;
+}
+
+/* Animação Pulse */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 25px rgba(76, 175, 80, 0.6);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+  }
+}
+
+/* Animação FadeIn */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .transicao-epica-container {
+    padding: 1.5rem;
+  }
+
+  .botao-pulsante-centro {
+    font-size: 1.1rem;
+  }
+
+  .botoes-transicao {
+    max-width: 100%;
+  }
+}

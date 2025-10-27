@@ -1,0 +1,7 @@
+nome,ordem,ativo,descricao
+Técnico Especializado,1,true,"Servidor técnico responsável pela execução direta das atividades especializadas do processo"
+Coordenador-Geral,2,true,"Gestor de coordenação-geral responsável pela supervisão estratégica e aprovações de nível superior"
+Coordenador,3,true,"Gestor de coordenação responsável pela supervisão tática e gestão de equipes"
+Apoio-gabinete,4,true,"Servidor de apoio administrativo vinculado ao gabinete da diretoria"
+Equipe técnica,5,true,"Conjunto de servidores técnicos que executam coletivamente uma atividade"
+Outros (especificar),6,true,"Outros operadores não listados - permite especificação manual"

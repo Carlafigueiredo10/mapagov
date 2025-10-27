@@ -3,6 +3,8 @@
 from django.urls import path
 from . import views
 from .views import helena_mapeamento_api
+from processos.api import chat_api  # FASE 1 - Nova API
+from processos.infra import metrics  # FASE 3 - Prometheus Metrics
 
 urlpatterns = [
     # ============================================================================
@@ -28,9 +30,24 @@ urlpatterns = [
     # Helena Ajuda Inteligente - Classificação de Atividade (ATIVA)
     path('api/helena-ajuda-arquitetura/', views.helena_ajuda_arquitetura, name='helena_ajuda_arquitetura'),
 
-    # APIs de autosave/snapshot/histórico - TEMPORARIAMENTE DESABILITADAS (views não commitadas)
+    # ============================================================================
+    # APIs HELENA V2 - NOVA ARQUITETURA (FASE 1) ⭐
+    # ============================================================================
+    path('api/chat-v2/', chat_api.chat_v2, name='chat-v2'),
+    path('api/chat-v2/mudar-contexto/', chat_api.mudar_contexto, name='chat-v2-mudar-contexto'),
+    path('api/chat-v2/produtos/', chat_api.listar_produtos, name='chat-v2-produtos'),
+    path('api/chat-v2/sessao/<str:session_id>/', chat_api.info_sessao, name='chat-v2-info-sessao'),
+    path('api/chat-v2/sessao/<str:session_id>/mensagens/', chat_api.buscar_mensagens, name='chat-v2-mensagens'),
+    path('api/chat-v2/finalizar/', chat_api.finalizar_sessao, name='chat-v2-finalizar'),
+
+    # ============================================================================
+    # OBSERVABILITY - FASE 3 📊
+    # ============================================================================
+    path('metrics/', metrics.metrics_view, name='prometheus-metrics'),  # Prometheus endpoint
+
+    # APIs de autosave/snapshot/histórico
     # path('api/reiniciar-conversa-helena/', views.reiniciar_conversa_helena, name='reiniciar_helena'),
-    # path('api/pop-autosave/', views.autosave_pop, name='pop_autosave'),
+    path('api/pop-autosave/', views.autosave_pop, name='pop_autosave'),  # ✅ FASE 2: Auto-save habilitado
     # path('api/pop-backup-session/', views.backup_session_pops, name='pop_backup_session'),
     # path('api/pop-restore-snapshot/', views.restore_pop_snapshot, name='pop_restore_snapshot'),
     # path('api/pop-snapshot-milestone/', views.marcar_milestone_snapshot, name='pop_snapshot_milestone'),

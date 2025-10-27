@@ -2,9 +2,26 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { HelenaMessage } from '../types/simples';
 
+// Helper para gerar UUID v4 válido
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 export interface DadosPOP {
+  // Identificação e Arquitetura
   area?: { codigo: string; nome: string };
+  codigo_cap?: string;  // ✅ FASE 2: CAP (Código na Arquitetura de Processos)
   codigo_processo?: string;
+  macroprocesso?: string;  // ✅ FASE 2: Campos da arquitetura
+  processo?: string;
+  subprocesso?: string;
+  atividade?: string;
+
+  // Dados do processo
   nome_processo?: string;
   processo_especifico?: string;
   entrega_esperada?: string;
@@ -49,11 +66,12 @@ interface ChatState {
   setProcessing: (status: boolean) => void;
   updateProgresso: (atual: number, texto: string) => void;
   resetChat: () => void;
-  
+  carregarHistorico: (mensagens: Array<{ role: string; content: string }>) => void;
+
   // Actions do POP
   updateDadosPOP: (dados: Partial<DadosPOP>) => void;
   setModoRevisao: (valor: boolean) => void;
-  
+
   // Helpers
   adicionarMensagemRapida: (tipo: 'usuario' | 'helena', texto: string, opcoes?: Record<string, unknown>) => string;
 }
@@ -63,7 +81,7 @@ export const useChatStore = create<ChatState>()(
     (set) => ({
       // Estado inicial
       messages: [],
-      sessionId: `user_${Date.now()}`,
+      sessionId: generateUUID(), // Gera UUID v4 válido
       isProcessing: false,
       progresso: { atual: 0, total: 10, texto: '0/10 - Vamos começar!' },
       dadosPOP: {},
@@ -91,12 +109,23 @@ export const useChatStore = create<ChatState>()(
       resetChat: () =>
         set({
           messages: [],
-          sessionId: `user_${Date.now()}`,
+          sessionId: generateUUID(), // Gera novo UUID v4 válido
           progresso: { atual: 0, total: 10, texto: '0/10 - Vamos começar!' },
           dadosPOP: {},
           historicoCompleto: [],
           modoRevisao: false,
         }),
+
+      carregarHistorico: (mensagens) => {
+        const helenaMessages: HelenaMessage[] = mensagens.map((msg, idx) => ({
+          id: `history_${Date.now()}_${idx}`,
+          tipo: msg.role === 'user' ? 'usuario' : 'helena',
+          mensagem: msg.content,
+          timestamp: new Date().toISOString(),
+        }));
+
+        set({ messages: helenaMessages });
+      },
 
       // Actions do POP
       updateDadosPOP: (novosDados) =>

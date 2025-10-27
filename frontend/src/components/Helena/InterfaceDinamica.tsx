@@ -9,6 +9,9 @@ import ModalAjudaHelena from './ModalAjudaHelena';
 import InterfaceSistemas from './InterfaceSistemas';
 import InterfaceNormas from './InterfaceNormas';
 import InterfaceDocumentos from './InterfaceDocumentos';
+import InterfaceEntradaProcesso from './InterfaceEntradaProcesso';
+import { DocumentosForm } from './DocumentosForm';
+import BadgeTrofeu from './BadgeTrofeu';
 import InterfaceOperadores from './InterfaceOperadores';
 import InterfaceOperadoresEtapa from './InterfaceOperadoresEtapa';
 import InterfaceCondicionais from './InterfaceCondicionais';
@@ -24,7 +27,12 @@ import InterfaceFluxosSaida from './InterfaceFluxosSaida';
 import InterfaceRevisao from './InterfaceRevisao';
 import InterfaceSelecaoEdicao from './InterfaceSelecaoEdicao';
 import InterfaceEditarEtapas from './InterfaceEditarEtapas';
+import InterfaceConfirmacaoArquitetura from './InterfaceConfirmacaoArquitetura';
+import InterfaceCaixinhaReconhecimento from './InterfaceCaixinhaReconhecimento';
 import InterfaceFinal from './InterfaceFinal';
+import InterfaceTransicaoEpica from './InterfaceTransicaoEpica';
+import InterfaceConfirmacaoDupla from './InterfaceConfirmacaoDupla';
+import InterfaceArquiteturaHierarquica from './InterfaceArquiteturaHierarquica';
 
 // TIPOS E INTERFACES GLOBAIS (sem duplicatas)
 interface InterfaceData {
@@ -316,8 +324,32 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
     case 'normas':
       return <InterfaceNormas dados={dados || undefined} onConfirm={handleConfirm} />;
 
+    case 'badge_sistemas':
+      return (
+        <BadgeTrofeu
+          nomeBadge={dados?.nome_badge as string}
+          onContinuar={() => handleConfirm('continuar')}
+        />
+      );
+
     case 'documentos':
       return <InterfaceDocumentos dados={dados || undefined} onConfirm={handleConfirm} />;
+
+    case 'entrada_processo':
+    case 'fluxos_entrada':
+      return <InterfaceEntradaProcesso dados={dados || undefined} onConfirm={handleConfirm} />;
+
+    case 'documentos_form':
+      return (
+        <DocumentosForm
+          onSubmit={(documentos) => {
+            const payload = JSON.stringify({ documentos });
+            handleConfirm(payload);
+          }}
+          instrucoes={dados?.instrucoes as string}
+          tipos_documentos={dados?.tipos_documentos as any[]}
+        />
+      );
 
     case 'operadores':
       return <InterfaceOperadores dados={dados || undefined} onConfirm={handleConfirm} />;
@@ -533,206 +565,20 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
       );
     }
 
-    case 'confirmacao_arquitetura': {
-      // Interface de confirmação da sugestão Helena
-      const sugestao = (dados as { sugestao?: any })?.sugestao;
-      const botoes = (dados as { botoes?: string[] })?.botoes || ['✅ Confirmar e Continuar', '✏️ Ajustar Manualmente'];
+    case 'confirmacao_arquitetura':
+      return <InterfaceConfirmacaoArquitetura dados={dados || undefined} onConfirm={handleConfirm} />;
 
-      if (!sugestao) {
-        return null;
-      }
+    case 'caixinha_reconhecimento':
+      return <InterfaceCaixinhaReconhecimento dados={dados || undefined} onConfirm={handleConfirm} />;
 
-      return (
-        <div className="interface-container fade-in">
-          <div className="confirmacao-arquitetura-container">
-            <div className="sugestao-card">
-              <div className="sugestao-header">
-                <span className="icone-check">✨</span>
-                <h3>Sugestão Helena</h3>
-              </div>
+    case 'transicao_epica':
+      return <InterfaceTransicaoEpica dados={dados || {}} onEnviar={handleConfirm} />;
 
-              <div className="sugestao-detalhes">
-                <div className="item">
-                  <span className="label">📋 Macroprocesso:</span>
-                  <span className="valor">{sugestao.macroprocesso}</span>
-                </div>
-                <div className="item">
-                  <span className="label">📋 Processo:</span>
-                  <span className="valor">{sugestao.processo}</span>
-                </div>
-                <div className="item">
-                  <span className="label">📋 Subprocesso:</span>
-                  <span className="valor">{sugestao.subprocesso}</span>
-                </div>
-                <div className="item">
-                  <span className="label">📋 Atividade:</span>
-                  <span className="valor">{sugestao.atividade}</span>
-                </div>
-                {sugestao.codigo_sugerido && (
-                  <div className="item codigo">
-                    <span className="label">🔢 CPF:</span>
-                    <span className="valor codigo-valor">{sugestao.codigo_sugerido}</span>
-                  </div>
-                )}
-                {sugestao.resultado_final && (
-                  <div className="item">
-                    <span className="label">🎯 Resultado Final:</span>
-                    <span className="valor">{sugestao.resultado_final}</span>
-                  </div>
-                )}
-                {sugestao.justificativa && (
-                  <div className="justificativa">
-                    <span className="label">💡 Justificativa:</span>
-                    <p>{sugestao.justificativa}</p>
-                  </div>
-                )}
-              </div>
-            </div>
+    case 'confirmacao_dupla':
+      return <InterfaceConfirmacaoDupla dados={dados || {}} onEnviar={handleConfirm} />;
 
-            <div className="action-buttons">
-              {botoes.map((botao, index) => (
-                <button
-                  key={index}
-                  className={`btn-interface ${index === 0 ? 'btn-success' : 'btn-secondary-outline'}`}
-                  onClick={() => {
-                    if (index === 0) {
-                      // Confirmar - enviar comando de preenchimento
-                      const comando = JSON.stringify({
-                        acao: 'preencher_arquitetura_completa',
-                        sugestao: sugestao
-                      });
-                      handleConfirm(comando);
-                    } else {
-                      // Ajustar manualmente - usar dropdowns
-                      handleConfirm('USAR_DROPDOWNS');
-                    }
-                  }}
-                >
-                  {botao}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <style>{`
-            .confirmacao-arquitetura-container {
-              width: 100%;
-              max-width: 700px;
-              margin: 0 auto;
-            }
-
-            .sugestao-card {
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              border-radius: 12px;
-              padding: 1.5rem;
-              color: white;
-              box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-              margin-bottom: 1.5rem;
-            }
-
-            .sugestao-header {
-              display: flex;
-              align-items: center;
-              gap: 0.75rem;
-              margin-bottom: 1.25rem;
-              padding-bottom: 1rem;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-            }
-
-            .icone-check {
-              font-size: 1.75rem;
-            }
-
-            .sugestao-header h3 {
-              margin: 0;
-              font-size: 1.25rem;
-              font-weight: 600;
-            }
-
-            .sugestao-detalhes {
-              display: flex;
-              flex-direction: column;
-              gap: 0.75rem;
-            }
-
-            .item {
-              display: flex;
-              gap: 0.5rem;
-              align-items: baseline;
-            }
-
-            .item .label {
-              font-weight: 600;
-              min-width: 140px;
-              opacity: 0.9;
-            }
-
-            .item .valor {
-              flex: 1;
-              font-weight: 400;
-            }
-
-            .item.codigo {
-              background: rgba(255, 255, 255, 0.15);
-              padding: 0.5rem;
-              border-radius: 6px;
-              margin-top: 0.25rem;
-            }
-
-            .codigo-valor {
-              font-family: 'Courier New', monospace;
-              font-weight: 600;
-              font-size: 1.05rem;
-            }
-
-            .justificativa {
-              margin-top: 1rem;
-              padding-top: 1rem;
-              border-top: 1px solid rgba(255, 255, 255, 0.3);
-            }
-
-            .justificativa .label {
-              display: block;
-              font-weight: 600;
-              margin-bottom: 0.5rem;
-            }
-
-            .justificativa p {
-              margin: 0;
-              line-height: 1.6;
-              opacity: 0.95;
-            }
-
-            .action-buttons {
-              display: flex;
-              gap: 1rem;
-            }
-
-            .action-buttons button {
-              flex: 1;
-              padding: 0.875rem 1.5rem;
-              border: none;
-              border-radius: 8px;
-              font-weight: 600;
-              cursor: pointer;
-              transition: all 0.2s;
-              font-size: 1rem;
-            }
-
-            .btn-success {
-              background: #28a745;
-              color: white;
-            }
-
-            .btn-success:hover {
-              background: #218838;
-              transform: translateY(-2px);
-              box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-            }
-          `}</style>
-        </div>
-      );
-    }
+    case 'arquitetura_hierarquica':
+      return <InterfaceArquiteturaHierarquica dados={dados || {}} onEnviar={handleConfirm} />;
 
     default:
       return (

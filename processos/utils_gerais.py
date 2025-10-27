@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Any, Tuple
 import hashlib
 import unicodedata
 from pathlib import Path
+from functools import lru_cache
 
 # Imports para geração de PDF
 from reportlab.lib.pagesizes import A4
@@ -268,12 +269,18 @@ class SegurancaUtils:
     @staticmethod
     def sanitizar_entrada_usuario(texto: str) -> str:
         """Sanitiza entrada do usuário removendo conteúdo perigoso"""
+        # Remove tags HTML
         texto = re.sub(r'<[^>]+>', '', texto)
+
+        # Remove event handlers HTML maliciosos (onclick, onload, etc.)
+        texto = re.sub(r'(?i)(on\w+\s*=|javascript:|vbscript:|data:)', '', texto)
+
+        # Remove caracteres de controle (exceto newline, return, tab)
         texto = ''.join(char for char in texto if ord(char) >= 32 or char in '\n\r\t')
-        
+
         if len(texto) > 5000:
             texto = texto[:5000] + "..."
-        
+
         return texto.strip()
     
     @staticmethod
@@ -900,9 +907,10 @@ class BaseLegalSuggestor:
     def __init__(self):
         """Inicializa sugestor com biblioteca de normas"""
         self.biblioteca = self._carregar_biblioteca()
-        
+
+    @lru_cache(maxsize=1)
     def _carregar_biblioteca(self) -> Dict[str, Any]:
-        """Carrega biblioteca estática de 50 normas fundamentais"""
+        """Carrega biblioteca estática de 50 normas fundamentais (cached)"""
         biblioteca = {
             "normas": [
                 # Assistência à Saúde

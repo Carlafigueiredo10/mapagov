@@ -1,0 +1,9 @@
+codigo,nome_completo,nome_curto,prefixo,ordem,ativo,descricao
+CGBEN,Coordenação Geral de Benefícios,Benefícios,1,1,true,"que cuida das concessões, manutenções e revisões de aposentadorias e pensões, garantindo direitos e segurança jurídica aos beneficiários."
+CGPAG,Coordenação Geral de Pagamentos,Pagamentos,2,2,true,"responsável pela execução e controle da folha de pagamentos dos aposentados e pensionistas, garantindo que tudo ocorra com precisão e transparência."
+COATE,Coordenação de Atendimento,Atendimento,3,3,true,"que acolhe, orienta e soluciona as demandas dos cidadãos e servidores, garantindo um atendimento humano e eficiente."
+CGGAF,Coordenação Geral de Gestão de Acervos Funcionais,Acervos Funcionais,4,4,true,"que organiza, digitaliza e mantém o acervo funcional dos servidores, preservando a memória e o acesso seguro às informações."
+DIGEP,Diretoria de Pessoal dos Ex-Territórios,Ex-Territórios,5,5,true,"que assegura os direitos dos servidores vinculados aos ex-territórios, conduzindo análises e gestões complexas com zelo e compromisso histórico."
+CGRIS,Coordenação Geral de Riscos e Controle,Riscos e Controle,6,6,true,"que fortalece a governança, os controles internos e a integridade institucional, promovendo uma gestão pública mais segura e eficiente."
+CGCAF,Coordenação Geral de Gestão de Complementação da Folha,Complementação,7,7,true,"responsável pela gestão das complementações de aposentadorias e pensões, garantindo equilíbrio e correção dos pagamentos."
+CGECO,Coordenação Geral de Extinção e Convênio,Extinção e Convênio,8,8,true,"que gerencia processos de encerramento de órgãos e acordos administrativos, preservando a continuidade institucional e a responsabilidade pública."

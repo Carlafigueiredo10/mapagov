@@ -86,9 +86,26 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         adicionarMensagemRapida('helena', 'Desculpe, não consegui processar sua mensagem. Pode repetir?');
       }
 
-      // Processar dados extraídos
+      // ✅ Processar dados extraídos OU formulário POP (suporte a ambos formatos)
       if (response.dados_extraidos) {
+        console.log('🔵 [useChat] dados_extraidos RECEBIDO:', response.dados_extraidos);
+        console.log('🔵 [useChat] Campos:', Object.keys(response.dados_extraidos));
+        console.log('🔵 [useChat] CHAMANDO updateDadosPOP...');
         updateDadosPOP(response.dados_extraidos);
+        console.log('🔵 [useChat] updateDadosPOP EXECUTADO');
+      } else {
+        console.log('⚠️ [useChat] dados_extraidos NÃO RECEBIDO');
+      }
+
+      // ✅ FASE 2: Suporte para formulario_pop (preenchimento em tempo real)
+      if ((response as any).formulario_pop) {
+        console.log('🟢 [useChat] formulario_pop RECEBIDO:', (response as any).formulario_pop);
+        console.log('🟢 [useChat] Campos:', Object.keys((response as any).formulario_pop));
+        console.log('🟢 [useChat] CHAMANDO updateDadosPOP...');
+        updateDadosPOP((response as any).formulario_pop);
+        console.log('🟢 [useChat] updateDadosPOP EXECUTADO');
+      } else {
+        console.log('⚠️ [useChat] formulario_pop NÃO RECEBIDO');
       }
 
       // Atualizar progresso

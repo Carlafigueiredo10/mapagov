@@ -7,6 +7,7 @@ import ChatContainer from './components/Helena/ChatContainer'
 import FormularioPOP from './components/Helena/FormularioPOP'
 import AnaliseRiscosPage from './pages/AnaliseRiscos'
 import FluxogramaPage from './pages/FluxogramaPage'
+import ChatV2Demo from './components/Helena/ChatV2Demo'
 
 function App() {
   return (
@@ -39,6 +40,9 @@ function App() {
 
         {/* Rota: Gerador de Fluxogramas */}
         <Route path="/fluxograma" element={<FluxogramaPage />} />
+
+        {/* 🚀 FASE 1 - Demo da Nova API */}
+        <Route path="/chat-v2" element={<ChatV2Demo />} />
       </Routes>
     </BrowserRouter>
   )

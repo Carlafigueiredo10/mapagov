@@ -5,6 +5,7 @@ import ErrorMessage from './ErrorMessage';
 import SaveIndicator from './SaveIndicator';
 import { useChat } from '../../hooks/useChat';
 import { useAutoSave } from '../../hooks/useAutoSave';
+import { useSyncHistorico } from '../../hooks/useSyncHistorico';
 import { useChatStore } from '../../store/chatStore';
 import './ChatContainer.css';
 
@@ -43,6 +44,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
     enviarMensagem,
     clearError,
   } = useChat(handleAutoSave);
+
+  // Sincronizar histórico ao montar componente
+  useSyncHistorico();
 
   // Auto-save automático
   const { saveNow } = useAutoSave({ interval: 30000, enabled: true });
@@ -122,9 +126,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
       const { resetChat } = useChatStore.getState();
       resetChat();
       setInputValue('');
-      
-      // Inicia nova conversa
-      iniciarMapeamento();
+
+      // Limpa qualquer estado persistido no localStorage
+      localStorage.removeItem('chat-storage');
+
+      // Recarrega a página para garantir limpeza total
+      window.location.reload();
     }
   };
 
@@ -207,22 +214,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
 
       {/* Messages Area */}
       <div className="messages-area">
-        {messages.length === 0 ? (
-          <div className="welcome-message">
-            <MessageBubble
-              message={{
-                id: 'welcome',
-                tipo: 'helena',
-                mensagem: '👋 Olá! Sou a Helena, assistente de IA da DECIPEX especializada em mapeamento de processos.\n\nVou te ajudar a documentar seu procedimento de forma clara e estruturada, pergunta por pergunta.\n\nPara começarmos, qual seu nome?',
-                timestamp: new Date().toISOString()
-              }}
-            />
-          </div>
-        ) : (
-          messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
-          ))
-        )}
+        {/* ✅ FIX DUPLICAÇÃO: Removido fallback hardcoded */}
+        {/* useSyncHistorico já injeta a mensagem no store */}
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} />
+        ))}
         
         {error && (
           <ErrorMessage 

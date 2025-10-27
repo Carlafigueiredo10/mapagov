@@ -30,60 +30,113 @@
   }
 }
 
-/* Areas Grid */
+/* Areas Grid - Layout Responsivo com Cards */
 .areas-grid {
   display: grid;
-  /* Reduz min width para permitir 2-3 colunas em telas menores */
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
+  /* Desktop: 2 colunas | Mobile: 1 coluna */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
   margin-bottom: 20px;
-  max-height: 420px; /* evita alongar demais e empurrar chat */
+  max-height: 520px;
   overflow-y: auto;
-  padding-right: 4px; /* espaço pro scrollbar */
+  padding: 4px;
 }
 
+/* Card de Área */
 .area-option {
-  background: white;
-  border: 2px solid #dee2e6;
-  border-radius: 8px;
-  padding: 10px 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px 16px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
-  min-height: 88px;
+  min-height: 110px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Efeito de brilho no hover */
+.area-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(19, 81, 180, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.area-option:hover::before {
+  left: 100%;
 }
 
 .area-option:hover {
   border-color: #1351B4;
-  background: #f0f4ff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(19, 81, 180, 0.1);
+  background: linear-gradient(135deg, #f0f4ff 0%, #e6efff 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(19, 81, 180, 0.15);
 }
 
 .area-option.selected {
   border-color: #1351B4;
-  background: #e6efff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(19, 81, 180, 0.2);
+  border-width: 3px;
+  background: linear-gradient(135deg, #e6efff 0%, #d4e4ff 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(19, 81, 180, 0.25);
+}
+
+/* Indicador visual de seleção */
+.area-option.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: #1351B4;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  animation: checkmark 0.3s ease;
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+  }
 }
 
 .area-codigo {
-  font-weight: bold;
+  font-weight: 700;
   color: #1351B4;
-  font-size: 15px;
-  margin-bottom: 2px;
-  letter-spacing: .5px;
+  font-size: 16px;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .area-nome {
-  font-size: 12px;
-  color: #666;
-  line-height: 1.2;
+  font-size: 13px;
+  color: #495057;
+  line-height: 1.4;
   word-break: break-word;
+  font-weight: 500;
 }
 
 /* Layout horizontal opcional para áreas – permite que o container ocupe largura total e alinhe lado a lado com outro painel */
@@ -101,7 +154,14 @@
 /* Layout mais denso em telas muito largas */
 @media (min-width: 1400px) {
   .areas-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+/* Tablet: ajustar tamanho dos cards */
+@media (max-width: 992px) {
+  .areas-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   }
 }
 

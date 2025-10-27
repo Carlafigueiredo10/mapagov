@@ -27,7 +27,7 @@ from django.views.generic import TemplateView
 # Servir index.html do React para todas as rotas do frontend
 # IMPORTANTE: Isso deve vir por último, depois de todas as URLs da API
 urlpatterns += [
-    re_path(r'^(?!api/|admin/|static/|media/|assets/).*$',
+    re_path(r'^(?!(?:api|admin|static|media|assets|metrics)/).*$',
             TemplateView.as_view(template_name='index.html'),
             name='react-frontend'),
 ]

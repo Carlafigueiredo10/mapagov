@@ -95,6 +95,9 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'processos.infra.rls_middleware.RLSMiddleware',  # FASE 2: Row-Level Security
+    'processos.infra.structured_logging.RequestLoggingMiddleware',  # FASE 3: Structured Logging
+    'processos.infra.metrics.PrometheusMetricsMiddleware',  # FASE 3: Prometheus Metrics
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -469,3 +472,55 @@ if HELENA_LITE_MODE:
     print("    Para habilitar todos: export HELENA_LITE_MODE=False")
 else:
     print("[FULL MODE] Todos os produtos Helena habilitados")
+
+
+# ============================================================================
+# 🚀 REDIS CACHE - FASE 1 (Sessões de Chat)
+# ============================================================================
+# Redis para cache de sessões + sincronização híbrida com PostgreSQL
+# Modo degradado: se Redis indisponível, usa apenas PostgreSQL
+
+REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
+REDIS_DB = int(os.getenv('REDIS_DB', '0'))
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",  # Fallback
+    }
+}
+
+# Tenta usar Redis se disponível
+try:
+    import redis
+    # Testa conexão
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, socket_connect_timeout=2)
+    r.ping()
+
+    # Se chegou aqui, Redis está disponível
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "SOCKET_CONNECT_TIMEOUT": 5,
+                "SOCKET_TIMEOUT": 5,
+                "CONNECTION_POOL_KWARGS": {
+                    "max_connections": 50,
+                    "retry_on_timeout": True,
+                },
+                "REDIS_CLIENT_KWARGS": {
+                    "health_check_interval": 30,
+                },
+            },
+            "KEY_PREFIX": "mapagov",
+            "TIMEOUT": 900,  # 15 minutos (padrão)
+        }
+    }
+    print(f"[REDIS] Conectado em {REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
+
+except Exception as e:
+    print(f"[REDIS] Indisponível ({e}). Usando cache em memória (modo degradado)")
+    print("    Para produção, instale: pip install redis django-redis")
+    print(f"    E configure: export REDIS_HOST={REDIS_HOST} REDIS_PORT={REDIS_PORT}")

@@ -3,6 +3,7 @@
 import json
 import openai
 import os
+import logging
 from dotenv import load_dotenv
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -10,8 +11,12 @@ from django.views.decorators.http import require_http_methods
 from django.conf import settings
 import pypdf
 from datetime import datetime
+
+# Logger
+logger = logging.getLogger(__name__)
+
 # ⚡ OTIMIZAÇÃO MEMÓRIA: analyze_risks_helena movido para lazy import (não usado no startup)
-# from .helena_produtos.helena_analise_riscos import analyze_risks_helena
+# from .domain.helena_produtos.helena_analise_riscos import analyze_risks_helena
 from .utils import (
     ValidadorUtils, FormatadorUtils, CodigoUtils,
     ArquivoUtils, LogUtils, SegurancaUtils,
@@ -63,14 +68,14 @@ def chat_api_view(request):
         # HELENA MAPEAMENTO: Chat simples, sem sessão persistente
         if contexto == 'mapeamento':
             # OTIMIZACAO: Import lazy
-            from .helena_produtos.helena_mapeamento import helena_mapeamento
+            from .domain.helena_produtos.helena_mapeamento import helena_mapeamento
             resposta = helena_mapeamento(user_message)
             return JsonResponse({'resposta': resposta, 'success': True})
         
         # P1: Gerador de POP (RENOVADO - com sessão completa)
         if contexto in ['gerador_pop', 'mapeamento_natural']:
             # OTIMIZACAO: Import lazy - so carrega quando necessario
-            from .helena_produtos.helena_pop import HelenaPOP
+            from .domain.helena_produtos.helena_pop import HelenaPOP
 
             # FIX: Usar session_id do frontend para criar chave unica
             session_key = f'helena_pop_state_{session_id}'
@@ -251,7 +256,7 @@ def chat_api_view(request):
         # P2: Gerador de Fluxograma (com sessao)
         elif contexto == 'fluxograma':
             # OTIMIZACAO: Import lazy
-            from .helena_produtos.helena_fluxograma import HelenaFluxograma
+            from .domain.helena_produtos.helena_fluxograma import HelenaFluxograma
             
             session_key = 'helena_fluxograma_state'
             
@@ -278,7 +283,7 @@ def chat_api_view(request):
         # P3: Dossie PDF (com sessao)
         elif contexto == 'dossie':
             # OTIMIZACAO: Import lazy
-            from .helena_produtos.helena_dossie import HelenaDossie
+            from .domain.helena_produtos.helena_dossie import HelenaDossie
             
             session_key = 'helena_dossie_state'
             
@@ -303,7 +308,7 @@ def chat_api_view(request):
         # P4: Dashboard
         elif contexto == 'dashboard':
             # OTIMIZACAO: Import lazy
-            from .helena_produtos.helena_dashboard import HelenaDashboard
+            from .domain.helena_produtos.helena_dashboard import HelenaDashboard
             helena = HelenaDashboard()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
@@ -311,7 +316,7 @@ def chat_api_view(request):
         # P5: Analise de Riscos (com sessao) - MODO CONVERSACIONAL HIBRIDO
         elif contexto == 'analise_riscos':
             # OTIMIZACAO: Import lazy
-            from .helena_produtos.helena_analise_riscos import HelenaAnaliseRiscos
+            from .domain.helena_produtos.helena_analise_riscos import HelenaAnaliseRiscos
 
             session_key = 'helena_riscos_state'
 
@@ -349,7 +354,7 @@ def chat_api_view(request):
         
         # P6: Relatório de Riscos (DESATIVADO - arquivo deletado)
         # elif contexto == 'relatorio_riscos':
-        #     from .helena_produtos.helena_relatorio_riscos import HelenaRelatorioRiscos
+        #     from .domain.helena_produtos.helena_relatorio_riscos import HelenaRelatorioRiscos
         #     helena = HelenaRelatorioRiscos()
         #     resultado = helena.processar_mensagem(user_message)
         #     return JsonResponse(resultado)
@@ -357,7 +362,7 @@ def chat_api_view(request):
         # P7: Plano de Acao
         elif contexto == 'plano_acao':
             # OTIMIZACAO: Import lazy
-            from .helena_produtos.helena_plano_acao import HelenaPlanoAcao
+            from .domain.helena_produtos.helena_plano_acao import HelenaPlanoAcao
             helena = HelenaPlanoAcao()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
@@ -365,7 +370,7 @@ def chat_api_view(request):
         # P8: Dossie de Governanca
         elif contexto == 'governanca':
             # OTIMIZACAO: Import lazy
-            from .helena_produtos.helena_governanca import HelenaGovernanca
+            from .domain.helena_produtos.helena_governanca import HelenaGovernanca
             helena = HelenaGovernanca()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
@@ -373,7 +378,7 @@ def chat_api_view(request):
         # P9: Gerador de Documentos
         elif contexto == 'documentos':
             # OTIMIZACAO: Import lazy
-            from .helena_produtos.helena_documentos import HelenaDocumentos
+            from .domain.helena_produtos.helena_documentos import HelenaDocumentos
             helena = HelenaDocumentos()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
@@ -381,14 +386,14 @@ def chat_api_view(request):
         # P10: Relatorio de Conformidade
         elif contexto == 'conformidade':
             # OTIMIZACAO: Import lazy
-            from .helena_produtos.helena_conformidade import HelenaConformidade
+            from .domain.helena_produtos.helena_conformidade import HelenaConformidade
             helena = HelenaConformidade()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
         
         # P11: Análise de Artefatos (DESATIVADO - arquivo renomeado para helena_artefatos_comunicacao.py)
         # elif contexto == 'artefatos':
-        #     from .helena_produtos.helena_artefatos import HelenaArtefatos
+        #     from .domain.helena_produtos.helena_artefatos import HelenaArtefatos
         #     helena = HelenaArtefatos()
         #     resultado = helena.processar_mensagem(user_message)
         #     return JsonResponse(resultado)
@@ -435,7 +440,7 @@ def helena_mapeamento_api(request):
             }, status=400)
         
         # 🚀 OTIMIZAÇÃO: Import lazy
-        from .helena_produtos.helena_mapeamento import helena_mapeamento
+        from .domain.helena_produtos.helena_mapeamento import helena_mapeamento
         
         # Chamar Helena Mapeamento (chat simples)
         resposta = helena_mapeamento(mensagem)
@@ -483,7 +488,7 @@ def helena_ajuda_arquitetura(request):
             }, status=400)
 
         # Import lazy da função de análise
-        from .helena_ajuda_inteligente import analisar_atividade_com_helena, validar_sugestao_contra_csv
+        from .domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena, validar_sugestao_contra_csv
         from .dados_decipex import ArquiteturaDecipex
 
         print(f"\n[HELENA-AJUDA] Analisando atividade...")
@@ -731,7 +736,7 @@ def consultar_rag_sugestoes(request):
         contexto = data.get('contexto', '')
         
         # Importar Helena para usar RAG
-        from .helena_produtos.helena_pop import HelenaPOP
+        from .domain.helena_produtos.helena_pop import HelenaPOP
         helena = HelenaPOP()
         
         if helena.vectorstore:
@@ -902,7 +907,7 @@ def fluxograma_from_pdf(request):
                     'resposta': 'Por favor, faça upload de um PDF de POP primeiro.'
                 }, status=400)
             
-            from .helena_produtos.helena_fluxograma import HelenaFluxograma
+            from .domain.helena_produtos.helena_fluxograma import HelenaFluxograma
             helena = HelenaFluxograma(dados_pdf=pop_data)
             resultado = helena.processar_mensagem(user_message)
             
@@ -1063,41 +1068,100 @@ def analyze_pop_content(text):
 def chat_recepcao_api(request):
     """API para Helena Recepcionista - Landing Page"""
     try:
-        print("[CHAT] Requisicao recebida em /api/chat-recepcao/")
-        
+        logger.info("[CHAT RECEPCAO] Requisicao recebida em /api/chat-recepcao/")
+
         # Parse do JSON
         data = json.loads(request.body)
         mensagem = data.get('message', '')
         session_id = data.get('session_id', 'default')
-        
-        print(f"[CHAT] Mensagem: {mensagem}")
-        print(f"[CHAT] Session ID: {session_id}")
-        
+
+        logger.info(f"[CHAT RECEPCAO] Mensagem: {mensagem}")
+        logger.info(f"[CHAT RECEPCAO] Session ID: {session_id}")
+
         if not mensagem:
             return JsonResponse({
                 'resposta': 'Por favor, envie uma mensagem.',
                 'success': False
             }, status=400)
-        
+
         # Importar e chamar Helena com session_id
-        from .helena_produtos.helena_recepcao import helena_recepcao
-        print("[CHAT] Helena importada")
-        
+        from .domain.helena_produtos.helena_recepcao import helena_recepcao
+        logger.info("[CHAT RECEPCAO] Helena importada")
+
         resposta = helena_recepcao(mensagem, session_id)
-        print(f"[CHAT] Resposta: {resposta[:100]}...")
-        
+        logger.info(f"[CHAT RECEPCAO] Resposta gerada: {len(resposta)} caracteres")
+
         return JsonResponse({
             'resposta': resposta,
             'success': True
-        })
-        
+        }, json_dumps_params={'ensure_ascii': False})
+
     except Exception as e:
-        print(f"[ERROR] ERRO: {str(e)}")
+        logger.error(f"[CHAT RECEPCAO] ERRO: {str(e)}")
         import traceback
         traceback.print_exc()
-        
+
         return JsonResponse({
             'resposta': 'Desculpe, tive um problema técnico.',
             'error': str(e),
             'success': False
+        }, status=500)
+
+
+# ============================================================================
+# API DE AUTO-SAVE - FASE 2
+# ============================================================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def autosave_pop(request):
+    """
+    API de auto-save para o FormularioPOP.tsx
+
+    Recebe dados parciais do POP e salva incrementalmente.
+    Usado pelo frontend para sincronizar o formulário em tempo real.
+
+    POST /api/pop-autosave/
+    Body: {
+        "session_id": "uuid",
+        "dados_pop": { ... dados parciais do formulário ... }
+    }
+    """
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        dados_pop = data.get('dados_pop', {})
+
+        if not session_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'session_id obrigatório'
+            }, status=400)
+
+        # 📝 LOG: Receber dados do auto-save
+        logger.info(f"💾 [AUTO-SAVE] Sessão: {session_id}")
+        logger.debug(f"💾 [AUTO-SAVE] Dados recebidos: {list(dados_pop.keys())}")
+
+        # TODO FASE 2: Salvar em cache Redis ou PostgreSQL
+        # Por enquanto, apenas aceitar e confirmar recebimento
+        # Futuramente: salvar em ChatSession.metadados ou criar modelo POPSnapshot
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Auto-save recebido com sucesso',
+            'session_id': session_id,
+            'campos_salvos': len(dados_pop)
+        }, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'JSON inválido'
+        }, status=400)
+
+    except Exception as e:
+        logger.exception(f"❌ [AUTO-SAVE] Erro: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
         }, status=500)

@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Search } from "lucide-react";
 
 interface Norma {
   nome_curto: string;
   nome_completo: string;
   artigos: string;
   confianca?: number;
+  grupo?: string;
+  label?: string;
 }
 
 interface InterfaceNormasProps {
@@ -19,6 +21,7 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
   const [mostrarTodas, setMostrarTodas] = useState(false);
   const [mostrarNormasManuais, setMostrarNormasManuais] = useState(false);
   const [normasManuais, setNormasManuais] = useState<string[]>(['']);
+  const [termoBusca, setTermoBusca] = useState<string>('');
 
 
   // Extrair sugestões do backend (top 3)
@@ -30,52 +33,25 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
     return [];
   }, [dados]);
 
-  // Organizar normas por categoria (hardcoded - ideal seria vir do backend)
+  // Extrair grupos de normas do backend (DECIPEX v2.2)
   const categorias = useMemo(() => {
-    return {
-      "Assistência à Saúde": [
-        { nome_curto: "IN 97/2022", nome_completo: "Instrução Normativa SGP/SEDGG/ME nº 97, de 26 de dezembro de 2022", artigos: "Art. 34-42" },
-        { nome_curto: "Lei 8112/90", nome_completo: "Lei nº 8.112, de 11 de dezembro de 1990", artigos: "Art. 230" },
-        { nome_curto: "Decreto 4978/2004", nome_completo: "Decreto nº 4.978, de 3 de fevereiro de 2004", artigos: "Todos" }
-      ],
-      "Pagamento e Folha": [
-        { nome_curto: "IN 02/2018", nome_completo: "Instrução Normativa SEGES/MPDG nº 2, de 30 de março de 2018", artigos: "Todos" },
-        { nome_curto: "Lei 10520/2002", nome_completo: "Lei nº 10.520, de 17 de julho de 2002", artigos: "Todos" }
-      ],
-      "Processo Administrativo": [
-        { nome_curto: "Lei 9784/99", nome_completo: "Lei nº 9.784, de 29 de janeiro de 1999", artigos: "Todos" },
-        { nome_curto: "Decreto 9094/2017", nome_completo: "Decreto nº 9.094, de 17 de julho de 2017", artigos: "Todos" }
-      ],
-      "Gestão Financeira": [
-        { nome_curto: "Lei 4320/64", nome_completo: "Lei nº 4.320, de 17 de março de 1964", artigos: "Todos" },
-        { nome_curto: "LRF", nome_completo: "Lei Complementar nº 101, de 4 de maio de 2000", artigos: "Todos" }
-      ],
-      "Gestão de Pessoas": [
-        { nome_curto: "Lei 8112/90 - Capacitação", nome_completo: "Lei nº 8.112, de 11 de dezembro de 1990", artigos: "Art. 87-101" },
-        { nome_curto: "Decreto 9991/2019", nome_completo: "Decreto nº 9.991, de 28 de agosto de 2019", artigos: "Todos" }
-      ],
-      "Proteção de Dados": [
-        { nome_curto: "LGPD", nome_completo: "Lei nº 13.709, de 14 de agosto de 2018", artigos: "Todos" },
-        { nome_curto: "Decreto 10046/2019", nome_completo: "Decreto nº 10.046, de 9 de outubro de 2019", artigos: "Todos" }
-      ],
-      "Licitações e Contratos": [
-        { nome_curto: "Lei 14133/2021", nome_completo: "Lei nº 14.133, de 1º de abril de 2021", artigos: "Todos" },
-        { nome_curto: "Lei 8666/93", nome_completo: "Lei nº 8.666, de 21 de junho de 1993", artigos: "Todos" }
-      ],
-      "Governança e Riscos": [
-        { nome_curto: "IN Conjunta 01/2016", nome_completo: "Instrução Normativa Conjunta CGU/MP nº 01, de 10 de maio de 2016", artigos: "Todos" },
-        { nome_curto: "Decreto 9203/2017", nome_completo: "Decreto nº 9.203, de 22 de novembro de 2017", artigos: "Todos" }
-      ],
-      "Transparência": [
-        { nome_curto: "LAI", nome_completo: "Lei nº 12.527, de 18 de novembro de 2011", artigos: "Todos" },
-        { nome_curto: "Decreto 7724/2012", nome_completo: "Decreto nº 7.724, de 16 de maio de 2012", artigos: "Todos" }
-      ],
-      "Integridade e Compliance": [
-        { nome_curto: "Lei Anticorrupção", nome_completo: "Lei nº 12.846, de 1º de agosto de 2013", artigos: "Todos" },
-        { nome_curto: "Decreto 8420/2015", nome_completo: "Decreto nº 8.420, de 18 de março de 2015", artigos: "Todos" }
-      ]
-    };
-  }, []);
+    const gruposDados = (dados as { grupos?: Record<string, { label: string; itens: Norma[] }> })?.grupos;
+
+    // Se não vier do backend, retornar vazio (não usar mais fallback hardcoded)
+    if (!gruposDados || typeof gruposDados !== 'object') {
+      return {};
+    }
+
+    // Converter estrutura do backend para formato do frontend
+    const categoriasFormatadas: Record<string, Norma[]> = {};
+
+    Object.entries(gruposDados).forEach(([grupoKey, grupoData]) => {
+      const label = grupoData.label || grupoKey;
+      categoriasFormatadas[label] = grupoData.itens || [];
+    });
+
+    return categoriasFormatadas;
+  }, [dados]);
 
   const toggleNorma = (nomeCompleto: string) => {
     setNormasSelecionadas(prev =>
@@ -118,6 +94,30 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
     window.open('https://legis.sigepe.gov.br/legis/chat-legis', '_blank');
   };
 
+  // Filtrar categorias por termo de busca
+  const categoriasFiltradas = useMemo(() => {
+    if (!termoBusca.trim()) {
+      return categorias;
+    }
+
+    const termo = termoBusca.toLowerCase();
+    const resultado: Record<string, Norma[]> = {};
+
+    Object.entries(categorias).forEach(([categoria, normas]) => {
+      const normasFiltradas = normas.filter(norma =>
+        norma.nome_curto.toLowerCase().includes(termo) ||
+        norma.nome_completo.toLowerCase().includes(termo) ||
+        norma.artigos.toLowerCase().includes(termo)
+      );
+
+      if (normasFiltradas.length > 0) {
+        resultado[categoria] = normasFiltradas;
+      }
+    });
+
+    return resultado;
+  }, [categorias, termoBusca]);
+
   const handleConfirm = () => {
     // Combinar normas selecionadas + normas manuais (filtrar vazias)
     const normsManuaisPreenchidas = normasManuais.filter(n => n.trim().length > 0);
@@ -131,226 +131,612 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
 
   return (
     <div className="interface-container fade-in">
+      {/* Cabeçalho Unificado */}
       <div className="interface-title">📚 Normas e Dispositivos Legais</div>
+      <div className="interface-subtitle">
+        Essas são as normas que encontrei para sua atividade. Você pode aceitar as sugestões, explorar a biblioteca completa ou buscar/adicionar manualmente.
+      </div>
 
-      {/* Sugestões (Top 3) */}
-      {sugestoes.length > 0 && (
-        <div className="sugestoes-section">
-          <div className="sugestoes-header">
-            <h3>Sugestões para este processo:</h3>
-            <button
-              className="btn-selecionar-sugestoes"
-              onClick={selecionarTodasSugestoes}
-              type="button"
-            >
-              Selecionar Todas as Sugestões
+      {/* Contador de Seleção - Chips Removíveis */}
+      {normasSelecionadas.length > 0 && (
+        <div className="chips-container">
+          <div className="chips-header">
+            <span className="chips-count">{normasSelecionadas.length} norma(s) selecionada(s) ✅</span>
+            <button className="btn-limpar-chips" onClick={limparSelecao} type="button">
+              Limpar todas
             </button>
           </div>
-
-          <div className="normas-list">
-            {sugestoes.map((norma, idx) => (
-              <div
-                key={idx}
-                className={`norma-card ${normasSelecionadas.includes(norma.nome_completo) ? 'selected' : ''}`}
-                onClick={() => toggleNorma(norma.nome_completo)}
-              >
-                <input
-                  type="checkbox"
-                  readOnly
-                  checked={normasSelecionadas.includes(norma.nome_completo)}
-                />
-                <div className="norma-info">
-                  <strong>{norma.nome_curto}</strong>
-                  <p>{norma.nome_completo}</p>
-                  <small>Artigos: {norma.artigos}</small>
-                  {norma.confianca && (
-                    <span className="confianca">Relevância: {norma.confianca}%</span>
-                  )}
-                </div>
+          <div className="chips-list">
+            {normasSelecionadas.map((normaCompleta, idx) => (
+              <div key={idx} className="chip">
+                <span className="chip-text">{normaCompleta}</span>
+                <button
+                  className="chip-remove"
+                  onClick={() => toggleNorma(normaCompleta)}
+                  type="button"
+                  aria-label="Remover norma"
+                >
+                  ✕
+                </button>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Botão Visualizar Mais */}
-      <div className="visualizar-mais-section">
-        <button
-          className="btn-visualizar-mais"
-          onClick={() => setMostrarTodas(!mostrarTodas)}
-          type="button"
-        >
-          {mostrarTodas ? '▲ Ocultar outras normas' : '▼ Visualizar todas as normas disponíveis'}
-        </button>
-      </div>
+      {/* Layout Vertical Progressivo */}
+      <div className="vertical-progressive-layout">
 
-      {/* Acordeão de Categorias */}
-      {mostrarTodas && (
-        <div className="categorias-acordeao">
-          {Object.entries(categorias).map(([categoria, normas]) => (
-            <div key={categoria} className="categoria-item">
-              <div
-                className="categoria-header"
-                onClick={() => toggleCategoria(categoria)}
+        {/* 1️⃣ SEÇÃO: SUGESTÕES AUTOMÁTICAS (HELENA) */}
+        <div className="section-card section-sugestoes">
+          <div className="section-header">
+            <h3>💡 Sugestões da Helena</h3>
+            <p className="section-desc">Essas são as normas que encontrei para sua atividade</p>
+            {sugestoes.length > 0 && (
+              <button
+                className="btn-inline-action"
+                onClick={selecionarTodasSugestoes}
+                type="button"
               >
-                {categoriaAberta === categoria ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                <span>{categoria} ({normas.length})</span>
-              </div>
-
-              {categoriaAberta === categoria && (
-                <div className="normas-list-categoria">
-                  {normas.map((norma, idx) => (
-                    <div
-                      key={idx}
-                      className={`norma-card-small ${normasSelecionadas.includes(norma.nome_completo) ? 'selected' : ''}`}
-                      onClick={() => toggleNorma(norma.nome_completo)}
-                    >
-                      <input
-                        type="checkbox"
-                        readOnly
-                        checked={normasSelecionadas.includes(norma.nome_completo)}
-                      />
-                      <div className="norma-info-small">
-                        <strong>{norma.nome_curto}</strong>
-                        <small>{norma.artigos}</small>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Botão: Não Encontrei a Norma */}
-      {!mostrarNormasManuais && (
-        <div className="nao-encontrei-section">
-          <button
-            className="btn-nao-encontrei"
-            onClick={() => setMostrarNormasManuais(true)}
-            type="button"
-          >
-            ⚠️ Não encontrei a norma da minha atividade
-          </button>
-        </div>
-      )}
-
-      {/* Seção de Normas Manuais + IA Legis (Expansível) */}
-      {mostrarNormasManuais && (
-        <div className="normas-manuais-section">
-          <div className="normas-manuais-header">
-            <h3>💡 Não encontrou a norma que procura?</h3>
+                Selecionar todas
+              </button>
+            )}
           </div>
 
-          <button
-            className="btn-ia-legis"
-            onClick={abrirIALegis}
-            type="button"
-          >
-            🤖 Consultar IA Legis (Sigepe)
-          </button>
-
-          <div className="normas-manuais-descricao">
-            Ou adicione manualmente:
-          </div>
-
-          {normasManuais.map((norma, index) => (
-            <div key={index} className="norma-manual-row">
-              <input
-                type="text"
-                className="norma-manual-input"
-                placeholder="Ex: Art. 34 da IN SGP nº 97/2022"
-                value={norma}
-                onChange={(e) => atualizarNormaManual(index, e.target.value)}
-                maxLength={300}
-              />
-              {normasManuais.length > 1 && (
-                <button
-                  className="btn-remover-norma"
-                  onClick={() => removerCampoNormaManual(index)}
-                  type="button"
-                  title="Remover norma"
+          {sugestoes.length > 0 ? (
+            <div className="normas-list">
+              {sugestoes.map((norma, idx) => (
+                <div
+                  key={idx}
+                  className={`norma-card ${normasSelecionadas.includes(norma.nome_completo) ? 'selected' : ''}`}
+                  onClick={() => toggleNorma(norma.nome_completo)}
                 >
-                  ✕
+                  <input
+                    type="checkbox"
+                    readOnly
+                    checked={normasSelecionadas.includes(norma.nome_completo)}
+                  />
+                  <div className="norma-info">
+                    {norma.label && (
+                      <div className="norma-grupo-label">{norma.label}</div>
+                    )}
+                    <strong>{norma.nome_curto}</strong>
+                    <p>{norma.nome_completo}</p>
+                    <small>Artigos: {norma.artigos}</small>
+                    {norma.confianca && (
+                      <span className="confianca">Relevância: {norma.confianca}%</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>Nenhuma sugestão disponível para este contexto.</p>
+            </div>
+          )}
+        </div>
+
+        {/* 2️⃣ SEÇÃO: EXPLORAR BIBLIOTECA COMPLETA */}
+        <div className="section-card section-biblioteca">
+          <div className="section-header">
+            <h3>📚 Explorar Biblioteca Completa</h3>
+            <p className="section-desc">Quer ver todas as normas da nossa biblioteca? Busque por tema ou nome.</p>
+          </div>
+
+          {/* Campo de Busca Instantânea */}
+          <div className="search-container">
+            <Search size={18} className="search-icon" />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="🔎 Buscar por nome, número ou artigo da norma..."
+              value={termoBusca}
+              onChange={(e) => setTermoBusca(e.target.value)}
+            />
+            {termoBusca && (
+              <button
+                className="clear-search"
+                onClick={() => setTermoBusca('')}
+                type="button"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Acordeão de Categorias */}
+          {Object.keys(categoriasFiltradas).length > 0 ? (
+            <div className="categorias-acordeao">
+              {Object.entries(categoriasFiltradas).map(([categoria, normas]) => (
+                <div key={categoria} className="categoria-item">
+                  <div
+                    className="categoria-header"
+                    onClick={() => toggleCategoria(categoria)}
+                  >
+                    {categoriaAberta === categoria ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                    <span>{categoria}</span>
+                    <span className="categoria-count">({normas.length})</span>
+                  </div>
+
+                  {categoriaAberta === categoria && (
+                    <div className="normas-list-categoria">
+                      {normas.map((norma, idx) => (
+                        <div
+                          key={idx}
+                          className={`norma-card-small ${normasSelecionadas.includes(norma.nome_completo) ? 'selected' : ''}`}
+                          onClick={() => toggleNorma(norma.nome_completo)}
+                        >
+                          <input
+                            type="checkbox"
+                            readOnly
+                            checked={normasSelecionadas.includes(norma.nome_completo)}
+                          />
+                          <div className="norma-info-small">
+                            <strong>{norma.nome_curto}</strong>
+                            <small>{norma.artigos}</small>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>Nenhuma norma encontrada para "{termoBusca}"</p>
+            </div>
+          )}
+        </div>
+
+        {/* 3️⃣ SEÇÃO: BUSCAR / ADICIONAR - Ações Finais */}
+        <div className="section-card section-actions">
+          <div className="section-header">
+            <h3>🔍 Não encontrou?</h3>
+            <p className="section-desc">Você pode tentar a busca inteligente ou adicionar manualmente.</p>
+          </div>
+
+          <div className="actions-row">
+            {/* Botão IA Legis */}
+            <div className="action-group">
+              <button
+                className="btn-ia-legis"
+                onClick={abrirIALegis}
+                type="button"
+                title="A IA do Legis vai procurar outras normas relacionadas ao seu processo"
+              >
+                🔍 Consultar IA do Sigepe Legis
+              </button>
+              <small className="action-hint">A IA do Legis procura outras normas relacionadas</small>
+            </div>
+
+            {/* Botão Adicionar Manualmente */}
+            <div className="action-group">
+              {!mostrarNormasManuais ? (
+                <button
+                  className="btn-adicionar-manual"
+                  onClick={() => setMostrarNormasManuais(true)}
+                  type="button"
+                >
+                  ➕ Adicionar norma manualmente
+                </button>
+              ) : (
+                <button
+                  className="btn-cancelar-manual"
+                  onClick={() => setMostrarNormasManuais(false)}
+                  type="button"
+                >
+                  Cancelar
                 </button>
               )}
             </div>
-          ))}
+          </div>
 
-          <button
-            className="btn-adicionar-norma"
-            onClick={adicionarCampoNormaManual}
-            type="button"
-          >
-            ➕ Adicionar Outra Norma
-          </button>
+          {/* Seção de Normas Manuais (inline) */}
+          {mostrarNormasManuais && (
+            <div className="normas-manuais-inline">
+              {normasManuais.map((norma, index) => (
+                <div key={index} className="norma-manual-row">
+                  <input
+                    type="text"
+                    className="norma-manual-input"
+                    placeholder="Ex: Art. 34 da IN SGP nº 97/2022"
+                    value={norma}
+                    onChange={(e) => atualizarNormaManual(index, e.target.value)}
+                    maxLength={300}
+                  />
+                  <button
+                    className="btn-adicionar-manual-confirmar"
+                    onClick={adicionarCampoNormaManual}
+                    type="button"
+                    title="Adicionar"
+                  >
+                    Adicionar
+                  </button>
+                  {normasManuais.length > 1 && (
+                    <button
+                      className="btn-remover-norma"
+                      onClick={() => removerCampoNormaManual(index)}
+                      type="button"
+                      title="Remover"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Contador e Limpar */}
-      <div className="contador-e-limpar">
-        <div className="contador-normas">
-          {normasSelecionadas.length} norma(s) selecionada(s)
-        </div>
-        {normasSelecionadas.length > 0 && (
-          <button
-            className="btn-limpar-selecao"
-            onClick={limparSelecao}
-            type="button"
-          >
-            🗑️ Limpar Seleção
-          </button>
-        )}
       </div>
 
-      {/* Ações */}
-      <div className="action-buttons">
+      {/* Rodapé - Ações de Confirmação */}
+      <div className="footer-actions">
         <button className="btn-interface btn-secondary" onClick={() => onConfirm('nao sei')}>
           Não Sei
         </button>
-        <button className="btn-interface btn-primary" onClick={handleConfirm}>
-          Confirmar
+        <button
+          className="btn-interface btn-primary"
+          onClick={handleConfirm}
+          disabled={normasSelecionadas.length === 0}
+        >
+          Confirmar {normasSelecionadas.length > 0 && `(${normasSelecionadas.length})`}
         </button>
       </div>
 
       <style>{`
-        .sugestoes-section {
-          margin: 1.5rem 0;
-          padding: 1rem;
-          background: #f0f4ff;
-          border-radius: 8px;
-          border: 2px solid #1351B4;
+        /* ========== CABEÇALHO ========== */
+        .interface-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1351B4;
+          margin-bottom: 0.5rem;
+          text-align: center;
         }
 
-        .sugestoes-header {
+        .interface-subtitle {
+          font-size: 0.9rem;
+          color: #6c757d;
+          text-align: center;
+          margin-bottom: 1.5rem;
+          line-height: 1.5;
+        }
+
+        /* ========== CHIPS CONTAINER (Normas Selecionadas) ========== */
+        .chips-container {
+          margin-bottom: 1.5rem;
+          padding: 1rem;
+          background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+          border: 2px solid #66bb6a;
+          border-radius: 12px;
+          animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chips-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 1rem;
+          margin-bottom: 0.75rem;
         }
 
-        .sugestoes-header h3 {
-          margin: 0;
+        .chips-count {
+          font-weight: 600;
+          color: #2e7d32;
+          font-size: 0.95rem;
+        }
+
+        .btn-limpar-chips {
+          padding: 0.4rem 0.9rem;
+          background: white;
+          color: #d32f2f;
+          border: 1px solid #d32f2f;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-limpar-chips:hover {
+          background: #d32f2f;
+          color: white;
+        }
+
+        .chips-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.4rem 0.75rem;
+          background: white;
+          border: 1px solid #66bb6a;
+          border-radius: 20px;
+          font-size: 0.85rem;
+          max-width: 100%;
+          transition: all 0.2s;
+        }
+
+        .chip:hover {
+          box-shadow: 0 2px 8px rgba(102, 187, 106, 0.3);
+        }
+
+        .chip-text {
+          flex: 1;
+          color: #2e7d32;
+          font-weight: 500;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .chip-remove {
+          background: transparent;
+          border: none;
+          color: #d32f2f;
           font-size: 1rem;
-          color: #1351B4;
+          font-weight: bold;
+          cursor: pointer;
+          padding: 0;
+          width: 18px;
+          height: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          transition: all 0.2s;
         }
 
-        .btn-selecionar-sugestoes {
-          padding: 0.5rem 1rem;
+        .chip-remove:hover {
+          background: #d32f2f;
+          color: white;
+        }
+
+        /* ========== LAYOUT VERTICAL PROGRESSIVO ========== */
+        .vertical-progressive-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        /* ========== SEÇÃO CARD (Comum) ========== */
+        .section-card {
+          background: white;
+          border-radius: 12px;
+          padding: 1.5rem;
+          border: 2px solid #e0e6ed;
+          transition: all 0.3s;
+        }
+
+        .section-card:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .section-sugestoes {
+          border-left: 4px solid #1351B4;
+        }
+
+        .section-biblioteca {
+          border-left: 4px solid #6c757d;
+        }
+
+        .section-actions {
+          border-left: 4px solid #28a745;
+          background: #f8f9fa;
+        }
+
+        .section-header {
+          position: relative;
+          margin-bottom: 1.25rem;
+        }
+
+        .section-header h3 {
+          margin: 0 0 0.5rem 0;
+          font-size: 1.1rem;
+          color: #1351B4;
+          font-weight: 600;
+        }
+
+        .section-desc {
+          margin: 0 0 0.75rem 0;
+          font-size: 0.85rem;
+          color: #6c757d;
+          line-height: 1.5;
+        }
+
+        .btn-inline-action {
+          position: absolute;
+          top: 0;
+          right: 0;
+          padding: 0.4rem 0.9rem;
           background: #1351B4;
           color: white;
           border: none;
-          border-radius: 4px;
-          font-size: 0.85rem;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          font-weight: 500;
           cursor: pointer;
-          transition: background 0.2s;
+          transition: all 0.2s;
         }
 
-        .btn-selecionar-sugestoes:hover {
+        .btn-inline-action:hover {
           background: #0d3a85;
+          transform: translateY(-1px);
         }
 
+        /* ========== EMPTY STATE ========== */
+        .empty-state {
+          text-align: center;
+          padding: 2rem;
+          color: #6c757d;
+          font-size: 0.9rem;
+        }
+
+        /* ========== BUSCA INSTANTÂNEA ========== */
+        .search-container {
+          position: relative;
+          margin-bottom: 1rem;
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #6c757d;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 0.75rem 2.5rem 0.75rem 2.5rem;
+          border: 2px solid #dee2e6;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          transition: all 0.2s;
+        }
+
+        .search-input:focus {
+          outline: none;
+          border-color: #1351B4;
+          box-shadow: 0 0 0 3px rgba(19, 81, 180, 0.1);
+        }
+
+        .clear-search {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: #dc3545;
+          color: white;
+          border: none;
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 0.9rem;
+          transition: all 0.2s;
+        }
+
+        .clear-search:hover {
+          background: #c82333;
+        }
+
+        /* ========== AÇÕES ROW (IA Legis + Adicionar Manual) ========== */
+        .actions-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+          .actions-row {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .action-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .action-hint {
+          color: #6c757d;
+          font-size: 0.75rem;
+          text-align: center;
+        }
+
+        .btn-ia-legis {
+          width: 100%;
+          padding: 0.9rem;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-ia-legis:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-adicionar-manual {
+          width: 100%;
+          padding: 0.9rem;
+          background: white;
+          color: #28a745;
+          border: 2px dashed #28a745;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-adicionar-manual:hover {
+          background: #28a745;
+          color: white;
+          border-style: solid;
+        }
+
+        .btn-cancelar-manual {
+          width: 100%;
+          padding: 0.9rem;
+          background: #6c757d;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-cancelar-manual:hover {
+          background: #5a6268;
+        }
+
+        /* ========== NORMAS MANUAIS INLINE ========== */
+        .normas-manuais-inline {
+          margin-top: 1rem;
+          padding: 1rem;
+          background: white;
+          border: 2px dashed #28a745;
+          border-radius: 8px;
+          animation: fadeIn 0.3s ease-in;
+        }
+
+        /* ========== FOOTER ACTIONS ========== */
+        .footer-actions {
+          margin-top: 2rem;
+          padding-top: 1.5rem;
+          border-top: 3px solid #1351B4;
+          display: flex;
+          gap: 1rem;
+          justify-content: flex-end;
+        }
+
+        /* ========== CARDS DE NORMAS ========== */
         .normas-list {
           display: flex;
           flex-direction: column;
@@ -363,19 +749,27 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           padding: 1rem;
           background: white;
           border: 2px solid #dee2e6;
-          border-radius: 6px;
+          border-radius: 8px;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.3s;
         }
 
         .norma-card:hover {
           border-color: #1351B4;
-          box-shadow: 0 2px 8px rgba(19, 81, 180, 0.1);
+          box-shadow: 0 2px 8px rgba(19, 81, 180, 0.15);
+          transform: translateX(4px);
         }
 
         .norma-card.selected {
-          border-color: #1351B4;
-          background: #e8f0ff;
+          border-color: #28a745;
+          background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+          animation: selectedPulse 0.3s ease-in;
+        }
+
+        @keyframes selectedPulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+          100% { transform: scale(1); }
         }
 
         .norma-card input[type="checkbox"] {
@@ -385,6 +779,18 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
 
         .norma-info {
           flex: 1;
+        }
+
+        .norma-grupo-label {
+          display: inline-block;
+          margin-bottom: 0.5rem;
+          padding: 0.25rem 0.75rem;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border-radius: 12px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.3px;
         }
 
         .norma-info strong {
@@ -477,20 +883,27 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
         .categoria-header {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.75rem;
           padding: 1rem;
           background: #f8f9fa;
           cursor: pointer;
-          transition: background 0.2s;
+          transition: all 0.2s;
         }
 
         .categoria-header:hover {
           background: #e9ecef;
         }
 
-        .categoria-header span {
+        .categoria-header span:first-of-type {
+          flex: 1;
           font-weight: 600;
           color: #495057;
+        }
+
+        .categoria-count {
+          font-weight: 400;
+          color: #6c757d;
+          font-size: 0.85rem;
         }
 
         .normas-list-categoria {
@@ -507,19 +920,21 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           padding: 0.75rem;
           background: #f8f9fa;
           border: 1px solid #dee2e6;
-          border-radius: 4px;
+          border-radius: 6px;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.3s;
         }
 
         .norma-card-small:hover {
           border-color: #1351B4;
           background: #f0f4ff;
+          transform: translateX(4px);
         }
 
         .norma-card-small.selected {
-          border-color: #1351B4;
-          background: #e8f0ff;
+          border-color: #28a745;
+          background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+          animation: selectedPulse 0.3s ease-in;
         }
 
         .norma-info-small {
@@ -606,46 +1021,16 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
         }
 
         .normas-manuais-section {
-          margin: 2rem 0;
-          padding: 1.5rem;
-          background: #fff9e6;
-          border: 2px solid #ffc107;
+          margin-top: 1rem;
+          padding: 1rem;
+          background: #f8f9fa;
+          border: 2px dashed #6c757d;
           border-radius: 8px;
         }
 
-        .normas-manuais-header h3 {
+        .normas-manuais-header h4 {
           margin: 0 0 1rem 0;
-          color: #856404;
-          font-size: 1rem;
-          text-align: center;
-        }
-
-        .btn-ia-legis {
-          width: 100%;
-          padding: 1rem;
-          background: linear-gradient(135deg, #6f42c1, #5a32a3);
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s;
-          box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
-          margin-bottom: 1rem;
-        }
-
-        .btn-ia-legis:hover {
-          background: linear-gradient(135deg, #5a32a3, #4a2a8a);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(111, 66, 193, 0.4);
-        }
-
-        .normas-manuais-descricao {
-          text-align: center;
-          color: #856404;
-          font-weight: 500;
-          margin: 1rem 0 0.75rem 0;
+          color: #495057;
           font-size: 0.95rem;
         }
 
@@ -662,17 +1047,35 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           border: 2px solid #dee2e6;
           border-radius: 6px;
           font-size: 0.95rem;
-          transition: border-color 0.2s;
+          transition: all 0.2s;
         }
 
         .norma-manual-input:focus {
           outline: none;
-          border-color: #ffc107;
-          box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
+          border-color: #28a745;
+          box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
         }
 
         .norma-manual-input::placeholder {
           color: #adb5bd;
+        }
+
+        .btn-adicionar-manual-confirmar {
+          padding: 0.75rem 1.25rem;
+          background: #28a745;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .btn-adicionar-manual-confirmar:hover {
+          background: #218838;
+          transform: translateY(-1px);
         }
 
         .btn-remover-norma {
@@ -694,26 +1097,6 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
         .btn-remover-norma:hover {
           background: #dc3545;
           color: white;
-        }
-
-        .btn-adicionar-norma {
-          width: 100%;
-          padding: 0.75rem;
-          border: 2px dashed #28a745;
-          background: white;
-          color: #28a745;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 0.95rem;
-          font-weight: 500;
-          transition: all 0.2s;
-          margin-top: 0.5rem;
-        }
-
-        .btn-adicionar-norma:hover {
-          background: #28a745;
-          color: white;
-          border-style: solid;
         }
       `}</style>
     </div>

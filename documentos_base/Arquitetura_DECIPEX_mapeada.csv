@@ -1,0 +1,108 @@
+Aba,Macroprocesso,Processo,Subprocesso,Atividade
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Concessão de aposentadorias,Conceder benefício estatutário geral
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Concessão de aposentadorias,Implantar benefício de aposentadoria no SIAPE
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Revisar base contributiva (PSS)
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Revisar fundamentação legal
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Descarte de contribuições (PSS)
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Revisão de pontuação de gratificação
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Alteração sistêmica de enquadramento
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Integralização por doença especificada
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Movimentar cadastro de aposentadorias revertidas
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Cessar pagamento de aposentadorias cassadas
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Cadastramento de atos,Cadastrar ato no e-Pessoal
+,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Recursos administrativos,Analisar recurso de aposentadoria
+,Gestão de Benefícios Previdenciários,Gestão de Pensões,Concessão de pensões,"Conceder pensão (cônjuge, companheiro, filhos, pais, tutelados etc.)"
+,Gestão de Benefícios Previdenciários,Gestão de Pensões,Manutenção e revisão de pensões,Revisar fundamentação/cálculo/opção de acúmulo
+,Gestão de Benefícios Previdenciários,Gestão de Pensões,Manutenção e revisão de pensões,Reversão/atualização de cotas
+,Gestão de Benefícios Previdenciários,Gestão de Pensões,Manutenção e revisão de pensões,Restabelecer benefício
+,Gestão de Benefícios Previdenciários,Gestão de Pensões,Manutenção e revisão de pensões,Apurar possível recebimento indevido
+,Gestão de Benefícios Previdenciários,Gestão de Pensões,Cadastramento de atos,Cadastrar ato no e-Pessoal
+,Gestão de Benefícios Previdenciários,Gestão de Pensões,Recursos administrativos,Analisar recurso de pensão
+,Gestão de Benefícios Previdenciários,Gestão de Demandas Judiciais (COBEN),Gestão de Demandas Judiciais,Cumprir parecer de força executória
+,Gestão de Benefícios Previdenciários,Gestão de Demandas Judiciais (COBEN),Gestão de Demandas Judiciais,Prestar subsídios judiciais
+,Gestão de Benefícios Previdenciários,Gestão de Demandas de Órgãos de Controle (COBEN),Gestão de Demandas de Controle,Cumprir determinações do TCU
+,Gestão de Benefícios Previdenciários,Gestão da Compensação Previdenciária (CGBEN),Viabilidade de compensação,Analisar processos/reqs COMPREV
+,Gestão de Benefícios Previdenciários,Gestão da Compensação Previdenciária (CGBEN),Gestão financeira,Executar pagamento via SIAFI
+,Gestão de Benefícios Previdenciários,Gestão da Compensação Previdenciária (CGBEN),Gestão financeira,Controlar orçamento e pagamentos
+,Gestão de Benefícios Previdenciários,Gestão da Reparação Econômica à Anistiados,Gestão da Reparação Econômica,Implantar nova reparação (parcela única/mensal)
+,Gestão de Benefícios Previdenciários,Gestão da Reparação Econômica à Anistiados,Gestão da Reparação Econômica,Tratar demandas judiciais de anistiados
+,Gestão de Auxílios,Gestão de Auxílio Funeral,Gestão de Auxílio Funeral,Processar auxílio funeral
+,Gestão de Auxílios,Gestão de Isenção de IRPF,Gestão de Isenção de IRPF,Processar isenção de IRPF
+,Gestão de Auxílios,Gestão dos Benefícios de Assistência à Saúde Suplementar,Gestão de Assistência à Saúde,Processar benefícios de saúde suplementar
+,Gestão de Folhas de Pagamento,Pagamentos de Pessoal Civil e Militar,Pagamentos de Pessoal,Processar folha de pessoal civil
+,Gestão de Folhas de Pagamento,Pagamentos de Pessoal Civil e Militar,Pagamentos de Pessoal,Processar folha de pessoal militar
+,Gestão de Folhas de Pagamento,Pagamentos de Anistiados Políticos,Pagamentos de Anistiados,Processar folha de anistiados políticos
+,Gestão de Folhas de Pagamento,Demandas Judiciais e Órgãos de Controle (COPAG),Demandas Judiciais e Controle,Atender demandas judiciais de folha
+,Gestão de Folhas de Pagamento,Demandas Judiciais e Órgãos de Controle (COPAG),Demandas Judiciais e Controle,Atender demandas de órgãos de controle
+,Gestão de Folhas de Pagamento,Gestão de Obrigações de Pagamento,Obrigações de Pagamento,Gerir obrigações de pagamento
+,Gestão da Execução Orçamentária-Financeira de Folhas,Gestão do Orçamento,Gestão do Orçamento,Planejar e gerir orçamento
+,Gestão da Execução Orçamentária-Financeira de Folhas,Execução Orçamentária-Financeira,Execução Orçamentária-Financeira,Executar orçamento de folhas DECIPEX-DF
+,Gestão da Execução Orçamentária-Financeira de Folhas,Execução Orçamentária-Financeira,Execução Orçamentária-Financeira,Executar orçamento de folhas Ex-Territórios
+,Gestão da Execução Orçamentária-Financeira de Folhas,Gestão do Pagamento de Auxílio Funeral,Pagamento Auxílio Funeral,Executar pagamento de auxílio funeral
+,Gestão da Execução Orçamentária-Financeira de Folhas,Gestão Conformidade de Gestão-SIAFI,Conformidade SIAFI,Garantir conformidade SIAFI
+,Gestão da Execução Orçamentária-Financeira de Folhas,Gestão Orçamentária-Financeira COMPREV,Gestão COMPREV,Gerir orçamento COMPREV
+,Gestão de Acervos Funcionais,Gestão de Documentos Físicos e Digitais,Gestão de Documentos,Organizar e manter acervo físico
+,Gestão de Acervos Funcionais,Gestão de Documentos Físicos e Digitais,Gestão de Documentos,Organizar e manter acervo digital
+,Gestão de Acervos Funcionais,Atendimento à solicitação de documentos,Atendimento de Documentos,Atender solicitações de documentos
+,Gestão de Acervos Funcionais,Digitalização e disponibilização de documentos AFD,Digitalização AFD,Digitalizar documentos
+,Gestão de Acervos Funcionais,Digitalização e disponibilização de documentos AFD,Digitalização AFD,Disponibilizar documentos digitalizados
+,Gestão do Atendimento e Relacionamento,Gestão de Atendimentos,Gestão de Atendimentos,Gerir atendimentos
+,Gestão do Atendimento e Relacionamento,Prestação de Atendimentos,Prestação de Atendimentos,Prestar atendimento aos usuários
+,Gestão do Atendimento e Relacionamento,Gestão de Canais de Atendimentos,Gestão de Canais,Gerir canais de atendimento
+,Gestão do Atendimento e Relacionamento,Gestão do Relacionamento,Gestão do Relacionamento,Gerir relacionamento com stakeholders
+,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Cumprimentos de Demandas Judiciais,Demandas Judiciais,Cumprir demandas judiciais
+,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Subsídios para Demandas Judiciais,Subsídios Judiciais,Fornecer subsídios para demandas judiciais
+,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Gestão de Demandas Administrativas associadas ao Judicial,Demandas Administrativas Judicial,Gerir demandas administrativas associadas ao judicial
+,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Gestão de Demandas Administrativas e de Órgãos de Controle,Demandas Administrativas e Controle,Gerir demandas administrativas
+,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Gestão de Demandas Administrativas e de Órgãos de Controle,Demandas Administrativas e Controle,Gerir demandas de órgãos de controle
+,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Tratamento de Indícios TCU e Recadastramento de Atos,Indícios TCU,Tratar indícios do TCU
+,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Tratamento de Indícios TCU e Recadastramento de Atos,Recadastramento de Atos,Recadastrar atos
+,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Atendimento ao Pessoal e Entidades,Atendimento Ex-Territórios,Atender pessoal dos ex-territórios
+,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Atendimento ao Pessoal e Entidades,Atendimento Ex-Territórios,Atender entidades dos ex-territórios
+,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Gestão de Ativos Civis,Ativos Civis Ex-Territórios,Gerir ativos civis
+,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Gestão de Militares,Militares Ex-Territórios,Gerir militares
+,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Gestão de Demandas Judiciais,Demandas Judiciais Ex-Territórios,Gerir demandas judiciais ex-territórios
+,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Gestão de Demandas de Órgãos de Controle,Demandas Controle Ex-Territórios,Gerir demandas de controle ex-territórios
+,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Apoio das DIGEPs à Folha de Pagamento,Apoio Folha Ex-Territórios,Apoiar folha de pagamento
+,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Coordenação das DIGEPs (CDGEP),Coordenação CDGEP,Coordenar DIGEPs
+,Gestão das Complementações de Folhas de Pagamento,Concessões de Complementações de Aposentadorias e Pensões,Concessão Complementações,Conceder complementações de aposentadorias
+,Gestão das Complementações de Folhas de Pagamento,Concessões de Complementações de Aposentadorias e Pensões,Concessão Complementações,Conceder complementações de pensões
+,Gestão das Complementações de Folhas de Pagamento,Acertos Financeiros de Complementações,Acertos Financeiros,Realizar acertos financeiros de complementações
+,Gestão das Complementações de Folhas de Pagamento,Pagamento de Resíduos Remuneratórios,Resíduos Remuneratórios,Pagar resíduos remuneratórios
+,Gestão das Complementações de Folhas de Pagamento,Execução de Folha de Pagamento (VIFER e RFSSA),Execução Folha Complementação,Executar folha VIFER
+,Gestão das Complementações de Folhas de Pagamento,Execução de Folha de Pagamento (VIFER e RFSSA),Execução Folha Complementação,Executar folha RFSSA
+,Gestão das Complementações de Folhas de Pagamento,Emissão de Declarações e Certidões,Declarações e Certidões,Emitir declarações
+,Gestão das Complementações de Folhas de Pagamento,Emissão de Declarações e Certidões,Declarações e Certidões,Emitir certidões
+,Gestão das Complementações de Folhas de Pagamento,Demandas Judiciais e Administrativas,Demandas Complementações,Atender demandas judiciais de complementações
+,Gestão das Complementações de Folhas de Pagamento,Demandas Judiciais e Administrativas,Demandas Complementações,Atender demandas administrativas de complementações
+,Gestão das Complementações de Folhas de Pagamento,Prestação de Atendimento Direto,Atendimento Complementações,Prestar atendimento direto
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Atualização e Regularização Contábil de Convênios,Regularização Contábil,Atualizar convênios contabilmente
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Atualização e Regularização Contábil de Convênios,Regularização Contábil,Regularizar convênios contabilmente
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Registro de Convênios e Responsáveis no SIAFI,Registro SIAFI,Registrar convênios no SIAFI
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Registro de Convênios e Responsáveis no SIAFI,Registro SIAFI,Registrar responsáveis no SIAFI
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Gestão de Registro de Devedores no CADIN,Registro CADIN,Registrar devedores no CADIN
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Gestão de Recuperação de Créditos,Recuperação de Créditos,Recuperar créditos
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Gestão de Acervo de Convênios e Inventarianças,Acervo Convênios,Gerir acervo de convênios
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Gestão de Acervo de Convênios e Inventarianças,Acervo Convênios,Gerir acervo de inventarianças
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Regularização de processos no Transferegov,Transferegov,Regularizar processos no Transferegov
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Supervisão e suporte técnico à Inventariança do FND,Inventariança FND,Supervisionar inventariança FND
+,Gestão de Convênios e Inventariança de Órgãos Extintos,Supervisão e suporte técnico à Inventariança do FND,Inventariança FND,Dar suporte técnico à inventariança FND
+,Gestão do Apoio Administrativo,Gestão de Documentos e Arquivos Administrativos,Gestão Documentos Administrativos,Gerir documentos administrativos
+,Gestão do Apoio Administrativo,Gestão de Documentos e Arquivos Administrativos,Gestão Documentos Administrativos,Gerir arquivos administrativos
+,Gestão do Apoio Administrativo,Atendimento e Suporte Administrativo,Suporte Administrativo,Prestar atendimento administrativo
+,Gestão do Apoio Administrativo,Atendimento e Suporte Administrativo,Suporte Administrativo,Prestar suporte administrativo
+,Gestão do Apoio Administrativo,Gestão de Materiais e Patrimônio,Materiais e Patrimônio,Gerir materiais
+,Gestão do Apoio Administrativo,Gestão de Materiais e Patrimônio,Materiais e Patrimônio,Gerir patrimônio
+,Gestão do Apoio Administrativo,Gestão de Infraestrutura e Logística,Infraestrutura e Logística,Gerir infraestrutura
+,Gestão do Apoio Administrativo,Gestão de Infraestrutura e Logística,Infraestrutura e Logística,Gerir logística
+,Gestão do Apoio Administrativo,Gestão de Pessoas,Gestão de Pessoas,Gerir pessoas
+,Gestão do Apoio Administrativo,Gestão do Programa de Gestão e Desempenho,Programa Gestão e Desempenho,Gerir programa de gestão e desempenho
+,Gestão da Governança DECIPEX,Gestão de Projetos,Gestão de Projetos,Gerir projetos
+,Gestão da Governança DECIPEX,Gestão da Ouvidoria e Acesso à Informação,Ouvidoria e Acesso à Informação,Gerir ouvidoria
+,Gestão da Governança DECIPEX,Gestão da Ouvidoria e Acesso à Informação,Ouvidoria e Acesso à Informação,Gerir acesso à informação
+,Gestão da Governança DECIPEX,Gestão de Processos,Gestão de Processos,Gerir processos organizacionais
+,Gestão da Governança DECIPEX,Gestão de Capacitações,Gestão de Capacitações,Gerir capacitações
+,Gestão da Governança DECIPEX,Gestão de Automações,Gestão de Automações,Gerir automações
+,Gestão da Governança DECIPEX,Gestão de Informações Gerenciais,Informações Gerenciais,Gerir informações gerenciais
+,Gestão da Governança DECIPEX,Gestão de Comunicação,Gestão de Comunicação,Gerir comunicação
+,Gestão da Governança DECIPEX,Gestão de Serviços,Gestão de Serviços,Gerir serviços

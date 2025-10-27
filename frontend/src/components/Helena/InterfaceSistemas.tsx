@@ -8,6 +8,25 @@ interface SubInterfaceProps {
   onConfirm: (resposta: string) => void;
 }
 
+// Mapeamento de sistemas para ícones e grupos
+const SISTEMAS_INFO: Record<string, { icone: string; grupo: string }> = {
+  'SIAPE': { icone: '💼', grupo: 'RH' },
+  'SISAC': { icone: '💰', grupo: 'RH' },
+  'SIGEPE': { icone: '👥', grupo: 'RH' },
+  'SEI': { icone: '📄', grupo: 'Documentos' },
+  'SEI+': { icone: '📋', grupo: 'Documentos' },
+  'SOU GOV': { icone: '🌐', grupo: 'Cidadão' },
+  'GOV.BR': { icone: '🏛️', grupo: 'Cidadão' },
+  'SICONV': { icone: '🤝', grupo: 'Convênios' },
+  'COMPRASNET': { icone: '🛒', grupo: 'Compras' },
+  'SIASG': { icone: '📦', grupo: 'Compras' },
+  'SICAF': { icone: '📇', grupo: 'Compras' },
+  'TESOURO GERENCIAL': { icone: '💵', grupo: 'Financeiro' },
+  'SIAFI': { icone: '💹', grupo: 'Financeiro' },
+  'SIPEC': { icone: '👔', grupo: 'Gestão de Pessoas' },
+  'SOUGOV': { icone: '🌐', grupo: 'Cidadão' },
+};
+
 const InterfaceSistemas: React.FC<SubInterfaceProps> = ({ dados, onConfirm }) => {
   const [sistemasSelecionados, setSistemasSelecionados] = useState<string[]>([]);
 
@@ -57,6 +76,12 @@ const InterfaceSistemas: React.FC<SubInterfaceProps> = ({ dados, onConfirm }) =>
     onConfirm(resposta);
   }
 
+  // Função auxiliar para pegar info do sistema
+  const getSistemaInfo = (sistema: string) => {
+    const sistemaUpper = sistema.toUpperCase().trim();
+    return SISTEMAS_INFO[sistemaUpper] || { icone: '💻', grupo: 'Outros' };
+  }
+
   return (
     <div className="interface-container fade-in">
         <div className="interface-title">💻 Quais sistemas são utilizados?</div>
@@ -76,17 +101,28 @@ const InterfaceSistemas: React.FC<SubInterfaceProps> = ({ dados, onConfirm }) =>
               </button>
             </div>
 
-            <div className="options-grid">
-                {listaSistemas.map((sys: string, idx: number) => (
+            <div className="sistemas-grid">
+                {listaSistemas.map((sys: string, idx: number) => {
+                  const info = getSistemaInfo(sys);
+                  const isSelected = sistemasSelecionados.includes(sys);
+
+                  return (
                     <div
                         key={idx}
-                        className={`option-card ${sistemasSelecionados.includes(sys) ? 'selected' : ''}`}
+                        className={`sistema-card ${isSelected ? 'selected' : ''}`}
                         onClick={() => toggleSistema(sys)}
                     >
-                        <input type="checkbox" readOnly checked={sistemasSelecionados.includes(sys)} />
-                        <label>{sys}</label>
+                        <div className="sistema-icone">{info.icone}</div>
+                        <div className="sistema-info">
+                          <div className="sistema-nome">{sys}</div>
+                          <div className="sistema-grupo">{info.grupo}</div>
+                        </div>
+                        <div className="sistema-checkbox">
+                          {isSelected && <span className="check-icon">✓</span>}
+                        </div>
                     </div>
-                ))}
+                  );
+                })}
             </div>
           </>
         ) : (
@@ -133,6 +169,103 @@ const InterfaceSistemas: React.FC<SubInterfaceProps> = ({ dados, onConfirm }) =>
             background: #138496;
           }
 
+          .sistemas-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+          }
+
+          .sistema-card {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+          }
+
+          .sistema-card:hover {
+            border-color: #4a90e2;
+            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.15);
+            transform: translateY(-1px);
+          }
+
+          .sistema-card.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+          }
+
+          .sistema-card.selected .sistema-nome {
+            color: white;
+            font-weight: 600;
+          }
+
+          .sistema-card.selected .sistema-grupo {
+            color: rgba(255, 255, 255, 0.85);
+          }
+
+          .sistema-icone {
+            font-size: 1.75rem;
+            line-height: 1;
+            flex-shrink: 0;
+            filter: grayscale(0.3);
+            transition: filter 0.2s;
+          }
+
+          .sistema-card.selected .sistema-icone {
+            filter: grayscale(0) brightness(1.2);
+          }
+
+          .sistema-info {
+            flex: 1;
+            min-width: 0;
+          }
+
+          .sistema-nome {
+            font-size: 0.80rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.25rem;
+            word-break: break-word;
+          }
+
+          .sistema-grupo {
+            font-size: 0.65rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .sistema-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+          }
+
+          .sistema-card.selected .sistema-checkbox {
+            background: white;
+            border-color: white;
+          }
+
+          .check-icon {
+            color: #667eea;
+            font-size: 1.2rem;
+            font-weight: bold;
+            line-height: 1;
+          }
+
           .aviso-sem-dados {
             padding: 2rem;
             text-align: center;
@@ -140,6 +273,12 @@ const InterfaceSistemas: React.FC<SubInterfaceProps> = ({ dados, onConfirm }) =>
             background: #f8f9fa;
             border-radius: 8px;
             margin: 1rem 0;
+          }
+
+          @media (max-width: 768px) {
+            .sistemas-grid {
+              grid-template-columns: 1fr;
+            }
           }
         `}</style>
     </div>

@@ -5,6 +5,15 @@ import uuid
 import hashlib
 import json
 
+# Novos models FASE 1 (arquitetura refatorada)
+from processos.models_new.orgao import Orgao
+from processos.models_new.chat_session import ChatSession
+from processos.models_new.chat_message import ChatMessage
+
+# Novos models FASE 2 (Security & RBAC)
+from processos.models_new.rbac import Role, Permission, RolePermission, UserRole
+from processos.models_new.audit_log import AuditLog, SecurityEvent
+
 class ProcessoMestre(models.Model):
     codigo_arquitetura = models.CharField(max_length=100, unique=True, verbose_name="Código da Arquitetura")
     macroprocesso = models.CharField(max_length=255, verbose_name="Macroprocesso")
