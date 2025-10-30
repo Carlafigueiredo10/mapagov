@@ -37,16 +37,23 @@ from .utils import (
 @require_http_methods(["POST"])
 def chat_api_view(request):
     """API para conversa com Helena - Sistema Multi-Produto com Sessão Persistente"""
-    
+
     try:
         load_dotenv()
-        
+
         # Receber dados do JavaScript
         data = json.loads(request.body)
         user_message = data.get('message', '')
         contexto = data.get('contexto', 'geral')
         dados_atuais = data.get('dados_atuais', {})
         session_id = data.get('session_id', 'default')
+
+        print(f"\n{'🔥'*80}")
+        print(f"[VIEWS] MENSAGEM RECEBIDA EM /api/chat/")
+        print(f"   user_message: '{user_message[:100]}...'")
+        print(f"   contexto: {contexto}")
+        print(f"   session_id: {session_id}")
+        print(f"{'🔥'*80}\n")
         
         # Validação de entrada com segurança
         valido, msg_erro = validar_entrada_helena(user_message)
@@ -72,186 +79,98 @@ def chat_api_view(request):
             resposta = helena_mapeamento(user_message)
             return JsonResponse({'resposta': resposta, 'success': True})
         
-        # P1: Gerador de POP (RENOVADO - com sessão completa)
+        # P1: Gerador de POP (RENOVADO - API v2.0 com POPStateMachine)
         if contexto in ['gerador_pop', 'mapeamento_natural']:
             # OTIMIZACAO: Import lazy - so carrega quando necessario
-            from .domain.helena_produtos.helena_pop import HelenaPOP
+            from .domain.helena_produtos.helena_pop import HelenaPOP, POPStateMachine
 
             # FIX: Usar session_id do frontend para criar chave unica
             session_key = f'helena_pop_state_{session_id}'
 
-            # CORRECAO: Verificar se sessao existe e tem dados validos
+            # Obter ou criar session_data (dicionário serializado)
             if session_key not in request.session or not request.session.get(session_key):
-                # Primeira mensagem - criar nova Helena
-                helena = HelenaPOP()
+                # Primeira mensagem - criar novo state machine vazio
+                session_data = POPStateMachine().to_dict()
 
-                # DEBUG PONTO A - APOS CRIACAO
                 print(f"\n{'='*80}")
-                print(f"[OK] PONTO A - NOVA HELENA CRIADA")
-                print(f"   Estado atual: {helena.estado}")
-                print(f"   Etapa atual: {helena.etapa_atual_campo}/{len(helena.etapas_processo)}")
-                print(f"   Sistemas selecionados: {helena.sistemas_selecionados}")
-                print(f"   Dados preenchidos: {list(helena.dados.keys())}")
+                print(f"[OK] PONTO A - NOVA SESSAO CRIADA")
+                print(f"   Estado inicial: {session_data['estado']}")
+                print(f"   Session key: {session_key}")
                 print(f"{'='*80}\n")
             else:
-                # Mensagens seguintes - restaurar estado COMPLETO
-                state = request.session[session_key]
+                # Mensagens seguintes - usar estado existente
+                session_data = request.session[session_key]
 
-                # CRITICAL: Criar Helena vazia primeiro
-                helena = HelenaPOP()
-
-                # CRITICAL: Restaurar estado ANTES de processar
-                helena.estado = state.get('estado', 'nome')
-                helena.nome_usuario = state.get('nome_usuario')
-                helena.nome_temporario = state.get('nome_temporario', '')
-                helena.editando_campo = state.get('editando_campo')
-                helena.area_selecionada = state.get('area_selecionada')
-                helena.macro_selecionado = state.get('macro_selecionado')
-                helena.processo_selecionado = state.get('processo_selecionado')
-                helena.subprocesso_selecionado = state.get('subprocesso_selecionado')
-                helena.atividade_selecionada = state.get('atividade_selecionada')
-                helena.dados = state.get('dados', {})
-                helena.sistemas_selecionados = state.get('sistemas_selecionados', [])
-
-                # CAMPOS DE ETAPAS: Restaurar estado completo
-                helena.documentos_processo = state.get('documentos_processo', [])
-                helena.etapa_temporaria = state.get('etapa_temporaria', '')
-                helena.aguardando_detalhes = state.get('aguardando_detalhes', False)
-                helena.detalhes_etapa_atual = state.get('detalhes_etapa_atual', [])
-                helena.etapas_processo = state.get('etapas_processo', [])
-                helena.etapa_atual_campo = state.get('etapa_atual_campo', 0)
-                helena.fluxos_entrada = state.get('fluxos_entrada', [])
-                helena.fluxos_saida = state.get('fluxos_saida', [])
-                helena.conversas = state.get('conversas', [])
-
-                # CAMPOS CONDICIONAIS CRÍTICOS (FIX: Etapas condicionais sumindo)
-                helena.aguardando_operadores_etapa = state.get('aguardando_operadores_etapa', False)
-                helena.operadores_etapa_atual = state.get('operadores_etapa_atual', [])
-                helena.aguardando_pergunta_condicionais = state.get('aguardando_pergunta_condicionais', False)
-                helena.etapa_tem_condicionais = state.get('etapa_tem_condicionais', False)
-                helena.aguardando_tipo_condicional = state.get('aguardando_tipo_condicional', False)
-                helena.tipo_condicional = state.get('tipo_condicional')
-                helena.aguardando_antes_decisao = state.get('aguardando_antes_decisao', False)
-                helena.antes_decisao = state.get('antes_decisao')
-                helena.aguardando_cenarios = state.get('aguardando_cenarios', False)
-                helena.aguardando_subetapas_cenario = state.get('aguardando_subetapas_cenario', False)
-                helena.cenario_atual_detalhando = state.get('cenario_atual_detalhando')
-                helena.cenarios_coletados = state.get('cenarios_coletados', [])
-                helena.aguardando_condicionais = state.get('aguardando_condicionais', False)
-                helena.modo_tempo_real = state.get('modo_tempo_real', False)
-
-                # DEBUG PONTO A - APOS RESTAURACAO
                 print(f"\n{'='*80}")
-                print(f"[RESTORE] PONTO A - HELENA RESTAURADA DA SESSAO")
-                print(f"   Estado atual: {helena.estado}")
-                print(f"   Nome: {helena.nome_usuario}")
-                print(f"   Área: {helena.area_selecionada}")
-                print(f"   Etapa atual: {helena.etapa_atual_campo}/{len(helena.etapas_processo)}")
-                print(f"   Sistemas selecionados: {helena.sistemas_selecionados}")
-                print(f"   Dados preenchidos: {list(helena.dados.keys())}")
+                print(f"[RESTORE] PONTO A - SESSAO RESTAURADA")
+                print(f"   Estado atual: {session_data.get('estado')}")
+                print(f"   Nome: {session_data.get('nome_usuario')}")
+                print(f"   Área: {session_data.get('area_selecionada')}")
+                print(f"   Sistemas: {len(session_data.get('dados_coletados', {}).get('sistemas', []))}")
                 print(f"{'='*80}\n")
-            
-            # Processar mensagem do usuario
-            resultado = helena.processar_mensagem(user_message)
+
+            # Instanciar Helena e processar mensagem
+            helena = HelenaPOP()
+            resultado = helena.processar(user_message, session_data)
 
             # DEBUG PONTO B - APOS PROCESSAMENTO
             print(f"\n{'='*80}")
             print(f"[PROCESS] PONTO B - APOS PROCESSAR MENSAGEM: '{user_message[:50]}...'")
-            print(f"   Estado retornado: {helena.estado}")
-            print(f"   Etapa atual: {helena.etapa_atual_campo}/{len(helena.etapas_processo)}")
-            print(f"   Sistemas selecionados: {helena.sistemas_selecionados}")
-            print(f"   Dados extraídos no resultado: {resultado.get('dados_extraidos', {})}")
-            print(f"   Conversa completa: {resultado.get('conversa_completa', False)}")
+            print(f"   Estado retornado: {resultado.get('novo_estado', {}).get('estado')}")
+            print(f"   Sistemas: {len(resultado.get('novo_estado', {}).get('dados_coletados', {}).get('sistemas', []))}")
+            print(f"   Dados extraídos: {resultado.get('dados_extraidos', {})}")
+            print(f"   Tipo interface: {resultado.get('tipo_interface')}")
             print(f"{'='*80}\n")
 
-            # CRITICO: Validar estado antes de salvar
-            estado_antes_validacao = helena.estado
-            if helena.estado == "nome" and helena.nome_usuario:
-                # Bug detectado: estado voltou para início mas tem dados
-                print(f"\n{'[WARN] '*10}")
-                print("[WARN] BUG DETECTADO: Estado resetou incorretamente!")
-                print(f"   Estado atual: {helena.estado}")
-                print(f"   Nome usuário: {helena.nome_usuario}")
-                print(f"   Sistemas: {helena.sistemas_selecionados}")
-                print(f"   Área: {helena.area_selecionada}")
-                print(f"{'[WARN] '*10}\n")
-                
-                # Tentar recuperar estado correto baseado em dados preenchidos
-                if helena.sistemas_selecionados and len(helena.sistemas_selecionados) > 0:
-                    print("[FIX] CORRECAO: Restaurando estado para 'campos' (sistemas ja selecionados)")
-                    helena.estado = "campos"
-                elif helena.area_selecionada:
-                    print("[FIX] CORRECAO: Restaurando estado para 'arquitetura' (area ja selecionada)")
-                    helena.estado = "arquitetura"
-                
-                print(f"[OK] Estado corrigido: {estado_antes_validacao} -> {helena.estado}\n")
-            
-            print(f"[SAVE] Preparando para salvar estado: {helena.estado}")
-            
-            # Salvar estado atualizado na sessão
-            request.session[session_key] = {
-                'estado': helena.estado,
-                'nome_usuario': helena.nome_usuario,
-                'nome_temporario': helena.nome_temporario if hasattr(helena, 'nome_temporario') else '',
-                'editando_campo': helena.editando_campo if hasattr(helena, 'editando_campo') else None,
-                'area_selecionada': helena.area_selecionada,
-                'macro_selecionado': helena.macro_selecionado,
-                'processo_selecionado': helena.processo_selecionado,
-                'subprocesso_selecionado': helena.subprocesso_selecionado,
-                'atividade_selecionada': helena.atividade_selecionada,
-                'dados': helena.dados,
-                'sistemas_selecionados': helena.sistemas_selecionados,
+            # Salvar novo estado na sessão (resultado retorna 'novo_estado')
+            novo_session_data = resultado.get('novo_estado', session_data)
+            request.session[session_key] = novo_session_data
 
-                # CAMPOS DE ETAPAS: Salvar estado completo
-                'documentos_processo': helena.documentos_processo if hasattr(helena, 'documentos_processo') else [],
-                'etapa_temporaria': helena.etapa_temporaria if hasattr(helena, 'etapa_temporaria') else '',
-                'aguardando_detalhes': helena.aguardando_detalhes if hasattr(helena, 'aguardando_detalhes') else False,
-                'detalhes_etapa_atual': helena.detalhes_etapa_atual if hasattr(helena, 'detalhes_etapa_atual') else [],
-                'etapas_processo': helena.etapas_processo,
-                'etapa_atual_campo': helena.etapa_atual_campo,
-                'fluxos_entrada': helena.fluxos_entrada,
-                'fluxos_saida': helena.fluxos_saida,
-                'conversas': helena.conversas,
-
-                # CAMPOS CONDICIONAIS CRÍTICOS (FIX: Etapas condicionais sumindo)
-                'aguardando_operadores_etapa': helena.aguardando_operadores_etapa if hasattr(helena, 'aguardando_operadores_etapa') else False,
-                'operadores_etapa_atual': helena.operadores_etapa_atual if hasattr(helena, 'operadores_etapa_atual') else [],
-                'aguardando_pergunta_condicionais': helena.aguardando_pergunta_condicionais if hasattr(helena, 'aguardando_pergunta_condicionais') else False,
-                'etapa_tem_condicionais': helena.etapa_tem_condicionais if hasattr(helena, 'etapa_tem_condicionais') else False,
-                'aguardando_tipo_condicional': helena.aguardando_tipo_condicional if hasattr(helena, 'aguardando_tipo_condicional') else False,
-                'tipo_condicional': helena.tipo_condicional if hasattr(helena, 'tipo_condicional') else None,
-                'aguardando_antes_decisao': helena.aguardando_antes_decisao if hasattr(helena, 'aguardando_antes_decisao') else False,
-                'antes_decisao': helena.antes_decisao if hasattr(helena, 'antes_decisao') else None,
-                'aguardando_cenarios': helena.aguardando_cenarios if hasattr(helena, 'aguardando_cenarios') else False,
-                'aguardando_subetapas_cenario': helena.aguardando_subetapas_cenario if hasattr(helena, 'aguardando_subetapas_cenario') else False,
-                'cenario_atual_detalhando': helena.cenario_atual_detalhando if hasattr(helena, 'cenario_atual_detalhando') else None,
-                'cenarios_coletados': helena.cenarios_coletados if hasattr(helena, 'cenarios_coletados') else [],
-                'aguardando_condicionais': helena.aguardando_condicionais if hasattr(helena, 'aguardando_condicionais') else False,
-                'modo_tempo_real': helena.modo_tempo_real if hasattr(helena, 'modo_tempo_real') else False
-            }
-            
             # Forcar Django a salvar a sessao modificada
             request.session.modified = True
 
             # DEBUG PONTO C - APOS SALVAR
             print(f"\n{'='*80}")
             print(f"[OK] PONTO C - ESTADO SALVO NA SESSAO")
-            print(f"   Estado salvo: {helena.estado}")
-            print(f"   Etapa salva: {helena.etapa_atual_campo}/{len(helena.etapas_processo)}")
-            print(f"   Sistemas salvos: {helena.sistemas_selecionados}")
-            print(f"   Total campos salvos: {len(request.session[session_key])}")
+            print(f"   Estado salvo: {novo_session_data.get('estado')}")
+            print(f"   Sistemas salvos: {len(novo_session_data.get('dados_coletados', {}).get('sistemas', []))}")
             print(f"   Session modified: {request.session.modified}")
             print(f"{'='*80}\n")
-            
+
             # Log específico da Helena
             log_helena = LogUtils.log_helena_interacao(
                 usuario=session_id,
                 pergunta=user_message,
                 resposta=resultado.get('resposta', ''),
-                estado=helena.estado
+                estado=novo_session_data.get('estado', 'unknown')
             )
-            
-            return JsonResponse(resultado)
+
+            # DEBUG: Verificar campos antes do return
+            print(f"\n{'='*80}")
+            print(f"[FINAL] ANTES DO JsonResponse:")
+            print(f"   tipo_interface: {resultado.get('tipo_interface')}")
+            print(f"   interface: {resultado.get('interface')}")
+            print(f"   dados_interface: {resultado.get('dados_interface')}")
+            print(f"   dados: {resultado.get('dados')}")
+            print(f"{'='*80}\n")
+
+            # 🔧 FIX: Serialização JSON robusta para evitar perda de dados
+            # JsonResponse padrão descarta silenciosamente objetos não-serializáveis
+            # Solução: fazer dump/load manual com default=str para forçar conversão
+
+            # DEBUG: Log do JSON que REALMENTE será enviado
+            json_str = json.dumps(resultado, ensure_ascii=False, default=str)
+            print(f"\n🌐 [JSON ENVIADO AO FRONTEND - {len(json_str)} bytes]")
+            print(f"   interface: {resultado.get('interface')}")
+            print(f"   tipo_interface: {resultado.get('tipo_interface')}")
+            print(f"   dados_interface keys: {list(resultado.get('dados_interface', {}).keys()) if resultado.get('dados_interface') else 'None'}")
+            print(f"   resposta: {resultado.get('resposta')[:50] if resultado.get('resposta') else '<None>'}\n")
+
+            return JsonResponse(
+                json.loads(json_str),
+                safe=False,
+                json_dumps_params={"ensure_ascii": False, "indent": None}
+            )
         
         # P2: Gerador de Fluxograma (com sessao)
         elif contexto == 'fluxograma':
@@ -1138,9 +1057,9 @@ def autosave_pop(request):
                 'error': 'session_id obrigatório'
             }, status=400)
 
-        # 📝 LOG: Receber dados do auto-save
-        logger.info(f"💾 [AUTO-SAVE] Sessão: {session_id}")
-        logger.debug(f"💾 [AUTO-SAVE] Dados recebidos: {list(dados_pop.keys())}")
+        # LOG: Receber dados do auto-save
+        logger.info(f"[AUTO-SAVE] Sessao: {session_id}")
+        logger.debug(f"[AUTO-SAVE] Dados recebidos: {list(dados_pop.keys())}")
 
         # TODO FASE 2: Salvar em cache Redis ou PostgreSQL
         # Por enquanto, apenas aceitar e confirmar recebimento

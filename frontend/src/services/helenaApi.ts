@@ -37,13 +37,21 @@ export interface PDFResponse {
   error?: string;
 }
 
-// Chat principal com Helena (MIGRADO PARA API V2 - FASE 1)
+// Chat principal com Helena (USA /chat/ com POPStateMachine corrigido)
 export const chatHelena = async (request: ChatRequest): Promise<ChatResponse> => {
-  const response = await api.post('/chat-v2/', {
-    mensagem: request.message,  // API v2 usa 'mensagem' não 'message'
+  console.log("[helenaApi.ts] 📤 Enviando para /chat/:", {
+    message: request.message,
+    contexto: request.contexto,
     session_id: request.session_id
   });
-  console.log("[helenaApi.ts] Resposta CRUA da API V2:", response.data);
+
+  const response = await api.post('/chat/', {
+    message: request.message,
+    contexto: request.contexto,  // ✅ Envia contexto 'gerador_pop'
+    session_id: request.session_id
+  });
+
+  console.log("[helenaApi.ts] 📥 Resposta CRUA da API /chat/:", response.data);
   return response.data;
 };
 

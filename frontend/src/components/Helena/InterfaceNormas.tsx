@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
 
 interface Norma {
   nome_curto: string;
@@ -129,8 +130,24 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
     onConfirm(resposta);
   };
 
+  // Extrair texto de introdução (se houver)
+  const textoIntroducao = (dados as { texto_introducao?: string })?.texto_introducao;
+
   return (
     <div className="interface-container fade-in">
+      {/* Texto de Introdução (vem do backend) */}
+      {textoIntroducao && (
+        <div className="interface-intro" style={{
+          marginBottom: '20px',
+          padding: '16px',
+          background: '#f8f9fa',
+          borderRadius: '8px',
+          borderLeft: '4px solid #1351B4'
+        }}>
+          <ReactMarkdown>{textoIntroducao}</ReactMarkdown>
+        </div>
+      )}
+
       {/* Cabeçalho Unificado */}
       <div className="interface-title">📚 Normas e Dispositivos Legais</div>
       <div className="interface-subtitle">
@@ -170,7 +187,7 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
         {/* 1️⃣ SEÇÃO: SUGESTÕES AUTOMÁTICAS (HELENA) */}
         <div className="section-card section-sugestoes">
           <div className="section-header">
-            <h3>💡 Sugestões da Helena</h3>
+            <h3>💡 Minhas Sugestões</h3>
             <p className="section-desc">Essas são as normas que encontrei para sua atividade</p>
             {sugestoes.length > 0 && (
               <button

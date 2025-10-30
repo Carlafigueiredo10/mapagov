@@ -58,8 +58,10 @@ const InterfaceOperadores: React.FC<InterfaceOperadoresProps> = ({ dados, onConf
 
   const handleConfirm = () => {
     const resposta = operadoresSelecionados.length > 0
-      ? operadoresSelecionados.join(', ')
+      ? JSON.stringify(operadoresSelecionados)
       : 'nenhum';
+
+    console.log('📤 InterfaceOperadores enviando:', resposta);
     onConfirm(resposta);
   };
 

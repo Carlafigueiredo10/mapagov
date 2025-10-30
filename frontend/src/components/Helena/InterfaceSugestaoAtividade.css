@@ -1,0 +1,223 @@
+.sugestao-atividade-container {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid #e0e4e8;
+    border-radius: 16px;
+    padding: 24px;
+    margin: 16px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sugestao-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e8ecef;
+}
+
+.sugestao-icone {
+    font-size: 32px;
+    line-height: 1;
+}
+
+.sugestao-titulo {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #2c3e50;
+    flex: 1;
+}
+
+.badge-match-exato {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+}
+
+.badge-semantic {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.sugestao-conteudo {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.campo-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.campo-info label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.valor {
+    font-size: 15px;
+    color: #2c3e50;
+    padding: 10px 14px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #bdc3c7;
+}
+
+.valor-cap {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2c3e50;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%);
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    border: 2px solid #95a5a6;
+}
+
+.campo-info.destaque {
+    margin-top: 8px;
+}
+
+.valor-atividade {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #fff5e6 0%, #ffe6cc 100%);
+    border-radius: 8px;
+    border-left: 4px solid #f39c12;
+}
+
+.aviso-nao-editavel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #fef5e7;
+    border: 1px solid #f9e79f;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #7d6608;
+}
+
+.icone-lock {
+    font-size: 18px;
+}
+
+.sugestao-acoes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.btn-concordar,
+.btn-selecionar-manual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-concordar {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+}
+
+.btn-concordar:hover {
+    background: linear-gradient(135deg, #229954 0%, #1e8449 100%);
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-concordar:active {
+    transform: translateY(0);
+}
+
+.btn-selecionar-manual {
+    background: white;
+    color: #2c3e50;
+    border: 2px solid #bdc3c7;
+}
+
+.btn-selecionar-manual:hover {
+    background: #ecf0f1;
+    border-color: #95a5a6;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.btn-selecionar-manual:active {
+    transform: translateY(0);
+}
+
+.btn-icone {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.sugestao-rodape {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #ecf0f1;
+    text-align: center;
+}
+
+.texto-ajuda {
+    font-size: 13px;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+/* Responsive */
+@media (min-width: 640px) {
+    .sugestao-acoes {
+        flex-direction: row;
+    }
+
+    .btn-concordar {
+        flex: 1.2;
+    }
+
+    .btn-selecionar-manual {
+        flex: 1;
+    }
+}

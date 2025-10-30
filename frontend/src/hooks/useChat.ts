@@ -70,18 +70,27 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
       const store = useChatStore.getState();
       store.removeMessage(loadingId);
 
-      // ✅ VALIDAÇÃO: Só adicionar resposta se não estiver vazia
-      if (response.resposta && response.resposta.trim() !== '') {
-        adicionarMensagemRapida('helena', response.resposta, {
+      // ✅ VALIDAÇÃO: Só adicionar resposta se texto OU interface presente
+      // Modo interface: resposta pode ser null se interface substitui texto (pureza arquitetural)
+      console.log('[useChat] 📥 Resposta do backend:', {
+        tem_resposta: !!response.resposta,
+        tem_interface: !!response.tipo_interface,
+        tipo_interface: response.tipo_interface,
+        dados_interface_keys: response.dados_interface ? Object.keys(response.dados_interface) : null
+      });
+
+      if ((response.resposta && response.resposta.trim() !== '') || response.tipo_interface) {
+        console.log('[useChat] ✅ Adicionando mensagem com interface:', response.tipo_interface);
+        adicionarMensagemRapida('helena', response.resposta || '', {
           interface: response.tipo_interface ? {
             tipo: response.tipo_interface,
             dados: response.dados_interface
           } : undefined
         });
       } else {
-        // ⚠️ LOG: Resposta vazia detectada
-        console.error('❌ Resposta vazia do backend:', response);
-        
+        // ⚠️ LOG: Resposta vazia SEM interface detectada
+        console.error('❌ Resposta vazia SEM interface do backend:', response);
+
         // Adicionar mensagem de fallback
         adicionarMensagemRapida('helena', 'Desculpe, não consegui processar sua mensagem. Pode repetir?');
       }

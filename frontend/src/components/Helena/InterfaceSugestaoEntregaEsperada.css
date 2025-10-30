@@ -1,0 +1,117 @@
+.sugestao-entrega-container {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f1f8ff 100%);
+    border: 2px solid #2196F3;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 16px 0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.sugestao-entrega-header {
+    margin-bottom: 20px;
+}
+
+.sugestao-entrega-header h3 {
+    font-size: 18px;
+    color: #1565C0;
+    margin: 0;
+    font-weight: 500;
+}
+
+.sugestao-entrega-header h3 strong {
+    font-weight: 700;
+    color: #0D47A1;
+}
+
+.sugestao-entrega-conteudo {
+    margin-bottom: 24px;
+}
+
+.campo-sugestao {
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    border-left: 4px solid #4CAF50;
+}
+
+.campo-sugestao label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #424242;
+    margin-bottom: 8px;
+}
+
+.valor-sugestao {
+    font-size: 16px;
+    color: #1976D2;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.texto-pergunta {
+    font-size: 14px;
+    color: #616161;
+    margin: 0;
+    text-align: center;
+}
+
+.sugestao-entrega-acoes {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.btn-concordar-entrega,
+.btn-editar-manual {
+    flex: 1;
+    min-width: 200px;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-concordar-entrega {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+}
+
+.btn-concordar-entrega:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.btn-editar-manual {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    color: white;
+}
+
+.btn-editar-manual:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
+.btn-icone {
+    font-size: 18px;
+}
+
+@media (max-width: 768px) {
+    .sugestao-entrega-acoes {
+        flex-direction: column;
+    }
+
+    .btn-concordar-entrega,
+    .btn-editar-manual {
+        width: 100%;
+        min-width: unset;
+    }
+}

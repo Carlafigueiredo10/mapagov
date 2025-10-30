@@ -4,13 +4,13 @@ import React, { useState } from 'react';
 
 // Importando todos os componentes filhos de seus respectivos arquivos (sem duplicatas)
 import AreasSelector from './AreasSelector';
+import SubareasSelector from './SubareasSelector';
 import DropdownArquitetura from './DropdownArquitetura';
 import ModalAjudaHelena from './ModalAjudaHelena';
 import InterfaceSistemas from './InterfaceSistemas';
 import InterfaceNormas from './InterfaceNormas';
 import InterfaceDocumentos from './InterfaceDocumentos';
 import InterfaceEntradaProcesso from './InterfaceEntradaProcesso';
-import { DocumentosForm } from './DocumentosForm';
 import BadgeTrofeu from './BadgeTrofeu';
 import InterfaceOperadores from './InterfaceOperadores';
 import InterfaceOperadoresEtapa from './InterfaceOperadoresEtapa';
@@ -33,6 +33,11 @@ import InterfaceFinal from './InterfaceFinal';
 import InterfaceTransicaoEpica from './InterfaceTransicaoEpica';
 import InterfaceConfirmacaoDupla from './InterfaceConfirmacaoDupla';
 import InterfaceArquiteturaHierarquica from './InterfaceArquiteturaHierarquica';
+import BadgeCompromisso from './BadgeCompromisso';
+import InterfaceSugestaoAtividade from './InterfaceSugestaoAtividade';
+import InterfaceSelecaoManualHierarquica from './InterfaceSelecaoManualHierarquica';
+import InterfaceRagPerguntaAtividade from './InterfaceRagPerguntaAtividade';
+import InterfaceSugestaoEntregaEsperada from './InterfaceSugestaoEntregaEsperada';
 
 // TIPOS E INTERFACES GLOBAIS (sem duplicatas)
 interface InterfaceData {
@@ -75,10 +80,16 @@ const InterfaceDinamica: React.FC<InterfaceDinamicaProps> = ({ interfaceData, on
   }
 
   const handleConfirm = (resposta: string) => {
+    console.log('🟢 InterfaceDinamica.handleConfirm recebeu:', resposta);
+    console.log('🟢 Tipo:', typeof resposta);
+    console.log('🟢 Tamanho:', resposta?.length);
+
     if (!resposta || resposta.trim() === '') {
       console.warn('⚠️ Resposta vazia bloqueada.');
       return;
     }
+
+    console.log('🟢 Chamando onRespond com:', resposta);
     onRespond(resposta);
   };
 
@@ -152,8 +163,68 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
   };
 
   switch (tipo) {
+    case 'badge_compromisso':
+      return (
+        <BadgeCompromisso
+          nomeCompromisso={dados?.nome_compromisso as string}
+          emoji={dados?.emoji as string}
+          descricao={dados?.descricao as string}
+          onContinuar={() => handleConfirm('sim')}
+        />
+      );
+
+    case 'sugestao_atividade':
+      return (
+        <InterfaceSugestaoAtividade
+          atividade={dados?.atividade as any}
+          cap={dados?.cap as string}
+          origem={dados?.origem as 'match_exato' | 'match_fuzzy' | 'semantic'}
+          score={dados?.score as number}
+          podeEditar={dados?.pode_editar as boolean}
+          onConcordar={() => handleConfirm('concordar')}
+          onSelecionarManual={() => handleConfirm('selecionar_manual')}
+        />
+      );
+
+    case 'selecao_manual_hierarquica':
+      return (
+        <InterfaceSelecaoManualHierarquica
+          hierarquia={dados?.hierarquia as any}
+          mensagem={dados?.mensagem as string}
+          onConfirmar={(selecao) => handleConfirm(JSON.stringify({ acao: 'confirmar', selecao }))}
+          onNaoEncontrei={(selecao) => handleConfirm(JSON.stringify({ acao: 'nao_encontrei', selecao }))}
+        />
+      );
+
+    case 'rag_pergunta_atividade':
+      return (
+        <InterfaceRagPerguntaAtividade
+          mensagem={dados?.mensagem as string}
+          hierarquiaHerdada={dados?.hierarquia_herdada as any}
+          onEnviar={(descricao) => handleConfirm(JSON.stringify({ acao: 'enviar_descricao', descricao }))}
+        />
+      );
+
+    case 'sugestao_entrega_esperada':
+      return (
+        <InterfaceSugestaoEntregaEsperada
+          sugestao={dados?.sugestao as string}
+          onConcordar={() => handleConfirm('concordar')}
+          onEditarManual={() => handleConfirm('editar_manual')}
+        />
+      );
+
     case 'areas':
       return <AreasSelector data={dados as { opcoes_areas: Record<string, { codigo: string; nome: string }> }} onConfirm={handleConfirm} />;
+
+    case 'subareas':
+      return <SubareasSelector
+        data={dados as {
+          area_pai: { codigo: string; nome: string };
+          subareas: Array<{ codigo: string; nome: string; nome_completo: string; prefixo: string }>
+        }}
+        onConfirm={handleConfirm}
+      />;
 
     case 'dropdown_macro':
     case 'dropdown_processo':
@@ -332,24 +403,22 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
         />
       );
 
+    case 'badge_cartografo':
+      return (
+        <BadgeTrofeu
+          nomeBadge={dados?.titulo as string || "Cartógrafo de Processos"}
+          emoji={dados?.emoji as string || "🗺️"}
+          descricao={dados?.descricao as string}
+          onContinuar={() => handleConfirm('continuar')}
+        />
+      );
+
     case 'documentos':
       return <InterfaceDocumentos dados={dados || undefined} onConfirm={handleConfirm} />;
 
     case 'entrada_processo':
     case 'fluxos_entrada':
       return <InterfaceEntradaProcesso dados={dados || undefined} onConfirm={handleConfirm} />;
-
-    case 'documentos_form':
-      return (
-        <DocumentosForm
-          onSubmit={(documentos) => {
-            const payload = JSON.stringify({ documentos });
-            handleConfirm(payload);
-          }}
-          instrucoes={dados?.instrucoes as string}
-          tipos_documentos={dados?.tipos_documentos as any[]}
-        />
-      );
 
     case 'operadores':
       return <InterfaceOperadores dados={dados || undefined} onConfirm={handleConfirm} />;
@@ -381,9 +450,6 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
 
     case 'etapas_tempo_real':
       return <InterfaceEtapasTempoReal dados={dados || undefined} onConfirm={handleConfirm} />;
-
-    case 'fluxos_entrada':
-      return <InterfaceFluxosEntrada dados={dados || undefined} onConfirm={handleConfirm} />;
 
     case 'fluxos_saida':
       return <InterfaceFluxosSaida dados={dados || undefined} onConfirm={handleConfirm} />;
@@ -576,6 +642,14 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
 
     case 'confirmacao_dupla':
       return <InterfaceConfirmacaoDupla dados={dados || {}} onEnviar={handleConfirm} />;
+
+    case 'confirmacao_explicacao':
+      return <InterfaceConfirmacaoDupla dados={{
+        botao_confirmar: 'Sim',
+        botao_editar: 'Não, quero mais detalhes',
+        valor_confirmar: 'sim',
+        valor_editar: 'detalhes'
+      }} onEnviar={handleConfirm} />;
 
     case 'arquitetura_hierarquica':
       return <InterfaceArquiteturaHierarquica dados={dados || {}} onEnviar={handleConfirm} />;

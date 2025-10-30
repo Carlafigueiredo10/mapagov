@@ -146,11 +146,34 @@ class BaseHelena(ABC):
         Returns:
             dict: Resposta formatada
         """
-        resultado = {
-            'resposta': resposta,
-            'novo_estado': novo_estado,
-        }
+        # 🎯 DISTINÇÃO SEMÂNTICA: Modo Interface vs Modo Textual
+        # - Modo Interface: resposta pode ser None (interface substitui texto)
+        # - Modo Textual: resposta é obrigatória (chat conversacional puro)
 
+        if tipo_interface and dados_interface:
+            # ✅ MODO INTERFACE: Interface dinâmica (botões, cards, listas, etc)
+            # resposta pode ser None se a interface mostra tudo (pureza arquitetural)
+            resultado = {
+                'resposta': resposta,  # Pode ser None quando interface substitui texto
+                'interface': tipo_interface,
+                'tipo_interface': tipo_interface,  # Compatibilidade dupla
+                'dados': dados_interface,
+                'dados_interface': dados_interface,  # Compatibilidade dupla
+                'novo_estado': novo_estado,
+            }
+        else:
+            # ✅ MODO TEXTUAL: Chat conversacional puro
+            # Apenas texto, sem interface
+            resultado = {
+                'resposta': resposta or "",  # Garantir string vazia em vez de None
+                'interface': None,
+                'tipo_interface': None,
+                'dados': None,
+                'dados_interface': None,
+                'novo_estado': novo_estado,
+            }
+
+        # Campos comuns a ambos os modos
         if progresso:
             resultado['progresso'] = progresso
 
@@ -159,12 +182,6 @@ class BaseHelena(ABC):
 
         if metadados:
             resultado['metadados'] = metadados
-
-        if tipo_interface:
-            resultado['tipo_interface'] = tipo_interface
-
-        if dados_interface:
-            resultado['dados_interface'] = dados_interface
 
         if formulario_pop:
             resultado['formulario_pop'] = formulario_pop

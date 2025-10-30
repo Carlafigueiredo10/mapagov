@@ -3,11 +3,15 @@ import styles from "./BadgeTrofeu.module.css";
 
 interface BadgeTrofeuProps {
   nomeBadge?: string;
+  emoji?: string;
+  descricao?: string;
   onContinuar: () => void;
 }
 
 export default function BadgeTrofeu({
   nomeBadge = "Cartógrafo(a) de Processos – Nível 1",
+  emoji = "🏆",
+  descricao = "Você acaba de registrar etapas fundamentais do seu processo. 💪",
   onContinuar
 }: BadgeTrofeuProps) {
   const [showConfetti, setShowConfetti] = useState(false);
@@ -45,18 +49,18 @@ export default function BadgeTrofeu({
               }
             }}
           >
-            <span className={styles.trofeu}>🏆</span>
+            <span className={styles.trofeu}>{emoji}</span>
             <span className={styles.btnTexto}>🎁 Ver presente</span>
           </div>
         ) : (
           <>
             <div className={styles.trofeuExibido}>
-              <span className={styles.trofeu}>🏆</span>
+              <span className={styles.trofeu}>{emoji}</span>
             </div>
             <h3 className={styles.titulo}>Parabéns!</h3>
             <p className={styles.texto}>
               Badge desbloqueada: <strong>{nomeBadge}</strong> <br />
-              Você acaba de registrar etapas fundamentais do seu processo. 💪
+              {descricao}
             </p>
 
             <div className={styles.botoes}>

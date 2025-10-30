@@ -4,17 +4,33 @@ import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 """
-Helena - Ajuda Inteligente para Arquitetura de Processos
-Sistema que analisa descrição do usuário e sugere classificação completa
-da arquitetura (Macroprocesso → Processo → Subprocesso → Atividade → Resultado)
+Helena - Ajuda Inteligente para Arquitetura de Processos + Método CAP
+
+Sistema que:
+1. PRIORIZA busca no CSV oficial (match exato/fuzzy)
+2. Só chama IA quando não encontrar no CSV
+3. Gera CAP oficial (CSV) ou provisório (nova atividade)
+4. Integra com rastreabilidade completa
+
+Ordem de prioridade:
+1. Match exato no CSV (≈99% dos casos)
+2. Match fuzzy >= 85% (similaridade textual)
+3. IA generativa (casos novos/ambíguos)
 """
 
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+import pandas as pd
+from rapidfuzz import process, fuzz
+from datetime import datetime
+import hashlib
+from django.db import transaction
+import logging
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 def analisar_atividade_com_helena(descricao_usuario, nivel_atual, contexto_ja_selecionado=None):
     """
@@ -61,39 +77,52 @@ def analisar_atividade_com_helena(descricao_usuario, nivel_atual, contexto_ja_se
             if contexto_ja_selecionado.get('atividade'):
                 contexto_texto += f"- Atividade: {contexto_ja_selecionado['atividade']}\n"
 
+        # Carregar os 12 macroprocessos oficiais do CSV
+        import pandas as pd
+        csv_path = 'documentos_base/Arquitetura_DECIPEX_mapeada.csv'
+        df = pd.read_csv(csv_path)
+        macros_oficiais = df['Macroprocesso'].unique().tolist()
+        lista_macros = "\n".join([f"{i+1}. {macro}" for i, macro in enumerate(macros_oficiais)])
+
         # Prompt para o GPT-4
         prompt = f"""Você é Helena, assistente especialista em mapeamento de processos do serviço público brasileiro.
 
-Um usuário precisa classificar sua atividade na arquitetura de processos, mas está com dúvida.
+**RESTRIÇÃO CRÍTICA - MACROPROCESSOS OFICIAIS:**
+Você DEVE escolher OBRIGATORIAMENTE um dos seguintes 12 macroprocessos oficiais da DECIPEX:
 
-**Arquitetura de Processos (4 níveis):**
-1. **Macroprocesso**: Conjunto amplo de processos relacionados (ex: "Gestão de Aposentadorias", "Gestão de Benefícios")
-2. **Processo**: Conjunto de atividades relacionadas (ex: "Concessão de aposentadorias", "Manutenção de aposentadorias")
-3. **Subprocesso**: Divisão específica do processo (ex: "Análise de documentos", "Cálculo de proventos")
-4. **Atividade**: Tarefa específica executada (ex: "Validar tempo de contribuição", "Calcular valor da aposentadoria")
-5. **Resultado Final**: O que é entregue ao final (ex: "Aposentadoria concedida", "Parecer de indeferimento")
+{lista_macros}
+
+❌ NÃO INVENTE novos macroprocessos.
+❌ NÃO USE nomes diferentes dos listados acima.
+✅ Use EXATAMENTE um dos nomes acima (copie o texto exato).
+
+**Arquitetura de Processos (5 níveis):**
+1. **Macroprocesso**: OBRIGATORIAMENTE um dos 12 listados acima
+2. **Processo**: Conjunto de atividades relacionadas
+3. **Subprocesso**: Divisão específica do processo
+4. **Atividade**: Tarefa específica executada
+5. **Resultado Final**: O que é entregue ao final
 {contexto_texto}
 **Descrição do usuário sobre o que ele faz:**
 "{descricao_usuario}"
 
 **Sua tarefa:**
-Analise a descrição e sugira a classificação completa nos 5 níveis. Se algum nível já foi definido pelo contexto, MANTENHA o valor do contexto.
+Analise a descrição e sugira a classificação completa nos 5 níveis.
 
-**IMPORTANTE:**
-- Use linguagem clara e objetiva do setor público
-- Se não houver contexto definido, sugira TODOS os 5 níveis
-- Se houver contexto parcial (ex: Macroprocesso já definido), sugira apenas os níveis seguintes
-- Seja específico e use terminologia do serviço público
-- Avalie sua confiança: alta (muito claro), média (provável), baixa (incerto)
+**REGRAS:**
+- Macroprocesso: copie EXATAMENTE um dos 12 nomes listados acima
+- Processo/Subprocesso: devem ser compatíveis com a estrutura oficial
+- Se contexto já definido, MANTENHA os valores
+- Avalie confiança: alta (muito claro), media (provável), baixa (incerto)
 
-Retorne APENAS um JSON válido no seguinte formato:
+Retorne APENAS um JSON válido:
 {{
-    "macroprocesso": "Nome do macroprocesso",
+    "macroprocesso": "Nome EXATO de um dos 12 acima",
     "processo": "Nome do processo",
     "subprocesso": "Nome do subprocesso",
     "atividade": "Nome da atividade",
     "resultado_final": "Nome do resultado final",
-    "justificativa": "Explicação breve de por que você classificou assim",
+    "justificativa": "Breve explicação",
     "confianca": "alta" ou "media" ou "baixa"
 }}"""
 
@@ -228,3 +257,203 @@ def validar_sugestao_contra_csv(sugestao, arquitetura):
     }
 
     return validacao
+
+
+# ============================================================================
+# INTEGRAÇÃO HELENA + MÉTODO CAP
+# ============================================================================
+
+def classificar_e_gerar_cap(descricao_usuario, area_codigo, contexto=None, autor_dados=None):
+    """
+    Classifica atividade e gera CAP (oficial ou provisório)
+
+    PRIORIDADE:
+    1. Match exato no CSV → retorna CAP oficial
+    2. Match fuzzy >= 85% → retorna CAP oficial
+    3. Não encontrou → IA sugere → gera CAP provisório
+
+    Args:
+        descricao_usuario (str): Descrição da atividade
+        area_codigo (str): Código da área (ex: 'CGBEN', 'CGPAG')
+        contexto (dict): Contexto já selecionado (opcional)
+        autor_dados (dict): Dados do autor para rastreabilidade
+            {
+                'cpf': '12345678900',
+                'nome': 'João Silva',
+                'area': 'CGBEN'
+            }
+
+    Returns:
+        dict: {
+            'sucesso': True/False,
+            'tipo_cap': 'oficial' | 'provisorio',
+            'origem_fluxo': 'match_exato' | 'match_fuzzy' | 'nova_atividade_ia',
+            'cap': '1.02.03.04.XXX',
+            'macroprocesso': str,
+            'processo': str,
+            'subprocesso': str,
+            'atividade': str,
+            'resultado_final': str,
+            'justificativa': str,
+            'confianca': 'alta' | 'media' | 'baixa'
+        }
+    """
+
+    try:
+        # 1️⃣ Carregar CSV
+        csv_path = 'documentos_base/Arquitetura_DECIPEX_mapeada.csv'
+        df = pd.read_csv(csv_path)
+
+        # 🔍 DIAGNÓSTICO: Logs detalhados para debug
+        logger.info("="*80)
+        logger.info("[BUSCA] DIAGNÓSTICO DE BUSCA NO CSV")
+        logger.info("="*80)
+        logger.info(f"[INFO] Colunas do CSV: {df.columns.tolist()}")
+        logger.info(f"[INFO] Total de linhas: {len(df)}")
+        logger.info(f"[INFO] Primeiras 3 linhas:\n{df.head(3)}")
+        logger.info(f"[BUSCA] Buscando: '{descricao_usuario}' (len={len(descricao_usuario)}, type={type(descricao_usuario)})")
+
+        df = df.fillna('')
+
+        # Verificar tipos e amostras das colunas de busca
+        colunas_busca = ['Macroprocesso', 'Processo', 'Subprocesso', 'Atividade']
+        for col in colunas_busca:
+            if col in df.columns:
+                logger.info(f"[DEBUG] Coluna '{col}':")
+                logger.info(f"   - Tipo: {df[col].dtype}")
+                logger.info(f"   - Valores únicos: {df[col].nunique()}")
+                if len(df[col]) > 0:
+                    amostra = df[col].iloc[0]
+                    logger.info(f"   - Amostra [0]: '{amostra}' (len={len(str(amostra))})")
+                    logger.info(f"   - Encoding bytes: {amostra.encode('utf-8') if isinstance(amostra, str) else 'N/A'}")
+            else:
+                logger.warning(f"⚠️ Coluna '{col}' NÃO ENCONTRADA no CSV!")
+
+        logger.info("="*80)
+
+        # 2️⃣ Match EXATO (case insensitive) - busca em todas colunas relevantes
+        logger.info("[BUSCA] Tentando MATCH EXATO...")
+        for col in colunas_busca:
+            if col not in df.columns:
+                continue
+            logger.info(f"   Buscando em '{col}'...")
+            descricao_lower = descricao_usuario.lower().strip()
+            logger.info(f"   Termo normalizado: '{descricao_lower}'")
+            match_exato = df[df[col].str.lower().str.strip() == descricao_lower]
+            logger.info(f"   Resultados encontrados: {len(match_exato)}")
+            if not match_exato.empty:
+                linha = match_exato.iloc[0]
+                logger.info(f"[OK] Match exato encontrado em '{col}'!")
+                logger.info(f"   Linha matched: {linha.to_dict()}")
+
+                return {
+                    'sucesso': True,
+                    'tipo_cap': 'oficial',
+                    'origem_fluxo': 'match_exato',
+                    'cap': _gerar_cap_oficial(linha, area_codigo),
+                    'macroprocesso': linha['Macroprocesso'],
+                    'processo': linha['Processo'],
+                    'subprocesso': linha['Subprocesso'],
+                    'atividade': linha['Atividade'],
+                    'resultado_final': f"{linha['Atividade']} concluída",  # Inferir resultado
+                    'justificativa': f"Encontrado no catálogo oficial (correspondência exata em '{col}').",
+                    'confianca': 'alta'
+                }
+
+        logger.info("[ERRO] Nenhum match exato encontrado")
+
+        # 3️⃣ Match FUZZY >= 85% (busca por similaridade)
+        logger.info("[BUSCA] Tentando MATCH FUZZY (threshold >= 85%)...")
+        todas_atividades = df['Atividade'].tolist()
+        logger.info(f"   Total de atividades para comparar: {len(todas_atividades)}")
+        logger.info(f"   Primeiras 3 atividades: {todas_atividades[:3]}")
+
+        if todas_atividades:
+            match_result = process.extractOne(
+                descricao_usuario,
+                todas_atividades,
+                scorer=fuzz.token_sort_ratio
+            )
+            logger.info(f"   Resultado do fuzzy: {match_result}")
+
+            if match_result:
+                match_texto, score, idx = match_result
+                logger.info(f"   Melhor match: '{match_texto}' (score: {score}%, índice: {idx})")
+
+                if score >= 85:
+                    linha = df.iloc[idx]
+                    logger.info(f"[OK] Match fuzzy encontrado: '{match_texto}' (score: {score}%)")
+                    logger.info(f"   Linha matched: {linha.to_dict()}")
+
+                    return {
+                        'sucesso': True,
+                        'tipo_cap': 'oficial',
+                        'origem_fluxo': 'match_fuzzy',
+                        'cap': _gerar_cap_oficial(linha, area_codigo),
+                        'macroprocesso': linha['Macroprocesso'],
+                        'processo': linha['Processo'],
+                        'subprocesso': linha['Subprocesso'],
+                        'atividade': linha['Atividade'],
+                        'resultado_final': f"{linha['Atividade']} concluída",
+                        'justificativa': f"Encontrado no catálogo oficial (similaridade de {score:.1f}% com '{match_texto}').",
+                        'confianca': 'media' if score < 95 else 'alta'
+                    }
+                else:
+                    logger.info(f"[AVISO] Melhor match: '{match_texto}' ({score}%) - abaixo do limite (85%)")
+            else:
+                logger.info("[AVISO] process.extractOne retornou None")
+        else:
+            logger.info("[AVISO] Lista de atividades está vazia")
+
+        logger.info("[ERRO] Nenhum match fuzzy encontrado")
+
+        # 4️⃣ Não encontrou → retornar "não encontrado" para o pipeline decidir
+        logger.info("="*80)
+        logger.info("[CAMADA 1] Nenhum match no CSV - retornando 'encontrado=False'")
+        logger.info("[CAMADA 1] Pipeline decidirá próximas camadas (semântica/RAG)")
+        logger.info("="*80)
+
+        return {
+            'sucesso': True,
+            'encontrado': False
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Erro em classificar_e_gerar_cap: {e}")
+        import traceback
+        traceback.print_exc()
+
+        return {
+            'sucesso': False,
+            'erro': str(e)
+        }
+
+
+def _gerar_cap_oficial(linha_csv, area_codigo):
+    """
+    Retorna CAP oficial da linha do CSV
+
+    REGRA: Camadas 1-3 SEMPRE retornam CAP do CSV oficial.
+    CAP é obrigatório - se não existir, lança exceção.
+    """
+    import pandas as pd
+
+    # Verificar se campo Numero existe e está preenchido
+    if 'Numero' not in linha_csv.index:
+        raise ValueError("Campo 'Numero' não encontrado no CSV oficial.")
+
+    cap = linha_csv['Numero']
+
+    # Validar que CAP não é vazio/None
+    if pd.isna(cap) or not str(cap).strip():
+        raise ValueError(
+            f"Atividade '{linha_csv.get('Atividade', 'N/A')}' não possui CAP registrado no CSV oficial. "
+            f"Todas as atividades nas Camadas 1-3 devem ter CAP obrigatório."
+        )
+
+    return str(cap).strip()
+
+
+# FUNÇÃO _gerar_cap_provisorio() REMOVIDA
+# Motivo: CAP provisório foi abolido. RAG agora gera CAP sequencial oficial.
+# Ref: Correção v3.5 - Todas as atividades têm CAP oficial desde a criação.

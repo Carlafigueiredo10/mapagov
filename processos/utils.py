@@ -254,8 +254,8 @@ class LogUtils:
             usuario=usuario,
             acao="helena_interacao",
             dados={
-                "pergunta": pergunta[:200],
-                "resposta_size": len(resposta),
+                "pergunta": pergunta[:200] if pergunta else "",
+                "resposta_size": len(resposta) if resposta else 0,
                 "estado": estado,
                 "sucesso": True
             }

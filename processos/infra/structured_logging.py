@@ -379,3 +379,27 @@ def track_performance(event_type: str):
 
         return wrapper
     return decorator
+
+
+# ======================================================================
+# PATCH v3 - Corrigir encoding de logs no Windows (emojis, símbolos, acentos)
+# ======================================================================
+
+import sys
+import unicodedata
+
+class SafeUTF8Filter(logging.Filter):
+    """Remove caracteres não suportados por CP1252 e normaliza logs."""
+    def filter(self, record):
+        try:
+            # Normaliza acentos e remove qualquer caractere não-ASCII
+            safe_msg = unicodedata.normalize("NFKD", str(record.msg))
+            safe_msg = safe_msg.encode("ascii", "ignore").decode("ascii")
+            record.msg = safe_msg
+        except Exception:
+            record.msg = str(record.msg)
+        return True
+
+if sys.platform.startswith('win'):
+    logging.getLogger().addFilter(SafeUTF8Filter())
+    print("[LOGGING] SafeUTF8Filter ativo — logs normalizados para CP1252 (sem emojis/simbolos Unicode)")

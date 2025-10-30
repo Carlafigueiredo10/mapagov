@@ -68,11 +68,9 @@ export function DocumentosForm({ onSubmit, instrucoes, tipos_documentos }: Docum
   };
 
   const handleFinish = () => {
-    // Enviar JSON para backend
-    const payload = {
-      documentos: documentos.map(({ animating, ...doc }) => doc) // Remove flag de animação
-    };
-    onSubmit(payload.documentos);
+    // Enviar lista de documentos para backend (será empacotado no InterfaceDinamica)
+    const documentosSemAnimacao = documentos.map(({ animating, ...doc }) => doc);
+    onSubmit(documentosSemAnimacao);
   };
 
   const handleRemove = (index: number) => {

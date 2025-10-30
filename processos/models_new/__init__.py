@@ -9,6 +9,11 @@ from processos.models_new.atividade_sugerida import (
     AtividadeSugerida,
     HistoricoAtividade
 )
+from processos.models_new.plano_acao import (
+    PlanoAcao,
+    Acao,
+    ComentarioAcao
+)
 
 __all__ = [
     'Orgao',
@@ -16,5 +21,8 @@ __all__ = [
     'ChatMessage',
     'ControleIndices',
     'AtividadeSugerida',
-    'HistoricoAtividade'
+    'HistoricoAtividade',
+    'PlanoAcao',
+    'Acao',
+    'ComentarioAcao'
 ]

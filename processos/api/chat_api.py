@@ -15,6 +15,8 @@ from django.contrib.auth.decorators import login_required
 from processos.app.helena_core import HelenaCore
 from processos.domain.helena_produtos.helena_etapas import HelenaEtapas
 from processos.domain.helena_produtos.helena_pop import HelenaPOP
+from processos.domain.helena_produtos.helena_mapeamento import HelenaMapeamento
+from processos.domain.helena_produtos.helena_plano_acao import HelenaPlanoAcao
 from processos.infra.rate_limiting import rate_limit_user  # FASE 2: Rate limiting
 # Importar outros produtos conforme necessário
 
@@ -38,6 +40,8 @@ def get_helena_core() -> HelenaCore:
         registry = {
             'pop': HelenaPOP(),
             'etapas': HelenaEtapas(),
+            'mapeamento': HelenaMapeamento(),
+            'plano_acao': HelenaPlanoAcao(),
             # 'fluxograma': HelenaFluxograma(),
             # 'riscos': HelenaAnaliseRiscos(),
         }
@@ -119,19 +123,19 @@ def chat_v2(request):
             user=user
         )
 
-        # 🐛 DEBUG CRÍTICO: Verificar se formulario_pop e dados_extraidos estão na resposta
+        # DEBUG CRITICO: Verificar se formulario_pop e dados_extraidos estao na resposta
         if 'formulario_pop' in resultado:
             form = resultado['formulario_pop']
-            logger.info("✅ [API] formulario_pop PRESENTE na resposta:")
+            logger.info("[API] formulario_pop PRESENTE na resposta:")
             logger.info(f"  CAP: {form.get('codigo_cap')} | Macro: {form.get('macroprocesso')} | Atividade: {form.get('atividade')}")
         else:
-            logger.error(f"❌ [API] formulario_pop AUSENTE! Chaves: {list(resultado.keys())}")
+            logger.error(f"[API] formulario_pop AUSENTE! Chaves: {list(resultado.keys())}")
 
         if 'dados_extraidos' in resultado:
             dados = resultado['dados_extraidos']
-            logger.info(f"✅ [API] dados_extraidos PRESENTE: {list(dados.keys())[:5]}...")
+            logger.info(f"[API] dados_extraidos PRESENTE: {list(dados.keys())[:5]}...")
         else:
-            logger.warning("⚠️ [API] dados_extraidos AUSENTE (pode ser normal se estado inicial)")
+            logger.warning("[API] dados_extraidos AUSENTE (pode ser normal se estado inicial)")
 
         # 3. Retornar resposta
         return JsonResponse(resultado, status=200)

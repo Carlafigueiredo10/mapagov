@@ -1,7 +1,1 @@
-INFO 2025-10-23 09:45:30 [django.utils.autoreload] Watching for file changes with StatReloader
-[DATABASE] Usando SQLite (desenvolvimento local)
-[DEBUG] Modo DEBUG ativo - Sentry desabilitado
-[FULL MODE] Todos os produtos Helena habilitados
-[REDIS] Indisponível (Timeout connecting to server). Usando cache em memória (modo degradado)
-    Para produção, instale: pip install redis django-redis
-    E configure: export REDIS_HOST=localhost REDIS_PORT=6379
+Acesso negado.

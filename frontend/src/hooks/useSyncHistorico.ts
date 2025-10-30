@@ -3,11 +3,17 @@ import { useChatStore } from '../store/chatStore';
 import { buscarMensagensV2 } from '../services/helenaApi';
 
 // Mensagem de boas-vindas hardcoded (mesmo tom da Helena)
-const MENSAGEM_BOAS_VINDAS = `👋 Olá! Sou a Helena, assistente de IA da DECIPEX especializada em mapeamento de processos.
+const MENSAGEM_BOAS_VINDAS = `👋 Oi!
 
-Vou te ajudar a documentar seu procedimento de forma clara e estruturada, pergunta por pergunta.
+Se é a sua primeira vez por aqui, sinta-se em casa 🏠
+Eu sou a Helena, sua parceira de jornada no MapaGov uma plataforma da DECIPEX criada pra transformar o que você faz no dia a dia em processos claros, seguros e vivos.
 
-Para começarmos, qual seu nome?`;
+E se você já me conhece... que bom te ver de novo! 💛
+Hoje, vamos começar uma das partes mais legais: mapear a sua atividade.
+
+Mas antes de tudo, quero te conhecer melhor
+**como posso te chamar por aqui?**
+(só o primeiro nome já tá ótimo 😉)`;
 
 // ✅ Lock global para impedir execuções concorrentes (StrictMode React 18+)
 let globalSyncLock = false;
@@ -53,8 +59,8 @@ export const useSyncHistorico = () => {
       m =>
         m.tipo === 'helena' &&
         typeof m.mensagem === 'string' &&
-        m.mensagem.includes('Olá! Sou a Helena') &&
-        m.mensagem.includes('Para começarmos, qual seu nome?')
+        m.mensagem.includes('Eu sou a Helena, sua parceira de jornada') &&
+        m.mensagem.includes('como posso te chamar por aqui?')
     );
 
     // Se já tem mensagem (por qualquer via), não adicionar novamente
@@ -81,8 +87,8 @@ export const useSyncHistorico = () => {
           const mensagensFiltradas = response.mensagens.filter(msg => {
             const isBoasVindas = msg.role === 'assistant' &&
                                  typeof msg.content === 'string' &&
-                                 msg.content.includes('Olá! Sou a Helena') &&
-                                 msg.content.includes('Para começarmos, qual seu nome?');
+                                 msg.content.includes('Eu sou a Helena, sua parceira de jornada') &&
+                                 msg.content.includes('como posso te chamar por aqui?');
             return !isBoasVindas;  // ← Descarta boas-vindas do backend
           });
 
