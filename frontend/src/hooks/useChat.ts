@@ -52,8 +52,41 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         adicionarMensagemRapida('usuario', texto);
       }
 
-      // Adicionar loading com frase humanizada aleatória
-      const loadingId = adicionarMensagemRapida('helena', obterFraseAleatoria(), { loading: true });
+      // Adicionar loading - verificar se deve mostrar quadro roxo animado
+      let loadingId: string;
+
+      // ✅ Verificar se backend sinalizou que está aguardando descrição inicial
+      const aguardandoDescricao = sessionStorage.getItem(`aguardando_descricao_${sessionId}`) === 'true';
+
+      // ✅ Quadro roxo APENAS se:
+      // 1. Backend sinalizou que está aguardando descrição (flag salva anteriormente)
+      // 2. Texto não é JSON (é descrição livre digitada pelo usuário)
+      // 3. Texto tem tamanho significativo (>20 chars)
+      const isDescricaoInicial = aguardandoDescricao &&
+                                  !texto.trim().startsWith('{') &&
+                                  texto.trim().length > 20 &&
+                                  contexto === 'gerador_pop' &&
+                                  mostrarMensagemUsuario;
+
+      if (isDescricaoInicial) {
+        // Mostrar quadro roxo animado com descrição
+        console.log('🎨 Mostrando LoadingAnaliseAtividade para descrição inicial:', texto.substring(0, 50));
+
+        // Limpar flag (descrição foi enviada)
+        sessionStorage.removeItem(`aguardando_descricao_${sessionId}`);
+
+        loadingId = adicionarMensagemRapida('helena', '', {
+          loading: true,
+          interface: {
+            tipo: 'loading_analise_atividade',
+            dados: { descricao: texto.trim() }
+          }
+        });
+      } else {
+        // Loading simples com frase humanizada para todos os outros casos
+        // (sistemas, áreas, dropdowns, confirmações, etc.)
+        loadingId = adicionarMensagemRapida('helena', obterFraseAleatoria(), { loading: true });
+      }
 
       // Fazer request
       const request: ChatRequest = {
@@ -73,26 +106,69 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
       // ✅ VALIDAÇÃO: Só adicionar resposta se texto OU interface presente
       // Modo interface: resposta pode ser null se interface substitui texto (pureza arquitetural)
       console.log('[useChat] 📥 Resposta do backend:', {
+        resposta_raw: response.resposta,
+        resposta_type: typeof response.resposta,
         tem_resposta: !!response.resposta,
         tem_interface: !!response.tipo_interface,
         tipo_interface: response.tipo_interface,
-        dados_interface_keys: response.dados_interface ? Object.keys(response.dados_interface) : null
+        dados_interface_keys: response.dados_interface ? Object.keys(response.dados_interface) : null,
+        RESPONSE_COMPLETO: response  // ← 🔥 LOG COMPLETO para debug
       });
 
-      if ((response.resposta && response.resposta.trim() !== '') || response.tipo_interface) {
-        console.log('[useChat] ✅ Adicionando mensagem com interface:', response.tipo_interface);
-        adicionarMensagemRapida('helena', response.resposta || '', {
-          interface: response.tipo_interface ? {
-            tipo: response.tipo_interface,
-            dados: response.dados_interface
-          } : undefined
-        });
-      } else {
-        // ⚠️ LOG: Resposta vazia SEM interface detectada
-        console.error('❌ Resposta vazia SEM interface do backend:', response);
+      // 🎯 FAILSAFE COM TRY-CATCH: Nunca deixar quebrar a aplicação
+      try {
+        const temInterface = !!response.tipo_interface;
+        const temTexto = response.resposta && typeof response.resposta === 'string' && response.resposta.trim() !== '';
 
-        // Adicionar mensagem de fallback
-        adicionarMensagemRapida('helena', 'Desculpe, não consegui processar sua mensagem. Pode repetir?');
+        console.log('[useChat] 🔍 Validação FAILSAFE:', {
+          temInterface,
+          temTexto,
+          tipo_interface: response.tipo_interface,
+          resposta_raw: response.resposta,
+          resposta_type: typeof response.resposta
+        });
+
+        // ✅ Verificar se backend sinalizou que está aguardando descrição inicial
+        if ((response as any).metadados?.aguardando_descricao_inicial) {
+          console.log('🔔 Backend sinalizou: aguardando descrição inicial! Salvando flag...');
+          sessionStorage.setItem(`aguardando_descricao_${sessionId}`, 'true');
+        }
+
+        // 🚨 FAILSAFE: Prioridade ABSOLUTA para interface
+        if (temInterface) {
+          console.log('[useChat] ✅ FAILSAFE: Tem interface, adicionando SEMPRE:', response.tipo_interface);
+          adicionarMensagemRapida('helena', response.resposta || '', {
+            interface: {
+              tipo: response.tipo_interface,
+              dados: response.dados_interface || {}
+            }
+          });
+        } else if (temTexto) {
+          console.log('[useChat] ✅ Tem texto, adicionando mensagem normal');
+          adicionarMensagemRapida('helena', response.resposta);
+        } else {
+          // ⚠️ PATCH 1: Ignorar resposta vazia completamente (sem adicionar mensagem)
+          console.warn('⚠️ Ignorando resposta vazia ou sem interface:', response);
+          return; // impede renderização de mensagens vazias
+        }
+      } catch (validationError) {
+        console.error('❌ ERRO CRÍTICO na validação de resposta:', validationError);
+        console.error('❌ Response que causou erro:', response);
+
+        // Fallback absoluto: tentar adicionar mensagem de qualquer jeito
+        try {
+          if (response.tipo_interface) {
+            adicionarMensagemRapida('helena', '', {
+              interface: { tipo: response.tipo_interface, dados: response.dados_interface || {} }
+            });
+          } else if (response.resposta) {
+            adicionarMensagemRapida('helena', String(response.resposta));
+          } else {
+            adicionarMensagemRapida('helena', 'Erro ao processar resposta. Por favor, recarregue a página.');
+          }
+        } catch (fallbackError) {
+          console.error('❌ ERRO FATAL no fallback:', fallbackError);
+        }
       }
 
       // ✅ Processar dados extraídos OU formulário POP (suporte a ambos formatos)
@@ -181,6 +257,20 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
             // Não bloquear o fluxo, apenas logar o erro
           }
         }
+      }
+
+      // 🚗 AUTO-CONTINUE: Se backend pedir para enviar mensagem automática
+      if (response.metadados?.auto_continue) {
+        const delay = response.metadados.auto_continue_delay || 1500;
+        const message = response.metadados.auto_continue_message || '__continue__';
+
+        console.log(`🚗 [AUTO-CONTINUE] Agendando envio automático de "${message}" em ${delay}ms`);
+
+        setTimeout(() => {
+          console.log(`🚗 [AUTO-CONTINUE] Enviando mensagem automática: "${message}"`);
+          // Enviar mensagem sem mostrar no chat do usuário (mostrarMensagemUsuario: false)
+          enviarMensagem(message, 'gerador_pop', false);
+        }, delay);
       }
 
       return response;
