@@ -59,6 +59,7 @@ class EstadoPOP(str, Enum):
     CONFIRMACAO_ENTREGA = "confirmacao_entrega"  # 🎯 NOVO: confirmar/editar entrega
     RECONHECIMENTO_ENTREGA = "reconhecimento_entrega"  # 🎯 Gamificação após entrega
     DISPOSITIVOS_NORMATIVOS = "dispositivos_normativos"
+    TRANSICAO_ROADTRIP = "transicao_roadtrip"  # 🚗 Animação de transição entre normas e operadores
     OPERADORES = "operadores"
     SISTEMAS = "sistemas"
     FLUXOS = "fluxos"
@@ -761,7 +762,8 @@ class HelenaPOP(BaseHelena):
         )
 
         try:
-            df = pd.read_csv(csv_path)
+            # 🔧 FIX: Forçar encoding UTF-8 para evitar problemas com caracteres especiais
+            df = pd.read_csv(csv_path, encoding='utf-8')
 
             # Filtrar apenas áreas ativas E que não sejam subáreas (area_pai vazio/NaN)
             # Subáreas serão carregadas dentro das áreas principais
@@ -775,6 +777,7 @@ class HelenaPOP(BaseHelena):
             for idx, row in df_ativas.iterrows():
                 area_info = {
                     "codigo": row['codigo'],
+                    "sigla": row['codigo'],  # Frontend espera 'sigla'
                     "nome": row['nome_completo'],
                     "prefixo": str(row['prefixo'])
                 }
@@ -803,6 +806,12 @@ class HelenaPOP(BaseHelena):
                 areas_dict[int(row['ordem'])] = area_info
 
             logger.info(f"[AREAS] Carregadas do CSV: {len(areas_dict)} areas ativas")
+            # 🔍 DEBUG: Mostrar primeiras 3 áreas carregadas
+            print(f"\n📊 [AREAS CSV] Carregadas {len(areas_dict)} áreas ativas:")
+            for key in sorted(list(areas_dict.keys())[:3]):
+                area = areas_dict[key]
+                print(f"   {key}: {area['codigo']} - {area['nome'][:50]}")
+            print()
             return areas_dict
 
         except Exception as e:
@@ -1235,6 +1244,9 @@ class HelenaPOP(BaseHelena):
         elif sm.estado == EstadoPOP.DISPOSITIVOS_NORMATIVOS:
             resposta, novo_sm = self._processar_dispositivos_normativos(mensagem, sm)
 
+        elif sm.estado == EstadoPOP.TRANSICAO_ROADTRIP:
+            resposta, novo_sm = self._processar_transicao_roadtrip(mensagem, sm)
+
         elif sm.estado == EstadoPOP.OPERADORES:
             resposta, novo_sm = self._processar_operadores(mensagem, sm)
 
@@ -1365,12 +1377,21 @@ class HelenaPOP(BaseHelena):
 
         elif novo_sm.estado == EstadoPOP.AREA_DECIPEX:
             tipo_interface = 'areas'
+
+            # 🔍 DEBUG: Ver o que tem em AREAS_DECIPEX
+            print(f"\n🏢 [ESTADO AREA_DECIPEX] Construindo interface de áreas...")
+            print(f"   self.AREAS_DECIPEX tem {len(self.AREAS_DECIPEX)} áreas")
+            for num, info in list(self.AREAS_DECIPEX.items())[:3]:
+                print(f"   {num}: {info}")
+
             dados_interface = {
                 'opcoes_areas': {
                     str(num): {'codigo': info['codigo'], 'nome': info['nome']}
                     for num, info in self.AREAS_DECIPEX.items()
                 }
             }
+
+            print(f"   📦 opcoes_areas criado com {len(dados_interface['opcoes_areas'])} itens\n")
 
         elif novo_sm.estado == EstadoPOP.SUBAREA_DECIPEX:
             tipo_interface = 'subareas'
@@ -1428,8 +1449,9 @@ class HelenaPOP(BaseHelena):
                 'delay_ms': 2000
             }
 
-        elif novo_sm.estado == EstadoPOP.CONFIRMACAO_ARQUITETURA:
+        elif not tipo_interface and novo_sm.estado == EstadoPOP.CONFIRMACAO_ARQUITETURA:
             # Interface com 2 botões: Concordo / Editar manualmente
+            # IMPORTANTE: Só definir se tipo_interface ainda não foi setado (ex: pelo pipeline RAG)
             tipo_interface = 'confirmacao_dupla'
             dados_interface = {
                 'botao_confirmar': 'Concordo com a sugestão ✅',
@@ -1466,6 +1488,14 @@ class HelenaPOP(BaseHelena):
                     f"**4️⃣** Adicionar **norma manualmente** se você lembrar de alguma de cabeça ou tiver o texto exato do dispositivo"
                 )
             }
+
+        elif novo_sm.estado == EstadoPOP.TRANSICAO_ROADTRIP:
+            logger.info(f"🚗🚗🚗 [PROXIMA_INTERFACE] ENTROU NO ELIF TRANSICAO_ROADTRIP!")
+
+            # ✅ SEMPRE mostrar interface roadtrip junto com a mensagem (solução simplificada)
+            tipo_interface = 'roadtrip'
+            dados_interface = {}
+            logger.info(f"🚗 [PROXIMA_INTERFACE] Definindo interface roadtrip! tipo={tipo_interface}")
 
         elif novo_sm.estado == EstadoPOP.OPERADORES:
             # Interface rica de operadores
@@ -3032,20 +3062,38 @@ class HelenaPOP(BaseHelena):
 
         sm.dados_coletados['dispositivos_normativos'] = normas
 
-        nome = sm.nome_usuario or "você"
-        qtd_normas = len(normas)
+        # 🎯 Mudar estado para TRANSICAO_ROADTRIP
+        sm.estado = EstadoPOP.TRANSICAO_ROADTRIP
 
-        # Ir direto para OPERADORES (unificando as 2 mensagens)
+        # 🔥 FIX: Limpar tipo_interface antigo (evita fallback para interface de normas)
+        sm.tipo_interface = None
+        sm.dados_interface = None
+
+        logger.info(f"🚗 [ROADTRIP] Estado mudado para TRANSICAO_ROADTRIP. Interface será mostrada junto com a mensagem.")
+
+        resposta = "✅ Perfeito! Normas registradas no item 3. do POP."
+
+        # ✅ Interface roadtrip será adicionada automaticamente no bloco de PROXIMA_INTERFACE
+        # Não precisa de auto_continue!
+        return resposta, sm
+
+    def _processar_transicao_roadtrip(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
+        """
+        Processa estado de transição roadtrip.
+
+        Qualquer clique/mensagem avança para OPERADORES.
+        """
+        nome = sm.nome_usuario or "você"
+
+        # 🎯 Avançar para operadores
         sm.estado = EstadoPOP.OPERADORES
 
+        logger.info(f"👥 [ROADTRIP→OPERADORES] Clique no carro detectado! Indo para estado OPERADORES!")
+
         resposta = (
-            f"✅ Perfeito! Registrei {qtd_normas} norma(s).\n\n"
-            f"Terminamos uma parte essencial do trabalho, {nome}.\n\n"
-            f"As normas são como placas na estrada — elas mostram o caminho certo "
-            f"para sua atividade seguir com segurança e consistência. 🚦\n\n"
             f"Agora, vamos falar sobre os motoristas dessa jornada: "
             f"as pessoas que fazem essa atividade acontecer no dia a dia.\n\n"
-            f"👥 Quem são os responsáveis?\n\n"
+            f"👥 **Quem são os responsáveis?**\n\n"
             f"Por favor, selecione abaixo quem executa diretamente, quem revisa, quem apoia… "
             f"e também quem prepara o terreno antes que o processo chegue até você.\n\n"
             f"💡 Lembre de se incluir também!\n\n"
@@ -3095,7 +3143,7 @@ class HelenaPOP(BaseHelena):
 
         sm.tipo_interface = 'entrada_processo'
         sm.dados_interface = {
-            'areas_organizacionais': areas_organizacionais,
+            'areas_organizacionais': list(areas_organizacionais.values()) if isinstance(areas_organizacionais, dict) else areas_organizacionais,
             'orgaos_centralizados': orgaos_centralizados,
             'orgaos_controle': [
                 {'nome': 'CGU', 'sigla': 'CGU'},
