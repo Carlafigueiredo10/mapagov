@@ -9,6 +9,7 @@ import AnaliseRiscosPage from './pages/AnaliseRiscos'
 import FluxogramaPage from './pages/FluxogramaPage'
 import ChatV2Demo from './components/Helena/ChatV2Demo'
 import PlanoAcaoPage from './pages/PlanoAcaoPage'
+import HelenaPEModerna from './pages/HelenaPEModerna'
 
 function App() {
   return (
@@ -47,6 +48,9 @@ function App() {
 
         {/* P6 - Plano de Ação */}
         <Route path="/plano" element={<PlanoAcaoPage />} />
+
+        {/* Helena Planejamento Estratégico */}
+        <Route path="/planejamento-estrategico" element={<HelenaPEModerna />} />
       </Routes>
     </BrowserRouter>
   )
