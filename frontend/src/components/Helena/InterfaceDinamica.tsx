@@ -12,6 +12,7 @@ import InterfaceNormas from './InterfaceNormas';
 import InterfaceDocumentos from './InterfaceDocumentos';
 import InterfaceEntradaProcesso from './InterfaceEntradaProcesso';
 import BadgeTrofeu from './BadgeTrofeu';
+import RoadTrip from './RoadTrip';
 import InterfaceOperadores from './InterfaceOperadores';
 import InterfaceOperadoresEtapa from './InterfaceOperadoresEtapa';
 import InterfaceCondicionais from './InterfaceCondicionais';
@@ -38,6 +39,7 @@ import InterfaceSugestaoAtividade from './InterfaceSugestaoAtividade';
 import InterfaceSelecaoManualHierarquica from './InterfaceSelecaoManualHierarquica';
 import InterfaceRagPerguntaAtividade from './InterfaceRagPerguntaAtividade';
 import InterfaceSugestaoEntregaEsperada from './InterfaceSugestaoEntregaEsperada';
+import LoadingAnaliseAtividade from './LoadingAnaliseAtividade';
 
 // TIPOS E INTERFACES GLOBAIS (sem duplicatas)
 interface InterfaceData {
@@ -56,8 +58,30 @@ const InterfaceDinamica: React.FC<InterfaceDinamicaProps> = ({ interfaceData, on
   const [carregandoAjuda, setCarregandoAjuda] = useState(false);
   const [nivelAtual, setNivelAtual] = useState<'macro' | 'processo' | 'subprocesso' | 'atividade' | 'resultado'>('macro');
 
+  // 🔒 PATCH 2: Salvaguarda contra interfaces vazias/incompletas
+  if (!interfaceData || typeof interfaceData !== "object" || !interfaceData.tipo) {
+    console.debug("⏸️ Ignorando interface incompleta:", interfaceData);
+    return null;
+  }
+
+  // 🚗 PATCH 3: Debug temporário para roadtrip
+  React.useEffect(() => {
+    if (interfaceData?.tipo === "roadtrip") {
+      console.log("🚗 RoadTrip recebido! Renderizando agora:", interfaceData);
+    }
+  }, [interfaceData]);
+
   // ✅ Seu console.log está aqui, no lugar certo!
   console.log("PROPS RECEBIDAS PELA INTERFACE DINÂMICA:", interfaceData);
+
+  // 🔍 DEBUG ROADTRIP: Log especial se for roadtrip
+  if (interfaceData?.tipo === 'roadtrip') {
+    console.log('🚗🚗🚗 ROADTRIP CHEGOU NO INTERFACE DINÂMICA!', {
+      tipo: interfaceData.tipo,
+      dados: interfaceData.dados,
+      interfaceData
+    });
+  }
 
   // Bloco de verificação (sem duplicatas)
   if (!interfaceData) {
@@ -173,18 +197,27 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
         />
       );
 
-    case 'sugestao_atividade':
+    case 'loading_analise_atividade':
+      return (
+        <LoadingAnaliseAtividade
+          descricao={dados?.descricao as string}
+        />
+      );
+
+    case 'sugestao_atividade': {
+      const origem = dados?.origem as 'match_exato' | 'match_fuzzy' | 'semantic' | 'rag_nova_atividade';
       return (
         <InterfaceSugestaoAtividade
           atividade={dados?.atividade as any}
           cap={dados?.cap as string}
-          origem={dados?.origem as 'match_exato' | 'match_fuzzy' | 'semantic'}
+          origem={origem}
           score={dados?.score as number}
           podeEditar={dados?.pode_editar as boolean}
           onConcordar={() => handleConfirm('concordar')}
-          onSelecionarManual={() => handleConfirm('selecionar_manual')}
+          onSelecionarManual={() => handleConfirm(origem === 'rag_nova_atividade' ? 'prefiro_digitar' : 'selecionar_manual')}
         />
       );
+    }
 
     case 'selecao_manual_hierarquica':
       return (
@@ -199,7 +232,6 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
     case 'rag_pergunta_atividade':
       return (
         <InterfaceRagPerguntaAtividade
-          mensagem={dados?.mensagem as string}
           hierarquiaHerdada={dados?.hierarquia_herdada as any}
           onEnviar={(descricao) => handleConfirm(JSON.stringify({ acao: 'enviar_descricao', descricao }))}
         />
@@ -251,6 +283,99 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
           )}
         </>
       );
+
+    case 'texto_livre': {
+      // Interface sem caixa de texto - usuário digita no chat normal
+      const placeholder = (dados as { placeholder?: string })?.placeholder || 'Digite sua resposta...';
+
+      return (
+        <div className="interface-container fade-in" style={{ width: '100%' }}>
+          <div style={{
+            padding: '1rem',
+            background: '#f8f9fa',
+            borderRadius: '8px',
+            borderLeft: '4px solid #1351B4',
+            marginBottom: '1rem'
+          }}>
+            <p style={{ margin: 0, color: '#495057', fontSize: '0.95rem' }}>
+              💬 <strong>Digite sua resposta na barra de chat abaixo</strong>
+            </p>
+            <p style={{ margin: '0.5rem 0 0 0', color: '#6c757d', fontSize: '0.85rem', fontStyle: 'italic' }}>
+              Exemplo: {placeholder}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    case 'texto_com_exemplos': {
+      // Interface só com botão "Ver exemplos" - usuário digita no chat normal
+      const exemplos = (dados as { exemplos?: string[] })?.exemplos || [];
+      const [mostrarExemplos, setMostrarExemplos] = React.useState(false);
+
+      return (
+        <div className="interface-container fade-in" style={{ width: '100%' }}>
+          {exemplos.length > 0 && (
+            <button
+              className="btn-ver-exemplos"
+              onClick={() => setMostrarExemplos(!mostrarExemplos)}
+              type="button"
+              style={{
+                marginBottom: '1rem',
+                padding: '0.5rem 1rem',
+                background: 'transparent',
+                color: '#1351B4',
+                border: '1px solid #1351B4',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%'
+              }}
+            >
+              💡 {mostrarExemplos ? 'Ocultar exemplos' : 'Eu separei uns exemplos pra te ajudar, se quiser ver clique aqui.'}
+            </button>
+          )}
+
+          {mostrarExemplos && exemplos.length > 0 && (
+            <div
+              className="exemplos-container"
+              style={{
+                marginBottom: '1rem',
+                padding: '1rem',
+                background: '#f8f9fa',
+                borderRadius: '8px',
+                border: '2px solid #1351B4',
+                animation: 'fadeIn 0.3s ease-in'
+              }}
+            >
+              <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1351B4' }}>
+                💡 Exemplos:
+              </div>
+              {exemplos.map((exemplo, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    padding: '0.75rem',
+                    background: 'white',
+                    borderRadius: '6px',
+                    marginBottom: '0.5rem',
+                    fontSize: '0.9rem',
+                    lineHeight: '1.5'
+                  }}
+                >
+                  • {exemplo}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
 
     case 'texto': {
       // Detectar se tem sugestão de IA para resultado final
@@ -395,6 +520,9 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
     case 'normas':
       return <InterfaceNormas dados={dados || undefined} onConfirm={handleConfirm} />;
 
+    case 'roadtrip':
+      return <RoadTrip onContinue={() => handleConfirm('continuar')} />;
+
     case 'badge_sistemas':
       return (
         <BadgeTrofeu
@@ -417,8 +545,10 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
       return <InterfaceDocumentos dados={dados || undefined} onConfirm={handleConfirm} />;
 
     case 'entrada_processo':
-    case 'fluxos_entrada':
       return <InterfaceEntradaProcesso dados={dados || undefined} onConfirm={handleConfirm} />;
+
+    case 'fluxos_entrada':
+      return <InterfaceFluxosEntrada dados={dados || undefined} onConfirm={handleConfirm} />;
 
     case 'operadores':
       return <InterfaceOperadores dados={dados || undefined} onConfirm={handleConfirm} />;
@@ -638,7 +768,7 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
       return <InterfaceCaixinhaReconhecimento dados={dados || undefined} onConfirm={handleConfirm} />;
 
     case 'transicao_epica':
-      return <InterfaceTransicaoEpica dados={dados || {}} onEnviar={handleConfirm} />;
+      return <InterfaceTransicaoEpica dados={dados as any || {}} onEnviar={handleConfirm} />;
 
     case 'confirmacao_dupla':
       return <InterfaceConfirmacaoDupla dados={dados || {}} onEnviar={handleConfirm} />;

@@ -1,0 +1,419 @@
+/**
+ * Workspace Hoshin Kanri - Estilos
+ */
+
+.workspace-hoshin {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.workspace-hoshin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.workspace-hoshin-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.workspace-hoshin-icon {
+  font-size: 48px;
+}
+
+.workspace-hoshin-title h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1B4F72;
+}
+
+.workspace-hoshin-title p {
+  margin: 4px 0 0 0;
+  font-size: 16px;
+  color: #64748b;
+}
+
+.workspace-hoshin-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ============================================================================
+   ESTATÍSTICAS
+   ============================================================================ */
+
+.workspace-hoshin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.hoshin-stat-card {
+  padding: 20px !important;
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  font-size: 32px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1B4F72;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* ============================================================================
+   FORMULÁRIO
+   ============================================================================ */
+
+.workspace-hoshin-form {
+  padding: 24px !important;
+  margin-bottom: 32px;
+}
+
+.workspace-hoshin-form h3 {
+  margin: 0 0 24px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1B4F72;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1B4F72;
+}
+
+.form-input {
+  padding: 12px 16px;
+  border: 2px solid rgba(27, 79, 114, 0.2);
+  border-radius: 8px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #E74C3C;
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+}
+
+.form-input::placeholder {
+  color: #94a3b8;
+}
+
+/* ============================================================================
+   LISTA / TABELA
+   ============================================================================ */
+
+.workspace-hoshin-list {
+  margin-top: 32px;
+}
+
+.workspace-hoshin-list h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1B4F72;
+}
+
+.hoshin-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hoshin-table-header {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 2fr)  /* Diretriz */
+    minmax(200px, 2.5fr)  /* Meta */
+    minmax(120px, 1.5fr)  /* Indicador */
+    minmax(150px, 2fr)  /* Ação */
+    minmax(120px, 1.5fr)  /* Responsável */
+    100px               /* Prazo */
+    140px               /* Status */
+    80px;               /* Ações */
+  gap: 12px;
+  padding: 16px;
+  background: rgba(27, 79, 114, 0.1);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #1B4F72;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hoshin-table-row {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 2fr)
+    minmax(200px, 2.5fr)
+    minmax(120px, 1.5fr)
+    minmax(150px, 2fr)
+    minmax(120px, 1.5fr)
+    100px
+    140px
+    80px;
+  gap: 12px;
+  padding: 20px !important;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.hoshin-table-row:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.hoshin-col-diretriz strong {
+  color: #1B4F72;
+  font-weight: 700;
+}
+
+.hoshin-col-meta,
+.hoshin-col-indicador,
+.hoshin-col-acao,
+.hoshin-col-responsavel,
+.hoshin-col-prazo {
+  font-size: 14px;
+  color: #475569;
+}
+
+.status-select {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.status-select:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.status-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.hoshin-col-actions {
+  display: flex;
+  justify-content: center;
+}
+
+/* ============================================================================
+   EMPTY STATE
+   ============================================================================ */
+
+.workspace-hoshin-empty {
+  padding: 64px 32px !important;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 80px;
+  display: block;
+  margin-bottom: 24px;
+  opacity: 0.5;
+}
+
+.workspace-hoshin-empty h3 {
+  margin: 0 0 12px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1B4F72;
+}
+
+.workspace-hoshin-empty p {
+  margin: 0;
+  font-size: 16px;
+  color: #64748b;
+}
+
+/* ============================================================================
+   RESPONSIVIDADE
+   ============================================================================ */
+
+@media (max-width: 1200px) {
+  .hoshin-table-header,
+  .hoshin-table-row {
+    grid-template-columns:
+      minmax(150px, 2fr)
+      minmax(180px, 2fr)
+      minmax(100px, 1.5fr)
+      minmax(130px, 1.5fr)
+      minmax(100px, 1fr)
+      90px
+      120px
+      70px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 968px) {
+  .workspace-hoshin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .workspace-hoshin-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-hoshin-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Modo mobile: tabela vira cards */
+  .hoshin-table-header {
+    display: none;
+  }
+
+  .hoshin-table-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px !important;
+  }
+
+  .hoshin-col-diretriz,
+  .hoshin-col-meta,
+  .hoshin-col-indicador,
+  .hoshin-col-acao,
+  .hoshin-col-responsavel,
+  .hoshin-col-prazo,
+  .hoshin-col-status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hoshin-col-diretriz::before {
+    content: 'Diretriz:';
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+
+  .hoshin-col-meta::before {
+    content: 'Meta:';
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+
+  .hoshin-col-indicador::before {
+    content: 'Indicador:';
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+
+  .hoshin-col-acao::before {
+    content: 'Ação:';
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+
+  .hoshin-col-responsavel::before {
+    content: 'Responsável:';
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+
+  .hoshin-col-prazo::before {
+    content: 'Prazo:';
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+
+  .hoshin-col-status::before {
+    content: 'Status:';
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+
+  .hoshin-col-actions {
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .workspace-hoshin-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-hoshin-icon {
+    font-size: 36px;
+  }
+
+  .workspace-hoshin-title h2 {
+    font-size: 22px;
+  }
+}

@@ -324,6 +324,10 @@ class POPPDFGenerator:
         self.story.append(Paragraph("4. OPERADORES", self.styles['TituloSecao']))
 
         operadores = self.dados.get('operadores', [])
+        # Converter string para lista se necessário (compatibilidade)
+        if isinstance(operadores, str):
+            operadores = [op.strip() for op in operadores.split(';') if op.strip()]
+
         if operadores:
             for operador in operadores:
                 item = Paragraph(f"• {operador}", self.styles['ItemLista'])

@@ -1,0 +1,49 @@
+[
+  {
+    "id": "maturidade",
+    "texto": "Qual o nível de maturidade em planejamento estratégico da sua organização?",
+    "opcoes": [
+      { "valor": "iniciante", "texto": "🌱 Iniciante - Estamos começando agora" },
+      { "valor": "intermediario", "texto": "📈 Intermediário - Já temos alguma experiência" },
+      { "valor": "avancado", "texto": "🏆 Avançado - Processos maduros e consolidados" }
+    ]
+  },
+  {
+    "id": "horizonte",
+    "texto": "Qual o horizonte temporal do seu planejamento?",
+    "opcoes": [
+      { "valor": "curto", "texto": "⚡ Curto prazo (até 1 ano)" },
+      { "valor": "medio", "texto": "📅 Médio prazo (1-2 anos)" },
+      { "valor": "longo", "texto": "🎯 Longo prazo (3+ anos)" }
+    ]
+  },
+  {
+    "id": "contexto",
+    "texto": "Qual o principal desafio do seu contexto atual?",
+    "opcoes": [
+      { "valor": "incerteza", "texto": "🔄 Mudanças frequentes e incerteza" },
+      { "valor": "medicao", "texto": "📊 Necessidade de medir resultados" },
+      { "valor": "execucao", "texto": "🚀 Execução rápida de projetos" },
+      { "valor": "conformidade", "texto": "🏛️ Conformidade e prestação de contas" }
+    ]
+  },
+  {
+    "id": "equipe",
+    "texto": "Como você descreveria sua equipe?",
+    "opcoes": [
+      { "valor": "pequena", "texto": "👥 Pequena e ágil (até 20 pessoas)" },
+      { "valor": "media", "texto": "🏢 Média com múltiplas áreas (20-100)" },
+      { "valor": "grande", "texto": "🌐 Grande e complexa (100+)" }
+    ]
+  },
+  {
+    "id": "objetivo",
+    "texto": "Qual o principal objetivo do planejamento?",
+    "opcoes": [
+      { "valor": "diagnostico", "texto": "📋 Diagnosticar a situação atual" },
+      { "valor": "estrategia", "texto": "🎯 Definir direção estratégica" },
+      { "valor": "operacional", "texto": "⚙️ Operacionalizar projetos" },
+      { "valor": "transformacao", "texto": "🔄 Transformação organizacional" }
+    ]
+  }
+]

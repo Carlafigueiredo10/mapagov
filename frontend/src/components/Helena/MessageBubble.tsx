@@ -5,7 +5,7 @@ import InterfaceDinamica from './InterfaceDinamica';
 import BadgeTrofeu from './BadgeTrofeu';
 import { useChat } from '../../hooks/useChat';
 import ReactMarkdown from 'react-markdown';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface MessageBubbleProps {
   message: HelenaMessage;
@@ -14,6 +14,7 @@ interface MessageBubbleProps {
 function MessageBubble({ message }: MessageBubbleProps) {
   const { responderInterface } = useChat();
   const [partesVisiveis, setPartesVisiveis] = useState<string[]>([]);
+  const messageEndRef = useRef<HTMLDivElement>(null);
 
   const handleInterfaceResponse = (resposta: string) => {
     responderInterface(resposta);
@@ -33,11 +34,25 @@ function MessageBubble({ message }: MessageBubbleProps) {
     ? mensagemTexto.split(/\[DELAY:\d+\]/).map(p => p.trim()).filter(p => p)
     : mensagemTexto ? [mensagemTexto] : [];
 
+  // ✅ Extrair valores reais dos delays (não usar fixo 1000ms)
+  const extractDelays = (text: string): number[] => {
+    const matches = text.match(/\[DELAY:(\d+)\]/g);
+    if (!matches) return [];
+    return matches.map(match => {
+      const num = match.match(/\d+/);
+      return num ? parseInt(num[0]) : 1000;
+    });
+  };
+
+  const delays = extractDelays(mensagemTexto);
+
   // ✅ Efeito para mostrar partes progressivamente
   useEffect(() => {
+    // Reset sempre que mensagem mudar
+    setPartesVisiveis([]);
+
     if (partesMensagem.length === 0) {
       // Sem texto, só interface
-      setPartesVisiveis([]);
       return;
     }
 
@@ -45,16 +60,43 @@ function MessageBubble({ message }: MessageBubbleProps) {
       // Mostrar primeira parte imediatamente
       setPartesVisiveis([partesMensagem[0]]);
 
-      // Mostrar partes seguintes com delay
+      // Limpar timeouts anteriores (evitar duplicação)
+      const timeouts: ReturnType<typeof setTimeout>[] = [];
+
+      // Acumular delays para efeito cascata
+      let delayAcumulado = 0;
+
+      // Mostrar partes seguintes com delays reais do backend
       partesMensagem.slice(1).forEach((parte, index) => {
-        setTimeout(() => {
+        const delayMs = delays[index] || 1000; // Fallback para 1000ms
+        delayAcumulado += delayMs;
+
+        const timeout = setTimeout(() => {
           setPartesVisiveis(prev => [...prev, parte]);
-        }, (index + 1) * 1000); // 1 segundo entre cada parte
+        }, delayAcumulado);
+
+        timeouts.push(timeout);
       });
+
+      // Cleanup: limpar timeouts quando componente desmontar ou mensagem mudar
+      return () => {
+        timeouts.forEach(t => clearTimeout(t));
+      };
     } else {
       setPartesVisiveis(partesMensagem);
     }
-  }, [mensagemTexto]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message.id]);
+
+  // ✅ Auto-scroll suave conforme partes vão aparecendo
+  useEffect(() => {
+    if (partesVisiveis.length > 0 && messageEndRef.current) {
+      messageEndRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
+  }, [partesVisiveis.length]);
 
   // ============================================================
   // 🔧 PATCH: Compatibilidade entre backend antigo e novo formato
@@ -135,6 +177,9 @@ function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         </div>
       ))}
+
+      {/* ✅ Ref para auto-scroll progressivo */}
+      <div ref={messageEndRef} style={{ height: '1px' }} />
 
       {/* ✅ Badge animado (se vier nos metadados) */}
       {temBadge && (

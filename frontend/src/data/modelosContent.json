@@ -1,0 +1,1365 @@
+{
+  "okr": {
+    "id": "okr",
+    "titulo": "Modelo OKR",
+    "subtitulo": "Objectives and Key Results - Gestão por Objetivos Mensuráveis",
+    "icone": "🎯",
+    "cor": "#3498DB",
+    "tabs": {
+      "o-que-e": {
+        "titulo": "O que é",
+        "icone": "📖",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "O que é OKR?",
+            "icone": "🎯",
+            "conteudo": "**OKR (Objectives and Key Results)** é uma metodologia de gestão estratégica que define objetivos ambiciosos e resultados-chave mensuráveis para orientar equipes e organizações em direção a metas comuns."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Estrutura do OKR",
+            "icone": "📋",
+            "itens": [
+              "**Objetivos:** Metas qualitativas, inspiradoras e ambiciosas que definem \"onde queremos chegar\"",
+              "**Key Results (Resultados-Chave):** Métricas quantitativas que indicam \"como saberemos que chegamos lá\""
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "OKR no Setor Público",
+            "icone": "🏛️",
+            "descricao": "No contexto do governo federal, o OKR é adaptado para:",
+            "itens": [
+              "Foco em impacto social e valor público (não apenas lucro)",
+              "Alinhamento com políticas públicas e diretrizes estratégicas",
+              "Transparência e prestação de contas à sociedade",
+              "Melhoria contínua dos serviços prestados ao cidadão"
+            ]
+          },
+          {
+            "tipo": "exemplo",
+            "titulo": "Exemplo de OKR Público:",
+            "objetivo": "Melhorar a experiência do cidadão no atendimento digital",
+            "keyResults": [
+              "📊 KR1: Aumentar a satisfação do usuário de 65% para 85% até dezembro",
+              "📊 KR2: Reduzir o tempo médio de atendimento de 15min para 8min",
+              "📊 KR3: Elevar a taxa de resolução no primeiro contato de 40% para 70%"
+            ]
+          }
+        ]
+      },
+      "quando-usar": {
+        "titulo": "Quando usar",
+        "icone": "🎯",
+        "secoes": [
+          {
+            "tipo": "lista",
+            "titulo": "Use OKR quando você precisa:",
+            "icone": "✅",
+            "itens": [
+              "**Alinhar equipes** em torno de objetivos estratégicos comuns",
+              "**Mensurar progresso** de forma clara e objetiva",
+              "**Aumentar o foco** e priorizar iniciativas de maior impacto",
+              "**Promover transparência** sobre metas e resultados",
+              "**Engajar equipes** com metas desafiadoras mas alcançáveis"
+            ]
+          },
+          {
+            "tipo": "cards",
+            "titulo": "Contextos Ideais",
+            "icone": "👥",
+            "cards": [
+              {
+                "titulo": "Organizacional",
+                "icone": "🏢",
+                "descricao": "Órgãos públicos que precisam traduzir estratégia em ação mensurável"
+              },
+              {
+                "titulo": "Projetos",
+                "icone": "🎯",
+                "descricao": "Iniciativas com objetivos claros e prazos definidos"
+              },
+              {
+                "titulo": "Transformação",
+                "icone": "🔄",
+                "descricao": "Processos de mudança que exigem acompanhamento rigoroso"
+              }
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Tamanho de Equipe",
+            "icone": "📏",
+            "itens": [
+              "**Pequenas equipes (5-15 pessoas):** OKRs por equipe",
+              "**Departamentos (15-50 pessoas):** OKRs por área + cascateamento",
+              "**Órgãos inteiros (50+ pessoas):** OKRs estratégicos + táticos + individuais"
+            ]
+          },
+          {
+            "tipo": "alerta",
+            "titulo": "Quando NÃO usar OKR:",
+            "icone": "⚠️",
+            "itens": [
+              "Atividades rotineiras e operacionais (use SOP/POP)",
+              "Projetos sem metas mensuráveis claras",
+              "Contextos que exigem apenas cumprimento de normas",
+              "Quando a equipe não tem autonomia para influenciar resultados"
+            ]
+          }
+        ]
+      },
+      "como-usar": {
+        "titulo": "Como usar",
+        "icone": "🚀",
+        "secoes": [
+          {
+            "tipo": "passos",
+            "titulo": "Passo a Passo para Criar OKRs",
+            "icone": "🚀",
+            "passos": [
+              {
+                "numero": "1️⃣",
+                "titulo": "Defina o Objetivo",
+                "cor": "#3498DB",
+                "descricao": "Escreva uma meta **qualitativa, inspiradora e ambiciosa**. Pergunte-se: \"O que queremos alcançar?\" e \"Por que isso importa?\"",
+                "exemplo": "Transformar a experiência de atendimento ao cidadão"
+              },
+              {
+                "numero": "2️⃣",
+                "titulo": "Defina 3-5 Key Results",
+                "cor": "#27AE60",
+                "descricao": "Para cada objetivo, liste **3 a 5 resultados mensuráveis**. Cada KR deve:",
+                "itens": [
+                  "Ser quantificável (número, %, tempo)",
+                  "Ter prazo definido",
+                  "Ser desafiador mas alcançável"
+                ],
+                "exemplo": "Reduzir tempo de espera de 20min para 10min até Q4"
+              },
+              {
+                "numero": "3️⃣",
+                "titulo": "Defina Responsáveis",
+                "cor": "#9B59B6",
+                "descricao": "Atribua um **dono** para cada Key Result. Essa pessoa será responsável por acompanhar e reportar progresso."
+              },
+              {
+                "numero": "4️⃣",
+                "titulo": "Acompanhe Regularmente",
+                "cor": "#E67E22",
+                "descricao": "Realize **check-ins semanais ou quinzenais** para atualizar progresso, identificar bloqueios e ajustar estratégias."
+              }
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Melhores Práticas no Setor Público",
+            "icone": "✨",
+            "itens": [
+              "**Alinhamento estratégico:** Conecte OKRs às diretrizes do órgão/ministério",
+              "**Transparência:** Compartilhe OKRs publicamente com a equipe",
+              "**Ciclos trimestrais:** Revise e ajuste OKRs a cada 3 meses",
+              "**Foco em impacto:** Priorize métricas que beneficiam o cidadão",
+              "**Aprendizado:** Use OKRs não atingidos como oportunidade de melhoria"
+            ]
+          },
+          {
+            "tipo": "alerta",
+            "titulo": "Erros Comuns a Evitar",
+            "icone": "❌",
+            "itens": [
+              "Criar objetivos muito genéricos (\"Melhorar processos\")",
+              "Definir Key Results não mensuráveis (\"Aumentar satisfação\")",
+              "Ter OKRs demais (máximo 3-5 objetivos por ciclo)",
+              "Não revisar progresso regularmente",
+              "Usar OKRs como avaliação de desempenho individual"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "swot": {
+    "id": "swot",
+    "titulo": "Modelo SWOT",
+    "subtitulo": "Strategic Situational Analysis – Diagnóstico de Forças, Fraquezas, Oportunidades e Ameaças",
+    "icone": "🔍",
+    "cor": "#27AE60",
+    "tabs": {
+      "o-que-e": {
+        "titulo": "O que é",
+        "icone": "📖",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "O que é SWOT?",
+            "icone": "🔍",
+            "conteudo": "A análise **SWOT (Strengths, Weaknesses, Opportunities, Threats)** é uma ferramenta de diagnóstico estratégico que ajuda a entender o contexto interno e externo da organização antes de planejar ações."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Ela permite identificar:",
+            "icone": "📋",
+            "itens": [
+              "**Forças (Strengths)** → aspectos internos positivos",
+              "**Fraquezas (Weaknesses)** → aspectos internos que limitam o desempenho",
+              "**Oportunidades (Opportunities)** → fatores externos que podem favorecer o sucesso",
+              "**Ameaças (Threats)** → fatores externos que representam riscos ou desafios"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "🎯 **Objetivo:** fundamentar a tomada de decisão estratégica com base em evidências, não apenas percepções."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "📘 **Referências:** Guia Prático de Projetos do MGI (2025), ISO 31000, COSO ERM, e Referencial Básico de Governança Pública do TCU."
+          }
+        ]
+      },
+      "quando-usar": {
+        "titulo": "Quando usar",
+        "icone": "🎯",
+        "secoes": [
+          {
+            "tipo": "lista",
+            "titulo": "Use a análise SWOT quando precisar:",
+            "icone": "✅",
+            "itens": [
+              "Diagnosticar o ponto de partida de um planejamento estratégico",
+              "Avaliar a maturidade institucional ou de um processo específico",
+              "Identificar riscos e oportunidades antes de definir metas ou projetos",
+              "Apoiar a tomada de decisão em momentos de mudança (reorganização, transformação digital, nova política pública)"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "💡 **Dica Helena:** a SWOT é especialmente útil antes de adotar modelos como BSC ou OKR, pois ela ajuda a entender o terreno antes de definir os objetivos."
+          }
+        ]
+      },
+      "como-usar": {
+        "titulo": "Como usar",
+        "icone": "🚀",
+        "secoes": [
+          {
+            "tipo": "passos",
+            "titulo": "Passo a Passo para Aplicar SWOT",
+            "icone": "🚀",
+            "passos": [
+              {
+                "numero": "1️⃣",
+                "titulo": "Identifique as Forças",
+                "cor": "#27AE60",
+                "descricao": "Liste os fatores internos que impulsionam bons resultados.",
+                "exemplo": "Equipe experiente, processos digitalizados, boa reputação institucional"
+              },
+              {
+                "numero": "2️⃣",
+                "titulo": "Identifique as Fraquezas",
+                "cor": "#E74C3C",
+                "descricao": "Liste limitações internas que afetam o desempenho.",
+                "exemplo": "Carência de pessoal técnico, falta de integração de sistemas"
+              },
+              {
+                "numero": "3️⃣",
+                "titulo": "Liste as Oportunidades",
+                "cor": "#3498DB",
+                "descricao": "Avalie elementos externos que podem gerar ganhos.",
+                "exemplo": "Novas parcerias, programas governamentais, tecnologias emergentes"
+              },
+              {
+                "numero": "4️⃣",
+                "titulo": "Liste as Ameaças",
+                "cor": "#E67E22",
+                "descricao": "Registre fatores externos que trazem risco ou pressão.",
+                "exemplo": "Cortes orçamentários, mudanças legais, riscos reputacionais"
+              },
+              {
+                "numero": "5️⃣",
+                "titulo": "Analise as relações cruzadas",
+                "cor": "#9B59B6",
+                "descricao": "Combine os fatores e avalie como usar forças para aproveitar oportunidades ou minimizar fraquezas e ameaças.",
+                "exemplo": "Usar tecnologia (força) para reduzir impacto de déficit de pessoal (fraqueza)"
+              }
+            ]
+          },
+          {
+            "tipo": "texto",
+            "titulo": "Resultado esperado",
+            "icone": "📊",
+            "conteudo": "• Mapa consolidado SWOT institucional\n• Base para priorização de ações e mitigação de riscos\n• Subsídio direto para elaboração de planos de ação (5W2H ou OKR)"
+          }
+        ]
+      },
+      "exemplos": {
+        "titulo": "Exemplos",
+        "icone": "📚",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "Exemplo de Análise SWOT - Órgão Público",
+            "icone": "🏛️",
+            "conteudo": "Exemplo ilustrativo de diagnóstico estratégico aplicado a um órgão público fictício, com base em boas práticas do MGI e do Guia Prático de Projetos (2025)."
+          },
+          {
+            "tipo": "texto",
+            "titulo": "Contexto",
+            "icone": "📋",
+            "conteudo": "<strong>Instituição:</strong> Secretaria de Transformação Digital e Inovação Pública (fictícia)<br><strong>Ano:</strong> 2025<br><strong>Objetivo:</strong> Mapear o ambiente interno e externo antes de implantar novo sistema de atendimento digital ao cidadão."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "💪 Forças (Strengths)",
+            "icone": "💪",
+            "itens": [
+              "Equipe técnica qualificada em transformação digital e UX",
+              "Governança sólida e apoio da alta gestão",
+              "Infraestrutura tecnológica moderna e escalável",
+              "Histórico positivo de entregas no prazo"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "⚠️ Fraquezas (Weaknesses)",
+            "icone": "⚠️",
+            "itens": [
+              "Alta rotatividade de servidores terceirizados",
+              "Baixa integração entre sistemas legados",
+              "Capacidade limitada de análise de dados",
+              "Comunicação intersetorial fragmentada"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "🌟 Oportunidades (Opportunities)",
+            "icone": "🌟",
+            "itens": [
+              "Programa federal de interoperabilidade de dados (SGD/MGI)",
+              "Parcerias com ENAP e CGU para capacitação digital",
+              "Avanços em IA generativa aplicados ao atendimento público",
+              "Demanda social crescente por serviços digitais acessíveis"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "⚡ Ameaças (Threats)",
+            "icone": "⚡",
+            "itens": [
+              "Contingenciamento orçamentário previsto para 2026",
+              "Mudanças normativas sobre proteção de dados (LGPD)",
+              "Riscos de cibersegurança e indisponibilidade de sistemas críticos",
+              "Dependência de fornecedores externos de tecnologia"
+            ]
+          },
+          {
+            "tipo": "destaque",
+            "titulo": "Análise Cruzada - Estratégias",
+            "icone": "🔄",
+            "conteudo": "Com base na matriz SWOT, foram identificadas as seguintes estratégias:"
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Estratégias SO (Forças + Oportunidades)",
+            "icone": "✅",
+            "itens": [
+              "Aproveitar a infraestrutura moderna (força) para acelerar integração com programas federais de interoperabilidade (oportunidade)",
+              "Usar o apoio da alta gestão (força) para formalizar parcerias estratégicas com ENAP e CGU (oportunidade)"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Estratégias ST (Forças + Ameaças)",
+            "icone": "🛡️",
+            "itens": [
+              "Utilizar a equipe técnica qualificada (força) para mitigar riscos de cibersegurança (ameaça)",
+              "Manter comunicação transparente com órgãos de controle para reduzir impacto de contingenciamentos (ameaça)"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Estratégias WO (Fraquezas + Oportunidades)",
+            "icone": "🔧",
+            "itens": [
+              "Investir em automação e dados (fraqueza) aproveitando programas de transformação digital (oportunidade)",
+              "Melhorar integração entre sistemas legados (fraqueza) utilizando novas soluções em nuvem (oportunidade)"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Estratégias WT (Fraquezas + Ameaças)",
+            "icone": "🚨",
+            "itens": [
+              "Desenvolver plano de contingência tecnológica (fraqueza + ameaça)",
+              "Fortalecer retenção de talentos para reduzir vulnerabilidade operacional (fraqueza + ameaça)"
+            ]
+          },
+          {
+            "tipo": "destaque",
+            "titulo": "Resultado da Análise",
+            "icone": "🎯",
+            "conteudo": "O diagnóstico permitiu identificar que, embora a Secretaria tenha infraestrutura robusta e apoio institucional, há riscos claros de sustentabilidade de pessoal e de integração tecnológica. O cenário demanda ações imediatas de integração de dados e mitigação de riscos operacionais."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Indicadores de Prontidão",
+            "icone": "📊",
+            "itens": [
+              "📈 Grau de prontidão digital: 82%",
+              "🧩 Integração de sistemas: 60%",
+              "💡 Alinhamento estratégico: 88%",
+              "⚠️ Risco de continuidade: 35%"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Próximos Passos",
+            "icone": "🚀",
+            "itens": [
+              "Implantar plano de mitigação de riscos cibernéticos",
+              "Formalizar parcerias para capacitação em IA e interoperabilidade",
+              "Revisar matriz de riscos e incluir indicadores de sustentabilidade de pessoal",
+              "Definir plano de comunicação intersetorial"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "<em>Fonte: Adaptado de práticas do Guia Prático de Projetos do MGI (2025) e do Referencial Básico de Governança Pública (TCU).</em>"
+          }
+        ]
+      }
+    }
+  },
+  "bsc": {
+    "id": "bsc",
+    "titulo": "Modelo BSC",
+    "subtitulo": "Balanced Scorecard - Estratégia em Ações Mensuráveis nas 4 Perspectivas",
+    "icone": "🎯",
+    "cor": "#3498DB",
+    "tabs": {
+      "o-que-e": {
+        "titulo": "O que é",
+        "icone": "📖",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "O que é BSC?",
+            "icone": "🎯",
+            "conteudo": "O **BSC (Balanced Scorecard)** é um modelo de tradução da estratégia em objetivos, indicadores, metas e iniciativas, organizado em perspectivas que se conectam em um mapa estratégico. No setor público, o foco é **valor público** (cidadão e sociedade), não lucro."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Perspectivas adaptadas ao governo",
+            "icone": "🏛️",
+            "itens": [
+              "**Cidadão & Sociedade** – valor público, satisfação, acesso e impacto",
+              "**Processos Internos** – eficiência, qualidade, conformidade e digitalização",
+              "**Aprendizado & Pessoas** – competências, cultura, tecnologia, dados",
+              "**Orçamento & Recursos** – execução orçamentária, economicidade, sustentabilidade"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "🎯 **Objetivo:** alinhar a organização à estratégia e medir o progresso com clareza."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "📘 **Referências:** Guia Prático de Projetos do MGI (2025), Referencial Básico de Governança (TCU), ISO 9001/ISO 31000 (apoio a processos e riscos)."
+          }
+        ]
+      },
+      "quando-usar": {
+        "titulo": "Quando usar",
+        "icone": "🎯",
+        "secoes": [
+          {
+            "tipo": "lista",
+            "titulo": "Use o BSC quando precisar:",
+            "icone": "✅",
+            "itens": [
+              "Desdobrar a estratégia em metas e iniciativas por área/equipe",
+              "Construir um mapa estratégico que conecte causa→efeito entre objetivos",
+              "Acompanhar indicadores de forma periódica (mensal/trimestral)",
+              "Integrar projetos e rotinas a uma visão única de resultados"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "💡 **Dica Helena:** se o contexto está nebuloso, faça SWOT primeiro; depois estruture o BSC com base nos achados."
+          }
+        ]
+      },
+      "como-usar": {
+        "titulo": "Como usar",
+        "icone": "🚀",
+        "secoes": [
+          {
+            "tipo": "passos",
+            "titulo": "Passo a Passo para Criar BSC",
+            "icone": "🚀",
+            "passos": [
+              {
+                "numero": "1️⃣",
+                "titulo": "Definir objetivos por perspectiva",
+                "cor": "#3498DB",
+                "descricao": "3–5 objetivos por perspectiva, linguagem clara e verbo de ação.",
+                "exemplo": "Ampliar o acesso digital ao serviço X"
+              },
+              {
+                "numero": "2️⃣",
+                "titulo": "Escolher indicadores (KPI) e metas",
+                "cor": "#27AE60",
+                "descricao": "1–2 indicadores por objetivo; metas com prazo.",
+                "exemplo": "Taxa de satisfação (NPS) ≥ 80 até dez/2026"
+              },
+              {
+                "numero": "3️⃣",
+                "titulo": "Mapear iniciativas e responsáveis",
+                "cor": "#9B59B6",
+                "descricao": "Para cada objetivo, iniciativas com dono, cronograma e orçamento.",
+                "exemplo": "Implantar chatbot + revisão do fluxo de triagem"
+              },
+              {
+                "numero": "4️⃣",
+                "titulo": "Montar o mapa estratégico (causa→efeito)",
+                "cor": "#E67E22",
+                "descricao": "Relacione Aprendizado → Processos → Cidadão, com Recursos sustentando tudo."
+              },
+              {
+                "numero": "5️⃣",
+                "titulo": "Rotina de gestão",
+                "cor": "#E74C3C",
+                "descricao": "Check-ins mensais; revisão trimestral; aprendizagem contínua. Integre riscos e lições aprendidas (ISO 31000/PDCA)."
+              }
+            ]
+          },
+          {
+            "tipo": "texto",
+            "titulo": "Resultado esperado",
+            "icone": "📊",
+            "conteudo": "• Mapa estratégico claro (4 perspectivas) com relações causa→efeito\n• Quadro OKR/5W2H derivado do BSC para execução\n• Rotina de acompanhamento com indicadores, metas e aprendizados"
+          }
+        ]
+      },
+      "exemplos": {
+        "titulo": "Exemplos",
+        "icone": "📚",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "Exemplo BSC - Atendimento Digital ao Cidadão",
+            "icone": "🏛️",
+            "conteudo": "Exemplo ilustrativo de BSC aplicado a um órgão público para melhoria do atendimento digital."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Perspectiva Cidadão & Sociedade",
+            "icone": "👥",
+            "descricao": "**Objetivo 1:** Elevar a satisfação no atendimento digital",
+            "itens": [
+              "**Indicador:** Satisfação (CSAT) %",
+              "**Meta:** 85% até dez/2026",
+              "**Iniciativas:** Redesign do portal; guia de linguagem simples; analytics de jornada"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "descricao": "**Objetivo 2:** Aumentar a resolutividade no 1º contato",
+            "itens": [
+              "**Indicador:** % casos resolvidos no 1º contato",
+              "**Meta:** 70%",
+              "**Iniciativas:** Base de conhecimento; triagem com IA; roteamento inteligente"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Perspectiva Processos Internos",
+            "icone": "⚙️",
+            "descricao": "**Objetivo 3:** Reduzir tempo médio de atendimento",
+            "itens": [
+              "**Indicador:** TMA (min)",
+              "**Meta:** 8 min",
+              "**Iniciativas:** Automação (RPA) de tarefas; integração com sistemas legados"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "descricao": "**Objetivo 4:** Fortalecer conformidade e segurança da informação",
+            "itens": [
+              "**Indicador:** Nº de não conformidades críticas",
+              "**Meta:** 0",
+              "**Iniciativas:** Revisão de perfis de acesso; trilhas LGPD; testes de intrusão"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Perspectiva Aprendizado & Pessoas",
+            "icone": "📚",
+            "descricao": "**Objetivo 5:** Desenvolver competências digitais",
+            "itens": [
+              "**Indicador:** % equipe capacitada",
+              "**Meta:** 90%",
+              "**Iniciativas:** Trilha ENAP + prática guiada; comunidade interna de prática"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "descricao": "**Objetivo 6:** Cultura de melhoria contínua e dados",
+            "itens": [
+              "**Indicador:** Nº ciclos PDCA concluídos/trimestre",
+              "**Meta:** 4",
+              "**Iniciativas:** Ritual de retrospectivas; catálogo de indicadores"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Perspectiva Orçamento & Recursos",
+            "icone": "💰",
+            "descricao": "**Objetivo 7:** Otimizar custos operacionais sem perda de qualidade",
+            "itens": [
+              "**Indicador:** Custo por atendimento (R$)",
+              "**Meta:** -20%",
+              "**Iniciativas:** Contratações orientadas por métricas; consolidação de contratos"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "descricao": "**Objetivo 8:** Assegurar disponibilidade de infraestrutura",
+            "itens": [
+              "**Indicador:** Uptime (%)",
+              "**Meta:** ≥ 99,5%",
+              "**Iniciativas:** Observabilidade; plano de continuidade; redundância"
+            ]
+          },
+          {
+            "tipo": "destaque",
+            "titulo": "Mapa Estratégico - Relações Causa→Efeito",
+            "icone": "🗺️",
+            "conteudo": "**Aprendizado & Pessoas** (Obj 5, 6) → **Processos Internos** (Obj 3, 4) → **Cidadão & Sociedade** (Obj 1, 2)<br><br>**Orçamento & Recursos** (Obj 7, 8) sustenta todas as perspectivas."
+          }
+        ]
+      }
+    }
+  },
+  "tradicional": {
+    "id": "tradicional",
+    "titulo": "Modelo Estratégico Clássico",
+    "subtitulo": "Planejamento Institucional Tradicional - Missão, Visão, Valores, Objetivos e Ações",
+    "icone": "🏛️",
+    "cor": "#5D6D7E",
+    "tabs": {
+      "o-que-e": {
+        "titulo": "O que é",
+        "icone": "📖",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "O que é o Planejamento Estratégico Clássico?",
+            "icone": "🏛️",
+            "conteudo": "O **Planejamento Estratégico Clássico** é o formato mais tradicional de planejamento no setor público. Baseia-se na definição da identidade institucional (Missão, Visão e Valores) e na formulação de objetivos e metas de médio e longo prazo, traduzidos em planos de ação."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "Seu foco está em **clareza institucional**, **alinhamento com políticas públicas** e **continuidade administrativa**."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "🎯 **Objetivo:** estabelecer uma visão de futuro clara, orientar decisões estratégicas e garantir coerência entre propósito, objetivos e resultados."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "📘 **Referências:** Decreto nº 9.203/2017, Guia de Governança Pública (TCU), Guia Prático de Projetos (MGI, 2025), e modelos do PPA e PDTI federais."
+          }
+        ]
+      },
+      "quando-usar": {
+        "titulo": "Quando usar",
+        "icone": "🎯",
+        "secoes": [
+          {
+            "tipo": "lista",
+            "titulo": "Use o modelo Estratégico Clássico quando:",
+            "icone": "✅",
+            "itens": [
+              "A organização precisa formalizar sua identidade institucional (Missão, Visão e Valores)",
+              "Há necessidade de alinhamento estratégico com o Plano Plurianual (PPA) ou políticas nacionais",
+              "O foco está em planejamento de médio/longo prazo, com continuidade entre gestões",
+              "A instituição requer referência formal para auditorias, governança e relatórios institucionais"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "💡 **Dica Helena:** esse modelo é a base sobre a qual outros podem se apoiar — ele fornece a coerência necessária para aplicar frameworks como BSC, OKR ou 5W2H de forma integrada."
+          }
+        ]
+      },
+      "como-usar": {
+        "titulo": "Como usar",
+        "icone": "🚀",
+        "secoes": [
+          {
+            "tipo": "passos",
+            "titulo": "Passo a Passo para Criar Planejamento Estratégico Clássico",
+            "icone": "🚀",
+            "passos": [
+              {
+                "numero": "1️⃣",
+                "titulo": "Missão",
+                "cor": "#3498DB",
+                "descricao": "Defina a razão de ser da organização, seu propósito institucional e público-alvo.",
+                "exemplo": "Garantir o pagamento correto e tempestivo de aposentadorias e pensões da União"
+              },
+              {
+                "numero": "2️⃣",
+                "titulo": "Visão",
+                "cor": "#9B59B6",
+                "descricao": "Descreva o futuro desejado — o que a instituição quer ser ou alcançar em 3 a 5 anos.",
+                "exemplo": "Ser reconhecida como referência nacional em gestão de benefícios públicos digitais"
+              },
+              {
+                "numero": "3️⃣",
+                "titulo": "Valores",
+                "cor": "#27AE60",
+                "descricao": "Liste princípios que orientam condutas e decisões.",
+                "exemplo": "Ética, Transparência, Inovação, Responsabilidade Pública, Foco no Cidadão"
+              },
+              {
+                "numero": "4️⃣",
+                "titulo": "Diagnóstico (Análise Situacional)",
+                "cor": "#E67E22",
+                "descricao": "Realize uma análise SWOT simplificada ou use dados de desempenho e auditorias para compreender o contexto atual.",
+                "exemplo": "Pontos fortes (equipe técnica qualificada), fracos (processos manuais), oportunidades (transformação digital), ameaças (rotatividade e restrição orçamentária)"
+              },
+              {
+                "numero": "5️⃣",
+                "titulo": "Definição de Objetivos Estratégicos",
+                "cor": "#E74C3C",
+                "descricao": "Elabore entre 5 e 10 objetivos institucionais alinhados à missão e à visão. Cada objetivo deve indicar resultado esperado e impacto público.",
+                "exemplo": "Aprimorar a qualidade e a agilidade do atendimento previdenciário"
+              },
+              {
+                "numero": "6️⃣",
+                "titulo": "Formulação de Metas e Indicadores",
+                "cor": "#16A085",
+                "descricao": "Associe a cada objetivo metas mensuráveis e indicadores de acompanhamento.",
+                "exemplo": "Reduzir o tempo médio de concessão de benefícios de 90 para 60 dias até 2026"
+              },
+              {
+                "numero": "7️⃣",
+                "titulo": "Planos de Ação (5W2H)",
+                "cor": "#8E44AD",
+                "descricao": "Desdobre os objetivos em planos operacionais com responsáveis, prazos e recursos.",
+                "exemplo": "Automatizar o processo de concessão até dez/2025 (Responsável: CGTEC, Recurso: convênio Dataprev)"
+              },
+              {
+                "numero": "8️⃣",
+                "titulo": "Monitoramento e Revisão",
+                "cor": "#2C3E50",
+                "descricao": "Acompanhe resultados com relatórios semestrais e revisões anuais.",
+                "exemplo": "Painel de indicadores de desempenho (financeiro, operacional, satisfação)"
+              }
+            ]
+          },
+          {
+            "tipo": "texto",
+            "titulo": "Resultado esperado",
+            "icone": "📊",
+            "conteudo": "• Documento estratégico institucional (missão, visão, valores, objetivos, metas e planos de ação)\n• Alinhamento com PPA e Plano Diretor de Tecnologia (PDTI)\n• Base sólida para adotar frameworks complementares (OKR, BSC, 5W2H)"
+          }
+        ]
+      },
+      "exemplos": {
+        "titulo": "Exemplos",
+        "icone": "📚",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "Exemplo de Planejamento Estratégico Clássico - Órgão Público",
+            "icone": "🏛️",
+            "conteudo": "Exemplo ilustrativo de planejamento estratégico tradicional aplicado a um órgão da administração pública federal."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Identidade Institucional",
+            "icone": "🎯",
+            "itens": [
+              "**Missão:** Assegurar eficiência e integridade na gestão de benefícios da União",
+              "**Visão:** Ser referência em atendimento digital de excelência até 2028",
+              "**Valores:** Ética, Transparência, Inovação, Colaboração, Foco no Cidadão"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Objetivos Estratégicos",
+            "icone": "🎯",
+            "itens": [
+              "**Objetivo 1:** Modernizar os sistemas de gestão de benefícios",
+              "**Objetivo 2:** Elevar a satisfação dos servidores e beneficiários"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Metas e Indicadores",
+            "icone": "📊",
+            "itens": [
+              "**Meta 1:** 90% de processos automatizados até 2026",
+              "**Meta 2:** 85% de satisfação geral em atendimento digital",
+              "**Indicadores:** Tempo médio de concessão; NPS; Índice de digitalização"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Planos de Ação",
+            "icone": "📋",
+            "itens": [
+              "Revisão e otimização de fluxos de trabalho",
+              "Integração com sistemas Dataprev e gov.br",
+              "Capacitação digital da equipe técnica e gestores",
+              "Implantação de canal de atendimento omnichannel"
+            ]
+          },
+          {
+            "tipo": "destaque",
+            "titulo": "Estrutura Completa",
+            "icone": "📑",
+            "conteudo": "O planejamento estratégico clássico integra todos esses elementos em um documento formal que serve como referência para a gestão institucional, alinhamento com PPA, relatórios de gestão e auditorias de governança."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Monitoramento",
+            "icone": "📈",
+            "itens": [
+              "**Frequência:** Reuniões bimestrais de acompanhamento",
+              "**Instrumentos:** Painel de indicadores estratégicos (BI)",
+              "**Revisão:** Anual, com ajustes de metas e iniciativas",
+              "**Prestação de contas:** Relatórios semestrais para alta gestão e TCU"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "<em>Fonte: Adaptado de práticas do Decreto nº 9.203/2017, Guia de Governança Pública (TCU) e Guia Prático de Projetos do MGI (2025).</em>"
+          }
+        ]
+      }
+    }
+  },
+  "5w2h": {
+    "id": "5w2h",
+    "titulo": "Modelo 5W2H",
+    "subtitulo": "Ferramenta Prática para Execução de Planos de Ação - Simples, Direta e Rastreável",
+    "icone": "📋",
+    "cor": "#E67E22",
+    "tabs": {
+      "o-que-e": {
+        "titulo": "O que é",
+        "icone": "📖",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "O que é 5W2H?",
+            "icone": "📋",
+            "conteudo": "O **5W2H** é um método de planejamento operacional que transforma uma ideia ou decisão em um plano de ação estruturado, respondendo a **sete perguntas fundamentais**."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "As 7 Perguntas do 5W2H",
+            "icone": "❓",
+            "itens": [
+              "**W1 - What (O quê?)**: Qual é a ação a ser executada?",
+              "**W2 - Why (Por quê?)**: Qual é o motivo ou objetivo da ação?",
+              "**W3 - Where (Onde?)**: Onde será realizada?",
+              "**W4 - When (Quando?)**: Qual é o prazo de execução?",
+              "**W5 - Who (Quem?)**: Quem será o responsável?",
+              "**H1 - How (Como?)**: Como será feita a execução?",
+              "**H2 - How much (Quanto custa?)**: Qual é o custo estimado ou recurso necessário?"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "🎯 **Objetivo:** garantir que toda ação tenha clareza, responsável, prazo e recursos definidos, evitando retrabalho e falta de rastreabilidade."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "📘 **Referências:** Guia Prático de Projetos (MGI, 2025), Guia de Riscos (CGU), ISO 31000 (implementação de planos de tratamento de riscos)."
+          }
+        ]
+      },
+      "quando-usar": {
+        "titulo": "Quando usar",
+        "icone": "🎯",
+        "secoes": [
+          {
+            "tipo": "lista",
+            "titulo": "Use o 5W2H quando você precisa:",
+            "icone": "✅",
+            "itens": [
+              "Detalhar ações operacionais após definir uma estratégia (BSC, OKR ou Estratégico Clássico)",
+              "Transformar recomendações, riscos ou decisões em planos executáveis",
+              "Registrar compromissos formais em planos de integridade, riscos ou auditoria",
+              "Organizar ações de curto prazo com prazos e responsáveis definidos"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "💡 **Dica Helena:** o 5W2H é ideal para tratar riscos, implementar medidas corretivas e executar planos derivados de frameworks estratégicos."
+          }
+        ]
+      },
+      "como-usar": {
+        "titulo": "Como usar",
+        "icone": "🚀",
+        "secoes": [
+          {
+            "tipo": "passos",
+            "titulo": "Passo a Passo para Criar 5W2H",
+            "icone": "🚀",
+            "passos": [
+              {
+                "numero": "1️⃣",
+                "titulo": "Liste as ações necessárias",
+                "cor": "#E67E22",
+                "descricao": "A partir de um diagnóstico, reunião ou planejamento (SWOT, OKR, BSC), liste as ações prioritárias que precisam ser executadas."
+              },
+              {
+                "numero": "2️⃣",
+                "titulo": "Responda às sete perguntas (5W + 2H)",
+                "cor": "#3498DB",
+                "descricao": "Para cada ação, registre: O quê (What), Por quê (Why), Onde (Where), Quando (When), Quem (Who), Como (How), Quanto custa (How much)."
+              },
+              {
+                "numero": "3️⃣",
+                "titulo": "Valide com os responsáveis",
+                "cor": "#27AE60",
+                "descricao": "Confirme se as informações estão claras, realistas e aprovadas pelos envolvidos."
+              },
+              {
+                "numero": "4️⃣",
+                "titulo": "Acompanhe e atualize o status",
+                "cor": "#9B59B6",
+                "descricao": "Registre o andamento (não iniciada, em execução, concluída) e revise periodicamente."
+              }
+            ]
+          },
+          {
+            "tipo": "texto",
+            "titulo": "Resultado esperado",
+            "icone": "📊",
+            "conteudo": "• Plano de ação consolidado com todas as ações organizadas e rastreáveis\n• Clareza de responsabilidades, prazos e custos\n• Facilita a prestação de contas, monitoramento de riscos e execução orçamentária"
+          }
+        ]
+      },
+      "exemplos": {
+        "titulo": "Exemplos",
+        "icone": "📚",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "Exemplo 5W2H - Transformação Digital",
+            "icone": "💻",
+            "conteudo": "Plano de ação 5W2H aplicado a um projeto de transformação digital no setor público."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Ação: Implantar módulo digital de atendimento",
+            "icone": "📋",
+            "itens": [
+              "**O quê (What):** Implantar módulo digital de atendimento no sistema interno",
+              "**Por quê (Why):** Reduzir o tempo de resposta e melhorar a experiência do cidadão",
+              "**Onde (Where):** Plataforma Gov.br – serviço \"Atendimento Digital Previdenciário\"",
+              "**Quando (When):** Até dezembro de 2025",
+              "**Quem (Who):** Coordenação de Tecnologia (CGTEC)",
+              "**Como (How):** Desenvolvimento ágil + integração via API com Dataprev",
+              "**Quanto custa (How much):** R$ 250 mil (recursos de contrato vigente)"
+            ]
+          },
+          {
+            "tipo": "destaque",
+            "titulo": "Resultado",
+            "icone": "✅",
+            "conteudo": "Ação registrada com clareza, rastreável e auditável — pronta para ser acompanhada pela governança."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Ação: Capacitar equipe em segurança da informação",
+            "icone": "📋",
+            "itens": [
+              "**O quê (What):** Realizar treinamento de segurança da informação e LGPD",
+              "**Por quê (Why):** Reduzir riscos de vazamento de dados e não conformidades",
+              "**Onde (Where):** Modalidade híbrida (ENAP + interno)",
+              "**Quando (When):** Trimestral (início em março/2025)",
+              "**Quem (Who):** RH + Segurança da Informação",
+              "**Como (How):** Trilha de capacitação ENAP + workshop interno",
+              "**Quanto custa (How much):** R$ 15 mil/trimestre (orçamento de capacitação)"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Ação: Revisar processo de concessão de benefícios",
+            "icone": "📋",
+            "itens": [
+              "**O quê (What):** Mapear e revisar o processo de concessão de aposentadorias",
+              "**Por quê (Why):** Eliminar gargalos e reduzir tempo médio de 90 para 60 dias",
+              "**Onde (Where):** Divisão de Benefícios (DIBEF)",
+              "**Quando (When):** Conclusão até junho/2025",
+              "**Quem (Who):** Analista de Processos (João Silva) + equipe DIBEF",
+              "**Como (How):** Mapeamento BPMN + análise de dados + redesenho de fluxo",
+              "**Quanto custa (How much):** Sem custo adicional (equipe interna)"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "<em>Fonte: Adaptado de práticas do Guia Prático de Projetos (MGI, 2025) e Guia de Gestão de Riscos (CGU).</em>"
+          }
+        ]
+      }
+    }
+  },
+  "cenarios": {
+    "id": "cenarios",
+    "titulo": "Modelo de Planejamento por Cenários",
+    "subtitulo": "Antecipação Estratégica em Ambientes de Incerteza - Pensar Futuros Possíveis",
+    "icone": "🔮",
+    "cor": "#9B59B6",
+    "tabs": {
+      "o-que-e": {
+        "titulo": "O que é",
+        "icone": "📖",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "O que é Planejamento por Cenários?",
+            "icone": "🔮",
+            "conteudo": "O **Planejamento por Cenários** é uma metodologia usada para analisar futuros alternativos e tomar decisões estratégicas mais robustas em contextos complexos e incertos. Em vez de prever o futuro, ele explora diferentes possibilidades, permitindo que a organização se prepare, adapte e reaja com agilidade."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "🎯 **Objetivo:** fortalecer a capacidade de antecipação e resiliência institucional, considerando riscos, tendências e forças externas que podem afetar a estratégia."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "📘 **Referências:** Guia Prático de Projetos (MGI, 2025), OCDE – Strategic Foresight, WEF – Global Risks Report, e TCU – Referencial de Governança Pública."
+          }
+        ]
+      },
+      "quando-usar": {
+        "titulo": "Quando usar",
+        "icone": "🎯",
+        "secoes": [
+          {
+            "tipo": "lista",
+            "titulo": "Use o modelo de Cenários quando:",
+            "icone": "✅",
+            "itens": [
+              "O ambiente institucional é instável, político ou tecnológico",
+              "A organização precisa tomar decisões estratégicas sob incerteza (ex: transições governamentais, novas políticas públicas, mudanças orçamentárias)",
+              "Há necessidade de avaliar impactos futuros de decisões atuais",
+              "Deseja-se estimular pensamento estratégico e inovação com base em dados e tendências"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "💡 **Dica Helena:** o planejamento por cenários é ideal antes da formulação do plano estratégico, pois ajuda a entender o contexto futuro em que as decisões serão implementadas."
+          }
+        ]
+      },
+      "como-usar": {
+        "titulo": "Como usar",
+        "icone": "🚀",
+        "secoes": [
+          {
+            "tipo": "passos",
+            "titulo": "Passo a Passo para Construir Cenários",
+            "icone": "🚀",
+            "passos": [
+              {
+                "numero": "1️⃣",
+                "titulo": "Defina o horizonte temporal",
+                "cor": "#9B59B6",
+                "descricao": "Determine o período que será analisado (ex.: 3, 5 ou 10 anos).",
+                "exemplo": "Cenários para a gestão de benefícios públicos até 2030"
+              },
+              {
+                "numero": "2️⃣",
+                "titulo": "Identifique fatores de mudança (drivers)",
+                "cor": "#3498DB",
+                "descricao": "Liste tendências, forças motrizes e incertezas que impactam o futuro.",
+                "exemplo": "Avanço da IA, envelhecimento populacional, mudanças fiscais, pressão por transparência"
+              },
+              {
+                "numero": "3️⃣",
+                "titulo": "Identifique incertezas críticas",
+                "cor": "#E67E22",
+                "descricao": "Escolha 2 ou 3 variáveis de alto impacto e alta incerteza — elas definirão os eixos dos cenários.",
+                "exemplo": "Nível de automação e disponibilidade orçamentária"
+              },
+              {
+                "numero": "4️⃣",
+                "titulo": "Construa 3 a 4 cenários contrastantes",
+                "cor": "#27AE60",
+                "descricao": "Combine os eixos e descreva situações possíveis, com narrativas curtas e consistentes.",
+                "exemplo": "Cenário 1 – Digital Resiliente: alta automação, orçamento estável"
+              },
+              {
+                "numero": "5️⃣",
+                "titulo": "Analise riscos, oportunidades e implicações",
+                "cor": "#E74C3C",
+                "descricao": "Para cada cenário, identifique riscos estratégicos, oportunidades emergentes e decisões que funcionam em todos os futuros (opções robustas)."
+              },
+              {
+                "numero": "6️⃣",
+                "titulo": "Desenvolva estratégias adaptativas",
+                "cor": "#16A085",
+                "descricao": "Com base nas análises, defina planos que sejam flexíveis e revisáveis.",
+                "exemplo": "Plano de contingência orçamentária + priorização de automação essencial"
+              }
+            ]
+          },
+          {
+            "tipo": "texto",
+            "titulo": "Resultado esperado",
+            "icone": "📊",
+            "conteudo": "• Mapa de cenários futuros com riscos, oportunidades e implicações estratégicas\n• Base para decisões robustas, revisáveis e transparentes\n• Cultura de pensamento antecipatório e aprendizado institucional contínuo"
+          }
+        ]
+      },
+      "exemplos": {
+        "titulo": "Exemplos",
+        "icone": "📚",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "Exemplo: Cenários para Gestão Pública Digital 2030",
+            "icone": "🔮",
+            "conteudo": "Matriz de cenários exploratórios para apoiar decisões estratégicas no contexto de transformação digital do setor público brasileiro."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Cenário 1: Digital Resiliente",
+            "icone": "🚀",
+            "itens": [
+              "**Descrição:** Orçamento estável e automação em larga escala",
+              "**Principais riscos:** Dependência tecnológica externa",
+              "**Oportunidades:** Expansão de serviços digitais e IA pública",
+              "**Estratégia recomendada:** Investir em interoperabilidade e capacitação em IA"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Cenário 2: Controle Rígido",
+            "icone": "🔒",
+            "itens": [
+              "**Descrição:** Foco em conformidade e segurança, inovação limitada",
+              "**Principais riscos:** Lentidão decisória e burocracia excessiva",
+              "**Oportunidades:** Padronização e fortalecimento de governança",
+              "**Estratégia recomendada:** Simplificar fluxos e criar núcleos ágeis de conformidade"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Cenário 3: Crise Fiscal",
+            "icone": "⚠️",
+            "itens": [
+              "**Descrição:** Cortes severos e paralisação de projetos",
+              "**Principais riscos:** Perda de talentos e descontinuidade",
+              "**Oportunidades:** Reuso de soluções abertas e parcerias estratégicas",
+              "**Estratégia recomendada:** Repriorizar projetos essenciais e renegociar contratos"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Cenário 4: Inovação Colaborativa",
+            "icone": "🤝",
+            "itens": [
+              "**Descrição:** Cooperação entre órgãos e uso ético de IA",
+              "**Principais riscos:** Resistência cultural",
+              "**Oportunidades:** Sinergia e ganho de escala em serviços públicos",
+              "**Estratégia recomendada:** Fomentar redes e ecossistemas interinstitucionais"
+            ]
+          },
+          {
+            "tipo": "destaque",
+            "titulo": "Eixos Utilizados",
+            "icone": "📐",
+            "conteudo": "**Eixo 1:** Nível de automação (baixo → alto)<br>**Eixo 2:** Disponibilidade orçamentária (restrita → estável)<br><br>A combinação desses dois eixos gerou 4 cenários distintos que cobrem diferentes futuros possíveis."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Fatores de Mudança (Drivers) Identificados",
+            "icone": "🔍",
+            "itens": [
+              "Avanço acelerado da inteligência artificial aplicada ao setor público",
+              "Envelhecimento populacional e aumento da demanda por benefícios",
+              "Mudanças fiscais e contingenciamento orçamentário",
+              "Pressão social por transparência e accountability",
+              "Transformação digital e interoperabilidade de sistemas"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "<em>Fonte: Adaptado de práticas de Strategic Foresight (OCDE), Global Risks Report (WEF) e Guia Prático de Projetos (MGI, 2025).</em>"
+          }
+        ]
+      }
+    }
+  },
+  "hoshin": {
+    "id": "hoshin",
+    "titulo": "Modelo Hoshin Kanri",
+    "subtitulo": "Strategic Policy Deployment – Desdobramento de Diretrizes Estratégicas",
+    "icone": "🧭",
+    "cor": "#E74C3C",
+    "tabs": {
+      "o-que-e": {
+        "titulo": "O que é",
+        "icone": "📖",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "O que é Hoshin Kanri?",
+            "icone": "🧭",
+            "conteudo": "O **Hoshin Kanri** (ou Desdobramento de Diretrizes) é um método de planejamento e execução estratégica que busca alinhar os objetivos de longo prazo da instituição com as metas e ações do dia a dia. É amplamente utilizado no setor público japonês e em organizações que adotam o pensamento Lean Management. A essência do método é o **'catchball'**, um processo colaborativo de ida e volta entre os níveis hierárquicos — onde as metas são debatidas, ajustadas e internalizadas."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "🎯 **Objetivo:** transformar a estratégia institucional em planos de ação concretos, mensuráveis e compartilhados."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "📘 **Referências:** Lean Enterprise Institute, Guia de Gestão de Projetos (MGI, 2025), ISO 9001:2015, e manuais de qualidade total (TQM)."
+          }
+        ]
+      },
+      "quando-usar": {
+        "titulo": "Quando usar",
+        "icone": "🎯",
+        "secoes": [
+          {
+            "tipo": "lista",
+            "titulo": "Use o Hoshin Kanri quando for necessário:",
+            "icone": "✅",
+            "itens": [
+              "Traduzir diretrizes estratégicas em planos de execução",
+              "Garantir alinhamento entre níveis hierárquicos e áreas",
+              "Revisar periodicamente os avanços das metas estratégicas",
+              "Promover aprendizado organizacional contínuo (PDCA aplicado à estratégia)"
+            ]
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "💡 **Dica Helena:** O Hoshin Kanri é especialmente eficaz após a aplicação de modelos como SWOT ou BSC, pois utiliza os resultados deles para orientar metas anuais de execução."
+          }
+        ]
+      },
+      "como-usar": {
+        "titulo": "Como usar",
+        "icone": "🚀",
+        "secoes": [
+          {
+            "tipo": "passos",
+            "titulo": "Passo a Passo para Implementar Hoshin Kanri",
+            "icone": "🚀",
+            "passos": [
+              {
+                "numero": "1️⃣",
+                "titulo": "Definir Diretrizes Estratégicas (Hoshins)",
+                "cor": "#E74C3C",
+                "descricao": "Estabeleça 3 a 5 grandes objetivos anuais vinculados à estratégia institucional.",
+                "exemplo": "Fortalecer a governança digital, melhorar a eficiência de atendimento, aumentar o índice de satisfação do cidadão"
+              },
+              {
+                "numero": "2️⃣",
+                "titulo": "Desdobrar Metas (Catchball)",
+                "cor": "#3498DB",
+                "descricao": "Envolva lideranças e equipes para propor indicadores e iniciativas que sustentem cada diretriz.",
+                "exemplo": "Reuniões entre diretorias e coordenações para discutir entregas e responsabilidades"
+              },
+              {
+                "numero": "3️⃣",
+                "titulo": "Estabelecer Planos de Ação (Kanri)",
+                "cor": "#27AE60",
+                "descricao": "Para cada meta, defina ações concretas com prazos, responsáveis e métricas.",
+                "exemplo": "Criar um plano 5W2H ou OKR vinculado a cada diretriz"
+              },
+              {
+                "numero": "4️⃣",
+                "titulo": "Acompanhar e Rever (PDCA)",
+                "cor": "#E67E22",
+                "descricao": "Monitore resultados periodicamente e ajuste rotas conforme o desempenho e contexto.",
+                "exemplo": "Reuniões trimestrais de revisão de indicadores e priorização de ações corretivas"
+              },
+              {
+                "numero": "5️⃣",
+                "titulo": "Consolidar Aprendizados",
+                "cor": "#9B59B6",
+                "descricao": "Registre práticas eficazes e pontos de melhoria.",
+                "exemplo": "Reuniões de retrospectiva e revisão de políticas institucionais"
+              }
+            ]
+          },
+          {
+            "tipo": "texto",
+            "titulo": "Resultado esperado",
+            "icone": "📊",
+            "conteudo": "• Alinhamento vertical e horizontal das metas institucionais\n• Planos de ação estruturados e compartilhados entre níveis hierárquicos\n• Cultura de melhoria contínua baseada no ciclo PDCA estratégico"
+          }
+        ]
+      },
+      "exemplos": {
+        "titulo": "Exemplos",
+        "icone": "📚",
+        "secoes": [
+          {
+            "tipo": "destaque",
+            "titulo": "Exemplo de Hoshin Kanri - Órgão Público",
+            "icone": "🧭",
+            "conteudo": "Exemplo ilustrativo de desdobramento de diretrizes estratégicas aplicado a um órgão da administração pública federal."
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Exemplo 1: Fortalecer a governança digital",
+            "icone": "💻",
+            "itens": [
+              "**Diretriz:** Fortalecer a governança digital",
+              "**Meta:** 100% dos sistemas integrados ao DataLake institucional até 2026",
+              "**Indicador:** % de sistemas integrados",
+              "**Ação:** Implantar API de integração com SGP"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Exemplo 2: Melhorar atendimento ao cidadão",
+            "icone": "👥",
+            "itens": [
+              "**Diretriz:** Melhorar atendimento ao cidadão",
+              "**Meta:** Reduzir tempo médio de resposta em 20%",
+              "**Indicador:** Tempo médio de atendimento",
+              "**Ação:** Automatizar triagem de demandas"
+            ]
+          },
+          {
+            "tipo": "lista",
+            "titulo": "Exemplo 3: Valorizar servidores",
+            "icone": "🎓",
+            "itens": [
+              "**Diretriz:** Valorizar servidores",
+              "**Meta:** Implementar 3 programas de capacitação por ano",
+              "**Indicador:** Nº de programas realizados",
+              "**Ação:** Implantar trilhas formativas no SouGov+"
+            ]
+          },
+          {
+            "tipo": "destaque",
+            "titulo": "Matriz Hoshin Kanri",
+            "icone": "📊",
+            "conteudo": "A matriz Hoshin Kanri organiza as diretrizes estratégicas, metas, indicadores e ações em um formato visual que facilita o acompanhamento e a comunicação entre todos os níveis da organização."
+          },
+          {
+            "tipo": "texto",
+            "conteudo": "<em>Fonte: Adaptado do Lean Enterprise Institute e práticas do Guia de Gestão de Projetos (MGI, 2025).</em>"
+          }
+        ]
+      }
+    }
+  }
+}

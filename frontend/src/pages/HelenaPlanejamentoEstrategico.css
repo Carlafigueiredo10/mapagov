@@ -1,0 +1,575 @@
+/**
+ * Helena Planejamento Estratégico - Estilos da Página Principal
+ */
+
+/* ============================================================================
+   CONTAINER PRINCIPAL
+   ============================================================================ */
+
+.helena-pe-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  overflow: hidden;
+}
+
+.helena-pe-loading {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 40px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.loading-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  margin: 0;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.helena-pe-header {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.header-info h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-subtitulo {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Layout Controls */
+.layout-controls {
+  display: flex;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.layout-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.layout-btn:hover {
+  background: white;
+  color: #667eea;
+}
+
+.layout-btn.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+/* Botões de ação */
+.btn-primary,
+.btn-secondary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: white;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* ============================================================================
+   PROGRESSO GLOBAL
+   ============================================================================ */
+
+.helena-pe-progresso-global {
+  background: white;
+  padding: 16px 32px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* ============================================================================
+   ÁREA PRINCIPAL
+   ============================================================================ */
+
+.helena-pe-main {
+  flex: 1;
+  overflow: hidden;
+  padding: 24px;
+}
+
+/* Layout: Chat Only */
+.layout-chat-only {
+  height: 100%;
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0 32px;
+}
+
+/* Layout: Split */
+.layout-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  height: 100%;
+}
+
+.split-chat,
+.split-workspace {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Layout: Workspace Only */
+.layout-workspace-only {
+  height: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* ============================================================================
+   WORKSPACE PLACEHOLDER
+   ============================================================================ */
+
+.workspace-placeholder {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.placeholder-icone {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.workspace-placeholder h3 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.workspace-placeholder p {
+  margin: 0 0 24px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.placeholder-dados {
+  width: 100%;
+  max-width: 600px;
+  max-height: 400px;
+  overflow: auto;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.placeholder-dados pre {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
+  font-family: 'Courier New', monospace;
+}
+
+/* ============================================================================
+   DEBUG
+   ============================================================================ */
+
+.helena-pe-debug {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  z-index: 1000;
+}
+
+.helena-pe-debug summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.helena-pe-debug pre {
+  margin: 8px 0 0 0;
+  font-size: 10px;
+  max-height: 300px;
+  overflow: auto;
+  background: #f8fafc;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+/* ============================================================================
+   RESPONSIVIDADE
+   ============================================================================ */
+
+@media (max-width: 1200px) {
+  .layout-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .helena-pe-header {
+    padding: 12px 16px;
+  }
+
+  .header-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .header-info h1 {
+    font-size: 18px;
+  }
+
+  .header-subtitulo {
+    font-size: 12px;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+  }
+
+  .layout-controls {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .helena-pe-progresso-global {
+    padding: 12px 16px;
+  }
+
+  .helena-pe-main {
+    padding: 16px;
+  }
+
+  .layout-split {
+    gap: 16px;
+  }
+
+  .workspace-placeholder {
+    padding: 24px 16px;
+  }
+
+  .placeholder-icone {
+    font-size: 48px;
+  }
+
+  .workspace-placeholder h3 {
+    font-size: 20px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-left {
+    gap: 12px;
+  }
+
+  .header-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .header-info h1 {
+    font-size: 16px;
+  }
+
+  .layout-controls {
+    padding: 3px;
+  }
+
+  .layout-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .helena-pe-main {
+    padding: 12px;
+  }
+}
+
+/* ============================================================================
+   ACESSIBILIDADE
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .placeholder-icone {
+    animation: none;
+  }
+}
+
+/* Modo escuro */
+@media (prefers-color-scheme: dark) {
+  .helena-pe-container {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  }
+
+  .helena-pe-loading {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  }
+
+  .loading-container {
+    background: #1e293b;
+  }
+
+  .loading-container p {
+    color: #cbd5e1;
+  }
+
+  .helena-pe-header {
+    background: #1e293b;
+    border-bottom-color: #334155;
+  }
+
+  .header-info h1 {
+    color: #f1f5f9;
+    -webkit-text-fill-color: unset;
+    background: unset;
+  }
+
+  .header-subtitulo {
+    color: #94a3b8;
+  }
+
+  .layout-controls {
+    background: #0f172a;
+  }
+
+  .layout-btn:hover,
+  .layout-btn.active {
+    background: #334155;
+  }
+
+  .btn-secondary {
+    background: #334155;
+    color: #e2e8f0;
+    border-color: #475569;
+  }
+
+  .btn-secondary:hover {
+    background: #475569;
+  }
+
+  .helena-pe-progresso-global {
+    background: #1e293b;
+    border-bottom-color: #334155;
+  }
+
+  .workspace-placeholder {
+    background: #1e293b;
+  }
+
+  .workspace-placeholder h3 {
+    color: #f1f5f9;
+  }
+
+  .workspace-placeholder p {
+    color: #94a3b8;
+  }
+
+  .placeholder-dados {
+    background: #0f172a;
+    border-color: #334155;
+  }
+
+  .placeholder-dados pre {
+    color: #cbd5e1;
+  }
+
+  .helena-pe-debug {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .helena-pe-debug summary {
+    color: #cbd5e1;
+  }
+
+  .helena-pe-debug pre {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+}
+
+/* Alto contraste */
+@media (prefers-contrast: high) {
+  .helena-pe-header {
+    border-bottom-width: 2px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    border-width: 2px;
+  }
+}
+
+/* ============================================================================
+   DASHBOARD SECTION
+   ============================================================================ */
+
+.helena-pe-dashboard-section {
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  margin: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .helena-pe-dashboard-section {
+    padding: 20px;
+    margin: 16px;
+  }
+}

@@ -13,6 +13,12 @@ export interface ChatResponse {
   dados_extraidos?: Record<string, unknown>;
   progresso?: string;
   conversa_completa?: boolean;
+  metadados?: {
+    auto_continue?: boolean;
+    auto_continue_delay?: number;
+    auto_continue_message?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface ValidationRequest {
@@ -159,7 +165,7 @@ export interface ListaProdutosResponse {
  * Usa HelenaCore com roteamento automático entre produtos
  */
 export const chatV2 = async (request: ChatV2Request): Promise<ChatV2Response> => {
-  const response = await api.post('/api/chat-v2/', request);
+  const response = await api.post('/chat-v2/', request);
   console.log("[chatV2] Resposta da nova API:", response.data);
   return response.data;
 };
@@ -168,7 +174,7 @@ export const chatV2 = async (request: ChatV2Request): Promise<ChatV2Response> =>
  * Mudar contexto explicitamente (ex: 'etapas' -> 'pop')
  */
 export const mudarContextoV2 = async (request: MudarContextoRequest): Promise<ChatV2Response> => {
-  const response = await api.post('/api/chat-v2/mudar-contexto/', request);
+  const response = await api.post('/chat-v2/mudar-contexto/', request);
   return response.data;
 };
 
@@ -176,7 +182,7 @@ export const mudarContextoV2 = async (request: MudarContextoRequest): Promise<Ch
  * Listar produtos Helena disponíveis
  */
 export const listarProdutosV2 = async (): Promise<ListaProdutosResponse> => {
-  const response = await api.get('/api/chat-v2/produtos/');
+  const response = await api.get('/chat-v2/produtos/');
   return response.data;
 };
 
@@ -184,7 +190,7 @@ export const listarProdutosV2 = async (): Promise<ListaProdutosResponse> => {
  * Obter informações da sessão
  */
 export const infoSessaoV2 = async (sessionId: string): Promise<InfoSessaoResponse> => {
-  const response = await api.get(`/api/chat-v2/sessao/${sessionId}/`);
+  const response = await api.get(`/chat-v2/sessao/${sessionId}/`);
   return response.data;
 };
 
@@ -192,7 +198,7 @@ export const infoSessaoV2 = async (sessionId: string): Promise<InfoSessaoRespons
  * Finalizar sessão
  */
 export const finalizarSessaoV2 = async (sessionId: string): Promise<{ success: boolean }> => {
-  const response = await api.post('/api/chat-v2/finalizar/', { session_id: sessionId });
+  const response = await api.post('/chat-v2/finalizar/', { session_id: sessionId });
   return response.data;
 };
 

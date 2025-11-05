@@ -21,7 +21,17 @@ export interface PedidoDiretor {
   canal?: string; // "Despacho SEI", "E-mail", "Reunião"
   prazo_retorno?: string; // ISO date format - prazo para atendimento
   retorno_esperado?: string;
-  status_pedido?: 'Em andamento' | 'Atendido' | 'Pendente' | 'Aguardando resposta';
+  status_pedido?: 'Em andamento' | 'Pendente' | 'Aguardando resposta' | 'Atendido integralmente' | 'Atendido parcialmente' | 'Não atendido';
+  // Campos para status "Em andamento"
+  data_andamento?: string; // ISO date format - quando começou o andamento
+  descricao_andamento?: string; // O que está sendo feito
+  // Campos para status "Aguardando resposta"
+  setor_aguardando?: string; // De qual setor está aguardando
+  data_solicitacao_setor?: string; // ISO date format
+  prazo_resposta_setor?: string; // ISO date format
+  // Campos para status de atendimento (Atendido integralmente/parcialmente/não atendido)
+  data_atendimento?: string; // ISO date format
+  descricao_atendimento?: string; // Descrição de como foi atendido
 }
 
 /**

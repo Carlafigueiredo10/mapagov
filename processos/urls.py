@@ -4,6 +4,7 @@ from django.urls import path
 from . import views
 from .views import helena_mapeamento_api
 from processos.api import chat_api  # FASE 1 - Nova API
+from processos.api import planejamento_estrategico_api as pe_api  # Planejamento Estratégico API
 from processos.infra import metrics  # FASE 3 - Prometheus Metrics
 
 urlpatterns = [
@@ -39,6 +40,23 @@ urlpatterns = [
     path('api/chat-v2/sessao/<str:session_id>/', chat_api.info_sessao, name='chat-v2-info-sessao'),
     path('api/chat-v2/sessao/<str:session_id>/mensagens/', chat_api.buscar_mensagens, name='chat-v2-mensagens'),
     path('api/chat-v2/finalizar/', chat_api.finalizar_sessao, name='chat-v2-finalizar'),
+
+    # ============================================================================
+    # APIs PLANEJAMENTO ESTRATÉGICO - PE 🎯
+    # ============================================================================
+    path('api/planejamento-estrategico/iniciar/', pe_api.iniciar_planejamento, name='pe-iniciar'),
+    path('api/planejamento-estrategico/processar/', pe_api.processar_mensagem, name='pe-processar'),
+    path('api/planejamento-estrategico/salvar/', pe_api.salvar_planejamento, name='pe-salvar'),
+    path('api/planejamento-estrategico/listar/', pe_api.listar_planejamentos, name='pe-listar'),
+    path('api/planejamento-estrategico/<int:planejamento_id>/', pe_api.obter_planejamento, name='pe-obter'),
+    path('api/planejamento-estrategico/<int:planejamento_id>/aprovar/', pe_api.aprovar_planejamento, name='pe-aprovar'),
+    path('api/planejamento-estrategico/<int:planejamento_id>/revisar/', pe_api.criar_revisao, name='pe-revisar'),
+    path('api/planejamento-estrategico/<int:planejamento_id>/exportar/', pe_api.exportar_planejamento, name='pe-exportar'),
+    path('api/planejamento-estrategico/modelos/', pe_api.obter_modelos, name='pe-modelos'),
+    path('api/planejamento-estrategico/diagnostico/', pe_api.obter_diagnostico, name='pe-diagnostico'),
+    path('api/planejamento-estrategico/recomendar/', pe_api.calcular_recomendacao, name='pe-recomendar'),
+    path('api/planejamento-estrategico/iniciar-modelo/', pe_api.iniciar_modelo_direto, name='pe-iniciar-modelo'),
+    path('api/planejamento-estrategico/confirmar-modelo/', pe_api.confirmar_modelo, name='pe-confirmar-modelo'),
 
     # ============================================================================
     # OBSERVABILITY - FASE 3 📊

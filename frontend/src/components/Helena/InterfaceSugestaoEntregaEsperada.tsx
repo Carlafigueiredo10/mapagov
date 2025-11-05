@@ -14,10 +14,6 @@ const InterfaceSugestaoEntregaEsperada: React.FC<Props> = ({
 }) => {
     return (
         <div className="sugestao-entrega-container">
-            <div className="sugestao-entrega-header">
-                <h3>Perfeito! Agora vamos definir a <strong>entrega esperada</strong> dessa atividade.</h3>
-            </div>
-
             <div className="sugestao-entrega-conteudo">
                 <div className="campo-sugestao">
                     <label>Minha sugestão:</label>

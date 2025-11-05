@@ -113,6 +113,14 @@ export default function Landing() {
                 mapeados.
               </p>
             </Link>
+
+            <Link to="/planejamento-estrategico" className={styles.featureCard}>
+              <span className={styles.featureIcon}>🎯</span>
+              <h3>Planejamento Estratégico</h3>
+              <p>
+                Desenvolvimento colaborativo de planos estratégicos com objetivos, iniciativas e indicadores.
+              </p>
+            </Link>
           </div>
         </div>
       </section>
@@ -158,8 +166,8 @@ export default function Landing() {
                   <span className={styles.productIcon}>✅</span>
                   <span>Gerador de POP</span>
                 </li>
-                <li className={styles.productInProgress}>
-                  <span className={styles.productIcon}>🔨</span>
+                <li className={styles.productCompleted}>
+                  <span className={styles.productIcon}>✅</span>
                   <span>Gerador de Fluxograma</span>
                 </li>
                 <li>
@@ -179,13 +187,13 @@ export default function Landing() {
               <h3 className={styles.phaseTitle}>Gestão de Riscos</h3>
               <p className={styles.phaseTimeline}>Q2 2025</p>
               <ul className={styles.productList}>
-                <li>
-                  <span className={styles.productIcon}>📅</span>
-                  <span>Análise de Riscos + LGPD</span>
+                <li className={styles.productCompleted}>
+                  <span className={styles.productIcon}>✅</span>
+                  <span>Análise de Riscos</span>
                 </li>
-                <li>
-                  <span className={styles.productIcon}>📅</span>
-                  <span>Plano de Ação e Controles</span>
+                <li className={styles.productCompleted}>
+                  <span className={styles.productIcon}>✅</span>
+                  <span>Suporte ao Planejamento Estratégico</span>
                 </li>
               </ul>
             </div>

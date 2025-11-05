@@ -21,6 +21,15 @@
     animation: pulse 2s ease-in-out infinite;
 }
 
+.rag-icone-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    animation: pulse 2s ease-in-out infinite;
+}
+
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.05); }
@@ -42,6 +51,14 @@
     color: #6c757d;
     margin: 0;
     font-style: italic;
+}
+
+.rag-mensagem-principal {
+    font-size: 18px;
+    font-weight: 600;
+    color: #084298;
+    margin: 0;
+    line-height: 1.5;
 }
 
 .hierarquia-herdada {

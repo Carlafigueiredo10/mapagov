@@ -58,13 +58,66 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
       // ✅ Verificar se backend sinalizou que está aguardando descrição inicial
       const aguardandoDescricao = sessionStorage.getItem(`aguardando_descricao_${sessionId}`) === 'true';
 
+      // ✅ FALLBACK: Detectar descrição inicial pela mensagem anterior (Helena perguntando sobre atividade)
+      const mensagensAtual = useChatStore.getState().messages;
+      const ultimaMensagemHelena = [...mensagensAtual].reverse().find(m => m.tipo === 'helena');
+
+      // Frases que indicam que Helena está pedindo descrição de atividade
+      const frasesDescricaoAtividade = [
+        'me conta o que você faz',
+        'me conte',
+        'qual sua atividade',
+        'descreva sua atividade',
+        'descreva aqui o que você faz',
+        'estou te ouvindo',
+        'o que você faz na sua rotina',
+        'o que você entrega ao finalizar'
+      ];
+
+      const helenaEstaPedindoDescricao = ultimaMensagemHelena?.mensagem &&
+        frasesDescricaoAtividade.some(frase =>
+          ultimaMensagemHelena.mensagem.toLowerCase().includes(frase.toLowerCase())
+        );
+
+      // ✅ Detectar se texto é puro (não-JSON) OU se é JSON mas contém descrição de atividade
+      const isTextoJSON = texto.trim().startsWith('{') || texto.trim().startsWith('[');
+      let isDescricaoTextoLivre = false;
+
+      if (isTextoJSON) {
+        // Se é JSON, verificar se é ação de enviar descrição (interface RAG)
+        try {
+          const parsed = JSON.parse(texto);
+          // Interface RAG envia: {"acao":"enviar_descricao","descricao":"..."}
+          isDescricaoTextoLivre = parsed.acao === 'enviar_descricao' &&
+                                   parsed.descricao &&
+                                   parsed.descricao.length > 20;
+        } catch {
+          isDescricaoTextoLivre = false;
+        }
+      } else {
+        // Texto puro (não-JSON) e longo
+        isDescricaoTextoLivre = texto.trim().length > 20;
+      }
+
+      console.log('🔍 [FALLBACK DEBUG] Detecção de descrição inicial:', {
+        aguardandoDescricao,
+        helenaEstaPedindoDescricao,
+        ultimaMensagemHelena: ultimaMensagemHelena?.mensagem?.substring(0, 100),
+        textoUsuario: texto.substring(0, 50),
+        textoLength: texto.trim().length,
+        startsWithJSON: texto.trim().startsWith('{') || texto.trim().startsWith('['),
+        isTextoJSON,
+        isDescricaoTextoLivre
+      });
+
       // ✅ Quadro roxo APENAS se:
-      // 1. Backend sinalizou que está aguardando descrição (flag salva anteriormente)
-      // 2. Texto não é JSON (é descrição livre digitada pelo usuário)
-      // 3. Texto tem tamanho significativo (>20 chars)
-      const isDescricaoInicial = aguardandoDescricao &&
-                                  !texto.trim().startsWith('{') &&
-                                  texto.trim().length > 20 &&
+      // 1. Backend sinalizou que está aguardando descrição (flag salva anteriormente) OU
+      // 2. Helena acabou de pedir descrição (fallback por contexto) E
+      // 3. É texto livre de descrição (puro OU JSON de interface RAG) E
+      // 4. É contexto gerador_pop E
+      // 5. Deve mostrar mensagem do usuário (não é auto-continue)
+      const isDescricaoInicial = (aguardandoDescricao || helenaEstaPedindoDescricao) &&
+                                  isDescricaoTextoLivre &&
                                   contexto === 'gerador_pop' &&
                                   mostrarMensagemUsuario;
 
@@ -95,9 +148,15 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         session_id: sessionId,
       };
 
-      const response: ChatResponse = contexto === 'gerador_pop' 
+      const response: ChatResponse = contexto === 'gerador_pop'
         ? await chatHelena(request)
         : await chatAjuda(request);
+
+      // 🔍 DEBUG ULTRA CRÍTICO: Log da response HTTP COMPLETA recebida do backend
+      console.log('[useChat] 🔴🔴🔴 RESPONSE HTTP RECEBIDA DO BACKEND 🔴🔴🔴');
+      console.log('[useChat] 🔴 tipo_interface =', response.tipo_interface);
+      console.log('[useChat] 🔴 RESPONSE COMPLETA =', response);
+      console.log('[useChat] 🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴');
 
       // Remover loading
       const store = useChatStore.getState();

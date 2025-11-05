@@ -1,0 +1,52 @@
+{
+  "tradicional": {
+    "id": "tradicional",
+    "nome": "Estratégico Clássico",
+    "descricao": "Modelo normativo com Missão, Visão, Valores. Padrão APF.",
+    "icone": "🏛️",
+    "complexidade": "Média",
+    "prazo": "Longo",
+    "tags": ["formal", "institucional", "APF"],
+    "cor": "#5D6D7E"
+  },
+  "bsc": {
+    "id": "bsc",
+    "nome": "BSC Público",
+    "descricao": "Framework com 4 perspectivas para valor público.",
+    "icone": "📊",
+    "complexidade": "Alta",
+    "prazo": "Longo",
+    "tags": ["indicadores", "TCU"],
+    "cor": "#9B59B6"
+  },
+  "swot": {
+    "id": "swot",
+    "nome": "SWOT",
+    "descricao": "Diagnóstico situacional: Forças, Fraquezas, Oportunidades, Ameaças.",
+    "icone": "🔍",
+    "complexidade": "Baixa",
+    "prazo": "Curto",
+    "tags": ["diagnóstico", "simples"],
+    "cor": "#27AE60"
+  },
+  "cenarios": {
+    "id": "cenarios",
+    "nome": "Cenários",
+    "descricao": "Planejamento para navegação em incerteza.",
+    "icone": "🔮",
+    "complexidade": "Alta",
+    "prazo": "Longo",
+    "tags": ["futuro", "IPEA"],
+    "cor": "#E67E22"
+  },
+  "5w2h": {
+    "id": "5w2h",
+    "nome": "5W2H",
+    "descricao": "Plano de ação para execução rápida.",
+    "icone": "⚡",
+    "complexidade": "Baixa",
+    "prazo": "Curto",
+    "tags": ["execução", "rápido"],
+    "cor": "#F39C12"
+  }
+}

@@ -14,6 +14,12 @@ from processos.models_new.plano_acao import (
     Acao,
     ComentarioAcao
 )
+from processos.models_new.planejamento_estrategico import (
+    PlanejamentoEstrategico,
+    IndicadorEstrategico,
+    MedicaoIndicador,
+    ComentarioPlanejamento
+)
 
 __all__ = [
     'Orgao',
@@ -24,5 +30,9 @@ __all__ = [
     'HistoricoAtividade',
     'PlanoAcao',
     'Acao',
-    'ComentarioAcao'
+    'ComentarioAcao',
+    'PlanejamentoEstrategico',
+    'IndicadorEstrategico',
+    'MedicaoIndicador',
+    'ComentarioPlanejamento'
 ]

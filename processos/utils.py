@@ -827,8 +827,11 @@ class PDFGenerator:
                 "3. SISTEMAS UTILIZADOS / ACESSOS NECESSÁRIOS",
                 sistemas_texto
             ))
-            
+
             operadores = dados.get('operadores', '[Não informado]')
+            # Converter lista para texto formatado
+            if isinstance(operadores, list):
+                operadores = "\n".join([f"• {op}" for op in operadores]) if operadores else "[Nenhum operador informado]"
             elementos.extend(self._gerar_secao_conteudo(
                 "4. OPERADORES DA ATIVIDADE",
                 operadores

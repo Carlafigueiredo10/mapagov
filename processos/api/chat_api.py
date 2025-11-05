@@ -13,10 +13,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from processos.app.helena_core import HelenaCore
-from processos.domain.helena_produtos.helena_etapas import HelenaEtapas
-from processos.domain.helena_produtos.helena_pop import HelenaPOP
-from processos.domain.helena_produtos.helena_mapeamento import HelenaMapeamento
-from processos.domain.helena_produtos.helena_plano_acao import HelenaPlanoAcao
+from processos.domain.helena_mapeamento.helena_etapas import HelenaEtapas
+from processos.domain.helena_mapeamento.helena_pop import HelenaPOP
+from processos.domain.helena_mapeamento.helena_mapeamento import HelenaMapeamento
+from processos.domain.helena_planejamento_estrategico import HelenaPlanejamentoEstrategico
 from processos.infra.rate_limiting import rate_limit_user  # FASE 2: Rate limiting
 # Importar outros produtos conforme necessário
 
@@ -41,7 +41,7 @@ def get_helena_core() -> HelenaCore:
             'pop': HelenaPOP(),
             'etapas': HelenaEtapas(),
             'mapeamento': HelenaMapeamento(),
-            'plano_acao': HelenaPlanoAcao(),
+            'planejamento_estrategico': HelenaPlanejamentoEstrategico(),
             # 'fluxograma': HelenaFluxograma(),
             # 'riscos': HelenaAnaliseRiscos(),
         }
@@ -136,6 +136,21 @@ def chat_v2(request):
             logger.info(f"[API] dados_extraidos PRESENTE: {list(dados.keys())[:5]}...")
         else:
             logger.warning("[API] dados_extraidos AUSENTE (pode ser normal se estado inicial)")
+
+        # 🔒 HOTFIX: Rede de segurança - garantir que dados_interface NUNCA seja None
+        if not isinstance(resultado.get("dados_interface"), dict):
+            logger.warning(f"[API] ⚠️ dados_interface era {type(resultado.get('dados_interface'))}, normalizando para {{}}")
+            resultado["dados_interface"] = {}
+            resultado["dados"] = {}  # Compatibilidade dupla
+
+        # 🔍 DEBUG ULTRA CRÍTICO: Log do JSON QUE SERÁ ENVIADO AO FRONTEND
+        logger.info(f"[API] 🌐🌐🌐 RESPONSE HTTP FINAL 🌐🌐🌐")
+        logger.info(f"[API] 🌐 tipo_interface = {resultado.get('tipo_interface')}")
+        logger.info(f"[API] 🌐 interface = {resultado.get('interface')}")
+        logger.info(f"[API] 🌐 dados_interface presente = {bool(resultado.get('dados_interface'))}")
+        if resultado.get('dados_interface'):
+            logger.info(f"[API] 🌐 dados_interface.keys = {list(resultado['dados_interface'].keys())}")
+        logger.info(f"[API] 🌐🌐🌐🌐🌐🌐🌐🌐🌐🌐🌐🌐🌐🌐🌐")
 
         # 3. Retornar resposta
         return JsonResponse(resultado, status=200)

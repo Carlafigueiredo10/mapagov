@@ -184,6 +184,16 @@ const InterfaceSelecaoManualHierarquica: React.FC<Props> = ({
                             <span className="nivel-numero">4</span>
                             Atividade
                         </label>
+
+                        {/* Alerta com Sirene Pulsante */}
+                        <div className="alerta-nao-encontrei">
+                            <div className="sirene-pulsante">🚨</div>
+                            <p className="alerta-texto">
+                                Se não encontrar <strong>exatamente</strong> sua atividade, clique em
+                                <span className="destaque-botao"> ➕ Não encontrei minha atividade</span> e me conta o que faz.
+                            </p>
+                        </div>
+
                         <div className="atividades-lista">
                             {atividades.map((ativ, index) => (
                                 <div

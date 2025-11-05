@@ -167,60 +167,65 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
       />
 
       {/* Header */}
-      <div className="chat-header">
-        <button
-          className="header-btn start-btn"
-          onClick={reiniciarConversa}
-          title="Apagar chat e começar novo mapeamento de POP"
-          disabled={isProcessing}
-        >
-          🚀 Novo POP
-        </button>
+      <div className="chat-header-pop">
+        {/* Linha superior com botões de ação */}
+        <div className="header-top-bar">
+          <div className="header-left-buttons">
+            <button
+              className="header-btn start-btn"
+              onClick={reiniciarConversa}
+              title="Apagar chat e começar novo mapeamento de POP"
+              disabled={isProcessing}
+            >
+              🚀 Novo POP
+            </button>
 
-        <button
-          className="header-btn dev-btn"
-          onClick={() => setPainelDesenvolvedorAberto(true)}
-          title="Abrir Painel de Desenvolvedor - Visualizar todas as funcionalidades"
-          style={{
-            background: 'linear-gradient(135deg, #8B00FF 0%, #5E00CC 100%)',
-            marginLeft: '10px'
-          }}
-        >
-          🔧 Dev Panel
-        </button>
+            <button
+              className="header-btn dev-btn"
+              onClick={() => setPainelDesenvolvedorAberto(true)}
+              title="Abrir Painel de Desenvolvedor - Visualizar todas as funcionalidades"
+              style={{
+                background: 'linear-gradient(135deg, #8B00FF 0%, #5E00CC 100%)'
+              }}
+            >
+              🔧 Dev Panel
+            </button>
+          </div>
+
+          {/* Área de salvamento - só mostra se houver mensagens */}
+          {messages.length > 0 && (
+            <div className="header-save-area">
+              <SaveIndicator status={saveStatus} ultimoSalvamento={ultimoSalvamento} />
+              <button
+                onClick={handleSalvarManual}
+                disabled={saveStatus === 'salvando'}
+                className="header-btn save-btn"
+                title="Salvar conversa manualmente"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  fontSize: '13px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '8px',
+                  cursor: saveStatus === 'salvando' ? 'not-allowed' : 'pointer',
+                  opacity: saveStatus === 'salvando' ? 0.6 : 1,
+                  color: 'white'
+                }}
+              >
+                <Save size={14} />
+                Salvar
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="header-content">
           <h2>Helena - Assistente DECIPEX</h2>
           <p>Mapeamento conversacional de POPs</p>
         </div>
-
-        {/* Área de salvamento - só mostra se houver mensagens */}
-        {messages.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
-            <SaveIndicator status={saveStatus} ultimoSalvamento={ultimoSalvamento} />
-            <button
-              onClick={handleSalvarManual}
-              disabled={saveStatus === 'salvando'}
-              className="header-btn save-btn"
-              title="Salvar conversa manualmente"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                fontSize: '13px',
-                backgroundColor: '#f3f4f6',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                cursor: saveStatus === 'salvando' ? 'not-allowed' : 'pointer',
-                opacity: saveStatus === 'salvando' ? 0.6 : 1,
-              }}
-            >
-              <Save size={14} />
-              Salvar
-            </button>
-          </div>
-        )}
 
         {/* Barra de Progresso */}
         <div className="progress-container">
@@ -270,13 +275,19 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
             type="submit"
             disabled={isProcessing || !inputValue.trim()}
             className="send-button"
+            key={isProcessing ? 'processing' : 'idle'}
           >
             {isProcessing ? (
-              <span className="loading-spinner" />
+              <>
+                <span className="loading-spinner" />
+                <span>Enviando...</span>
+              </>
             ) : (
-              <Send size={18} />
+              <>
+                <Send size={18} />
+                <span>Enviar</span>
+              </>
             )}
-            {isProcessing ? 'Enviando...' : 'Enviar'}
           </button>
         </div>
       </form>

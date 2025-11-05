@@ -17,6 +17,10 @@
   padding: 20px;
   text-align: center;
   position: relative;
+  min-height: 140px; /* Mesma altura do chat-header-pop */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .form-header h2 {

@@ -16,7 +16,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 # ⚡ OTIMIZAÇÃO MEMÓRIA: analyze_risks_helena movido para lazy import (não usado no startup)
-# from .domain.helena_produtos.helena_analise_riscos import analyze_risks_helena
+# from .domain.helena_mapeamento.helena_analise_riscos import analyze_risks_helena
 from .utils import (
     ValidadorUtils, FormatadorUtils, CodigoUtils,
     ArquivoUtils, LogUtils, SegurancaUtils,
@@ -75,14 +75,14 @@ def chat_api_view(request):
         # HELENA MAPEAMENTO: Chat simples, sem sessão persistente
         if contexto == 'mapeamento':
             # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_mapeamento import helena_mapeamento
+            from .domain.helena_mapeamento.helena_mapeamento import helena_mapeamento
             resposta = helena_mapeamento(user_message)
             return JsonResponse({'resposta': resposta, 'success': True})
         
         # P1: Gerador de POP (RENOVADO - API v2.0 com POPStateMachine)
         if contexto in ['gerador_pop', 'mapeamento_natural']:
             # OTIMIZACAO: Import lazy - so carrega quando necessario
-            from .domain.helena_produtos.helena_pop import HelenaPOP, POPStateMachine
+            from .domain.helena_mapeamento.helena_pop import HelenaPOP, POPStateMachine
 
             # FIX: Usar session_id do frontend para criar chave unica
             session_key = f'helena_pop_state_{session_id}'
@@ -120,7 +120,59 @@ def chat_api_view(request):
             print(f"   Sistemas: {len(resultado.get('novo_estado', {}).get('dados_coletados', {}).get('sistemas', []))}")
             print(f"   Dados extraídos: {resultado.get('dados_extraidos', {})}")
             print(f"   Tipo interface: {resultado.get('tipo_interface')}")
+            print(f"   Metadados: {resultado.get('metadados', {})}")
             print(f"{'='*80}\n")
+
+            # 🎯 DETECÇÃO DE MUDANÇA DE CONTEXTO
+            metadados = resultado.get('metadados', {})
+            novo_contexto = metadados.get('mudar_contexto')
+
+            if novo_contexto == 'etapas':
+                print(f"\n{'🔄'*80}")
+                print(f"[CONTEXT SWITCH] Detectada mudança de contexto: gerador_pop -> etapas")
+                print(f"   Dados herdados: {metadados.get('dados_herdados', {}).keys()}")
+                print(f"{'🔄'*80}\n")
+
+                # Importar Helena Etapas
+                from .domain.helena_mapeamento.helena_etapas import HelenaEtapas
+
+                # Inicializar Helena Etapas com dados herdados
+                helena_etapas = HelenaEtapas()
+                dados_herdados = metadados.get('dados_herdados', {})
+                estado_etapas = helena_etapas.inicializar_estado(dados_herdados)
+
+                # Criar nova session key para Helena Etapas
+                session_key_etapas = f'helena_etapas_state_{session_id}'
+
+                # Processar mensagem de inicialização
+                resultado_etapas = helena_etapas.processar('iniciar', estado_etapas)
+
+                print(f"\n{'✅'*80}")
+                print(f"[ETAPAS] Primeira pergunta gerada:")
+                print(f"   Resposta: {resultado_etapas.get('resposta', '')[:100]}...")
+                print(f"   Tipo interface: {resultado_etapas.get('tipo_interface')}")
+                print(f"{'✅'*80}\n")
+
+                # Salvar estado de Helena Etapas
+                novo_estado_etapas = resultado_etapas.get('novo_estado', estado_etapas)
+                request.session[session_key_etapas] = novo_estado_etapas
+
+                # ✨ CONCATENAR RESPOSTAS
+                resposta_pop = resultado.get('resposta', '')
+                resposta_etapas = resultado_etapas.get('resposta', '')
+                resultado['resposta'] = resposta_pop + "\n\n---\n\n" + resposta_etapas
+
+                # Usar interface de Helena Etapas
+                if resultado_etapas.get('tipo_interface'):
+                    resultado['tipo_interface'] = resultado_etapas['tipo_interface']
+                if resultado_etapas.get('dados_interface'):
+                    resultado['dados_interface'] = resultado_etapas['dados_interface']
+
+                # Adicionar metadado indicando contexto mudou
+                resultado['metadados'] = resultado.get('metadados', {})
+                resultado['metadados']['contexto_mudou'] = True
+                resultado['metadados']['contexto_anterior'] = 'gerador_pop'
+                resultado['metadados']['contexto_atual'] = 'etapas'
 
             # Salvar novo estado na sessão (resultado retorna 'novo_estado')
             novo_session_data = resultado.get('novo_estado', session_data)
@@ -164,6 +216,14 @@ def chat_api_view(request):
             print(f"   interface: {resultado.get('interface')}")
             print(f"   tipo_interface: {resultado.get('tipo_interface')}")
             print(f"   dados_interface keys: {list(resultado.get('dados_interface', {}).keys()) if resultado.get('dados_interface') else 'None'}")
+
+            # 🔍 DEBUG COMPLETO: Mostrar conteúdo de opcoes_areas se for interface de áreas
+            if resultado.get('tipo_interface') == 'areas' and resultado.get('dados_interface'):
+                opcoes = resultado['dados_interface'].get('opcoes_areas', {})
+                print(f"   📊 OPCOES_AREAS ({len(opcoes)} áreas):")
+                for key, area in list(opcoes.items())[:3]:  # Mostrar apenas 3 primeiras
+                    print(f"      {key}: {area}")
+
             print(f"   resposta: {resultado.get('resposta')[:50] if resultado.get('resposta') else '<None>'}\n")
 
             return JsonResponse(
@@ -175,7 +235,7 @@ def chat_api_view(request):
         # P2: Gerador de Fluxograma (com sessao)
         elif contexto == 'fluxograma':
             # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_fluxograma import HelenaFluxograma
+            from .domain.helena_fluxograma import HelenaFluxogramaOrchestrator as HelenaFluxograma
             
             session_key = 'helena_fluxograma_state'
             
@@ -202,7 +262,7 @@ def chat_api_view(request):
         # P3: Dossie PDF (com sessao)
         elif contexto == 'dossie':
             # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_dossie import HelenaDossie
+            from .domain.helena_mapeamento.helena_dossie import HelenaDossie
             
             session_key = 'helena_dossie_state'
             
@@ -227,7 +287,7 @@ def chat_api_view(request):
         # P4: Dashboard
         elif contexto == 'dashboard':
             # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_dashboard import HelenaDashboard
+            from .domain.helena_mapeamento.helena_dashboard import HelenaDashboard
             helena = HelenaDashboard()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
@@ -235,7 +295,7 @@ def chat_api_view(request):
         # P5: Analise de Riscos (com sessao) - MODO CONVERSACIONAL HIBRIDO
         elif contexto == 'analise_riscos':
             # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_analise_riscos import HelenaAnaliseRiscos
+            from .domain.helena_analise_riscos import HelenaAnaliseRiscosOrchestrator as HelenaAnaliseRiscos
 
             session_key = 'helena_riscos_state'
 
@@ -273,23 +333,23 @@ def chat_api_view(request):
         
         # P6: Relatório de Riscos (DESATIVADO - arquivo deletado)
         # elif contexto == 'relatorio_riscos':
-        #     from .domain.helena_produtos.helena_relatorio_riscos import HelenaRelatorioRiscos
+        #     from .domain.helena_mapeamento.helena_relatorio_riscos import HelenaRelatorioRiscos
         #     helena = HelenaRelatorioRiscos()
         #     resultado = helena.processar_mensagem(user_message)
         #     return JsonResponse(resultado)
         
-        # P7: Plano de Acao
+        # P7: Plano de Acao (MIGRADO PARA PLANEJAMENTO ESTRATÉGICO)
         elif contexto == 'plano_acao':
-            # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_plano_acao import HelenaPlanoAcao
-            helena = HelenaPlanoAcao()
+            # Redireciona para planejamento estratégico
+            from .domain.helena_planejamento_estrategico import HelenaPlanejamentoEstrategico
+            helena = HelenaPlanejamentoEstrategico()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
         
         # P8: Dossie de Governanca
         elif contexto == 'governanca':
             # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_governanca import HelenaGovernanca
+            from .domain.helena_mapeamento.helena_governanca import HelenaGovernanca
             helena = HelenaGovernanca()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
@@ -297,7 +357,7 @@ def chat_api_view(request):
         # P9: Gerador de Documentos
         elif contexto == 'documentos':
             # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_documentos import HelenaDocumentos
+            from .domain.helena_mapeamento.helena_documentos import HelenaDocumentos
             helena = HelenaDocumentos()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
@@ -305,14 +365,14 @@ def chat_api_view(request):
         # P10: Relatorio de Conformidade
         elif contexto == 'conformidade':
             # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_conformidade import HelenaConformidade
+            from .domain.helena_mapeamento.helena_conformidade import HelenaConformidade
             helena = HelenaConformidade()
             resultado = helena.processar_mensagem(user_message)
             return JsonResponse(resultado)
         
         # P11: Análise de Artefatos (DESATIVADO - arquivo renomeado para helena_artefatos_comunicacao.py)
         # elif contexto == 'artefatos':
-        #     from .domain.helena_produtos.helena_artefatos import HelenaArtefatos
+        #     from .domain.helena_mapeamento.helena_artefatos import HelenaArtefatos
         #     helena = HelenaArtefatos()
         #     resultado = helena.processar_mensagem(user_message)
         #     return JsonResponse(resultado)
@@ -359,7 +419,7 @@ def helena_mapeamento_api(request):
             }, status=400)
         
         # 🚀 OTIMIZAÇÃO: Import lazy
-        from .domain.helena_produtos.helena_mapeamento import helena_mapeamento
+        from .domain.helena_mapeamento.helena_mapeamento import helena_mapeamento
         
         # Chamar Helena Mapeamento (chat simples)
         resposta = helena_mapeamento(mensagem)
@@ -407,7 +467,7 @@ def helena_ajuda_arquitetura(request):
             }, status=400)
 
         # Import lazy da função de análise
-        from .domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena, validar_sugestao_contra_csv
+        from .domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena, validar_sugestao_contra_csv
         from .dados_decipex import ArquiteturaDecipex
 
         print(f"\n[HELENA-AJUDA] Analisando atividade...")
@@ -655,7 +715,7 @@ def consultar_rag_sugestoes(request):
         contexto = data.get('contexto', '')
         
         # Importar Helena para usar RAG
-        from .domain.helena_produtos.helena_pop import HelenaPOP
+        from .domain.helena_mapeamento.helena_pop import HelenaPOP
         helena = HelenaPOP()
         
         if helena.vectorstore:
@@ -826,7 +886,7 @@ def fluxograma_from_pdf(request):
                     'resposta': 'Por favor, faça upload de um PDF de POP primeiro.'
                 }, status=400)
             
-            from .domain.helena_produtos.helena_fluxograma import HelenaFluxograma
+            from .domain.helena_mapeamento.helena_fluxograma import HelenaFluxograma
             helena = HelenaFluxograma(dados_pdf=pop_data)
             resultado = helena.processar_mensagem(user_message)
             
@@ -1004,7 +1064,14 @@ def chat_recepcao_api(request):
             }, status=400)
 
         # Importar e chamar Helena com session_id
-        from .domain.helena_produtos.helena_recepcao import helena_recepcao
+        from .domain.helena_recepcao import HelenaRecepcaoOrchestrator
+        helena_recepcao_instance = HelenaRecepcaoOrchestrator()
+
+        # Wrapper para manter compatibilidade com chamada antiga
+        def helena_recepcao(mensagem, session_id):
+            session_data = {}  # Poderia carregar do banco se necessário
+            resultado = helena_recepcao_instance.processar(mensagem, session_data)
+            return resultado['resposta']
         logger.info("[CHAT RECEPCAO] Helena importada")
 
         resposta = helena_recepcao(mensagem, session_id)

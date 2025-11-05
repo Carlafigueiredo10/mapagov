@@ -15,129 +15,62 @@ Mas antes de tudo, quero te conhecer melhor
 **como posso te chamar por aqui?**
 (só o primeiro nome já tá ótimo 😉)`;
 
-// ✅ Lock global para impedir execuções concorrentes (StrictMode React 18+)
-let globalSyncLock = false;
-
 /**
  * Hook para sincronizar histórico de mensagens com backend
  *
- * ✅ FIX DUPLICAÇÃO: Sistema de defesa em profundidade com 4 camadas:
- * 1. Lock global: Impede execuções concorrentes (React StrictMode)
- * 2. useRef: Impede re-execução no mesmo ciclo de vida do componente
- * 3. sessionStorage: Impede re-injeção por sessão (sobrevive remount/hot-reload)
- * 4. Verificação no histórico: Impede duplicar se outra fonte já injetou
+ * Comportamento:
+ * 1. Na primeira montagem do componente, busca histórico do backend
+ * 2. Se não houver histórico (sessão nova), adiciona mensagem de boas-vindas
+ * 3. Se houver histórico, carrega as mensagens e adiciona boas-vindas no início
  *
- * Carrega mensagens do backend quando:
- * 1. Componente monta pela primeira vez
- * 2. sessionId existe no localStorage
- * 3. Ainda não há mensagens no store
- *
- * Para sessões novas do POP, adiciona mensagem de boas-vindas hardcoded (UMA VEZ)
+ * SIMPLIFICADO: Apenas useRef para evitar re-execução (padrão React)
  */
 export const useSyncHistorico = () => {
   const { sessionId, messages, carregarHistorico, adicionarMensagemRapida } = useChatStore();
-  const syncedRef = useRef(false);  // ✅ Camada 2: Guard por render
+  const syncedRef = useRef(false);
 
   useEffect(() => {
-    // ✅ Camada 1: Lock global (impede double render do StrictMode)
-    if (globalSyncLock) {
-      console.log('[useSyncHistorico] 🔒 Lock global ativo - bloqueando execução concorrente');
-      return;
-    }
-
-    // ✅ Camada 2: Só sincroniza uma vez por lifecycle do componente
+    // Executa apenas uma vez por lifecycle do componente
     if (syncedRef.current) return;
+    syncedRef.current = true;
 
-    // ✅ Camada 2: Guard por sessão (sessionStorage)
-    // Sobrevive a hot-reloads, remounts, e múltiplos pontos de injeção
-    const storageKey = `helena:welcome:${sessionId}`;
-    const welcomeAlreadyInjected = sessionStorage.getItem(storageKey);
-
-    // ✅ Camada 3: Verificar se mensagem já existe no histórico atual
-    // (proteção contra múltiplas fontes no frontend)
-    const jaTemWelcome = messages.some(
-      m =>
-        m.tipo === 'helena' &&
-        typeof m.mensagem === 'string' &&
-        m.mensagem.includes('Eu sou a Helena, sua parceira de jornada') &&
-        m.mensagem.includes('como posso te chamar por aqui?')
-    );
-
-    // Se já tem mensagem (por qualquer via), não adicionar novamente
-    if (messages.length > 0 && jaTemWelcome) {
-      console.log('[useSyncHistorico] ✅ Boas-vindas já existem no histórico (skip)');
-      syncedRef.current = true;
-      return;
-    }
-
-    // Tentar carregar histórico do backend
     const loadHistory = async () => {
-      // ✅ Ativar lock global
-      globalSyncLock = true;
-
       try {
-        console.log('[useSyncHistorico] 🔓 Lock ativado - iniciando sincronização:', sessionId);
+        console.log('[useSyncHistorico] Iniciando sincronização:', sessionId);
 
         const response = await buscarMensagensV2(sessionId);
 
         if (response.session_exists && response.mensagens.length > 0) {
           console.log('[useSyncHistorico] Histórico encontrado:', response.mensagens.length, 'mensagens');
 
-          // ✅ Filtro de defesa: Remover boas-vindas duplicadas do backend
-          const mensagensFiltradas = response.mensagens.filter(msg => {
-            const isBoasVindas = msg.role === 'assistant' &&
-                                 typeof msg.content === 'string' &&
-                                 msg.content.includes('Eu sou a Helena, sua parceira de jornada') &&
-                                 msg.content.includes('como posso te chamar por aqui?');
-            return !isBoasVindas;  // ← Descarta boas-vindas do backend
-          });
+          // Carregar histórico do backend
+          carregarHistorico(response.mensagens);
 
-          // Carregar histórico filtrado
-          if (mensagensFiltradas.length > 0) {
-            carregarHistorico(mensagensFiltradas);
-          }
+          // Adicionar boas-vindas no início se ainda não tiver
+          const jaTemBoasVindas = messages.some(
+            m => m.tipo === 'helena' && m.mensagem.includes('Eu sou a Helena, sua parceira de jornada')
+          );
 
-          // ✅ Injetar boas-vindas hardcoded SOMENTE se:
-          // 1. Não foi injetada anteriormente (sessionStorage)
-          // 2. Não existe no histórico atual
-          if (!welcomeAlreadyInjected && !jaTemWelcome) {
-            console.log('[useSyncHistorico] ✅ Adicionando boas-vindas hardcoded (histórico restaurado)');
+          if (!jaTemBoasVindas) {
+            console.log('[useSyncHistorico] Adicionando boas-vindas no início do histórico');
             adicionarMensagemRapida('helena', MENSAGEM_BOAS_VINDAS);
-            sessionStorage.setItem(storageKey, '1');  // ← Marca como injetada
           }
         } else {
-          // ✅ Nova sessão - adicionar boas-vindas SOMENTE se não foi injetada antes
-          if (!welcomeAlreadyInjected && !jaTemWelcome) {
-            console.log('[useSyncHistorico] ✅ Nova sessão - adicionando boas-vindas hardcoded');
-            adicionarMensagemRapida('helena', MENSAGEM_BOAS_VINDAS);
-            sessionStorage.setItem(storageKey, '1');  // ← Marca como injetada
-          } else {
-            console.log('[useSyncHistorico] ⚠️ Boas-vindas já foram injetadas nesta sessão (skip)');
-          }
-        }
-
-        syncedRef.current = true;
-      } catch (error: any) {
-        console.log('[useSyncHistorico] Erro ao carregar histórico:', error.message);
-
-        // ✅ Se sessão não existe (404) E não foi injetada antes
-        if (error.response?.status === 404 && !welcomeAlreadyInjected && !jaTemWelcome) {
-          console.log('[useSyncHistorico] ✅ Sessão 404 - adicionando boas-vindas hardcoded');
+          // Nova sessão - adicionar boas-vindas
+          console.log('[useSyncHistorico] Nova sessão - adicionando boas-vindas');
           adicionarMensagemRapida('helena', MENSAGEM_BOAS_VINDAS);
-          sessionStorage.setItem(storageKey, '1');  // ← Marca como injetada
         }
+      } catch (error: any) {
+        console.error('[useSyncHistorico] Erro ao carregar histórico:', error);
 
-        syncedRef.current = true;
-      } finally {
-        // ✅ SEMPRE liberar lock no final
-        console.log('[useSyncHistorico] 🔓 Lock liberado');
-        // Pequeno delay para garantir que segunda execução veja o lock
-        setTimeout(() => {
-          globalSyncLock = false;
-        }, 100);
+        // Se der erro (ex: 404), adicionar boas-vindas mesmo assim
+        if (messages.length === 0) {
+          console.log('[useSyncHistorico] Adicionando boas-vindas após erro');
+          adicionarMensagemRapida('helena', MENSAGEM_BOAS_VINDAS);
+        }
       }
     };
 
     loadHistory();
-  }, [sessionId, messages.length, carregarHistorico, adicionarMensagemRapida, messages]);
+  }, [sessionId]); // Depende apenas de sessionId
 };

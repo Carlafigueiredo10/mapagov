@@ -79,3 +79,44 @@
     transform: translateY(0);
   }
 }
+
+/* ========== MARKDOWN FORMATTING ========== */
+.message p {
+  margin: 0 0 8px 0;
+  line-height: 1.6;
+}
+
+.message p:last-child {
+  margin-bottom: 0;
+}
+
+.message strong {
+  font-weight: 600;
+  color: #1351B4;
+}
+
+.message ul, .message ol {
+  margin: 8px 0 8px 20px;
+  line-height: 1.6;
+}
+
+.message li {
+  margin-bottom: 6px;
+}
+
+.message code {
+  background: rgba(19, 81, 180, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.message a {
+  color: #1351B4;
+  text-decoration: underline;
+}
+
+.message a:hover {
+  color: #0d3a85;
+}

@@ -66,7 +66,12 @@ interface ChatState {
   setProcessing: (status: boolean) => void;
   updateProgresso: (atual: number, texto: string) => void;
   resetChat: () => void;
-  carregarHistorico: (mensagens: Array<{ role: string; content: string }>) => void;
+  carregarHistorico: (mensagens: Array<{
+    role: string;
+    content: string;
+    metadados?: Record<string, unknown>;
+    criado_em?: string
+  }>) => void;
 
   // Actions do POP
   updateDadosPOP: (dados: Partial<DadosPOP>) => void;
@@ -117,12 +122,33 @@ export const useChatStore = create<ChatState>()(
         }),
 
       carregarHistorico: (mensagens) => {
-        const helenaMessages: HelenaMessage[] = mensagens.map((msg, idx) => ({
-          id: `history_${Date.now()}_${idx}`,
-          tipo: msg.role === 'user' ? 'usuario' : 'helena',
-          mensagem: msg.content,
-          timestamp: new Date().toISOString(),
-        }));
+        const helenaMessages: HelenaMessage[] = mensagens.map((msg, idx) => {
+          // ✅ BUGFIX: Recuperar interface completa dos metadados
+          const tipoInterface = msg.metadados?.tipo_interface;
+          const dadosInterface = msg.metadados?.dados_interface;
+
+          return {
+            id: `history_${Date.now()}_${idx}`,
+            tipo: msg.role === 'user' ? 'usuario' : 'helena',
+            mensagem: msg.content,
+            timestamp: msg.criado_em || new Date().toISOString(),
+            // ✅ Restaurar interface se existir nos metadados
+            ...(tipoInterface && {
+              interface: {
+                tipo: tipoInterface,
+                dados: dadosInterface || {}
+              }
+            }),
+            // ✅ Restaurar metadados completos (exceto interface para evitar duplicação)
+            ...(msg.metadados && {
+              metadados: Object.fromEntries(
+                Object.entries(msg.metadados).filter(
+                  ([key]) => key !== 'tipo_interface' && key !== 'dados_interface'
+                )
+              )
+            })
+          };
+        });
 
         set({ messages: helenaMessages });
       },
@@ -168,6 +194,9 @@ export const useChatStore = create<ChatState>()(
         dadosPOP: state.dadosPOP,
         sessionId: state.sessionId,
         historicoCompleto: state.historicoCompleto,
+        // ✅ BUGFIX: Persistir mensagens renderizadas (últimas 50 para evitar overflow)
+        // Isso garante que interfaces sejam preservadas após reload
+        messages: state.messages.slice(-50),
       }),
     }
   )

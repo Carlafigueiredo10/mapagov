@@ -1,0 +1,177 @@
+.metodos-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+.metodos-header-page {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.metodos-header-page h1 {
+  font-size: 2rem;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.metodos-lista-page {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+}
+
+.metodo-item {
+  display: flex;
+  gap: 1.5rem;
+  padding: 2rem 0;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.metodo-item:last-child {
+  border-bottom: none;
+}
+
+.metodo-icone {
+  flex-shrink: 0;
+  font-size: 3rem;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.metodo-conteudo {
+  flex: 1;
+}
+
+.metodo-header-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.metodo-nome {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #4a90e2;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.metodo-nome:hover {
+  color: #2c6bbf;
+  text-decoration: underline;
+}
+
+.metodo-badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.badge-complexidade,
+.badge-prazo {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-complexidade[data-nivel="baixa"] {
+  background: #d4edda;
+  color: #155724;
+}
+
+.badge-complexidade[data-nivel="média"],
+.badge-complexidade[data-nivel="media"] {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.badge-complexidade[data-nivel="alta"] {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.badge-prazo {
+  background: #e7f3ff;
+  color: #004085;
+}
+
+.metodo-descricao {
+  font-size: 0.95rem;
+  color: #6c757d;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.metodos-info-footer {
+  background: white;
+  border-left: 4px solid #667eea;
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.metodos-info-footer p {
+  margin: 0;
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.metodos-info-footer strong {
+  color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+  .metodos-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .metodos-header-page h1 {
+    font-size: 1.5rem;
+  }
+
+  .metodos-lista-page {
+    padding: 1.5rem;
+  }
+
+  .metodo-item {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .metodo-icone {
+    width: 60px;
+    height: 60px;
+    font-size: 2rem;
+  }
+
+  .metodo-header-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .metodo-nome {
+    font-size: 1.25rem;
+  }
+}

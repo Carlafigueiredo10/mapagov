@@ -330,13 +330,21 @@ const FormularioProjeto: React.FC<FormularioProjetoProps> = ({
                   setDetalharFases(e.target.checked);
                   if (!e.target.checked) {
                     setFormData({ ...formData, fases_detalhadas: [] });
+                    setFasesConfirmadas(new Set());
+                  } else {
+                    // Se já existem fases, marca todas como confirmadas ao reabrir
+                    if (formData.fases_detalhadas && formData.fases_detalhadas.length > 0) {
+                      const todasConfirmadas = new Set(formData.fases_detalhadas.map((_, i) => i));
+                      setFasesConfirmadas(todasConfirmadas);
+                    }
                   }
                 }}
               />
-              <span style={{ fontWeight: 600 }}>Você quer detalhar as fases do seu projeto?</span>
+              <span style={{ fontWeight: 600 }}>Você quer detalhar ou alterar as fases do seu projeto?</span>
             </label>
 
-            {detalharFases && (
+            {/* Mostra fases em edição ou concluídas */}
+            {(detalharFases || (formData.fases_detalhadas && formData.fases_detalhadas.length > 0)) && (
               <div style={{ marginTop: '16px' }}>
                 {formData.fases_detalhadas && formData.fases_detalhadas.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -535,8 +543,8 @@ const FormularioProjeto: React.FC<FormularioProjetoProps> = ({
                   const novaFase = e.target.value;
                   setFormData({ ...formData, fase_atual: novaFase });
 
-                  // Calcular percentual automaticamente se fases detalhadas
-                  if (detalharFases && formData.fases_detalhadas && formData.fases_detalhadas.length > 0) {
+                  // Calcular percentual automaticamente se fases detalhadas existirem
+                  if (formData.fases_detalhadas && formData.fases_detalhadas.length > 0) {
                     const faseAtualObj = formData.fases_detalhadas.find(f => f.descricao === novaFase);
                     if (faseAtualObj) {
                       const percentualCalculado = Math.round((faseAtualObj.numero / formData.fases_detalhadas.length) * 100);
@@ -546,7 +554,7 @@ const FormularioProjeto: React.FC<FormularioProjetoProps> = ({
                 }}
                 required
               >
-                {detalharFases && formData.fases_detalhadas && formData.fases_detalhadas.length > 0 ? (
+                {formData.fases_detalhadas && formData.fases_detalhadas.length > 0 ? (
                   formData.fases_detalhadas.map(fase => (
                     <option key={fase.numero} value={fase.descricao}>
                       Fase {fase.numero}: {fase.descricao}
@@ -563,7 +571,7 @@ const FormularioProjeto: React.FC<FormularioProjetoProps> = ({
             <div className="form-group">
               <label htmlFor="andamento">
                 Andamento (%) *
-                {detalharFases && formData.fases_detalhadas && formData.fases_detalhadas.length > 0 && (
+                {formData.fases_detalhadas && formData.fases_detalhadas.length > 0 && (
                   <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'normal', marginLeft: '8px' }}>
                     (calculado automaticamente)
                   </span>
@@ -577,10 +585,10 @@ const FormularioProjeto: React.FC<FormularioProjetoProps> = ({
                 value={formData.andamento}
                 onChange={(e) => setFormData({ ...formData, andamento: parseInt(e.target.value) })}
                 required
-                disabled={detalharFases && formData.fases_detalhadas && formData.fases_detalhadas.length > 0}
+                disabled={formData.fases_detalhadas && formData.fases_detalhadas.length > 0}
                 style={{
-                  backgroundColor: detalharFases && formData.fases_detalhadas && formData.fases_detalhadas.length > 0 ? '#f3f4f6' : 'white',
-                  cursor: detalharFases && formData.fases_detalhadas && formData.fases_detalhadas.length > 0 ? 'not-allowed' : 'text'
+                  backgroundColor: formData.fases_detalhadas && formData.fases_detalhadas.length > 0 ? '#f3f4f6' : 'white',
+                  cursor: formData.fases_detalhadas && formData.fases_detalhadas.length > 0 ? 'not-allowed' : 'text'
                 }}
               />
             </div>
@@ -724,11 +732,184 @@ const FormularioProjeto: React.FC<FormularioProjetoProps> = ({
                     >
                       <option value="Pendente">Pendente</option>
                       <option value="Em andamento">Em andamento</option>
-                      <option value="Atendido">Atendido</option>
                       <option value="Aguardando resposta">Aguardando resposta</option>
+                      <option value="Atendido integralmente">Pedido integralmente atendido</option>
+                      <option value="Atendido parcialmente">Pedido parcialmente atendido</option>
+                      <option value="Não atendido">Pedido não atendido</option>
                     </select>
                   </div>
                 </div>
+
+                {/* Campos adicionais para "Em andamento" */}
+                {formData.pedido_diretor.status_pedido === 'Em andamento' && (
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '16px',
+                    backgroundColor: '#dbeafe',
+                    borderLeft: '4px solid #3b82f6',
+                    borderRadius: '6px'
+                  }}>
+                    <h4 style={{ margin: '0 0 16px 0', color: '#1e40af', fontSize: '14px', fontWeight: 600 }}>
+                      🔄 Detalhes do Andamento
+                    </h4>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="data_andamento">Data de Início do Andamento *</label>
+                        <input
+                          id="data_andamento"
+                          type="date"
+                          value={formData.pedido_diretor.data_andamento || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            pedido_diretor: { ...formData.pedido_diretor, data_andamento: e.target.value }
+                          })}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="descricao_andamento">O que está sendo feito? *</label>
+                      <textarea
+                        id="descricao_andamento"
+                        value={formData.pedido_diretor.descricao_andamento || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          pedido_diretor: { ...formData.pedido_diretor, descricao_andamento: e.target.value }
+                        })}
+                        required
+                        rows={3}
+                        placeholder="Descreva as ações que estão sendo realizadas para atender o pedido"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Campos adicionais para "Aguardando resposta" */}
+                {formData.pedido_diretor.status_pedido === 'Aguardando resposta' && (
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '16px',
+                    backgroundColor: '#fef3c7',
+                    borderLeft: '4px solid #f59e0b',
+                    borderRadius: '6px'
+                  }}>
+                    <h4 style={{ margin: '0 0 16px 0', color: '#92400e', fontSize: '14px', fontWeight: 600 }}>
+                      ⏳ Detalhes da Dependência Externa
+                    </h4>
+
+                    <div className="form-group">
+                      <label htmlFor="setor_aguardando">De qual setor? *</label>
+                      <input
+                        id="setor_aguardando"
+                        type="text"
+                        value={formData.pedido_diretor.setor_aguardando || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          pedido_diretor: { ...formData.pedido_diretor, setor_aguardando: e.target.value }
+                        })}
+                        required
+                        placeholder="Ex: CGTEC, Dataprev, SEGEP"
+                      />
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="data_solicitacao_setor">Data da Solicitação ao Setor *</label>
+                        <input
+                          id="data_solicitacao_setor"
+                          type="date"
+                          value={formData.pedido_diretor.data_solicitacao_setor || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            pedido_diretor: { ...formData.pedido_diretor, data_solicitacao_setor: e.target.value }
+                          })}
+                          required
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="prazo_resposta_setor">Prazo do Setor para Resposta *</label>
+                        <input
+                          id="prazo_resposta_setor"
+                          type="date"
+                          value={formData.pedido_diretor.prazo_resposta_setor || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            pedido_diretor: { ...formData.pedido_diretor, prazo_resposta_setor: e.target.value }
+                          })}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Campos adicionais para status de atendimento */}
+                {(formData.pedido_diretor.status_pedido === 'Atendido integralmente' ||
+                  formData.pedido_diretor.status_pedido === 'Atendido parcialmente' ||
+                  formData.pedido_diretor.status_pedido === 'Não atendido') && (
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '16px',
+                    backgroundColor: formData.pedido_diretor.status_pedido === 'Não atendido' ? '#fee2e2' : '#d1fae5',
+                    borderLeft: `4px solid ${formData.pedido_diretor.status_pedido === 'Não atendido' ? '#dc2626' : '#10b981'}`,
+                    borderRadius: '6px'
+                  }}>
+                    <h4 style={{
+                      margin: '0 0 16px 0',
+                      color: formData.pedido_diretor.status_pedido === 'Não atendido' ? '#991b1b' : '#065f46',
+                      fontSize: '14px',
+                      fontWeight: 600
+                    }}>
+                      {formData.pedido_diretor.status_pedido === 'Atendido integralmente' && '✅ Detalhes do Atendimento Integral'}
+                      {formData.pedido_diretor.status_pedido === 'Atendido parcialmente' && '⚠️ Detalhes do Atendimento Parcial'}
+                      {formData.pedido_diretor.status_pedido === 'Não atendido' && '❌ Detalhes do Não Atendimento'}
+                    </h4>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="data_atendimento">Data do Atendimento *</label>
+                        <input
+                          id="data_atendimento"
+                          type="date"
+                          value={formData.pedido_diretor.data_atendimento || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            pedido_diretor: { ...formData.pedido_diretor, data_atendimento: e.target.value }
+                          })}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="descricao_atendimento">
+                        {formData.pedido_diretor.status_pedido === 'Atendido integralmente' && 'Como o pedido foi atendido? *'}
+                        {formData.pedido_diretor.status_pedido === 'Atendido parcialmente' && 'O que foi atendido e o que ficou pendente? *'}
+                        {formData.pedido_diretor.status_pedido === 'Não atendido' && 'Por que o pedido não foi atendido? *'}
+                      </label>
+                      <textarea
+                        id="descricao_atendimento"
+                        value={formData.pedido_diretor.descricao_atendimento || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          pedido_diretor: { ...formData.pedido_diretor, descricao_atendimento: e.target.value }
+                        })}
+                        required
+                        rows={3}
+                        placeholder={
+                          formData.pedido_diretor.status_pedido === 'Atendido integralmente'
+                            ? 'Descreva como o pedido foi atendido'
+                            : formData.pedido_diretor.status_pedido === 'Atendido parcialmente'
+                              ? 'Descreva o que foi atendido e o que ainda precisa ser feito'
+                              : 'Explique os motivos que impediram o atendimento'
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>

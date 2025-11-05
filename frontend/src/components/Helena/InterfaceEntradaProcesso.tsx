@@ -25,6 +25,11 @@ const InterfaceEntradaProcesso: React.FC<InterfaceEntradaProcessoProps> = ({ dad
     ...(dados?.canais_usuario || [])
   ];
 
+  // DEBUG: Ver o que está chegando
+  console.log('🔍 InterfaceEntradaProcesso - dados recebidos:', dados);
+  console.log('🔍 InterfaceEntradaProcesso - areas_organizacionais:', dados?.areas_organizacionais);
+  console.log('🔍 InterfaceEntradaProcesso - todasOpcoes:', todasOpcoes);
+
   const toggleItem = (nome: string) => {
     if (selecionados.includes(nome)) {
       setSelecionados(selecionados.filter(s => s !== nome));

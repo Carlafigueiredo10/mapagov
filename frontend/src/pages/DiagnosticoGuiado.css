@@ -1,0 +1,247 @@
+/**
+ * Estilos para Página de Diagnóstico Guiado
+ */
+
+.diagnostico-guiado-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fbff 0%, #e8f4fd 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Fundo decorativo */
+.diagnostico-guiado-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.05;
+  pointer-events: none;
+  background: radial-gradient(circle at 20% 50%, rgba(27, 79, 114, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(52, 152, 219, 0.1) 0%, transparent 50%);
+}
+
+.diagnostico-container {
+  max-width: 800px;
+  width: 100%;
+  z-index: 1;
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.diagnostico-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.diagnostico-icone {
+  font-size: 64px;
+  margin-bottom: 24px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.diagnostico-header h1 {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1B4F72;
+  margin: 0 0 16px 0;
+}
+
+.diagnostico-progresso-texto {
+  font-size: 18px;
+  color: #64748b;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* ============================================================================
+   CARD DA PERGUNTA
+   ============================================================================ */
+
+.diagnostico-card {
+  margin-bottom: 32px;
+  text-align: center;
+  padding: 32px !important;
+}
+
+.diagnostico-pergunta {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1B4F72;
+  margin: 0 0 32px 0;
+  line-height: 1.5;
+}
+
+/* ============================================================================
+   OPÇÕES
+   ============================================================================ */
+
+.diagnostico-opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.diagnostico-opcao-btn {
+  font-size: 16px !important;
+  padding: 20px 24px !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+  transition: all 0.2s ease !important;
+  border: 2px solid #e2e8f0 !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+
+.diagnostico-opcao-btn:hover:not(:disabled) {
+  border-color: #4A90E2 !important;
+  background: rgba(74, 144, 226, 0.1) !important;
+  transform: translateX(8px) !important;
+}
+
+.diagnostico-opcao-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   LOADING
+   ============================================================================ */
+
+.diagnostico-loading {
+  text-align: center;
+  font-size: 18px;
+  color: #4A90E2;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(74, 144, 226, 0.1);
+  border-radius: 12px;
+  font-weight: 600;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   BARRA DE PROGRESSO
+   ============================================================================ */
+
+.diagnostico-progresso-barra-container {
+  margin-bottom: 24px;
+}
+
+.diagnostico-progresso-barra {
+  width: 100%;
+  height: 12px;
+  background: rgba(226, 232, 240, 0.5);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.diagnostico-progresso-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3498DB 0%, #27AE60 100%);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.diagnostico-progresso-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.diagnostico-progresso-percentual {
+  text-align: center;
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
+
+.diagnostico-footer {
+  text-align: center;
+}
+
+/* ============================================================================
+   RESPONSIVIDADE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .diagnostico-header h1 {
+    font-size: 28px;
+  }
+
+  .diagnostico-icone {
+    font-size: 48px;
+  }
+
+  .diagnostico-pergunta {
+    font-size: 20px;
+  }
+
+  .diagnostico-card {
+    padding: 24px !important;
+  }
+
+  .diagnostico-opcao-btn {
+    font-size: 15px !important;
+    padding: 16px 20px !important;
+  }
+
+  .diagnostico-loading {
+    font-size: 16px;
+  }
+}

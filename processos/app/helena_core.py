@@ -179,23 +179,86 @@ class HelenaCore:
         )
 
         resp_uuid = str(uuid.uuid4())
+
+        # ✅ BUGFIX: Incluir tipo_interface e dados_interface em metadados
+        # para que possam ser recuperados ao carregar histórico
+        metadados_completos = resultado.get('metadados', {}).copy()
+        if resultado.get('tipo_interface'):
+            metadados_completos['tipo_interface'] = resultado['tipo_interface']
+        if resultado.get('dados_interface'):
+            metadados_completos['dados_interface'] = resultado['dados_interface']
+
         self.session_manager.save_message(
             session=session,
             role='assistant',
             content=resultado['resposta'],
             req_uuid=resp_uuid,
             contexto=session.contexto_atual,
-            metadados=resultado.get('metadados', {})
+            metadados=metadados_completos
         )
 
         # 10. Incrementa contador e verifica sync
         self.session_manager.cache.increment_message_count(session_id)
 
-        # 11. Monta resposta
+        # 11. Verificar se produto solicitou mudança de contexto
+        metadados = resultado.get('metadados', {})
+        if 'mudar_contexto' in metadados:
+            novo_contexto = metadados['mudar_contexto']
+            logger.info(f"[HELENA CORE] Produto {session.contexto_atual} solicitou mudança para {novo_contexto}")
+
+            # Mudar contexto da sessão
+            session.contexto_atual = novo_contexto
+
+            # Inicializar estado do novo produto se não existir
+            if novo_contexto not in session.estados:
+                novo_produto = self.registry.get(novo_contexto)
+                if novo_produto:
+                    try:
+                        # Tentar inicializar com dados herdados
+                        dados_herdados = metadados.get('dados_herdados', {})
+                        session.estados[novo_contexto] = novo_produto.inicializar_estado(dados_herdados=dados_herdados)
+                    except TypeError:
+                        # Se não suportar dados_herdados, inicializar normal
+                        session.estados[novo_contexto] = novo_produto.inicializar_estado()
+
+                    session.agent_versions[novo_contexto] = novo_produto.get_version()
+
+            # Salvar mudanças
+            session.save(update_fields=['contexto_atual', 'estados', 'agent_versions', 'atualizado_em'])
+            logger.info(f"[HELENA CORE] Contexto mudado para {novo_contexto}")
+
+            # 🎯 NOVO: Processar mensagem de inicialização automática no novo produto
+            # Isso permite que o novo produto envie sua primeira pergunta automaticamente
+            novo_produto = self.registry.get(novo_contexto)
+            if novo_produto:
+                logger.info(f"[HELENA CORE] Processando inicialização automática em {novo_contexto}")
+
+                # Processar com mensagem de inicialização
+                resultado_init = novo_produto.processar("iniciar", session.estados[novo_contexto])
+
+                # Atualizar estado do novo produto
+                session.estados[novo_contexto] = resultado_init.get('novo_estado', session.estados[novo_contexto])
+                session.save(update_fields=['estados', 'atualizado_em'])
+
+                # ✨ MODIFICAR a resposta para incluir AMBAS as mensagens
+                # Concatenar a mensagem de despedida do produto antigo + primeira pergunta do novo
+                resposta_init = resultado_init.get('resposta', '')
+                resultado['resposta'] = resultado['resposta'] + "\n\n---\n\n" + resposta_init
+
+                # Adicionar interface do novo produto, se houver
+                if 'tipo_interface' in resultado_init:
+                    resultado['tipo_interface'] = resultado_init['tipo_interface']
+                if 'dados_interface' in resultado_init:
+                    resultado['dados_interface'] = resultado_init['dados_interface']
+
+                metadados['contexto_mudou'] = True
+                logger.info(f"[HELENA CORE] Primeira pergunta do {novo_contexto} concatenada à resposta")
+
+        # 12. Monta resposta
         response = {
             'resposta': resultado['resposta'],
             'session_id': session_id,
-            'contexto_atual': session.contexto_atual,
+            'contexto_atual': session.contexto_atual,  # Pode ter mudado
             'agentes_disponiveis': list(self.registry.keys()),
             'progresso': resultado.get('progresso'),
             'sugerir_contexto': resultado.get('sugerir_contexto'),
@@ -206,7 +269,7 @@ class HelenaCore:
             }
         }
 
-        # 12. Adiciona interface dinâmica se houver
+        # 13. Adiciona interface dinâmica se houver
         if 'tipo_interface' in resultado:
             response['tipo_interface'] = resultado['tipo_interface']
 

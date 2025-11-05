@@ -21,7 +21,8 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
   const [categoriaAberta, setCategoriaAberta] = useState<string | null>(null);
   const [mostrarTodas, setMostrarTodas] = useState(false);
   const [mostrarNormasManuais, setMostrarNormasManuais] = useState(false);
-  const [normasManuais, setNormasManuais] = useState<string[]>(['']);
+  const [normasManuais, setNormasManuais] = useState<string[]>([]);
+  const [normaManualInput, setNormaManualInput] = useState<string>('');
   const [termoBusca, setTermoBusca] = useState<string>('');
 
 
@@ -75,20 +76,22 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
     setNormasSelecionadas([]);
   };
 
-  const adicionarCampoNormaManual = () => {
-    setNormasManuais([...normasManuais, '']);
-  };
-
-  const removerCampoNormaManual = (index: number) => {
-    if (normasManuais.length > 1) {
-      setNormasManuais(normasManuais.filter((_, i) => i !== index));
+  const adicionarNormaManual = () => {
+    const norma = normaManualInput.trim();
+    if (norma && !normasManuais.includes(norma) && !normasSelecionadas.includes(norma)) {
+      setNormasManuais([...normasManuais, norma]);
+      setNormaManualInput('');
     }
   };
 
-  const atualizarNormaManual = (index: number, valor: string) => {
-    const novasNormas = [...normasManuais];
-    novasNormas[index] = valor;
-    setNormasManuais(novasNormas);
+  const removerNormaManual = (norma: string) => {
+    setNormasManuais(normasManuais.filter(n => n !== norma));
+  };
+
+  const handleKeyPressNormaManual = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      adicionarNormaManual();
+    }
   };
 
   const abrirIALegis = () => {
@@ -120,15 +123,17 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
   }, [categorias, termoBusca]);
 
   const handleConfirm = () => {
-    // Combinar normas selecionadas + normas manuais (filtrar vazias)
-    const normsManuaisPreenchidas = normasManuais.filter(n => n.trim().length > 0);
-    const todasNormas = [...normasSelecionadas, ...normsManuaisPreenchidas];
+    // Combinar normas selecionadas + normas manuais
+    const todasNormas = [...normasSelecionadas, ...normasManuais];
 
     const resposta = todasNormas.length > 0
       ? todasNormas.join(" | ")
       : "nenhuma";
     onConfirm(resposta);
   };
+
+  // Total de normas (selecionadas + manuais)
+  const totalNormas = normasSelecionadas.length + normasManuais.length;
 
   // Extrair texto de introdução (se houver)
   const textoIntroducao = (dados as { texto_introducao?: string })?.texto_introducao;
@@ -142,25 +147,29 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           padding: '16px',
           background: '#f8f9fa',
           borderRadius: '8px',
-          borderLeft: '4px solid #1351B4'
+          borderLeft: '4px solid #1351B4',
+          lineHeight: '1.8'
         }}>
-          <ReactMarkdown>{textoIntroducao}</ReactMarkdown>
+          <div style={{
+            lineHeight: '1.8'
+          }}>
+            <ReactMarkdown>{textoIntroducao}</ReactMarkdown>
+          </div>
         </div>
       )}
 
       {/* Cabeçalho Unificado */}
       <div className="interface-title">📚 Normas e Dispositivos Legais</div>
-      <div className="interface-subtitle">
-        Essas são as normas que encontrei para sua atividade. Você pode aceitar as sugestões, explorar a biblioteca completa ou buscar/adicionar manualmente.
-      </div>
 
       {/* Contador de Seleção - Chips Removíveis */}
-      {normasSelecionadas.length > 0 && (
+      {totalNormas > 0 && (
         <div className="chips-container">
           <div className="chips-header">
-            <span className="chips-count">{normasSelecionadas.length} norma(s) selecionada(s) ✅</span>
+            <span className="chips-count">
+              {totalNormas} norma(s) selecionada(s) ({normasSelecionadas.length} selecionadas + {normasManuais.length} digitadas) ✅
+            </span>
             <button className="btn-limpar-chips" onClick={limparSelecao} type="button">
-              Limpar todas
+              Limpar selecionadas
             </button>
           </div>
           <div className="chips-list">
@@ -188,7 +197,6 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
         <div className="section-card section-sugestoes">
           <div className="section-header">
             <h3>💡 Minhas Sugestões</h3>
-            <p className="section-desc">Essas são as normas que encontrei para sua atividade</p>
             {sugestoes.length > 0 && (
               <button
                 className="btn-inline-action"
@@ -229,7 +237,7 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
             </div>
           ) : (
             <div className="empty-state">
-              <p>Nenhuma sugestão disponível para este contexto.</p>
+              <p>Desculpa, li aqui e não consegui identificar a norma da sua atividade.</p>
             </div>
           )}
         </div>
@@ -307,6 +315,29 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           )}
         </div>
 
+        {/* Mostrar normas digitadas manualmente */}
+        {normasManuais.length > 0 && (
+          <div className="normas-digitadas">
+            <div className="normas-digitadas-label">
+              📝 Normas adicionadas manualmente:
+            </div>
+            <div className="normas-digitadas-lista">
+              {normasManuais.map((norma, idx) => (
+                <div key={idx} className="norma-digitada-card">
+                  <span className="norma-digitada-nome">{norma}</span>
+                  <button
+                    className="btn-remover-norma-digitada"
+                    onClick={() => removerNormaManual(norma)}
+                    title="Remover"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 3️⃣ SEÇÃO: BUSCAR / ADICIONAR - Ações Finais */}
         <div className="section-card section-actions">
           <div className="section-header">
@@ -350,39 +381,31 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
             </div>
           </div>
 
-          {/* Seção de Normas Manuais (inline) */}
+          {/* Campo Manual (estilo sistemas) */}
           {mostrarNormasManuais && (
-            <div className="normas-manuais-inline">
-              {normasManuais.map((norma, index) => (
-                <div key={index} className="norma-manual-row">
-                  <input
-                    type="text"
-                    className="norma-manual-input"
-                    placeholder="Ex: Art. 34 da IN SGP nº 97/2022"
-                    value={norma}
-                    onChange={(e) => atualizarNormaManual(index, e.target.value)}
-                    maxLength={300}
-                  />
-                  <button
-                    className="btn-adicionar-manual-confirmar"
-                    onClick={adicionarCampoNormaManual}
-                    type="button"
-                    title="Adicionar"
-                  >
-                    Adicionar
-                  </button>
-                  {normasManuais.length > 1 && (
-                    <button
-                      className="btn-remover-norma"
-                      onClick={() => removerCampoNormaManual(index)}
-                      type="button"
-                      title="Remover"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
+            <div className="campo-manual">
+              <div className="campo-manual-label">
+                Não achou alguma norma? ✍️ Digite manualmente no campo abaixo.
+              </div>
+              <div className="campo-manual-input-group">
+                <input
+                  type="text"
+                  className="campo-manual-input"
+                  placeholder="Ex: Art. 34 da IN SGP nº 97/2022"
+                  value={normaManualInput}
+                  onChange={(e) => setNormaManualInput(e.target.value)}
+                  onKeyPress={handleKeyPressNormaManual}
+                  maxLength={300}
+                />
+                <button
+                  className="btn-adicionar-manual"
+                  onClick={adicionarNormaManual}
+                  disabled={!normaManualInput.trim()}
+                  type="button"
+                >
+                  + Adicionar
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -396,9 +419,9 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
         <button
           className="btn-interface btn-primary"
           onClick={handleConfirm}
-          disabled={normasSelecionadas.length === 0}
+          disabled={totalNormas === 0}
         >
-          Confirmar {normasSelecionadas.length > 0 && `(${normasSelecionadas.length})`}
+          Confirmar {totalNormas > 0 && `(${totalNormas})`}
         </button>
       </div>
 
@@ -733,14 +756,124 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           background: #5a6268;
         }
 
-        /* ========== NORMAS MANUAIS INLINE ========== */
-        .normas-manuais-inline {
-          margin-top: 1rem;
-          padding: 1rem;
-          background: white;
-          border: 2px dashed #28a745;
+        /* ========== NORMAS DIGITADAS MANUALMENTE ========== */
+        .normas-digitadas {
+          margin: 20px 0;
+          padding: 16px;
+          background: #e8f5e9;
           border-radius: 8px;
-          animation: fadeIn 0.3s ease-in;
+          border: 2px solid #4caf50;
+        }
+
+        .normas-digitadas-label {
+          margin-bottom: 12px;
+          font-size: 14px;
+          color: #2e7d32;
+          font-weight: 600;
+        }
+
+        .normas-digitadas-lista {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .norma-digitada-card {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: white;
+          border: 2px solid #4caf50;
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #2e7d32;
+        }
+
+        .norma-digitada-nome {
+          flex: 1;
+        }
+
+        .btn-remover-norma-digitada {
+          width: 20px;
+          height: 20px;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f44336;
+          color: white;
+          border: none;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 12px;
+          line-height: 1;
+          transition: all 0.2s;
+        }
+
+        .btn-remover-norma-digitada:hover {
+          background: #d32f2f;
+          transform: scale(1.1);
+        }
+
+        /* ========== CAMPO MANUAL (estilo sistemas) ========== */
+        .campo-manual {
+          margin: 24px 0;
+          padding: 20px;
+          background: #fff9e6;
+          border-radius: 8px;
+          border: 2px dashed #ffc107;
+        }
+
+        .campo-manual-label {
+          margin-bottom: 12px;
+          font-size: 14px;
+          color: #856404;
+          font-weight: 500;
+        }
+
+        .campo-manual-input-group {
+          display: flex;
+          gap: 8px;
+        }
+
+        .campo-manual-input {
+          flex: 1;
+          padding: 10px 14px;
+          border: 2px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          transition: all 0.2s;
+        }
+
+        .campo-manual-input:focus {
+          outline: none;
+          border-color: #1351B4;
+          background: #f8f9fa;
+        }
+
+        .btn-adicionar-manual {
+          padding: 10px 20px;
+          background: #28a745;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .btn-adicionar-manual:hover:not(:disabled) {
+          background: #218838;
+        }
+
+        .btn-adicionar-manual:disabled {
+          background: #6c757d;
+          cursor: not-allowed;
+          opacity: 0.5;
         }
 
         /* ========== FOOTER ACTIONS ========== */
@@ -1037,83 +1170,25 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           background: #0056b3;
         }
 
-        .normas-manuais-section {
-          margin-top: 1rem;
-          padding: 1rem;
-          background: #f8f9fa;
-          border: 2px dashed #6c757d;
-          border-radius: 8px;
+
+        /* ========== MARKDOWN FORMATTING ========== */
+        .interface-intro p {
+          margin: 0 0 12px 0;
+          line-height: 1.8;
         }
 
-        .normas-manuais-header h4 {
-          margin: 0 0 1rem 0;
-          color: #495057;
-          font-size: 0.95rem;
-        }
-
-        .norma-manual-row {
-          display: flex;
-          gap: 0.75rem;
-          margin-bottom: 0.75rem;
-          align-items: center;
-        }
-
-        .norma-manual-input {
-          flex: 1;
-          padding: 0.75rem;
-          border: 2px solid #dee2e6;
-          border-radius: 6px;
-          font-size: 0.95rem;
-          transition: all 0.2s;
-        }
-
-        .norma-manual-input:focus {
-          outline: none;
-          border-color: #28a745;
-          box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
-        }
-
-        .norma-manual-input::placeholder {
-          color: #adb5bd;
-        }
-
-        .btn-adicionar-manual-confirmar {
-          padding: 0.75rem 1.25rem;
-          background: #28a745;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 0.9rem;
+        .interface-intro strong {
           font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          white-space: nowrap;
+          color: #1351B4;
         }
 
-        .btn-adicionar-manual-confirmar:hover {
-          background: #218838;
-          transform: translateY(-1px);
+        .interface-intro ul, .interface-intro ol {
+          margin: 8px 0 12px 20px;
+          line-height: 1.8;
         }
 
-        .btn-remover-norma {
-          min-width: 40px;
-          height: 40px;
-          border: 2px solid #dc3545;
-          background: white;
-          color: #dc3545;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 1.2rem;
-          font-weight: bold;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .btn-remover-norma:hover {
-          background: #dc3545;
-          color: white;
+        .interface-intro li {
+          margin-bottom: 8px;
         }
       `}</style>
     </div>

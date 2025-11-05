@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef, CSSProperties } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -14,7 +15,9 @@ import { WorkspaceSWOT } from '../components/Helena/workspaces/WorkspaceSWOT';
 import { WorkspaceOKR } from '../components/Helena/workspaces/WorkspaceOKR';
 import { WorkspaceBSC } from '../components/Helena/workspaces/WorkspaceBSC';
 import { Workspace5W2H } from '../components/Helena/workspaces/Workspace5W2H';
+import { WorkspaceHoshin } from '../components/Helena/workspaces/WorkspaceHoshin';
 import { ModeloInfoDrawer } from '../components/Helena/ModeloInfoDrawer';
+import { MessageBubbleRich } from '../components/Helena/MessageBubbleRich';
 import DashboardCard from '../components/Helena/DashboardCard';
 import DashboardAreas from '../components/Helena/DashboardAreas';
 import DashboardDiretor from '../components/Helena/DashboardDiretor';
@@ -29,6 +32,8 @@ const PERGUNTAS_DIAGNOSTICO: PerguntaDiagnostico[] = perguntasData;
 const MODELOS = modelosData as Record<string, ModeloPlanejamento>;
 
 export const HelenaPEModerna: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [estado, setEstado] = useState<EstadoFluxo>('inicial');
   const [hover, setHover] = useState<string | null>(null);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
@@ -43,7 +48,20 @@ export const HelenaPEModerna: React.FC = () => {
   const [modalInfoAberto, setModalInfoAberto] = useState(false);
   const [modeloInfoAtual, setModeloInfoAtual] = useState<string | null>(null);
   const [dashboardAberto, setDashboardAberto] = useState<'areas' | 'diretor' | null>(null);
+  const [aguardandoConfirmacao, setAguardandoConfirmacao] = useState(false);
+  const [mostrarCardIntro, setMostrarCardIntro] = useState(false); // 🆕 Card de intro fixo
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Mapeamento de ID do modelo para rota (hierarquia organizada)
+  const modeloParaRota: Record<string, string> = {
+    'tradicional': '/planejamento-estrategico/modelos/tradicional',
+    'bsc': '/planejamento-estrategico/modelos/bsc',
+    'okr': '/metodos/okr',
+    'swot': '/planejamento-estrategico/modelos/swot',
+    'cenarios': '/planejamento-estrategico/modelos/cenarios',
+    '5w2h': '/planejamento-estrategico/modelos/5w2h',
+    'hoshin': '/metodos/hoshin'
+  };
 
   // Hook do Dashboard
   const {
@@ -88,6 +106,35 @@ export const HelenaPEModerna: React.FC = () => {
       sessionManager.saveMessages(mensagens);
     }
   }, [mensagens]);
+
+  // 🔧 Detectar rota direta e abrir workspace automaticamente
+  useEffect(() => {
+    // Se estiver na rota /planejamento-estrategico/modelos, vai direto para tela de seleção
+    if (location.pathname === '/planejamento-estrategico/modelos' && estado === 'inicial') {
+      console.log('[Route] Detectada rota /planejamento-estrategico/modelos → Indo para seleção de modelos');
+      setEstado('modelos');
+      return;
+    }
+
+    const rotaParaModelo: Record<string, string> = {
+      '/planejamento-estrategico/modelos/tradicional': 'tradicional',
+      '/planejamento-estrategico/modelos/bsc': 'bsc',
+      '/metodos/okr': 'okr',
+      '/planejamento-estrategico/modelos/swot': 'swot',
+      '/planejamento-estrategico/modelos/cenarios': 'cenarios',
+      '/planejamento-estrategico/modelos/5w2h': '5w2h',
+      '/metodos/hoshin': 'hoshin'
+    };
+
+    const modeloId = rotaParaModelo[location.pathname];
+
+    if (modeloId && !modeloSelecionado) {
+      console.log(`[Route] Detectada rota direta: ${location.pathname} → Modelo: ${modeloId}`);
+      setModeloSelecionado(modeloId);
+      setWorkspaceVisivel(true);
+      setEstado('chat'); // Muda para estado de chat para exibir workspace
+    }
+  }, [location.pathname, modeloSelecionado, estado]);
 
   // Adiciona mensagem ao histórico
   const adicionarMensagem = (tipo: 'user' | 'helena', texto: string) => {
@@ -158,27 +205,74 @@ export const HelenaPEModerna: React.FC = () => {
 
   // Inicia sessão e seleciona modelo
   const selecionarModelo = async (modeloId: string) => {
+    // Guard: evita múltiplas chamadas simultâneas
+    if (loading) {
+      console.log('[Helena PE] Já está carregando, ignorando chamada duplicada');
+      return;
+    }
+
+    // 🆕 NOVO FLUXO: Mostra card de introdução fixo (NÃO chama backend ainda)
+    setModeloSelecionado(modeloId);
+    setEstado('chat');
+    setWorkspaceVisivel(true);
+    setMostrarCardIntro(true); // Ativa card de intro
+
+    // Navega para a rota específica do modelo
+    const rota = modeloParaRota[modeloId];
+    if (rota) {
+      navigate(rota);
+    }
+  };
+
+  // 🆕 Função que INICIA O AGENTE diretamente (sem confirmação)
+  const iniciarAgente = async () => {
+    if (!modeloSelecionado) return;
+
     try {
       setLoading(true);
-      setModeloSelecionado(modeloId);
+      setMostrarCardIntro(false); // Remove card de intro
 
-      // Inicia sessão no backend
-      const response = await helenaPEService.iniciarSessao();
+      // Tenta conectar ao backend
+      try {
+        // 🎯 Inicia modelo diretamente
+        const confirmacao = await helenaPEService.iniciarModeloDireto(modeloSelecionado);
+        setSessionData(confirmacao.session_data);
+
+        // 🔥 JÁ CONFIRMA E ATIVA O AGENTE (sem esperar confirmação do usuário)
+        const response = await helenaPEService.confirmarModelo(confirmacao.session_data);
+        setSessionData(response.session_data);
+
+        // Adiciona primeira mensagem do agente
+        adicionarMensagem('helena', response.resposta);
+      } catch (backendError) {
+        console.warn('Backend não disponível, mas workspace continua funcionando:', backendError);
+        // Adiciona mensagem explicativa
+        adicionarMensagem('helena', `Olá! 👋 Vou te ajudar a construir seu ${MODELOS[modeloSelecionado as keyof typeof MODELOS].nome}.\n\n⚠️ O servidor está offline, mas você pode usar o workspace ao lado para começar a estruturar seu planejamento.`);
+      }
+    } catch (error) {
+      console.error('Erro ao iniciar agente:', error);
+      adicionarMensagem('helena', '⚠️ Erro ao iniciar o agente. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Confirma modelo e inicia agente
+  const confirmarModeloSelecionado = async () => {
+    if (!sessionData) return;
+
+    try {
+      setLoading(true);
+
+      // Chama endpoint de confirmação
+      const response = await helenaPEService.confirmarModelo(sessionData);
       setSessionData(response.session_data);
 
-      // Envia seleção do modelo
-      const modeloNome = MODELOS[modeloId as keyof typeof MODELOS].nome;
+      // Adiciona primeira pergunta do agente
       adicionarMensagem('helena', response.resposta);
-
-      // Envia modelo escolhido
-      const respostaModelo = await helenaPEService.enviarMensagem(`Quero usar o modelo ${modeloNome}`);
-      setSessionData(respostaModelo.session_data);
-      adicionarMensagem('helena', respostaModelo.resposta);
-
-      setEstado('chat');
     } catch (error) {
-      console.error('Erro ao selecionar modelo:', error);
-      adicionarMensagem('helena', '⚠️ Não consegui me conectar agora. Verifique se o servidor está rodando e tente novamente.');
+      console.error('Erro ao confirmar modelo:', error);
+      adicionarMensagem('helena', '⚠️ Erro ao iniciar o agente. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -194,7 +288,7 @@ export const HelenaPEModerna: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await helenaPEService.enviarMensagem(texto);
+      const response = await helenaPEService.enviarMensagem(texto, sessionData || undefined);
       setSessionData(response.session_data);
       adicionarMensagem('helena', response.resposta);
     } catch (error) {
@@ -268,54 +362,15 @@ export const HelenaPEModerna: React.FC = () => {
         <DashboardCard
           onAbrirDashboardAreas={() => setDashboardAberto('areas')}
           onAbrirDashboardDiretor={() => setDashboardAberto('diretor')}
+          onIniciarDiagnostico={() => navigate('/planejamento-estrategico/diagnostico')}
+          onExplorarModelos={() => navigate('/planejamento-estrategico/modelos')}
+          onEscolhaDireta={() => navigate('/planejamento-estrategico/modelos')}
           estatisticas={estatisticas ? {
             total_projetos: estatisticas.total_projetos,
             total_pedidos: estatisticas.total_pedidos,
             pedidos_atrasados: estatisticas.pedidos_atrasados
           } : undefined}
         />
-      </div>
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: '32px'
-      }}>
-        {['diagnostico', 'explorar', 'direto'].map((modo) => (
-          <Card
-            key={modo}
-            variant="glass"
-            onClick={() => {
-              if (modo === 'diagnostico') {
-                iniciarDiagnostico();
-              } else {
-                setEstado('modelos');
-              }
-            }}
-            style={{
-              cursor: 'pointer',
-              transform: hover === modo ? 'scale(1.08)' : 'scale(1)',
-              transition: 'all 0.3s ease',
-              boxShadow: hover === modo ? '0 20px 40px rgba(0,0,0,0.3)' : '0 8px 16px rgba(0,0,0,0.2)'
-            }}
-            onMouseEnter={() => setHover(modo)}
-            onMouseLeave={() => setHover(null)}
-          >
-            <div style={{ fontSize: '56px', marginBottom: '20px' }}>
-              {modo === 'diagnostico' ? '🩺' : modo === 'explorar' ? '📚' : '⚡'}
-            </div>
-            <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '12px' }}>
-              {modo === 'diagnostico' ? 'Diagnóstico Guiado' : modo === 'explorar' ? 'Explorar Modelos' : 'Escolha Direta'}
-            </h3>
-            <p style={{ fontSize: '15px', opacity: 0.85 }}>
-              {modo === 'diagnostico'
-                ? 'Responda 5 perguntas e receba recomendação'
-                : modo === 'explorar'
-                ? 'Veja todos os 6 modelos disponíveis'
-                : 'Já sabe qual modelo quer? Comece agora'}
-            </p>
-          </Card>
-        ))}
       </div>
     </div>
   );
@@ -435,7 +490,7 @@ export const HelenaPEModerna: React.FC = () => {
             >
               {/* Botão de Info - disponível para modelos com conteúdo */}
               {(modelo.id === 'okr' || modelo.id === 'swot' || modelo.id === 'bsc' ||
-                modelo.id === 'tradicional' || modelo.id === 'cenarios' || modelo.id === '5w2h') && (
+                modelo.id === 'tradicional' || modelo.id === 'cenarios' || modelo.id === '5w2h' || modelo.id === 'hoshin') && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -502,7 +557,7 @@ export const HelenaPEModerna: React.FC = () => {
       )}
 
       <div style={{ textAlign: 'center' }}>
-        <Button variant="outline" onClick={() => setEstado('inicial')} size="lg" disabled={loading}>
+        <Button variant="outline" onClick={() => navigate('/planejamento-estrategico')} size="lg" disabled={loading}>
           ← Voltar
         </Button>
       </div>
@@ -527,6 +582,8 @@ export const HelenaPEModerna: React.FC = () => {
         return <WorkspaceBSC dados={dadosWorkspace} onSalvar={handleSalvarWorkspace} />;
       case '5w2h':
         return <Workspace5W2H dados={dadosWorkspace} onSalvar={handleSalvarWorkspace} />;
+      case 'hoshin':
+        return <WorkspaceHoshin onSalvar={handleSalvarWorkspace} />;
       default:
         return (
           <div style={{
@@ -601,12 +658,16 @@ export const HelenaPEModerna: React.FC = () => {
                 {workspaceVisivel ? '💬 Apenas Chat' : '📊 Ver Workspace'}
               </Button>
               <Button variant="outline" onClick={() => {
-                setEstado('inicial');
                 setMensagens([]);
                 setModeloSelecionado(null);
                 setWorkspaceVisivel(false);
                 setDadosWorkspace(null);
+                setMostrarCardIntro(false);
+                setAguardandoConfirmacao(false);
+                setSessionData(null); // 🔄 RESET: Zera sessionData
                 helenaPEService.resetar();
+                sessionManager.clearSession(); // Limpa sessão do localStorage
+                navigate('/planejamento-estrategico');
               }} size="sm">
                 ← Nova Sessão
               </Button>
@@ -627,45 +688,249 @@ export const HelenaPEModerna: React.FC = () => {
           flexDirection: 'column',
           gap: '16px'
         }}>
-          {mensagens.map((msg, idx) => (
-            <div
-              key={idx}
-              style={{
-                alignSelf: msg.tipo === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '75%'
-              }}
-            >
+          {/* 🆕 Card de Introdução Fixo */}
+          {mostrarCardIntro && modelo && (
+            <div style={{
+              alignSelf: 'flex-start',
+              maxWidth: '85%'
+            }}>
               <div style={{
-                padding: '16px 20px',
+                padding: '24px',
                 borderRadius: '16px',
-                background: msg.tipo === 'user'
-                  ? '#1B4F72'
-                  : 'rgba(255, 255, 255, 0.9)',
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)',
                 backdropFilter: 'blur(10px)',
-                border: msg.tipo === 'user' ? 'none' : '1px solid rgba(27, 79, 114, 0.2)',
-                boxShadow: '0 4px 12px rgba(27, 79, 114, 0.1)',
+                border: '2px solid rgba(27, 79, 114, 0.3)',
+                boxShadow: '0 8px 24px rgba(27, 79, 114, 0.15)',
                 fontSize: '15px',
-                lineHeight: 1.6,
-                whiteSpace: 'pre-wrap',
-                color: msg.tipo === 'user' ? '#ffffff' : '#2C3E50'
+                lineHeight: 1.7,
+                color: '#2C3E50'
               }}>
-                {msg.texto}
+                <div style={{ fontSize: '48px', marginBottom: '16px', textAlign: 'center' }}>
+                  {modelo.icone}
+                </div>
+                <h3 style={{
+                  fontSize: '22px',
+                  fontWeight: 'bold',
+                  marginBottom: '12px',
+                  color: '#1B4F72',
+                  textAlign: 'center'
+                }}>
+                  Bem-vindo ao {modelo.nome}!
+                </h3>
+                <p style={{ marginBottom: '16px', textAlign: 'center', opacity: 0.9 }}>
+                  {modelo.descricao}
+                </p>
+
+                <div style={{
+                  background: 'rgba(27, 79, 114, 0.08)',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ fontWeight: 600, marginBottom: '8px', color: '#1B4F72' }}>
+                    Como funciona:
+                  </p>
+                  <ul style={{
+                    margin: 0,
+                    paddingLeft: '20px',
+                    listStyleType: 'disc'
+                  }}>
+                    <li>Vou fazer perguntas para entender seu contexto</li>
+                    <li>Você responde de forma livre e natural</li>
+                    <li>Juntos, vamos construir seu planejamento estratégico</li>
+                    <li>Use o workspace ao lado para visualizar o progresso</li>
+                  </ul>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  alignItems: 'center'
+                }}>
+                  <Button
+                    onClick={iniciarAgente}
+                    disabled={loading}
+                    style={{
+                      background: loading ? '#ccc' : 'linear-gradient(135deg, #1B4F72 0%, #2874A6 100%)',
+                      color: '#fff',
+                      padding: '14px 40px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      fontWeight: 700,
+                      fontSize: '17px',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 12px rgba(27, 79, 114, 0.3)',
+                      width: '100%',
+                      maxWidth: '300px'
+                    }}
+                  >
+                    {loading ? '⏳ Iniciando...' : '🚀 Começar Construção'}
+                  </Button>
+
+                  <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center'
+                  }}>
+                    <Button
+                      onClick={async () => {
+                        setMostrarCardIntro(false);
+                        try {
+                          const confirmacao = await helenaPEService.iniciarModeloDireto(modeloSelecionado!);
+                          setSessionData(confirmacao.session_data);
+                          adicionarMensagem('helena', '💡 **Vou te mostrar alguns exemplos práticos de como este método funciona.**');
+                          adicionarMensagem('user', 'Me mostre exemplos');
+                          const response = await helenaPEService.confirmarModelo(confirmacao.session_data);
+                          setSessionData(response.session_data);
+                          await new Promise(resolve => setTimeout(resolve, 300));
+                          const respExemplos = await helenaPEService.enviarMensagem('exemplos', response.session_data);
+                          setSessionData(respExemplos.session_data);
+                          adicionarMensagem('helena', respExemplos.resposta);
+                        } catch (error) {
+                          console.error('Erro ao mostrar exemplos:', error);
+                          adicionarMensagem('helena', '⚠️ Erro ao carregar exemplos. Tente novamente.');
+                        }
+                      }}
+                      disabled={loading}
+                      style={{
+                        background: 'rgba(27, 79, 114, 0.1)',
+                        color: '#1B4F72',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(27, 79, 114, 0.3)',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        cursor: loading ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      📊 Ver Exemplos
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        setMostrarCardIntro(false);
+                        try {
+                          const confirmacao = await helenaPEService.iniciarModeloDireto(modeloSelecionado!);
+                          setSessionData(confirmacao.session_data);
+                          adicionarMensagem('helena', '📖 **Vou te explicar como este método funciona.**');
+                          adicionarMensagem('user', 'Como funciona este método?');
+                          const response = await helenaPEService.confirmarModelo(confirmacao.session_data);
+                          setSessionData(response.session_data);
+                          await new Promise(resolve => setTimeout(resolve, 300));
+                          const respAjuda = await helenaPEService.enviarMensagem('o que é ' + modeloSelecionado, response.session_data);
+                          setSessionData(respAjuda.session_data);
+                          adicionarMensagem('helena', respAjuda.resposta);
+                        } catch (error) {
+                          console.error('Erro ao explicar método:', error);
+                          adicionarMensagem('helena', '⚠️ Erro ao carregar explicação. Tente novamente.');
+                        }
+                      }}
+                      disabled={loading}
+                      style={{
+                        background: 'rgba(27, 79, 114, 0.1)',
+                        color: '#1B4F72',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(27, 79, 114, 0.3)',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        cursor: loading ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      💡 Entender Método
+                    </Button>
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      setMostrarCardIntro(false);
+                      navigate('/planejamento-estrategico/modelos');
+                      setEstado('modelos');
+                      setModeloSelecionado(null);
+                      setWorkspaceVisivel(false);
+                    }}
+                    disabled={loading}
+                    style={{
+                      background: 'transparent',
+                      color: '#6b7280',
+                      padding: '8px 20px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      fontWeight: 500,
+                      fontSize: '14px',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      marginTop: '8px'
+                    }}
+                  >
+                    ← Escolher outro modelo
+                  </Button>
+                </div>
               </div>
+            </div>
+          )}
+
+          {mensagens.map((msg, idx) => (
+            <div key={idx}>
+              <MessageBubbleRich
+                tipo={msg.tipo}
+                texto={msg.texto}
+              />
+
+              {/* Botão de confirmação (aparece apenas na última mensagem quando aguardando) */}
+              {msg.tipo === 'helena' && aguardandoConfirmacao && idx === mensagens.length - 1 && (
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  marginTop: '12px'
+                }}>
+                  <Button
+                    onClick={() => {
+                      setAguardandoConfirmacao(false);
+                      confirmarModeloSelecionado();
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #1B4F72 0%, #2874A6 100%)',
+                      color: '#fff',
+                      padding: '10px 24px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✓ Confirmar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setAguardandoConfirmacao(false);
+                      navigate('/planejamento-estrategico/modelos');
+                      setEstado('modelos');
+                      setModeloSelecionado(null);
+                      setWorkspaceVisivel(false);
+                    }}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      color: '#2C3E50',
+                      padding: '10px 24px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(27, 79, 114, 0.3)',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ← Voltar
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
           {loading && (
-            <div style={{ alignSelf: 'flex-start', maxWidth: '75%' }}>
-              <div style={{
-                padding: '16px 20px',
-                borderRadius: '16px',
-                background: 'rgba(255, 255, 255, 0.15)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                fontSize: '15px'
-              }}>
-                ⏳ Helena está pensando...
-              </div>
-            </div>
+            <MessageBubbleRich
+              tipo="helena"
+              texto=""
+              isLoading={true}
+            />
           )}
           <div ref={chatEndRef} />
         </div>
@@ -692,9 +957,9 @@ export const HelenaPEModerna: React.FC = () => {
               flex: 1,
               padding: '12px 20px',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              background: 'rgba(255, 255, 255, 0.1)',
-              color: '#ffffff',
+              border: '1px solid rgba(27, 79, 114, 0.3)',
+              background: 'rgba(255, 255, 255, 0.95)',
+              color: '#2C3E50',
               fontSize: '15px',
               outline: 'none'
             }}

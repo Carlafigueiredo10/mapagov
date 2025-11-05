@@ -150,7 +150,7 @@ class BaseHelena(ABC):
         # - Modo Interface: resposta pode ser None (interface substitui texto)
         # - Modo Textual: resposta é obrigatória (chat conversacional puro)
 
-        if tipo_interface and dados_interface:
+        if tipo_interface and dados_interface is not None:
             # ✅ MODO INTERFACE: Interface dinâmica (botões, cards, listas, etc)
             # resposta pode ser None se a interface mostra tudo (pureza arquitetural)
             resultado = {
@@ -188,6 +188,24 @@ class BaseHelena(ABC):
 
         if dados_extraidos:
             resultado['dados_extraidos'] = dados_extraidos
+
+        # 🔒 HOTFIX: Normalizar dados_interface ANTES de logar (à prova de None)
+        tipo_interface_final = resultado.get('tipo_interface')
+        interface_final = resultado.get('interface', tipo_interface_final)
+        dados_interface_final = resultado.get('dados_interface')
+
+        # 🔒 Garantir que dados_interface SEMPRE seja dict (nunca None)
+        if not isinstance(dados_interface_final, dict):
+            dados_interface_final = {}
+            resultado['dados_interface'] = dados_interface_final
+            resultado['dados'] = dados_interface_final
+
+        # 🔍 DEBUG CRÍTICO: Log da resposta FINAL (agora seguro contra None)
+        logger.info(f"[criar_resposta] 📤 RESPOSTA COMPLETA SENDO RETORNADA:")
+        logger.info(f"[criar_resposta]    tipo_interface = {tipo_interface_final}")
+        logger.info(f"[criar_resposta]    interface = {interface_final}")
+        logger.info(f"[criar_resposta]    dados_interface tem {len(dados_interface_final)} chaves")
+        logger.info(f"[criar_resposta]    resposta = {resultado.get('resposta')[:200] if resultado.get('resposta') else '<None>'}")
 
         return resultado
 

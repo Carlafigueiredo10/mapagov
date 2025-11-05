@@ -4,35 +4,68 @@ interface OrigemSelecionada {
   tipo: string;
   especificacao?: string;
   area_decipex?: string;
+  orgao_centralizado?: string;
+  canais_atendimento?: string[];
+}
+
+interface AreaOrganizacional {
+  codigo: string;
+  nome: string;
+  sigla?: string;
+}
+
+interface OrgaoCentralizado {
+  sigla: string;
+  nome_completo: string;
+  observacao?: string;
+}
+
+interface CanalAtendimento {
+  codigo: string;
+  nome: string;
+  descricao?: string;
+}
+
+interface OpcaoOrigem {
+  id: string;
+  label: string;
+  requerEspecificacao: boolean;
+  requerAreaDecipex?: boolean;
+  requerOrgaoCentralizado?: boolean;
+  requerCanaisAtendimento?: boolean;
+  obrigatorio?: boolean;
+  opcoesPredefinidas?: string[];
 }
 
 interface InterfaceFluxosEntradaProps {
-  dados?: Record<string, unknown>;
+  dados?: {
+    areas_organizacionais?: AreaOrganizacional[];
+    orgaos_centralizados?: OrgaoCentralizado[];
+    canais_atendimento?: CanalAtendimento[];
+  };
   onConfirm: (resposta: string) => void;
 }
 
-const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ onConfirm }) => {
+const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, onConfirm }) => {
   const [origens, setOrigens] = useState<OrigemSelecionada[]>([]);
   const [outrasOrigens, setOutrasOrigens] = useState('');
   const [mostrarEspecificacao, setMostrarEspecificacao] = useState<Record<string, boolean>>({});
   const [especificacoes, setEspecificacoes] = useState<Record<string, string>>({});
   const [areaDecipexSelecionada, setAreaDecipexSelecionada] = useState<Record<string, string>>({});
+  const [orgaoCentralizadoSelecionado, setOrgaoCentralizadoSelecionado] = useState<Record<string, string>>({});
+  const [canaisSelecionados, setCanaisSelecionados] = useState<Record<string, string[]>>({});
+  const [isLoading, setIsLoading] = useState(false); // ✅ Proteção contra duplo clique
 
-  const areasDecipex = [
-    { codigo: 'CGBEN', nome: 'Coordenação Geral de Benefícios' },
-    { codigo: 'CGPAG', nome: 'Coordenação Geral de Pagamentos' },
-    { codigo: 'COATE', nome: 'Coordenação de Atendimento' },
-    { codigo: 'CGGAF', nome: 'Coordenação Geral de Gestão de Acervos Funcionais' },
-    { codigo: 'DIGEP', nome: 'Diretoria de Pessoal dos Ex-Territórios' },
-    { codigo: 'CGRIS', nome: 'Coordenação Geral de Riscos e Controle' },
-    { codigo: 'CGCAF', nome: 'Coordenação Geral de Gestão de Complementação da Folha' },
-    { codigo: 'CGECO', nome: 'Coordenação Geral de Extinção e Convênio' },
-  ];
+  // Usar dados do backend (do CSV) em vez de hardcoded
+  const areasDecipex = dados?.areas_organizacionais || [];
+  const orgaosCentralizados = dados?.orgaos_centralizados || [];
+  const canaisAtendimento = dados?.canais_atendimento || [];
 
-  const opcoesOrigem = [
+  const opcoesOrigem: OpcaoOrigem[] = [
     { id: 'outra_area_decipex', label: 'De outra área da DECIPEX', requerEspecificacao: true, requerAreaDecipex: true },
+    { id: 'orgao_centralizado', label: 'De algum órgão centralizado', requerEspecificacao: true, requerOrgaoCentralizado: true },
     { id: 'fora_decipex', label: 'De fora da DECIPEX (outro órgão/entidade)', requerEspecificacao: true, obrigatorio: true },
-    { id: 'usuario_requerente', label: 'Do usuário/requerente diretamente', requerEspecificacao: false },
+    { id: 'usuario_requerente', label: 'Do usuário/requerente diretamente', requerEspecificacao: true, requerCanaisAtendimento: true },
     { id: 'area_interna_cg', label: 'De outra área interna da sua Coordenação Geral', requerEspecificacao: true, obrigatorio: true },
     { id: 'orgaos_controle', label: 'Órgãos de Controle', requerEspecificacao: true, opcoesPredefinidas: ['TCU - Indícios', 'TCU - Acórdão', 'CGU'] },
   ];
@@ -50,6 +83,16 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ onConfi
         return novo;
       });
       setAreaDecipexSelecionada(prev => {
+        const novo = { ...prev };
+        delete novo[id];
+        return novo;
+      });
+      setOrgaoCentralizadoSelecionado(prev => {
+        const novo = { ...prev };
+        delete novo[id];
+        return novo;
+      });
+      setCanaisSelecionados(prev => {
         const novo = { ...prev };
         delete novo[id];
         return novo;
@@ -82,40 +125,103 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ onConfi
     ));
   };
 
+  const handleOrgaoCentralizado = (id: string, siglaOrgao: string) => {
+    setOrgaoCentralizadoSelecionado(prev => ({ ...prev, [id]: siglaOrgao }));
+    const orgaoInfo = orgaosCentralizados.find(o => o.sigla === siglaOrgao);
+    const especificacao = orgaoInfo ? `${orgaoInfo.sigla} - ${orgaoInfo.nome_completo}` : siglaOrgao;
+
+    setEspecificacoes(prev => ({ ...prev, [id]: especificacao }));
+    setOrigens(prev => prev.map(o =>
+      o.tipo === id ? { ...o, orgao_centralizado: siglaOrgao, especificacao } : o
+    ));
+  };
+
+  const handleToggleCanal = (idOrigem: string, codigoCanal: string) => {
+    setCanaisSelecionados(prev => {
+      const canaisAtuais = prev[idOrigem] || [];
+      const jaExiste = canaisAtuais.includes(codigoCanal);
+
+      const novosCanais = jaExiste
+        ? canaisAtuais.filter(c => c !== codigoCanal)
+        : [...canaisAtuais, codigoCanal];
+
+      // Atualizar especificação com nomes dos canais
+      const nomesCanais = novosCanais.map(codigo => {
+        const canal = canaisAtendimento.find(c => c.codigo === codigo);
+        return canal ? canal.nome : codigo;
+      });
+      const especificacao = nomesCanais.join(', ');
+
+      setEspecificacoes(prev => ({ ...prev, [idOrigem]: especificacao }));
+      setOrigens(prev => prev.map(o =>
+        o.tipo === idOrigem ? { ...o, canais_atendimento: novosCanais, especificacao } : o
+      ));
+
+      return { ...prev, [idOrigem]: novosCanais };
+    });
+  };
+
   const handleConfirm = () => {
-    if (origens.length === 0 && !outrasOrigens.trim()) {
-      alert('Por favor, selecione ao menos uma origem ou descreva manualmente.');
-      return;
-    }
+    // ✅ Proteção contra duplo clique
+    if (isLoading) return;
+    setIsLoading(true);
 
-    // Validar especificações obrigatórias
-    for (const origem of origens) {
-      const opcao = opcoesOrigem.find(o => o.id === origem.tipo);
-      if (opcao?.obrigatorio && !especificacoes[origem.tipo]?.trim()) {
-        alert(`Por favor, especifique: ${opcao.label}`);
+    try {
+      if (origens.length === 0 && !outrasOrigens.trim()) {
+        alert('Por favor, selecione ao menos uma origem ou descreva manualmente.');
+        setIsLoading(false);
         return;
       }
-      if (opcao?.requerAreaDecipex && !areaDecipexSelecionada[origem.tipo]) {
-        alert(`Por favor, selecione a área da DECIPEX de origem.`);
-        return;
+
+      // Validar especificações obrigatórias
+      for (const origem of origens) {
+        const opcao = opcoesOrigem.find(o => o.id === origem.tipo);
+        if (opcao?.obrigatorio && !especificacoes[origem.tipo]?.trim()) {
+          alert(`Por favor, especifique: ${opcao.label}`);
+          setIsLoading(false);
+          return;
+        }
+        if (opcao?.requerAreaDecipex && !areaDecipexSelecionada[origem.tipo]) {
+          alert(`Por favor, selecione a área da DECIPEX de origem.`);
+          setIsLoading(false);
+          return;
+        }
+        if (opcao?.requerOrgaoCentralizado && !orgaoCentralizadoSelecionado[origem.tipo]) {
+          alert(`Por favor, selecione o órgão centralizado de origem.`);
+          setIsLoading(false);
+          return;
+        }
+        if (opcao?.requerCanaisAtendimento && (!canaisSelecionados[origem.tipo] || canaisSelecionados[origem.tipo].length === 0)) {
+          alert(`Por favor, selecione ao menos um canal de atendimento.`);
+          setIsLoading(false);
+          return;
+        }
       }
+
+      // Montar resposta estruturada
+      const respostaObj: any = {
+        origens_selecionadas: origens.map(o => ({
+          tipo: opcoesOrigem.find(op => op.id === o.tipo)?.label || o.tipo,
+          especificacao: o.especificacao || null,
+          area_decipex: o.area_decipex || null,
+          orgao_centralizado: o.orgao_centralizado || null,
+          canais_atendimento: o.canais_atendimento || null
+        })),
+        outras_origens: outrasOrigens.trim() || null
+      };
+
+      // Enviar como JSON string
+      onConfirm(JSON.stringify(respostaObj));
+      // Nota: não resetar isLoading aqui, pois o componente será desmontado
+    } catch (error) {
+      console.error('Erro ao confirmar:', error);
+      setIsLoading(false);
     }
-
-    // Montar resposta estruturada
-    const respostaObj: any = {
-      origens_selecionadas: origens.map(o => ({
-        tipo: opcoesOrigem.find(op => op.id === o.tipo)?.label || o.tipo,
-        especificacao: o.especificacao || null,
-        area_decipex: o.area_decipex || null
-      })),
-      outras_origens: outrasOrigens.trim() || null
-    };
-
-    // Enviar como JSON string
-    onConfirm(JSON.stringify(respostaObj));
   };
 
   const handleSkip = () => {
+    if (isLoading) return;
+    setIsLoading(true);
     onConfirm('nao_sei');
   };
 
@@ -179,6 +285,87 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ onConfi
                       </option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {/* Seletor de Órgão Centralizado */}
+              {mostrarEspecificacao[opcao.id] && opcao.requerOrgaoCentralizado && (
+                <div style={{ marginTop: '0.5rem', marginLeft: '2rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#495057' }}>
+                    Selecione o órgão centralizado:
+                  </label>
+                  <select
+                    value={orgaoCentralizadoSelecionado[opcao.id] || ''}
+                    onChange={(e) => handleOrgaoCentralizado(opcao.id, e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #ced4da',
+                      borderRadius: '6px',
+                      fontSize: '0.95rem',
+                      background: 'white'
+                    }}
+                  >
+                    <option value="">Selecione um órgão...</option>
+                    {orgaosCentralizados.map(orgao => (
+                      <option key={orgao.sigla} value={orgao.sigla}>
+                        {orgao.sigla} - {orgao.nome_completo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Seletor de Canais de Atendimento (múltipla seleção) */}
+              {mostrarEspecificacao[opcao.id] && opcao.requerCanaisAtendimento && (
+                <div style={{ marginTop: '0.5rem', marginLeft: '2rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#495057', fontWeight: 500 }}>
+                    Selecione os canais de atendimento (pode selecionar vários):
+                  </label>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                    gap: '0.5rem',
+                    padding: '0.75rem',
+                    border: '1px solid #ced4da',
+                    borderRadius: '6px',
+                    background: '#f8f9fa'
+                  }}>
+                    {canaisAtendimento.map(canal => (
+                      <div
+                        key={canal.codigo}
+                        onClick={() => handleToggleCanal(opcao.id, canal.codigo)}
+                        style={{
+                          padding: '0.5rem',
+                          border: '2px solid',
+                          borderColor: (canaisSelecionados[opcao.id] || []).includes(canal.codigo) ? '#1351B4' : '#dee2e6',
+                          borderRadius: '6px',
+                          background: (canaisSelecionados[opcao.id] || []).includes(canal.codigo) ? '#e7f3ff' : 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(canaisSelecionados[opcao.id] || []).includes(canal.codigo)}
+                          readOnly
+                          style={{ marginRight: '0.5rem', cursor: 'pointer' }}
+                        />
+                        <strong>{canal.nome}</strong>
+                        {canal.descricao && (
+                          <div style={{ fontSize: '0.75rem', color: '#6c757d', marginTop: '0.25rem', marginLeft: '1.5rem' }}>
+                            {canal.descricao}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {(canaisSelecionados[opcao.id] || []).length > 0 && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#28a745', fontWeight: 500 }}>
+                      ✓ {canaisSelecionados[opcao.id].length} canal(is) selecionado(s)
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -275,14 +462,16 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ onConfi
         <button
           className="btn-interface btn-secondary"
           onClick={handleSkip}
+          disabled={isLoading}
         >
           Não Sei
         </button>
         <button
           className="btn-interface btn-primary"
           onClick={handleConfirm}
+          disabled={isLoading}
         >
-          Confirmar
+          {isLoading ? 'Processando...' : 'Confirmar'}
         </button>
       </div>
 

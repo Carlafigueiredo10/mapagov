@@ -1,0 +1,400 @@
+/**
+ * Estilos compartilhados para Artefatos do Domínio 1
+ */
+
+/* ============================================================================
+   CONTAINER PRINCIPAL
+   ============================================================================ */
+
+.artefato-container {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  border: 2px solid #e2e8f0;
+}
+
+.artefato-header {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.artefato-header h2 {
+  margin: 0 0 12px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.artefato-descricao {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #475569;
+}
+
+.artefato-descricao strong {
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   CANVAS - LAYOUT GRID
+   ============================================================================ */
+
+.canvas-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.canvas-card {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.canvas-card:hover {
+  border-color: #4A90E2;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+}
+
+.canvas-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.canvas-icone {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.canvas-card strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.canvas-hint {
+  font-size: 13px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.canvas-card textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #334155;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.canvas-card textarea:focus {
+  outline: none;
+  border-color: #4A90E2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.canvas-card textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Cores específicas por card */
+.canvas-proposito:hover { border-color: #4A90E2; }
+.canvas-valor:hover { border-color: #10b981; }
+.canvas-publico:hover { border-color: #f59e0b; }
+.canvas-entregas:hover { border-color: #8b5cf6; }
+.canvas-recursos:hover { border-color: #06b6d4; }
+.canvas-riscos:hover { border-color: #ef4444; }
+
+/* ============================================================================
+   LINHA DO TEMPO
+   ============================================================================ */
+
+.timeline-container {
+  margin-bottom: 32px;
+}
+
+.timeline-add-btn {
+  margin-bottom: 20px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #4A90E2 0%, #16B8C3 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timeline-add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+
+.timeline-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeline-item {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 120px 1fr 200px 80px 40px;
+  gap: 16px;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.timeline-item:hover {
+  border-color: #4A90E2;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.15);
+}
+
+.timeline-item input,
+.timeline-item select {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.timeline-item input:focus,
+.timeline-item select:focus {
+  outline: none;
+  border-color: #4A90E2;
+}
+
+.timeline-status {
+  font-size: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.timeline-status:hover {
+  transform: scale(1.2);
+}
+
+.timeline-delete {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #fee2e2;
+  color: #ef4444;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.timeline-delete:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* ============================================================================
+   CHECKLIST DE GOVERNANÇA
+   ============================================================================ */
+
+.checklist-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.checklist-item {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: all 0.2s ease;
+}
+
+.checklist-item:hover {
+  border-color: #4A90E2;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.15);
+}
+
+.checklist-item.checked {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #10b981;
+}
+
+.checklist-checkbox {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.checklist-checkbox:hover {
+  border-color: #4A90E2;
+  transform: scale(1.1);
+}
+
+.checklist-item.checked .checklist-checkbox {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.checklist-content {
+  flex: 1;
+}
+
+.checklist-content strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e3a8a;
+}
+
+.checklist-content span {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.checklist-progresso {
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.checklist-progresso h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.checklist-barra {
+  width: 100%;
+  height: 24px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.checklist-barra-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4A90E2 0%, #10b981 100%);
+  transition: width 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.checklist-resultado {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
+
+.artefato-footer {
+  padding-top: 24px;
+  border-top: 2px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.btn-exportar {
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #4A90E2 0%, #16B8C3 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+
+.btn-exportar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(74, 144, 226, 0.4);
+}
+
+.footer-hint {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  text-align: center;
+}
+
+.footer-hint strong {
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   RESPONSIVIDADE
+   ============================================================================ */
+
+@media (max-width: 1024px) {
+  .canvas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-item {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .artefato-container {
+    padding: 24px;
+  }
+
+  .artefato-header h2 {
+    font-size: 24px;
+  }
+
+  .canvas-card {
+    padding: 16px;
+  }
+
+  .checklist-item {
+    padding: 16px;
+  }
+}

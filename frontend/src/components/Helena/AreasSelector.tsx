@@ -24,6 +24,14 @@ const AreasSelector: React.FC<AreasSelectorProps> = ({ data, onConfirm }) => {
   console.log('🏢 AreasSelector - Dados recebidos:', data);
   console.log('🏢 AreasSelector - opcoes_areas:', data?.opcoes_areas);
 
+  // 🔍 DEBUG DETALHADO: Mostrar CADA área recebida
+  if (data?.opcoes_areas) {
+    console.log('🔍 DETALHAMENTO DAS ÁREAS RECEBIDAS:');
+    Object.entries(data.opcoes_areas).forEach(([id, area]) => {
+      console.log(`   ${id}: ${area.codigo} - ${area.nome}`);
+    });
+  }
+
   const handleAreaClick = (areaId: string) => {
     setSelectedAreaId(areaId);
   };

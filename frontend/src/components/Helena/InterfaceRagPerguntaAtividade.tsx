@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './InterfaceRagPerguntaAtividade.css';
 
 interface HierarquiaHerdada {
@@ -8,49 +8,21 @@ interface HierarquiaHerdada {
 }
 
 interface Props {
-    mensagem: string;
     hierarquiaHerdada: HierarquiaHerdada;
     onEnviar: (descricao: string) => void;
 }
 
 const InterfaceRagPerguntaAtividade: React.FC<Props> = ({
-    mensagem,
-    hierarquiaHerdada,
-    onEnviar
+    hierarquiaHerdada
 }) => {
-    const [descricao, setDescricao] = useState('');
-    const [enviando, setEnviando] = useState(false);
-
-    const handleEnviar = async () => {
-        if (!descricao.trim()) {
-            alert('Por favor, descreva sua atividade antes de enviar');
-            return;
-        }
-
-        setEnviando(true);
-        try {
-            await onEnviar(descricao.trim());
-        } finally {
-            setEnviando(false);
-        }
-    };
-
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && e.ctrlKey) {
-            handleEnviar();
-        }
-    };
-
-    const caracteresRestantes = 500 - descricao.length;
-    const podEnviar = descricao.trim().length >= 10 && !enviando;
+    console.log('🎨 InterfaceRagPerguntaAtividade render (modo informativo)');
 
     return (
         <div className="rag-pergunta-container">
             <div className="rag-header">
-                <span className="rag-icone">🤖</span>
+                <img src="/helena_mapeamento.png" alt="Helena" className="rag-icone-img" />
                 <div className="rag-titulo-grupo">
-                    <h3 className="rag-titulo">Helena está te ouvindo</h3>
-                    <p className="rag-subtitulo">Criando nova atividade...</p>
+                    <p className="rag-mensagem-principal">Estou te ouvindo, me conta o que você faz e vamos definir a atividade certa</p>
                 </div>
             </div>
 
@@ -75,42 +47,6 @@ const InterfaceRagPerguntaAtividade: React.FC<Props> = ({
                 </div>
             </div>
 
-            {/* Mensagem da Helena */}
-            <div className="rag-mensagem-helena">
-                <div className="helena-avatar">
-                    <span>💬</span>
-                </div>
-                <div className="helena-balao">
-                    <p>{mensagem}</p>
-                </div>
-            </div>
-
-            {/* Campo de Descrição */}
-            <div className="rag-input-grupo">
-                <label className="rag-label">
-                    Descreva sua atividade
-                    <span className="rag-obrigatorio">*</span>
-                </label>
-                <textarea
-                    className="rag-textarea"
-                    value={descricao}
-                    onChange={(e) => setDescricao(e.target.value.slice(0, 500))}
-                    onKeyDown={handleKeyPress}
-                    placeholder="Exemplo: Eu analiso documentos de aposentadoria por tempo de contribuição, verifico se os períodos contributivos estão corretos e faço o cálculo do tempo total..."
-                    maxLength={500}
-                    rows={6}
-                    disabled={enviando}
-                />
-                <div className="rag-input-rodape">
-                    <span className={`caracteres-contador ${caracteresRestantes < 50 ? 'alerta' : ''}`}>
-                        {caracteresRestantes} caracteres restantes
-                    </span>
-                    <span className="rag-dica">
-                        💡 Dica: Use Ctrl+Enter para enviar
-                    </span>
-                </div>
-            </div>
-
             {/* Exemplos */}
             <div className="rag-exemplos">
                 <h5 className="exemplos-titulo">Exemplos de boas descrições:</h5>
@@ -130,33 +66,12 @@ const InterfaceRagPerguntaAtividade: React.FC<Props> = ({
                 </div>
             </div>
 
-            {/* Botão de Enviar */}
-            <div className="rag-acoes">
-                <button
-                    className="btn-enviar-rag"
-                    onClick={handleEnviar}
-                    disabled={!podEnviar}
-                >
-                    {enviando ? (
-                        <>
-                            <span className="btn-spinner">⏳</span>
-                            Processando...
-                        </>
-                    ) : (
-                        <>
-                            <span className="btn-icone">🚀</span>
-                            Enviar para Helena
-                        </>
-                    )}
-                </button>
-            </div>
-
-            {/* Rodapé */}
+            {/* Instrução para digitar no chat */}
             <div className="rag-rodape">
                 <div className="rodape-info">
-                    <span className="rodape-icone">🔒</span>
+                    <span className="rodape-icone">💬</span>
                     <span className="rodape-texto">
-                        Helena irá sugerir um nome apropriado para sua atividade com base na sua descrição
+                        Digite sua resposta na barra de chat abaixo
                     </span>
                 </div>
             </div>

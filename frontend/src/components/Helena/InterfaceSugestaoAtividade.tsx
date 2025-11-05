@@ -11,7 +11,7 @@ interface AtividadeSugerida {
 interface Props {
     atividade: AtividadeSugerida;
     cap: string;
-    origem: 'match_exato' | 'match_fuzzy' | 'semantic';
+    origem: 'match_exato' | 'match_fuzzy' | 'semantic' | 'rag_nova_atividade';
     score: number;
     podeEditar: boolean;
     onConcordar: () => void;
@@ -35,6 +35,8 @@ const InterfaceSugestaoAtividade: React.FC<Props> = ({
                 return 'Encontrei uma correspondência similar!';
             case 'semantic':
                 return 'Encontrei uma atividade parecida com o que você me disse que faz na sua rotina:';
+            case 'rag_nova_atividade':
+                return 'Pelo que você me falou, achei que a melhor definição pra sua atividade é:';
             default:
                 return 'Atividade encontrada';
         }
@@ -48,6 +50,8 @@ const InterfaceSugestaoAtividade: React.FC<Props> = ({
                 return '≈';
             case 'semantic':
                 return null; // Usará imagem
+            case 'rag_nova_atividade':
+                return null; // Usará imagem
             default:
                 return '•';
         }
@@ -56,7 +60,7 @@ const InterfaceSugestaoAtividade: React.FC<Props> = ({
     return (
         <div className="sugestao-atividade-container">
             <div className="sugestao-header">
-                {origem === 'semantic' ? (
+                {(origem === 'semantic' || origem === 'rag_nova_atividade') ? (
                     <img
                         src="/helena_mapeamento.png"
                         alt="Helena"
@@ -72,6 +76,9 @@ const InterfaceSugestaoAtividade: React.FC<Props> = ({
                 )}
                 {origem === 'semantic' && (
                     <span className="badge-semantic">{Math.round(score * 100)}% Similar</span>
+                )}
+                {origem === 'rag_nova_atividade' && (
+                    <span className="badge-semantic">Nova Atividade</span>
                 )}
             </div>
 
@@ -123,7 +130,10 @@ const InterfaceSugestaoAtividade: React.FC<Props> = ({
                     onClick={onSelecionarManual}
                 >
                     <span className="btn-icone">🧭</span>
-                    Não é essa minha atividade, vou selecionar manualmente
+                    {origem === 'rag_nova_atividade'
+                        ? 'Não é essa minha atividade, vou digitar o que faço'
+                        : 'Não é essa minha atividade, vou selecionar manualmente'
+                    }
                 </button>
             </div>
 

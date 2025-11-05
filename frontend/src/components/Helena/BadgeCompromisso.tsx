@@ -50,7 +50,7 @@ export default function BadgeCompromisso({
             }}
           >
             <span className={styles.trofeu}>{emoji}</span>
-            <span className={styles.btnTexto}>Firmar compromisso</span>
+            <span className={styles.btnTexto}>Clique aqui pra fechar nosso acordo</span>
           </div>
         ) : (
           <>
