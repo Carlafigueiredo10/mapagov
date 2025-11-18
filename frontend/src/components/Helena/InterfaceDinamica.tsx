@@ -64,24 +64,8 @@ const InterfaceDinamica: React.FC<InterfaceDinamicaProps> = ({ interfaceData, on
     return null;
   }
 
-  // 🚗 PATCH 3: Debug temporário para roadtrip
-  React.useEffect(() => {
-    if (interfaceData?.tipo === "roadtrip") {
-      console.log("🚗 RoadTrip recebido! Renderizando agora:", interfaceData);
-    }
-  }, [interfaceData]);
-
   // ✅ Seu console.log está aqui, no lugar certo!
   console.log("PROPS RECEBIDAS PELA INTERFACE DINÂMICA:", interfaceData);
-
-  // 🔍 DEBUG ROADTRIP: Log especial se for roadtrip
-  if (interfaceData?.tipo === 'roadtrip') {
-    console.log('🚗🚗🚗 ROADTRIP CHEGOU NO INTERFACE DINÂMICA!', {
-      tipo: interfaceData.tipo,
-      dados: interfaceData.dados,
-      interfaceData
-    });
-  }
 
   // Bloco de verificação (sem duplicatas)
   if (!interfaceData) {

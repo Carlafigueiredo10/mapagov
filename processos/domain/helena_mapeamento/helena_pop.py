@@ -1034,10 +1034,15 @@ class HelenaPOP(BaseHelena):
             # Converter para lista de dicionários
             orgaos_list = []
             for _, row in df_ativos.iterrows():
+                # Tratar NaN do pandas (células vazias no CSV)
+                observacao = row.get('observacao', '')
+                if pd.isna(observacao):
+                    observacao = ''
+
                 orgaos_list.append({
                     'sigla': row['sigla'],
                     'nome_completo': row['nome_completo'],
-                    'observacao': row.get('observacao', '')
+                    'observacao': observacao
                 })
 
             logger.info(f"[ORGAOS] Centralizados carregados do CSV: {len(orgaos_list)} órgãos ativos")
@@ -1095,10 +1100,15 @@ class HelenaPOP(BaseHelena):
             # Converter para lista de dicionários
             canais_list = []
             for _, row in df_ativos.iterrows():
+                # Tratar NaN do pandas (células vazias no CSV)
+                descricao = row.get('descricao', '')
+                if pd.isna(descricao):
+                    descricao = ''
+
                 canais_list.append({
                     'codigo': row['codigo'],
                     'nome': row['nome'],
-                    'descricao': row.get('descricao', '')
+                    'descricao': descricao
                 })
 
             logger.info(f"[CANAIS] Atendimento carregados do CSV: {len(canais_list)} canais ativos")
@@ -3487,25 +3497,38 @@ class HelenaPOP(BaseHelena):
     def _processar_reconhecimento_entrega(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """Processa clique na caixinha de reconhecimento e avança para FLUXOS"""
         sm.estado = EstadoPOP.FLUXOS
-        logger.info(f"[RECONHECIMENTO] Mudou estado para FLUXOS (pergunta aberta)")
+        logger.info(f"[RECONHECIMENTO] Mudou estado para FLUXOS (interface rica de fluxos)")
 
-        # ✅ SIMPLIFICADO: Pergunta aberta em vez de interface complexa
-        sm.tipo_interface = "texto_livre"
+        # ✅ ATIVAR INTERFACE RICA: Carregar dados do CSV
+        areas_dict = self._carregar_areas_organizacionais()  # Dict[int, Dict]
+        orgaos_list = self._carregar_orgaos_centralizados()  # List[Dict]
+        canais_list = self._carregar_canais_atendimento()    # List[Dict]
+
+        # Converter áreas para lista (frontend espera array, não dict)
+        areas_list = [
+            {
+                'codigo': area['codigo'],
+                'nome': area['nome'],
+                'sigla': area.get('sigla', area['codigo'])
+            }
+            for area in areas_dict.values()
+        ]
+
+        sm.tipo_interface = "fluxos_entrada"
         sm.dados_interface = {
-            "placeholder": (
-                "Ex.: Cidadão via SEI, Outras áreas da DECIPEX, Órgãos externos, "
-                "Sistemas automáticos, Email, Telefone..."
-            )
+            "areas_organizacionais": areas_list,
+            "orgaos_centralizados": orgaos_list,
+            "canais_atendimento": canais_list
         }
 
         nome = sm.nome_usuario or "você"
         resposta = (
             f"Agora me diga: **de onde vem o processo** que você executa?\n\n"
             f"Pode ser de outras áreas, de cidadãos, de sistemas, de órgãos externos...\n\n"
-            f"💡 Descreva livremente!"
+            f"💡 Selecione as origens que se aplicam:"
         )
 
-        logger.info(f"[RECONHECIMENTO] Retornando interface texto_livre para fluxos_entrada")
+        logger.info(f"[RECONHECIMENTO] Retornando interface fluxos_entrada com {len(areas_list)} áreas, {len(orgaos_list)} órgãos, {len(canais_list)} canais")
         return resposta, sm
 
     def _processar_dispositivos_normativos(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
@@ -3643,16 +3666,18 @@ class HelenaPOP(BaseHelena):
             'campo_livre': True,
             'multipla_selecao': True,
             'texto_introducao': (
-                f"Registrei {len(sistemas)} sistema(s).\n\n"
-                f"Agora vamos falar sobre as normas legais e guias que orientam essa atividade."
+                "💡 Minhas Sugestões - sobre normas da sua atividade\n\n"
+                "📚 Explorar Biblioteca Completa - todas as normas que já tenho mapeadas\n\n"
+                "🔍 Consultar IA do Sigepe Legis - Você busca as normas com apoio de uma agente de IA\n\n"
+                "➕ Adicionar norma manualmente - se você não achou a norma mas sabe qual é"
             )
         }
 
         nome = sm.nome_usuario or "você"
         resposta = (
+            f"Registrei {len(sistemas)} sistema(s).\n\n"
             f"Agora vamos falar sobre as normas legais, normativos e guias que orientam essa atividade. ⚖️\n\n"
-            f"Como nós temos MUITAS normas 😅, eu separei em 4 formas de organização pra {nome}.\n\n"
-            f"Aqui abaixo, eu já separei as principais normas que levantei, da seguinte forma:"
+            f"{nome}, como nós temos MUITAS normas 😅, eu separei em 4 formas de organização pra você:"
         )
 
         return resposta, sm
@@ -3700,21 +3725,36 @@ class HelenaPOP(BaseHelena):
                     fluxos = [f.strip() for f in mensagem.replace('\n', ',').split('|') if f.strip()]
                     sm.dados_coletados['fluxos_entrada'] = fluxos
 
-            # ✅ SIMPLIFICADO: Interface texto_livre para fluxos de SAÍDA
-            sm.tipo_interface = 'texto_livre'
+            # ✅ ATIVAR INTERFACE RICA: Carregar dados do CSV (IDÊNTICA À ENTRADA)
+            areas_dict = self._carregar_areas_organizacionais()  # Dict[int, Dict]
+            orgaos_list = self._carregar_orgaos_centralizados()  # List[Dict]
+            canais_list = self._carregar_canais_atendimento()    # List[Dict]
+
+            # Converter áreas para lista (frontend espera array, não dict)
+            areas_list = [
+                {
+                    'codigo': area['codigo'],
+                    'nome': area['nome'],
+                    'sigla': area.get('sigla', area['codigo'])
+                }
+                for area in areas_dict.values()
+            ]
+
+            sm.tipo_interface = "fluxos_saida"
             sm.dados_interface = {
-                'placeholder': (
-                    "Ex.: Cidadão via SEI, Outras áreas da DECIPEX, Órgãos externos, "
-                    "Sistemas automáticos, Email, Telefone..."
-                )
+                "areas_organizacionais": areas_list,
+                "orgaos_centralizados": orgaos_list,
+                "canais_atendimento": canais_list
             }
 
             resposta = (
                 f"Perfeito! Registrei {len(sm.dados_coletados['fluxos_entrada'])} origem(ns) de entrada. ✅\n\n"
                 f"Agora me diga: **para onde vai o resultado** dessa atividade?\n\n"
                 f"Pode ser para outras áreas, para cidadãos, para sistemas, para órgãos externos...\n\n"
-                f"💡 Descreva livremente!"
+                f"💡 Selecione os destinos que se aplicam:"
             )
+
+            logger.info(f"[FLUXOS] Retornando interface fluxos_saida com {len(areas_list)} áreas, {len(orgaos_list)} órgãos, {len(canais_list)} canais")
         else:
             # Coletar fluxos de saída
             if msg_lower in ['nenhum', 'nao', 'não', 'nao_sei']:

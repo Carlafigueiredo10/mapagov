@@ -136,19 +136,6 @@ function MessageBubble({ message }: MessageBubbleProps) {
     !temDelay || partesVisiveis.length === partesMensagem.length
   );
 
-  // 🔍 DEBUG ROADTRIP: Log especial para interface roadtrip
-  if (tipoInterface === 'roadtrip') {
-    console.log('🚗 ROADTRIP DETECTADO!', {
-      message,
-      tipoInterface,
-      dadosInterface,
-      temInterfaceValida,
-      mostrarInterface,
-      partesVisiveis,
-      partesMensagem
-    });
-  }
-
   return (
     <div className={`message-container ${message.tipo}`}>
       {/* Renderizar partes progressivamente */}
