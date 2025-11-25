@@ -25,7 +25,7 @@ RUN npm run build
 # ============================================================================
 # STAGE 2: Backend Python + Django
 # ============================================================================
-FROM python:3.13-slim
+FROM python:3.11-slim
 
 # Variáveis de ambiente para Python
 ENV PYTHONUNBUFFERED=1 \

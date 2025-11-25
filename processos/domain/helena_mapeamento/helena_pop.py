@@ -1,4 +1,4 @@
-"""
+luis"""
 Helena POP v2.0 - Mapeamento de Processos Operacionais Padrão
 
 Arquitetura Clean:
@@ -1034,15 +1034,10 @@ class HelenaPOP(BaseHelena):
             # Converter para lista de dicionários
             orgaos_list = []
             for _, row in df_ativos.iterrows():
-                # Tratar NaN do pandas (células vazias no CSV)
-                observacao = row.get('observacao', '')
-                if pd.isna(observacao):
-                    observacao = ''
-
                 orgaos_list.append({
                     'sigla': row['sigla'],
                     'nome_completo': row['nome_completo'],
-                    'observacao': observacao
+                    'observacao': row.get('observacao', '')
                 })
 
             logger.info(f"[ORGAOS] Centralizados carregados do CSV: {len(orgaos_list)} órgãos ativos")
@@ -1100,15 +1095,10 @@ class HelenaPOP(BaseHelena):
             # Converter para lista de dicionários
             canais_list = []
             for _, row in df_ativos.iterrows():
-                # Tratar NaN do pandas (células vazias no CSV)
-                descricao = row.get('descricao', '')
-                if pd.isna(descricao):
-                    descricao = ''
-
                 canais_list.append({
                     'codigo': row['codigo'],
                     'nome': row['nome'],
-                    'descricao': descricao
+                    'descricao': row.get('descricao', '')
                 })
 
             logger.info(f"[CANAIS] Atendimento carregados do CSV: {len(canais_list)} canais ativos")
@@ -1380,23 +1370,13 @@ class HelenaPOP(BaseHelena):
             resposta, novo_sm = self._processar_revisao_pre_delegacao(mensagem, sm)
 
         elif sm.estado == EstadoPOP.TRANSICAO_EPICA:
-            resultado_epica = self._processar_transicao_epica(mensagem, sm)
-            if len(resultado_epica) == 3:
-                resposta, novo_sm, metadados_extra = resultado_epica
-            else:
-                resposta, novo_sm = resultado_epica
-                metadados_extra = None
+            resposta, novo_sm = self._processar_transicao_epica(mensagem, sm)
 
         elif sm.estado == EstadoPOP.SELECAO_EDICAO:
             resposta, novo_sm = self._processar_selecao_edicao(mensagem, sm)
 
         elif sm.estado == EstadoPOP.DELEGACAO_ETAPAS:
-            resultado_delegacao = self._processar_delegacao_etapas(mensagem, sm)
-            if len(resultado_delegacao) == 3:
-                resposta, novo_sm, metadados_extra = resultado_delegacao
-            else:
-                resposta, novo_sm = resultado_delegacao
-                metadados_extra = None
+            resposta, novo_sm = self._processar_delegacao_etapas(mensagem, sm)
 
         else:
             resposta = "Estado desconhecido. Vamos recomeçar?"
@@ -1553,7 +1533,7 @@ class HelenaPOP(BaseHelena):
             tipo_interface = 'transicao_epica'
             dados_interface = {
                 'botao_principal': {
-                    'texto': '🔍 COMEÇAR MINERAÇÃO DOS DETALHES',
+                    'texto': '🚀 VAMOS COMEÇAR!',
                     'classe': 'botao-pulsante-centro',
                     'tamanho': 'grande',
                     'cor': '#4CAF50',
@@ -1653,12 +1633,11 @@ class HelenaPOP(BaseHelena):
 
         # ✅ FIX: Verificar se o state machine tem tipo_interface setado
         # (usado por _processar_fluxos, etc.)
-        # IMPORTANTE: SEMPRE dar prioridade ao tipo_interface definido pelo handler (sm.tipo_interface)
-        # pois ele é mais específico e foi definido propositalmente pelo _processar_* correspondente
+        # IMPORTANTE: Não sobrescrever se já foi extraído dos metadados do pipeline
         logger.info(f"[PROCESSAR] Antes de ler sm.tipo_interface: tipo_interface={tipo_interface}, novo_sm.estado={novo_sm.estado}")
         if hasattr(novo_sm, 'tipo_interface') and novo_sm.tipo_interface:
             logger.info(f"[PROCESSAR] sm.tipo_interface EXISTE e é: {novo_sm.tipo_interface}")
-            # 🔥 FIX CRÍTICO: SEMPRE dar prioridade ao sm.tipo_interface (removido o "not tipo_interface")
+        if not tipo_interface and hasattr(novo_sm, 'tipo_interface') and novo_sm.tipo_interface:
             tipo_interface = novo_sm.tipo_interface
             dados_interface = getattr(novo_sm, 'dados_interface', {})
             logger.info(f"[PROCESSAR] ✅ tipo_interface ATUALIZADO de sm para: {tipo_interface}")
@@ -1693,7 +1672,7 @@ class HelenaPOP(BaseHelena):
         logger.info(f"[PROCESSAR] resposta = {_short(resposta)}")
         logger.info(f"[PROCESSAR] ===============================")
 
-        resposta_final = self.criar_resposta(
+        return self.criar_resposta(
             resposta=resposta,
             novo_estado=novo_sm.to_dict(),
             progresso=progresso,
@@ -1704,15 +1683,6 @@ class HelenaPOP(BaseHelena):
             formulario_pop=formulario_pop,  # ✅ FASE 2: Novo nome
             dados_extraidos=dados_extraidos  # ✅ FIX: Compatibilidade com frontend OLD
         )
-
-        # 🔍 DEBUG ULTRA CRÍTICO: Log do JSON EXATO que será enviado ao frontend
-        logger.info(f"[PROCESSAR] 📤📤📤 RESPOSTA HTTP FINAL 📤📤📤")
-        logger.info(f"[PROCESSAR] 📤 tipo_interface na resposta = {resposta_final.get('tipo_interface')}")
-        logger.info(f"[PROCESSAR] 📤 interface na resposta = {resposta_final.get('interface')}")
-        logger.info(f"[PROCESSAR] 📤 dados_interface.keys = {list(resposta_final.get('dados_interface', {}).keys())}")
-        logger.info(f"[PROCESSAR] 📤📤📤📤📤📤📤📤📤📤📤📤📤📤📤")
-
-        return resposta_final
 
     # ========================================================================
     # PROCESSADORES DE ESTADO
@@ -1949,7 +1919,7 @@ class HelenaPOP(BaseHelena):
             resposta = f"Claro, {sm.nome_usuario}! Pode fazer sua pergunta que vou te ajudar. 😊"
             return resposta, sm
 
-        from processos.domain.helena_mapeamento.helena_mapeamento import HelenaMapeamento
+        from processos.domain.helena_produtos.helena_mapeamento import HelenaMapeamento
 
         # Instanciar Helena Mapeamento se ainda não existe
         helena_map = HelenaMapeamento()
@@ -2167,7 +2137,7 @@ class HelenaPOP(BaseHelena):
             if acao == 'nao_encontrei':
                 logger.info("[HELENA POP] Usuário clicou 'Não encontrei' - acionando Camada 4 (RAG)")
 
-                from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
+                from processos.domain.helena_produtos.busca_atividade_pipeline import BuscaAtividadePipeline
 
                 # Preparar dados do autor
                 area_codigo = sm.subarea_selecionada['codigo'] if sm.subarea_selecionada else sm.area_selecionada['codigo']
@@ -2217,7 +2187,7 @@ class HelenaPOP(BaseHelena):
             elif acao == 'enviar_descricao':
                 logger.info("[HELENA POP] Processando descrição da Camada 4 (RAG)")
 
-                from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
+                from processos.domain.helena_produtos.busca_atividade_pipeline import BuscaAtividadePipeline
 
                 descricao_atividade = dados_resposta.get('descricao')
 
@@ -2308,7 +2278,7 @@ class HelenaPOP(BaseHelena):
         if mensagem.strip().lower() in ['selecionar_manual', 'selecionar_manualmente']:
             logger.info("[HELENA POP] Usuário clicou 'Minha atividade não é essa, vou selecionar' - acionando Camada 3 (Dropdown)")
 
-            from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
+            from processos.domain.helena_produtos.busca_atividade_pipeline import BuscaAtividadePipeline
 
             # Preparar pipeline
             area_codigo = sm.subarea_selecionada['codigo'] if sm.subarea_selecionada else sm.area_selecionada['codigo']
@@ -2376,7 +2346,7 @@ class HelenaPOP(BaseHelena):
 
             # Sugerir entrega esperada usando Helena Ajuda Inteligente
             try:
-                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
+                from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
 
                 # Obter contexto da área
                 if sm.subarea_selecionada:
@@ -2506,7 +2476,7 @@ class HelenaPOP(BaseHelena):
 
             # Sugerir entrega esperada usando Helena Ajuda Inteligente
             try:
-                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
+                from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
 
                 contexto = {
                     'area': area_nome,
@@ -2573,7 +2543,7 @@ class HelenaPOP(BaseHelena):
             logger.info("[HELENA POP] Detectado: usuário respondeu à pergunta da Camada 4 RAG")
             logger.info(f"[HELENA POP] Descrição recebida: '{mensagem}'")
 
-            from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
+            from processos.domain.helena_produtos.busca_atividade_pipeline import BuscaAtividadePipeline
 
             # Recuperar hierarquia herdada do estado (foi salva na etapa anterior)
             hierarquia_herdada = {
@@ -2640,7 +2610,7 @@ class HelenaPOP(BaseHelena):
         logger.info("="*80)
 
         try:
-            from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
+            from processos.domain.helena_produtos.busca_atividade_pipeline import BuscaAtividadePipeline
 
             # Inicializar pipeline
             pipeline = BuscaAtividadePipeline()
@@ -2915,7 +2885,7 @@ class HelenaPOP(BaseHelena):
 
                 # Tentar sugerir entrega esperada via IA
                 try:
-                    from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
+                    from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
 
                     contexto = {
                         'area': area_nome,
@@ -3003,7 +2973,7 @@ class HelenaPOP(BaseHelena):
         logger.info(f"[GOVERNANÇA] Score < 0.85, atividade NÃO encontrada no catálogo oficial. Sugerindo nova atividade...")
 
         try:
-            from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
+            from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
 
             contexto = {
                 'area': area_nome,
@@ -3179,7 +3149,7 @@ class HelenaPOP(BaseHelena):
 
             # Sugerir entrega esperada usando Helena Ajuda Inteligente
             try:
-                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
+                from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
 
                 # Obter contexto da área
                 if sm.subarea_selecionada:
@@ -3305,7 +3275,7 @@ class HelenaPOP(BaseHelena):
             descricao_original = sm.dados_coletados.get('descricao_original', '')
 
             try:
-                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
+                from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
 
                 # Obter nome e código da área (considerando subárea se existir)
                 if sm.subarea_selecionada:
@@ -3495,40 +3465,18 @@ class HelenaPOP(BaseHelena):
         return resposta, sm
 
     def _processar_reconhecimento_entrega(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
-        """Processa clique na caixinha de reconhecimento e avança para FLUXOS"""
-        sm.estado = EstadoPOP.FLUXOS
-        logger.info(f"[RECONHECIMENTO] Mudou estado para FLUXOS (interface rica de fluxos)")
+        """Processa clique na caixinha de reconhecimento e avança para normas"""
+        sm.estado = EstadoPOP.DISPOSITIVOS_NORMATIVOS
 
-        # ✅ ATIVAR INTERFACE RICA: Carregar dados do CSV
-        areas_dict = self._carregar_areas_organizacionais()  # Dict[int, Dict]
-        orgaos_list = self._carregar_orgaos_centralizados()  # List[Dict]
-        canais_list = self._carregar_canais_atendimento()    # List[Dict]
+        # Buscar sugestões de normas
+        sugestoes = self._sugerir_base_legal_contextual(sm)
 
-        # Converter áreas para lista (frontend espera array, não dict)
-        areas_list = [
-            {
-                'codigo': area['codigo'],
-                'nome': area['nome'],
-                'sigla': area.get('sigla', area['codigo'])
-            }
-            for area in areas_dict.values()
-        ]
-
-        sm.tipo_interface = "fluxos_entrada"
-        sm.dados_interface = {
-            "areas_organizacionais": areas_list,
-            "orgaos_centralizados": orgaos_list,
-            "canais_atendimento": canais_list
-        }
-
-        nome = sm.nome_usuario or "você"
         resposta = (
-            f"Agora me diga: **de onde vem o processo** que você executa?\n\n"
-            f"Pode ser de outras áreas, de cidadãos, de sistemas, de órgãos externos...\n\n"
-            f"💡 Selecione as origens que se aplicam:"
+            f"Agora, quais são as principais normas que regulam esta atividade?\n\n"
+            f"Como são muitas normas, eu achei melhor criar quatro formas de adicionar:\n\n"
+            f"💡 **Seleção inteligente disponível abaixo!**"
         )
 
-        logger.info(f"[RECONHECIMENTO] Retornando interface fluxos_entrada com {len(areas_list)} áreas, {len(orgaos_list)} órgãos, {len(canais_list)} canais")
         return resposta, sm
 
     def _processar_dispositivos_normativos(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
@@ -3610,24 +3558,52 @@ class HelenaPOP(BaseHelena):
             logger.info(f"[OPERADORES] Fuzzy parsing result: {operadores}")
 
         sm.dados_coletados['operadores'] = operadores
+        sm.estado = EstadoPOP.FLUXOS
+        logger.info(f"[OPERADORES] Salvou {len(operadores)} operadores, mudou estado para FLUXOS")
 
-        # 🎯 GAMIFICAÇÃO: Ir para RECONHECIMENTO_ENTREGA antes de FLUXOS
-        sm.estado = EstadoPOP.RECONHECIMENTO_ENTREGA
-        logger.info(f"[OPERADORES] Salvou {len(operadores)} operadores, mudou estado para RECONHECIMENTO_ENTREGA (gamificação)")
+        # Interface de entrada de processo
+        # ✅ CRÍTICO: Carregar dados com tratamento de exceção individual
+        try:
+            areas_organizacionais = self._carregar_areas_organizacionais()
+            logger.info(f"[OPERADORES] Áreas carregadas: {len(areas_organizacionais)} áreas")
+        except Exception as e:
+            logger.error(f"[OPERADORES] ERRO ao carregar áreas: {e}")
+            areas_organizacionais = {}  # Fallback vazio
 
-        # ✅ Interface será definida automaticamente (caixinha_reconhecimento)
-        # O carregamento de fluxos_entrada será feito em _processar_reconhecimento_entrega
-        sm.tipo_interface = None  # Deixar None para usar interface padrão do estado
-        sm.dados_interface = {}
+        try:
+            orgaos_centralizados = self._carregar_orgaos_centralizados()
+            logger.info(f"[OPERADORES] Órgãos carregados: {len(orgaos_centralizados)} órgãos")
+        except Exception as e:
+            logger.error(f"[OPERADORES] ERRO ao carregar órgãos: {e}")
+            orgaos_centralizados = []  # Fallback vazio
+
+        try:
+            canais_atendimento = self._carregar_canais_atendimento()
+            logger.info(f"[OPERADORES] Canais carregados: {len(canais_atendimento)} canais")
+        except Exception as e:
+            logger.error(f"[OPERADORES] ERRO ao carregar canais: {e}")
+            canais_atendimento = []  # Fallback vazio
+
+        sm.tipo_interface = 'fluxos_entrada'
+        sm.dados_interface = {
+            'areas_organizacionais': list(areas_organizacionais.values()) if isinstance(areas_organizacionais, dict) else areas_organizacionais,
+            'orgaos_centralizados': orgaos_centralizados,
+            'canais_atendimento': canais_atendimento
+        }
 
         nome = sm.nome_usuario or "você"
-        resposta = (
-            f"🎉 **Eba! Você mapeou todos os operadores!**\n\n"
-            f"Isso é um marco importante: agora temos clareza sobre **quem faz** essa atividade.\n\n"
-            f"Continue assim! Cada passo que você dá fortalece a cultura de excelência na DECIPEX. 💪"
-        )
+        resposta = f"Perfeito! Registrei {len(operadores)} operador(es). Agora me diga: de onde vem o processo que você executa?"
 
-        logger.info(f"[OPERADORES] Retornando RECONHECIMENTO_ENTREGA com caixinha")
+        # 🔍 DEBUG CRÍTICO: Verificar estado antes de retornar
+        logger.info(f"[OPERADORES] ===== DEBUG RETORNO =====")
+        logger.info(f"[OPERADORES] sm.estado = {sm.estado}")
+        logger.info(f"[OPERADORES] sm.tipo_interface = {sm.tipo_interface}")
+        logger.info(f"[OPERADORES] sm.dados_interface tem {len(sm.dados_interface)} chaves")
+        logger.info(f"[OPERADORES] areas_organizacionais: {len(sm.dados_interface.get('areas_organizacionais', []))}")
+        logger.info(f"[OPERADORES] orgaos_centralizados: {len(sm.dados_interface.get('orgaos_centralizados', []))}")
+        logger.info(f"[OPERADORES] canais_atendimento: {len(sm.dados_interface.get('canais_atendimento', []))}")
+        logger.info(f"[OPERADORES] =============================")
+
         return resposta, sm
 
     def _processar_sistemas(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
@@ -3666,18 +3642,15 @@ class HelenaPOP(BaseHelena):
             'campo_livre': True,
             'multipla_selecao': True,
             'texto_introducao': (
-                "💡 Minhas Sugestões - sobre normas da sua atividade\n\n"
-                "📚 Explorar Biblioteca Completa - todas as normas que já tenho mapeadas\n\n"
-                "🔍 Consultar IA do Sigepe Legis - Você busca as normas com apoio de uma agente de IA\n\n"
-                "➕ Adicionar norma manualmente - se você não achou a norma mas sabe qual é"
+                f"Registrei {len(sistemas)} sistema(s).\n\n"
+                f"Agora vamos falar sobre as normas legais e guias que orientam essa atividade."
             )
         }
 
         nome = sm.nome_usuario or "você"
         resposta = (
-            f"Registrei {len(sistemas)} sistema(s).\n\n"
             f"Agora vamos falar sobre as normas legais, normativos e guias que orientam essa atividade. ⚖️\n\n"
-            f"{nome}, como nós temos MUITAS normas 😅, eu separei em 4 formas de organização pra você:"
+            f"Aqui abaixo, eu já separei as principais normas que levantei."
         )
 
         return resposta, sm
@@ -3725,36 +3698,26 @@ class HelenaPOP(BaseHelena):
                     fluxos = [f.strip() for f in mensagem.replace('\n', ',').split('|') if f.strip()]
                     sm.dados_coletados['fluxos_entrada'] = fluxos
 
-            # ✅ ATIVAR INTERFACE RICA: Carregar dados do CSV (IDÊNTICA À ENTRADA)
-            areas_dict = self._carregar_areas_organizacionais()  # Dict[int, Dict]
-            orgaos_list = self._carregar_orgaos_centralizados()  # List[Dict]
-            canais_list = self._carregar_canais_atendimento()    # List[Dict]
+            # ✅ FIX: Carregar dados para interface de fluxos de SAÍDA
+            try:
+                areas_organizacionais = self._carregar_areas_organizacionais()
+                orgaos_centralizados = self._carregar_orgaos_centralizados()
+                canais_atendimento = self._carregar_canais_atendimento()
+            except Exception as e:
+                logger.error(f"[FLUXOS] Erro ao carregar dados: {e}")
+                areas_organizacionais = []
+                orgaos_centralizados = []
+                canais_atendimento = []
 
-            # Converter áreas para lista (frontend espera array, não dict)
-            areas_list = [
-                {
-                    'codigo': area['codigo'],
-                    'nome': area['nome'],
-                    'sigla': area.get('sigla', area['codigo'])
-                }
-                for area in areas_dict.values()
-            ]
-
-            sm.tipo_interface = "fluxos_saida"
+            # ✅ Setar interface para fluxos de SAÍDA
+            sm.tipo_interface = 'fluxos_saida'
             sm.dados_interface = {
-                "areas_organizacionais": areas_list,
-                "orgaos_centralizados": orgaos_list,
-                "canais_atendimento": canais_list
+                'areas_organizacionais': list(areas_organizacionais.values()) if isinstance(areas_organizacionais, dict) else areas_organizacionais,
+                'orgaos_centralizados': orgaos_centralizados,
+                'canais_atendimento': canais_atendimento
             }
 
-            resposta = (
-                f"Perfeito! Registrei {len(sm.dados_coletados['fluxos_entrada'])} origem(ns) de entrada. ✅\n\n"
-                f"Agora me diga: **para onde vai o resultado** dessa atividade?\n\n"
-                f"Pode ser para outras áreas, para cidadãos, para sistemas, para órgãos externos...\n\n"
-                f"💡 Selecione os destinos que se aplicam:"
-            )
-
-            logger.info(f"[FLUXOS] Retornando interface fluxos_saida com {len(areas_list)} áreas, {len(orgaos_list)} órgãos, {len(canais_list)} canais")
+            resposta = f"Perfeito! Registrei {len(sm.dados_coletados['fluxos_entrada'])} origem(ns) de entrada. ✅"
         else:
             # Coletar fluxos de saída
             if msg_lower in ['nenhum', 'nao', 'não', 'nao_sei']:
@@ -3789,30 +3752,30 @@ class HelenaPOP(BaseHelena):
 
                 sm.dados_coletados['fluxos_saida'] = fluxos
 
-            # 🎯 NOVO FLUXO: Ir para TRANSICAO_EPICA após fluxos_saida
-            sm.estado = EstadoPOP.TRANSICAO_EPICA
-            logger.info(f"[FLUXOS] Salvou fluxos_saida, mudou estado para TRANSICAO_EPICA")
-
-            # ✅ Limpar interface (será definida automaticamente para transicao_epica)
+            # Ir para PONTOS_ATENCAO (fluxo completo: PONTOS → REVISAO → TRANSICAO_EPICA)
+            sm.estado = EstadoPOP.PONTOS_ATENCAO
             sm.tipo_interface = None
             sm.dados_interface = {}
 
             nome = sm.nome_usuario or "você"
 
             resposta = (
-                f"🎉 **Maravilha, {nome}!**\n\n"
-                f"Você mapeou as origens e destinos dessa atividade. "
-                f"Agora sabemos de onde vem e para onde vai o processo!\n\n"
-                f"Isso é fundamental para entender o fluxo completo. 🌊"
+                f"Ótimo! Registrei {len(sm.dados_coletados['fluxos_saida'])} fluxo(s) de saída. ✅\n\n"
+                f"Agora me diga: **Há algum ponto de atenção especial** neste processo?\n\n"
+                f"Por exemplo:\n"
+                f"• Prazo crítico que não pode atrasar\n"
+                f"• Documentos que devem ter atenção redobrada\n"
+                f"• Etapas que costumam gerar dúvidas\n\n"
+                f"Digite os pontos de atenção ou escreva **'nenhum'** se não houver."
             )
 
         return resposta, sm
 
     def _processar_pontos_atencao(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """
-        Processa pontos de atenção (ÚLTIMA PERGUNTA DO FLUXO)
+        Processa pontos de atenção (último campo antes da revisão)
 
-        Após coletar, finaliza o mapeamento
+        Após coletar, vai para REVISAO_PRE_DELEGACAO
         """
         msg_lower = mensagem.lower().strip()
         nome = sm.nome_usuario or "você"
@@ -3823,10 +3786,8 @@ class HelenaPOP(BaseHelena):
         else:
             sm.dados_coletados['pontos_atencao'] = mensagem.strip()
 
-        # 🎯 FINALIZAR: Agora PONTOS_ATENCAO é a última pergunta
-        sm.concluido = True
-        sm.estado = EstadoPOP.FINALIZADO
-        logger.info(f"[PONTOS_ATENCAO] Finalizou mapeamento POP (última pergunta)")
+        # Ir para REVISAO_PRE_DELEGACAO
+        sm.estado = EstadoPOP.REVISAO_PRE_DELEGACAO
 
         # Gerar código CAP se ainda não foi gerado
         if not sm.codigo_cap:
@@ -3836,19 +3797,21 @@ class HelenaPOP(BaseHelena):
         resumo = self._gerar_resumo_pop(sm)
 
         resposta = (
-            f"🎉 **PARABÉNS, {nome}!**\n\n"
-            f"Você concluiu o mapeamento da sua atividade! 🏆\n\n"
+            f"Perfeito, {nome}! Seu POP está completo!\n\n"
             f"{resumo}\n\n"
-            f"Todos os dados foram salvos e você pode:\n"
-            f"• Gerar o documento POP completo\n"
-            f"• Criar fluxograma visual\n"
-            f"• Exportar para outros formatos\n\n"
-            f"Obrigada pela dedicação! 💛"
+            f"**Deseja alterar algo ou podemos seguir para as etapas detalhadas?**\n\n"
+            f"• Digite **'tudo certo'** ou **'seguir'** para continuar\n"
+            f"• Digite **'editar'** se quiser alterar algum campo"
         )
 
-        # Limpar interface
-        sm.tipo_interface = None
-        sm.dados_interface = {}
+        # Interface com botões
+        sm.tipo_interface = 'confirmacao_dupla'
+        sm.dados_interface = {
+            'botao_confirmar': 'Tudo certo, pode seguir ✅',
+            'botao_editar': 'Deixa eu arrumar uma coisa ✏️',
+            'valor_confirmar': 'SEGUIR',
+            'valor_editar': 'EDITAR'
+        }
 
         return resposta, sm
 
@@ -3983,35 +3946,17 @@ class HelenaPOP(BaseHelena):
             return resposta, sm
 
         elif any(palavra in msg_lower for palavra in continuar_palavras):
-            # 🎯 DELEGAR DIRETAMENTE: Mudar contexto para Helena Etapas sem passar por DELEGACAO_ETAPAS
-            sm.concluido = True
-            sm.estado = EstadoPOP.FINALIZADO
-            logger.info(f"[TRANSICAO_EPICA] POP concluído, delegando diretamente para Helena Etapas")
+            # Usuário confirmou - avançar para delegação com troféu
+            sm.estado = EstadoPOP.DELEGACAO_ETAPAS
 
             resposta = (
                 f"🏆 **PRIMEIRA FASE CONCLUÍDA!** 🏆\n\n"
                 f"{nome}, você está indo muito bem!\n\n"
-                f"Agora vou te passar para a **Helena especializada em etapas** que vai te guiar no detalhamento operacional.\n\n"
-                f"🔍 **Começando a mineração dos detalhes de cada etapa...** 🎯\n\n"
-                f"Ela vai te fazer as perguntas necessárias para mapear tudo com precisão!"
+                f"Agora a Helena especializada em etapas vai te guiar no detalhamento operacional.\n\n"
+                f"**Iniciando mapeamento de etapas...** 🎯"
             )
 
-            # ✅ Sinalizar mudança de contexto para 'etapas'
-            metadados_extra = {
-                'mudar_contexto': 'etapas',
-                'dados_herdados': {
-                    'area': sm.area_selecionada,
-                    'subarea': sm.subarea_selecionada,
-                    'macroprocesso': sm.macro_selecionado,
-                    'processo': sm.processo_selecionado,
-                    'subprocesso': sm.subprocesso_selecionado,
-                    'atividade': sm.atividade_selecionada,
-                    'codigo_cap': sm.codigo_cap,
-                    'dados_coletados': sm.dados_coletados
-                }
-            }
-
-            return resposta, sm, metadados_extra
+            return resposta, sm
 
         else:
             # Primeira visita ou mensagem não reconhecida - mostrar transição épica COMPLETA
@@ -4117,42 +4062,21 @@ class HelenaPOP(BaseHelena):
             return resposta, sm
 
     def _processar_delegacao_etapas(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
-        """Processa delegação para Helena Etapas - MUDA CONTEXTO PARA ETAPAS"""
+        """Processa delegação para Helena Etapas"""
         msg_lower = mensagem.lower().strip()
 
         if any(palavra in msg_lower for palavra in ['ok', 'continuar', 'sim', 'vamos', 'próximo']):
-            # 🎯 DELEGAR: Mudar contexto para Helena Etapas
             sm.concluido = True
             sm.estado = EstadoPOP.FINALIZADO
-            logger.info(f"[DELEGACAO_ETAPAS] POP concluído, delegando para Helena Etapas")
 
-            nome = sm.nome_usuario or "você"
             resposta = (
-                f"🎉 **Perfeito, {nome}!**\n\n"
-                f"Os dados iniciais do processo foram coletados com sucesso.\n\n"
-                f"Agora vou transferir você para o Helena Etapas para detalharmos cada etapa operacional.\n\n"
-                f"**Iniciando Helena Etapas...** 🚀"
+                f"Perfeito, {sm.nome_usuario}! Os dados iniciais do processo foram coletados com sucesso.\n\n"
+                "Agora vou transferir você para o Helena Etapas para detalharmos cada etapa operacional.\n\n"
+                "Até logo!"
             )
-
-            # ✅ Sinalizar mudança de contexto para 'etapas'
-            metadados_extra = {
-                'mudar_contexto': 'etapas',
-                'dados_herdados': {
-                    'area': sm.area_selecionada,
-                    'subarea': sm.subarea_selecionada,
-                    'macroprocesso': sm.macro_selecionado,
-                    'processo': sm.processo_selecionado,
-                    'subprocesso': sm.subprocesso_selecionado,
-                    'atividade': sm.atividade_selecionada,
-                    'codigo_cap': sm.codigo_cap,
-                    'dados_coletados': sm.dados_coletados
-                }
-            }
-
-            return resposta, sm, metadados_extra
         else:
             resposta = (
-                "Não entendi. Digite 'ok' ou 'continuar' para prosseguir."
+                "Não entendi. Digite 'ok' ou 'continuar' para prosseguir para o detalhamento das etapas."
             )
 
         return resposta, sm

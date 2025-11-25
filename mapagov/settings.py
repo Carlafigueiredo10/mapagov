@@ -28,7 +28,8 @@ ALLOWED_HOSTS = [
 
 # CSRF Trusted Origins (para formulários de login/admin + cookies)
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.run.app',  # Google Cloud Run
+    # NOTA: Wildcards NÃO funcionam no Django! Use URL exata do Cloud Run
+    # Adicione via variável de ambiente CSRF_TRUSTED_ORIGINS após deploy
     'https://mapagov.onrender.com',
     # Desenvolvimento local (necessário para cookies CORS)
     'http://localhost:5173',

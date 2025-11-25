@@ -43,22 +43,14 @@ class HelenaCore:
         Inicializa orquestrador.
 
         Args:
-            registry: Dicionário de produtos Helena
-                      {'etapas': HelenaEtapas(), 'pop': HelenaPOP(), ...}
+            registry: Dicionário de CLASSES (não instâncias) de produtos Helena
+                      {'etapas': HelenaEtapas, 'pop': HelenaPOP, ...}
 
         Raises:
             ValueError: Se registry vazio ou produtos inválidos
         """
         if not registry:
             raise ValueError("Registry não pode ser vazio")
-
-        # Valida que todos são BaseHelena
-        for nome, produto in registry.items():
-            if not isinstance(produto, BaseHelena):
-                raise ValueError(
-                    f"Produto '{nome}' deve herdar de BaseHelena. "
-                    f"Recebido: {type(produto)}"
-                )
 
         self.registry = registry
         self.session_manager = SessionManager()
@@ -428,3 +420,106 @@ class HelenaCore:
         """
         self.session_manager.finalize_session(session_id)
         logger.info(f"Sessão finalizada via HelenaCore: {session_id}")
+
+    def processar_puro(
+        self,
+        contexto: str,
+        mensagem: str,
+        estado_atual: dict
+    ) -> Dict[str, Any]:
+        """
+        Processa mensagem de forma PURA (sem Django, sem Redis, sem DB).
+
+        Este método é stateless e não depende de infraestrutura externa.
+        A view é responsável por carregar/salvar o estado.
+
+        Args:
+            contexto: Nome do produto ativo ('pop', 'etapas', etc.)
+            mensagem: Texto do usuário
+            estado_atual: Estado atual do produto (dict)
+
+        Returns:
+            dict: {
+                'resposta': str,            # Resposta para o usuário
+                'novo_estado': dict,        # Estado atualizado
+                'contexto': str,            # Contexto após processamento (pode mudar!)
+                'tipo_interface': str|None, # Interface dinâmica
+                'dados_interface': dict|None, # Dados da interface
+                'metadados': dict           # Metadados extras
+            }
+
+        Exemplo:
+            >>> core = get_helena_core()
+            >>> resultado = core.processar_puro(
+            ...     contexto='pop',
+            ...     mensagem='Carla',
+            ...     estado_atual={}
+            ... )
+            >>> print(resultado['contexto'])  # 'pop'
+            >>> print(resultado['resposta'])  # Resposta da Helena
+        """
+        # 1. Validar contexto
+        if contexto not in self.registry:
+            raise ValueError(
+                f"Contexto '{contexto}' inválido. "
+                f"Disponíveis: {', '.join(self.registry.keys())}"
+            )
+
+        # 2. Instanciar produto (classe, não instância)
+        produto_cls = self.registry[contexto]
+        produto = produto_cls()
+
+        # 3. Processar mensagem
+        resultado = produto.processar(mensagem, estado_atual)
+
+        # 4. Verificar se há transição de contexto
+        metadados = resultado.get('metadados', {})
+        mudar_para = metadados.get('mudar_contexto')
+
+        if not mudar_para:
+            # Sem transição: continua no mesmo produto
+            return {
+                'resposta': resultado['resposta'],
+                'novo_estado': resultado['novo_estado'],
+                'contexto': contexto,
+                'tipo_interface': resultado.get('tipo_interface'),
+                'dados_interface': resultado.get('dados_interface'),
+                'dados_extraidos': resultado.get('dados_extraidos'),  # ← Para formulário POP
+                'metadados': metadados,
+            }
+
+        # 5. Há transição (ex: POP → Etapas)
+        novo_contexto = mudar_para
+        dados_herdados = metadados.get('dados_herdados', {})
+
+        logger.info(f"[CORE PURO] Transição detectada: {contexto} → {novo_contexto}")
+
+        # 6. Inicializar novo produto
+        novo_produto_cls = self.registry[novo_contexto]
+        novo_produto = novo_produto_cls()
+
+        # 7. Inicializar estado do novo produto com dados herdados
+        try:
+            estado_inicial = novo_produto.inicializar_estado(dados_herdados=dados_herdados)
+        except TypeError:
+            # Produto não aceita dados_herdados
+            estado_inicial = novo_produto.inicializar_estado()
+
+        # 8. Processar mensagem de inicialização
+        resultado_novo = novo_produto.processar('iniciar', estado_inicial)
+
+        # 9. Concatenar respostas
+        resposta_total = resultado['resposta'] + "\n\n" + resultado_novo['resposta']
+
+        logger.info(f"[CORE PURO] Transição concluída: {contexto} → {novo_contexto}")
+
+        # 10. Retornar resultado da transição
+        return {
+            'resposta': resposta_total,
+            'novo_estado': resultado_novo['novo_estado'],
+            'contexto': novo_contexto,  # ← Mudou!
+            'tipo_interface': resultado_novo.get('tipo_interface'),
+            'dados_interface': resultado_novo.get('dados_interface'),
+            'dados_extraidos': resultado_novo.get('dados_extraidos'),  # ← Para formulário
+            'metadados': resultado_novo.get('metadados', {}),
+        }

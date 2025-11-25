@@ -107,20 +107,7 @@ class HelenaAnaliseRiscosOrchestrator:
         Usa a função analyze_risks_helena do módulo original.
         """
         try:
-            # Importa função de análise (caso exista módulo legado) ou usa stub
-            try:
-                from processos.domain.helena_mapeamento.helena_analise_riscos import analyze_risks_helena
-            except ImportError:
-                # Stub temporário - implementar análise aqui ou manter função externa
-                def analyze_risks_helena(pop_text, pop_info, answers, model, temperature, max_tokens):
-                    return {
-                        'success': True,
-                        'data': {
-                            'cabecalho': {'titulo': 'Análise de Riscos'},
-                            'riscos': [],
-                            'conclusoes_recomendacoes': 'Análise não disponível no momento.'
-                        }
-                    }
+            from z_md.helena_analise_riscos import analyze_risks_helena
 
             pop_text = session_data.get('pop_text', '')
             pop_info = session_data.get('pop_info', {})
