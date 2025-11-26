@@ -122,6 +122,7 @@ python-dotenv==1.1.1
 pytz==2025.2
 PyYAML==6.0.2
 qrcode==8.2
+rapidfuzz==3.10.0
 redis==5.0.1
 referencing==0.36.2
 regex==2025.9.18
