@@ -52,7 +52,7 @@ def apply_rls_policies(apps, schema_editor):
                     OR
                     EXISTS (
                         SELECT 1 FROM processos_chatsession cs
-                        WHERE cs.id = processos_chatmessage.session_id
+                        WHERE cs.id = processos_chatmessage.session_id::bigint
                         AND cs.orgao_id = current_setting('app.current_orgao_id', true)::integer
                     )
                 );
@@ -73,7 +73,7 @@ def apply_rls_policies(apps, schema_editor):
                 WITH CHECK (
                     EXISTS (
                         SELECT 1 FROM processos_chatsession cs
-                        WHERE cs.id = session_id
+                        WHERE cs.id = processos_chatmessage.session_id::bigint
                         AND cs.orgao_id = current_setting('app.current_orgao_id', true)::integer
                     )
                 );
@@ -94,7 +94,7 @@ def apply_rls_policies(apps, schema_editor):
                 USING (
                     EXISTS (
                         SELECT 1 FROM processos_chatsession cs
-                        WHERE cs.id = session_id
+                        WHERE cs.id = processos_chatmessage.session_id::bigint
                         AND cs.orgao_id = current_setting('app.current_orgao_id', true)::integer
                     )
                 );
@@ -115,7 +115,7 @@ def apply_rls_policies(apps, schema_editor):
                 USING (
                     EXISTS (
                         SELECT 1 FROM processos_chatsession cs
-                        WHERE cs.id = session_id
+                        WHERE cs.id = processos_chatmessage.session_id::bigint
                         AND cs.orgao_id = current_setting('app.current_orgao_id', true)::integer
                     )
                 );
