@@ -1,4 +1,4 @@
-luis"""
+"""
 Helena POP v2.0 - Mapeamento de Processos Operacionais Padrão
 
 Arquitetura Clean:
