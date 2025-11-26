@@ -142,18 +142,18 @@ class Migration(migrations.Migration):
             index=models.Index(fields=['data_evento_utc'], name='idx_data_evento'),
         ),
 
-        # Popular tabela controle_indices com as 8 áreas (SQLite compatible)
+        # Popular tabela controle_indices com as 8 áreas (PostgreSQL + SQLite compatible)
         migrations.RunSQL(
             sql="""
                 INSERT INTO controle_indices (area_codigo, ultimo_indice, updated_at) VALUES
-                ('CGBEN', 107, datetime('now')),
-                ('CGPAG', 107, datetime('now')),
-                ('COATE', 107, datetime('now')),
-                ('CGGAF', 107, datetime('now')),
-                ('DIGEP', 107, datetime('now')),
-                ('CGRIS', 107, datetime('now')),
-                ('CGCAF', 107, datetime('now')),
-                ('CGECO', 107, datetime('now'));
+                ('CGBEN', 107, CURRENT_TIMESTAMP),
+                ('CGPAG', 107, CURRENT_TIMESTAMP),
+                ('COATE', 107, CURRENT_TIMESTAMP),
+                ('CGGAF', 107, CURRENT_TIMESTAMP),
+                ('DIGEP', 107, CURRENT_TIMESTAMP),
+                ('CGRIS', 107, CURRENT_TIMESTAMP),
+                ('CGCAF', 107, CURRENT_TIMESTAMP),
+                ('CGECO', 107, CURRENT_TIMESTAMP);
             """,
             reverse_sql="DELETE FROM controle_indices WHERE area_codigo IN ('CGBEN', 'CGPAG', 'COATE', 'CGGAF', 'DIGEP', 'CGRIS', 'CGCAF', 'CGECO');"
         ),
