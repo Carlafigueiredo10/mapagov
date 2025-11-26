@@ -362,7 +362,10 @@ def aprovar_planejamento(request, planejamento_id):
 
         # TODO: Pegar usuário real da sessão
         from django.contrib.auth.models import User
-        usuario = User.objects.get(username='teste_helena')
+        usuario, _ = User.objects.get_or_create(
+            username='teste_helena',
+            defaults={'email': 'teste@helena.com'}
+        )
 
         planejamento.aprovar(usuario)
 
@@ -411,7 +414,10 @@ def criar_revisao(request, planejamento_id):
 
         # TODO: Pegar usuário real
         from django.contrib.auth.models import User
-        usuario = User.objects.get(username='teste_helena')
+        usuario, _ = User.objects.get_or_create(
+            username='teste_helena',
+            defaults={'email': 'teste@helena.com'}
+        )
 
         nova_versao = planejamento.criar_revisao(usuario)
 

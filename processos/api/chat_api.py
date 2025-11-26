@@ -115,7 +115,13 @@ def chat_v2(request):
 
         # TEMPORÁRIO: Usar user de teste se não autenticado
         from django.contrib.auth.models import User
-        user = request.user if request.user.is_authenticated else User.objects.get(username='teste_helena')
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            user, _ = User.objects.get_or_create(
+                username='teste_helena',
+                defaults={'email': 'teste@helena.com'}
+            )
 
         resultado = helena.processar_mensagem(
             mensagem=mensagem,
@@ -314,7 +320,13 @@ def buscar_mensagens(request, session_id):
 
         # TEMPORÁRIO: Usar user de teste se não autenticado
         from django.contrib.auth.models import User
-        user = request.user if request.user.is_authenticated else User.objects.get(username='teste_helena')
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            user, _ = User.objects.get_or_create(
+                username='teste_helena',
+                defaults={'email': 'teste@helena.com'}
+            )
 
         # Buscar sessão
         try:
