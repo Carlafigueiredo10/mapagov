@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './HelenaPlanejamentoEstrategico.css';
 import { useHelenaPE } from '../hooks/useHelenaPE';
 import { useDashboard } from '../hooks/useDashboard';
@@ -21,6 +22,7 @@ import DashboardDiretor from '../components/Helena/DashboardDiretor';
 // import WorkspaceTradicional from '../components/Helena/Workspaces/WorkspaceTradicional';
 
 export const HelenaPlanejamentoEstrategico: React.FC = () => {
+  const navigate = useNavigate();
   const {
     sessionData,
     isInitialized,
@@ -224,6 +226,7 @@ export const HelenaPlanejamentoEstrategico: React.FC = () => {
                 <DashboardCard
                   onAbrirDashboardAreas={() => setDashboardAberto('areas')}
                   onAbrirDashboardDiretor={() => setDashboardAberto('diretor')}
+                  navigate={navigate}
                   estatisticas={estatisticas ? {
                     total_projetos: estatisticas.total_projetos,
                     total_pedidos: estatisticas.total_pedidos,

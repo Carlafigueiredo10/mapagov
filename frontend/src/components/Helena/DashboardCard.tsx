@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import { NavigateFunction } from 'react-router-dom';
 import './DashboardCard.css';
 
 export interface DashboardCardProps {
@@ -16,6 +17,7 @@ export interface DashboardCardProps {
   onIniciarDiagnostico?: () => void;
   onExplorarModelos?: () => void;
   onEscolhaDireta?: () => void;
+  navigate?: NavigateFunction;
   estatisticas?: {
     total_projetos: number;
     total_pedidos: number;
@@ -29,8 +31,17 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
   onIniciarDiagnostico,
   onExplorarModelos,
   onEscolhaDireta,
+  navigate,
   estatisticas
 }) => {
+  // Função auxiliar para navegação segura
+  const navegar = (rota: string) => {
+    if (navigate) {
+      navigate(rota);
+    } else {
+      window.location.href = rota;
+    }
+  };
   const [dominioExpandido, setDominioExpandido] = React.useState<number | null>(null);
 
   const toggleDominio = (numero: number) => {
@@ -122,27 +133,27 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-section">
               <h4>🧰 Artefatos</h4>
               <ul className="artefatos-list">
-                <li onClick={() => window.location.href = '/dominio1/canvas'}>
+                <li onClick={() => navegar('/dominio1/canvas')}>
                   <span className="artefato-icone">📋</span>
                   <span>Canvas de Projeto Público</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio1/linha-tempo'}>
+                <li onClick={() => navegar('/dominio1/linha-tempo')}>
                   <span className="artefato-icone">📅</span>
                   <span>Linha do Tempo Inicial</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio1/checklist'}>
+                <li onClick={() => navegar('/dominio1/checklist')}>
                   <span className="artefato-icone">✓</span>
                   <span>Checklist de Governança</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/chat'}>
+                <li onClick={() => navegar('/chat')}>
                   <span className="artefato-icone">📊</span>
                   <span>Matriz 5W2H (Helena)</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/planejamento-estrategico'}>
+                <li onClick={() => navegar('/planejamento-estrategico')}>
                   <span className="artefato-icone">🎯</span>
                   <span>OKR (Helena PE)</span>
                   <span className="artefato-arrow">→</span>
@@ -153,7 +164,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-footer">
               <button
                 className="btn-saiba-mais"
-                onClick={() => window.location.href = '/dominio1'}
+                onClick={() => navegar('/dominio1')}
               >
                 Saiba mais sobre este domínio →
               </button>
@@ -188,22 +199,22 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-section">
               <h4>🧰 Artefatos</h4>
               <ul className="artefatos-list">
-                <li onClick={() => window.location.href = '/dominio2/canvas-escopo'}>
+                <li onClick={() => navegar('/dominio2/canvas-escopo')}>
                   <span className="artefato-icone">📋</span>
                   <span>Canvas de Escopo e Valor</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio2/matriz-raci'}>
+                <li onClick={() => navegar('/dominio2/matriz-raci')}>
                   <span className="artefato-icone">👥</span>
                   <span>Matriz de Entregas e Responsáveis (RACI)</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio2/indicadores'}>
+                <li onClick={() => navegar('/dominio2/indicadores')}>
                   <span className="artefato-icone">📊</span>
                   <span>Painel de Indicadores de Valor Público</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio2/exclusoes'}>
+                <li onClick={() => navegar('/dominio2/exclusoes')}>
                   <span className="artefato-icone">🚫</span>
                   <span>Mapa de Exclusões e Restrições</span>
                   <span className="artefato-arrow">→</span>
@@ -214,7 +225,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-footer">
               <button
                 className="btn-saiba-mais"
-                onClick={() => window.location.href = '/dominio2'}
+                onClick={() => navegar('/dominio2')}
               >
                 Saiba mais sobre este domínio →
               </button>
@@ -249,22 +260,22 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-section">
               <h4>🧰 Artefatos</h4>
               <ul className="artefatos-list">
-                <li onClick={() => window.location.href = '/dominio3/mapa-papeis'}>
+                <li onClick={() => navegar('/dominio3/mapa-papeis')}>
                   <span className="artefato-icone">👥</span>
                   <span>Mapa de Papéis e Responsabilidades</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio3/organograma'}>
+                <li onClick={() => navegar('/dominio3/organograma')}>
                   <span className="artefato-icone">🏢</span>
                   <span>Organograma de Governança</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio3/acordo-trabalho'}>
+                <li onClick={() => navegar('/dominio3/acordo-trabalho')}>
                   <span className="artefato-icone">📜</span>
                   <span>Acordo de Trabalho da Equipe</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio3/mapa-competencias'}>
+                <li onClick={() => navegar('/dominio3/mapa-competencias')}>
                   <span className="artefato-icone">🎯</span>
                   <span>Mapa de Competências do Projeto</span>
                   <span className="artefato-arrow">→</span>
@@ -275,7 +286,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-footer">
               <button
                 className="btn-saiba-mais"
-                onClick={() => window.location.href = '/dominio3'}
+                onClick={() => navegar('/dominio3')}
               >
                 Saiba mais sobre este domínio →
               </button>
@@ -310,22 +321,22 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-section">
               <h4>🧰 Artefatos</h4>
               <ul className="artefatos-list">
-                <li onClick={() => window.location.href = '/dominio4/plano-atividades'}>
+                <li onClick={() => navegar('/dominio4/plano-atividades')}>
                   <span className="artefato-icone">📋</span>
                   <span>Plano de Atividades e Recursos (5W2H expandido)</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio4/cronograma'}>
+                <li onClick={() => navegar('/dominio4/cronograma')}>
                   <span className="artefato-icone">📅</span>
                   <span>Cronograma Simplificado / Timeline Dinâmica</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio4/mapa-gargalos'}>
+                <li onClick={() => navegar('/dominio4/mapa-gargalos')}>
                   <span className="artefato-icone">⚠️</span>
                   <span>Mapa de Gargalos e Capacidades Críticas</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio4/painel-progresso'}>
+                <li onClick={() => navegar('/dominio4/painel-progresso')}>
                   <span className="artefato-icone">📊</span>
                   <span>Painel de Progresso Operacional</span>
                   <span className="artefato-arrow">→</span>
@@ -336,7 +347,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-footer">
               <button
                 className="btn-saiba-mais"
-                onClick={() => window.location.href = '/dominio4'}
+                onClick={() => navegar('/dominio4')}
               >
                 Saiba mais sobre este domínio →
               </button>
@@ -371,22 +382,22 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-section">
               <h4>🧰 Artefatos</h4>
               <ul className="artefatos-list">
-                <li onClick={() => window.location.href = '/dominio5/mapa-stakeholders'}>
+                <li onClick={() => navegar('/dominio5/mapa-stakeholders')}>
                   <span className="artefato-icone">👥</span>
                   <span>Mapa de Partes Interessadas</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio5/matriz-engajamento'}>
+                <li onClick={() => navegar('/dominio5/matriz-engajamento')}>
                   <span className="artefato-icone">📊</span>
                   <span>Matriz de Engajamento (Influência x Interesse)</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio5/plano-comunicacao'}>
+                <li onClick={() => navegar('/dominio5/plano-comunicacao')}>
                   <span className="artefato-icone">📢</span>
                   <span>Plano de Comunicação Institucional</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio5/registro-feedbacks'}>
+                <li onClick={() => navegar('/dominio5/registro-feedbacks')}>
                   <span className="artefato-icone">📝</span>
                   <span>Registro de Interações e Feedbacks</span>
                   <span className="artefato-arrow">→</span>
@@ -397,7 +408,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-footer">
               <button
                 className="btn-saiba-mais"
-                onClick={() => window.location.href = '/dominio5'}
+                onClick={() => navegar('/dominio5')}
               >
                 Saiba mais sobre este domínio →
               </button>
@@ -432,22 +443,22 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-section">
               <h4>🧰 Artefatos</h4>
               <ul className="artefatos-list">
-                <li onClick={() => window.location.href = '/dominio6/mapa-contexto'}>
+                <li onClick={() => navegar('/dominio6/mapa-contexto')}>
                   <span className="artefato-icone">🌍</span>
                   <span>Mapa de Contexto e Fatores Externos</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio6/matriz-riscos'}>
+                <li onClick={() => navegar('/dominio6/matriz-riscos')}>
                   <span className="artefato-icone">⚠️</span>
                   <span>Matriz de Riscos e Controles</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio6/plano-tratamento'}>
+                <li onClick={() => navegar('/dominio6/plano-tratamento')}>
                   <span className="artefato-icone">🛡️</span>
                   <span>Plano de Tratamento de Riscos</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio6/registro-licoes'}>
+                <li onClick={() => navegar('/dominio6/registro-licoes')}>
                   <span className="artefato-icone">📚</span>
                   <span>Registro de Ocorrências e Lições Aprendidas</span>
                   <span className="artefato-arrow">→</span>
@@ -458,7 +469,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-footer">
               <button
                 className="btn-saiba-mais"
-                onClick={() => window.location.href = '/dominio6'}
+                onClick={() => navegar('/dominio6')}
               >
                 Saiba mais sobre este domínio →
               </button>
@@ -493,22 +504,22 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-section">
               <h4>🧰 Artefatos</h4>
               <ul className="artefatos-list">
-                <li onClick={() => window.location.href = '/dominio7/painel-resultados'}>
+                <li onClick={() => navegar('/dominio7/painel-resultados')}>
                   <span className="artefato-icone">📊</span>
                   <span>Painel de Resultados e Impacto</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio7/relatorio-licoes'}>
+                <li onClick={() => navegar('/dominio7/relatorio-licoes')}>
                   <span className="artefato-icone">📝</span>
                   <span>Relatório de Lições Aprendidas</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio7/matriz-sustentabilidade'}>
+                <li onClick={() => navegar('/dominio7/matriz-sustentabilidade')}>
                   <span className="artefato-icone">♻️</span>
                   <span>Matriz de Sustentabilidade e Replicabilidade</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => window.location.href = '/dominio7/avaliacao-satisfacao'}>
+                <li onClick={() => navegar('/dominio7/avaliacao-satisfacao')}>
                   <span className="artefato-icone">⭐</span>
                   <span>Avaliação de Satisfação e Valor Público Percebido</span>
                   <span className="artefato-arrow">→</span>
@@ -519,7 +530,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
             <div className="expansion-footer">
               <button
                 className="btn-saiba-mais"
-                onClick={() => window.location.href = '/dominio7'}
+                onClick={() => navegar('/dominio7')}
               >
                 Saiba mais sobre este domínio →
               </button>
@@ -638,7 +649,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
 
           <button
             className="action-card action-card-ferramentas"
-            onClick={() => window.location.href = '/ferramentas-apoio'}
+            onClick={() => navegar('/ferramentas-apoio')}
             aria-label="Ferramentas de apoio"
           >
             <span className="action-icon">🧰</span>
@@ -650,7 +661,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
 
           <button
             className="action-card action-card-metodos"
-            onClick={() => window.location.href = '/metodos'}
+            onClick={() => navegar('/metodos')}
             aria-label="Métodos de gestão"
           >
             <span className="action-icon">🎯</span>

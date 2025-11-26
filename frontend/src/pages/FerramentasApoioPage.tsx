@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './FerramentasApoioPage.css';
 
 interface Artefato {
@@ -203,12 +204,14 @@ const ARTEFATOS: Artefato[] = [
 ];
 
 const FerramentasApoioPage: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="ferramentas-apoio-page">
       <div className="ferramentas-header-page">
         <button
           className="btn-voltar"
-          onClick={() => window.history.back()}
+          onClick={() => navigate('/planejamento-estrategico')}
         >
           ← Voltar
         </button>

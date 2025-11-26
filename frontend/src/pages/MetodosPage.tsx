@@ -45,7 +45,7 @@ const MetodosPage: React.FC = () => {
       <div className="metodos-header-page">
         <button
           className="btn-voltar"
-          onClick={() => window.history.back()}
+          onClick={() => navigate('/planejamento-estrategico')}
         >
           ← Voltar
         </button>

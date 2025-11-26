@@ -365,6 +365,7 @@ export const HelenaPEModerna: React.FC = () => {
           onIniciarDiagnostico={() => navigate('/planejamento-estrategico/diagnostico')}
           onExplorarModelos={() => navigate('/planejamento-estrategico/modelos')}
           onEscolhaDireta={() => navigate('/planejamento-estrategico/modelos')}
+          navigate={navigate}
           estatisticas={estatisticas ? {
             total_projetos: estatisticas.total_projetos,
             total_pedidos: estatisticas.total_pedidos,
