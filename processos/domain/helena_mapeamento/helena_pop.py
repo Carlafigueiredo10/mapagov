@@ -1919,7 +1919,7 @@ class HelenaPOP(BaseHelena):
             resposta = f"Claro, {sm.nome_usuario}! Pode fazer sua pergunta que vou te ajudar. 😊"
             return resposta, sm
 
-        from processos.domain.helena_produtos.helena_mapeamento import HelenaMapeamento
+        from processos.domain.helena_mapeamento.helena_mapeamento import HelenaMapeamento
 
         # Instanciar Helena Mapeamento se ainda não existe
         helena_map = HelenaMapeamento()
@@ -2137,7 +2137,7 @@ class HelenaPOP(BaseHelena):
             if acao == 'nao_encontrei':
                 logger.info("[HELENA POP] Usuário clicou 'Não encontrei' - acionando Camada 4 (RAG)")
 
-                from processos.domain.helena_produtos.busca_atividade_pipeline import BuscaAtividadePipeline
+                from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
 
                 # Preparar dados do autor
                 area_codigo = sm.subarea_selecionada['codigo'] if sm.subarea_selecionada else sm.area_selecionada['codigo']
@@ -2187,7 +2187,7 @@ class HelenaPOP(BaseHelena):
             elif acao == 'enviar_descricao':
                 logger.info("[HELENA POP] Processando descrição da Camada 4 (RAG)")
 
-                from processos.domain.helena_produtos.busca_atividade_pipeline import BuscaAtividadePipeline
+                from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
 
                 descricao_atividade = dados_resposta.get('descricao')
 
@@ -2278,7 +2278,7 @@ class HelenaPOP(BaseHelena):
         if mensagem.strip().lower() in ['selecionar_manual', 'selecionar_manualmente']:
             logger.info("[HELENA POP] Usuário clicou 'Minha atividade não é essa, vou selecionar' - acionando Camada 3 (Dropdown)")
 
-            from processos.domain.helena_produtos.busca_atividade_pipeline import BuscaAtividadePipeline
+            from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
 
             # Preparar pipeline
             area_codigo = sm.subarea_selecionada['codigo'] if sm.subarea_selecionada else sm.area_selecionada['codigo']
@@ -2346,7 +2346,7 @@ class HelenaPOP(BaseHelena):
 
             # Sugerir entrega esperada usando Helena Ajuda Inteligente
             try:
-                from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
+                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
 
                 # Obter contexto da área
                 if sm.subarea_selecionada:
@@ -2476,7 +2476,7 @@ class HelenaPOP(BaseHelena):
 
             # Sugerir entrega esperada usando Helena Ajuda Inteligente
             try:
-                from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
+                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
 
                 contexto = {
                     'area': area_nome,
@@ -2543,7 +2543,7 @@ class HelenaPOP(BaseHelena):
             logger.info("[HELENA POP] Detectado: usuário respondeu à pergunta da Camada 4 RAG")
             logger.info(f"[HELENA POP] Descrição recebida: '{mensagem}'")
 
-            from processos.domain.helena_produtos.busca_atividade_pipeline import BuscaAtividadePipeline
+            from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
 
             # Recuperar hierarquia herdada do estado (foi salva na etapa anterior)
             hierarquia_herdada = {
@@ -2610,7 +2610,7 @@ class HelenaPOP(BaseHelena):
         logger.info("="*80)
 
         try:
-            from processos.domain.helena_produtos.busca_atividade_pipeline import BuscaAtividadePipeline
+            from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
 
             # Inicializar pipeline
             pipeline = BuscaAtividadePipeline()
@@ -2885,7 +2885,7 @@ class HelenaPOP(BaseHelena):
 
                 # Tentar sugerir entrega esperada via IA
                 try:
-                    from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
+                    from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
 
                     contexto = {
                         'area': area_nome,
@@ -2973,7 +2973,7 @@ class HelenaPOP(BaseHelena):
         logger.info(f"[GOVERNANÇA] Score < 0.85, atividade NÃO encontrada no catálogo oficial. Sugerindo nova atividade...")
 
         try:
-            from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
+            from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
 
             contexto = {
                 'area': area_nome,
@@ -3149,7 +3149,7 @@ class HelenaPOP(BaseHelena):
 
             # Sugerir entrega esperada usando Helena Ajuda Inteligente
             try:
-                from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
+                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
 
                 # Obter contexto da área
                 if sm.subarea_selecionada:
@@ -3275,7 +3275,7 @@ class HelenaPOP(BaseHelena):
             descricao_original = sm.dados_coletados.get('descricao_original', '')
 
             try:
-                from processos.domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena
+                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
 
                 # Obter nome e código da área (considerando subárea se existir)
                 if sm.subarea_selecionada:

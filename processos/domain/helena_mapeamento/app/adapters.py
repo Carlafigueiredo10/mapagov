@@ -2,7 +2,7 @@
 Adaptadores de UI - traduzem sinais da StateMachine para formato esperado pelo frontend
 """
 from typing import Dict, Any, List
-from processos.domain.helena_produtos.domain_old.enums import TipoInterface
+from processos.domain.helena_mapeamento.domain_old.enums import TipoInterface
 
 
 def adapter_etapas_ui(

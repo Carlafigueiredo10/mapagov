@@ -17,6 +17,18 @@ if settings.DEBUG:
     urlpatterns += static('/assets/', document_root=settings.BASE_DIR / 'frontend' / 'dist' / 'assets')
 
 # ============================================================================
+# SERVIR IMAGENS DO FRONTEND (PNG/SVG na raiz do dist)
+# ============================================================================
+# O Vite copia arquivos de public/ para a raiz de dist/
+# Precisamos servir essas imagens tanto em dev quanto em produção
+frontend_dist = settings.BASE_DIR / 'frontend' / 'dist'
+urlpatterns += [
+    re_path(r'^(?P<path>[\w_-]+\.(png|jpg|svg|ico|webp))$',
+            serve,
+            {'document_root': frontend_dist}),
+]
+
+# ============================================================================
 # SERVIR FRONTEND REACT - Fallback para SPA (Single Page Application)
 # ============================================================================
 # Todas as rotas não capturadas pelas APIs do Django devem servir o index.html

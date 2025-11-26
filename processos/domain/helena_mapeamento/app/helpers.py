@@ -2,7 +2,7 @@
 Helpers de UI - funções reutilizáveis para criar respostas padronizadas
 """
 from typing import Dict, Any, Optional
-from processos.domain.helena_produtos.domain_old.enums import TipoInterface
+from processos.domain.helena_mapeamento.domain_old.enums import TipoInterface
 
 
 def criar_resposta_padrao(

@@ -75,14 +75,14 @@ def chat_api_view(request):
         # HELENA MAPEAMENTO: Chat simples, sem sessão persistente
         if contexto == 'mapeamento':
             # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_mapeamento import helena_mapeamento
+            from .domain.helena_mapeamento.helena_mapeamento import helena_mapeamento
             resposta = helena_mapeamento(user_message)
             return JsonResponse({'resposta': resposta, 'success': True})
         
         # P1: Gerador de POP (RENOVADO - API v2.0 com POPStateMachine)
         if contexto in ['gerador_pop', 'mapeamento_natural']:
             # OTIMIZACAO: Import lazy - so carrega quando necessario
-            from .domain.helena_produtos.helena_pop import HelenaPOP, POPStateMachine
+            from .domain.helena_mapeamento.helena_pop import HelenaPOP, POPStateMachine
 
             # FIX: Usar session_id do frontend para criar chave unica
             session_key = f'helena_pop_state_{session_id}'
@@ -183,7 +183,7 @@ def chat_api_view(request):
         # P2: Gerador de Fluxograma (com sessao)
         elif contexto == 'fluxograma':
             # OTIMIZACAO: Import lazy
-            from .domain.helena_produtos.helena_fluxograma import HelenaFluxograma
+            from .domain.helena_fluxograma.flowchart_orchestrator import HelenaFluxogramaOrchestrator as HelenaFluxograma
             
             session_key = 'helena_fluxograma_state'
             
@@ -367,7 +367,7 @@ def helena_mapeamento_api(request):
             }, status=400)
         
         # 🚀 OTIMIZAÇÃO: Import lazy
-        from .domain.helena_produtos.helena_mapeamento import helena_mapeamento
+        from .domain.helena_mapeamento.helena_mapeamento import helena_mapeamento
         
         # Chamar Helena Mapeamento (chat simples)
         resposta = helena_mapeamento(mensagem)
@@ -415,7 +415,7 @@ def helena_ajuda_arquitetura(request):
             }, status=400)
 
         # Import lazy da função de análise
-        from .domain.helena_produtos.helena_ajuda_inteligente import analisar_atividade_com_helena, validar_sugestao_contra_csv
+        from .domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena, validar_sugestao_contra_csv
         from .dados_decipex import ArquiteturaDecipex
 
         print(f"\n[HELENA-AJUDA] Analisando atividade...")
@@ -663,7 +663,7 @@ def consultar_rag_sugestoes(request):
         contexto = data.get('contexto', '')
         
         # Importar Helena para usar RAG
-        from .domain.helena_produtos.helena_pop import HelenaPOP
+        from .domain.helena_mapeamento.helena_pop import HelenaPOP
         helena = HelenaPOP()
         
         if helena.vectorstore:
@@ -834,7 +834,7 @@ def fluxograma_from_pdf(request):
                     'resposta': 'Por favor, faça upload de um PDF de POP primeiro.'
                 }, status=400)
             
-            from .domain.helena_produtos.helena_fluxograma import HelenaFluxograma
+            from .domain.helena_fluxograma.flowchart_orchestrator import HelenaFluxogramaOrchestrator as HelenaFluxograma
             helena = HelenaFluxograma(dados_pdf=pop_data)
             resultado = helena.processar_mensagem(user_message)
             
@@ -1012,10 +1012,22 @@ def chat_recepcao_api(request):
             }, status=400)
 
         # Importar e chamar Helena com session_id
-        from .domain.helena_produtos.helena_recepcao import helena_recepcao
+        from .domain.helena_recepcao import HelenaRecepcaoOrchestrator
         logger.info("[CHAT RECEPCAO] Helena importada")
 
-        resposta = helena_recepcao(mensagem, session_id)
+        # Obter ou criar estado da sessão
+        session_key = f'helena_recepcao_{session_id}'
+        session_data = request.session.get(session_key, {})
+
+        # Processar com orquestrador
+        orchestrator = HelenaRecepcaoOrchestrator()
+        resultado = orchestrator.processar(mensagem, session_data)
+
+        # Salvar estado da sessão
+        request.session[session_key] = session_data
+        request.session.modified = True
+
+        resposta = resultado.get('resposta', 'Desculpe, não entendi.')
         logger.info(f"[CHAT RECEPCAO] Resposta gerada: {len(resposta)} caracteres")
 
         return JsonResponse({
