@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-🧠 PIPELINE DE BUSCA EM 5 CAMADAS - Helena POP v3.0
+🧠 PIPELINE DE BUSCA EM 5 CAMADAS - Helena POP v4.0
 ===============================================================================
 
 Objetivo:
@@ -10,10 +10,16 @@ Objetivo:
 
 Camadas:
     1. Match Exato/Fuzzy (helena_ajuda_inteligente.py)
-    2. Busca Semântica (SentenceTransformer)
-    3. Curadoria Humana (Dropdown Top-5)
+    2. Busca Semântica (embeddings pré-computados + numpy)
+    3. Curadoria Humana (Dropdown hierárquico)
     4. Fallback RAG (Helena Contextual)
     5. Geração CAP + Rastreabilidade
+
+OTIMIZAÇÃO v4.0:
+    - Embeddings pré-computados em arquivo .npy (não gera em runtime)
+    - Busca por cosine com numpy (rápido, sem ChromaDB)
+    - Lazy load com cache global por processo (não por request)
+    - Fallback gracioso se arquivos não existirem
 
 Autor: Claude Code Agent
 Data: 2025-10-28
@@ -21,13 +27,27 @@ Data: 2025-10-28
 """
 
 import logging
+import os
+import json
+import time
+import numpy as np
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
-from sentence_transformers import SentenceTransformer, util
-import torch
 
 logger = logging.getLogger(__name__)
+
+# ==============================================================================
+# CACHE GLOBAL (1x por worker, não por request)
+# ==============================================================================
+_CORPUS_CACHE = {
+    'embeddings': None,      # np.ndarray (N, D)
+    'meta': None,            # List[Dict]
+    'fingerprint': None,     # Dict
+    'model': None,           # SentenceTransformer (lazy)
+    'loaded': False,
+    'load_time_ms': 0
+}
 
 
 class BuscaAtividadePipeline:
@@ -136,29 +156,129 @@ class BuscaAtividadePipeline:
             logger.error(f"[PIPELINE] Erro ao carregar mapeamento macroprocesso: {e}")
             self.area_macros_map = {}
 
+    def _carregar_embeddings_precomputados(self) -> bool:
+        """
+        Carrega embeddings pré-computados de arquivo (lazy load com cache global).
+
+        OTIMIZAÇÃO v4.0:
+        - Carrega 1x por worker (não por request)
+        - Usa cache global _CORPUS_CACHE
+        - Fallback gracioso se arquivos não existirem
+
+        Returns:
+            True se carregou com sucesso, False caso contrário
+        """
+        global _CORPUS_CACHE
+
+        # Já carregado neste worker?
+        if _CORPUS_CACHE['loaded']:
+            return True
+
+        # Paths dos arquivos
+        base_path = 'documentos_base'
+        embeddings_path = os.path.join(base_path, 'corpus_embeddings.npy')
+        meta_path = os.path.join(base_path, 'corpus_meta.json')
+        fingerprint_path = os.path.join(base_path, 'corpus_fingerprint.json')
+
+        # Verificar se arquivos existem
+        if not os.path.exists(embeddings_path) or not os.path.exists(meta_path):
+            logger.warning("[PIPELINE] Arquivos de embeddings não encontrados. Busca semântica desabilitada.")
+            logger.warning(f"[PIPELINE] Esperado: {embeddings_path}, {meta_path}")
+            logger.warning("[PIPELINE] Execute: python scripts/gerar_embeddings_corpus.py")
+            return False
+
+        try:
+            start_time = time.time()
+
+            # Carregar embeddings (numpy)
+            logger.info(f"[PIPELINE] Carregando embeddings: {embeddings_path}")
+            _CORPUS_CACHE['embeddings'] = np.load(embeddings_path)
+
+            # Carregar metadados
+            logger.info(f"[PIPELINE] Carregando metadados: {meta_path}")
+            with open(meta_path, 'r', encoding='utf-8') as f:
+                _CORPUS_CACHE['meta'] = json.load(f)
+
+            # Carregar fingerprint (opcional)
+            if os.path.exists(fingerprint_path):
+                with open(fingerprint_path, 'r', encoding='utf-8') as f:
+                    _CORPUS_CACHE['fingerprint'] = json.load(f)
+
+            # Validar alinhamento
+            n_embeddings = _CORPUS_CACHE['embeddings'].shape[0]
+            n_meta = len(_CORPUS_CACHE['meta'])
+            if n_embeddings != n_meta:
+                logger.error(f"[PIPELINE] ERRO: embeddings ({n_embeddings}) != meta ({n_meta})")
+                return False
+
+            load_time = (time.time() - start_time) * 1000
+            _CORPUS_CACHE['loaded'] = True
+            _CORPUS_CACHE['load_time_ms'] = load_time
+
+            logger.info(f"[PIPELINE] ✅ Embeddings carregados em {load_time:.0f}ms")
+            logger.info(f"[PIPELINE]    Shape: {_CORPUS_CACHE['embeddings'].shape}")
+            logger.info(f"[PIPELINE]    Atividades: {n_meta}")
+
+            return True
+
+        except Exception as e:
+            logger.error(f"[PIPELINE] Erro ao carregar embeddings: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def _carregar_modelo_query(self) -> bool:
+        """
+        Carrega modelo SentenceTransformer para gerar embedding da query.
+
+        NOTA: Só carrega quando realmente precisar (lazy load).
+        O modelo é usado apenas para a query do usuário, não para o corpus.
+        """
+        global _CORPUS_CACHE
+
+        if _CORPUS_CACHE['model'] is not None:
+            return True
+
+        try:
+            logger.info("[PIPELINE] Carregando modelo SentenceTransformer para query...")
+            from sentence_transformers import SentenceTransformer
+            _CORPUS_CACHE['model'] = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+            logger.info("[PIPELINE] ✅ Modelo carregado")
+            return True
+        except Exception as e:
+            logger.error(f"[PIPELINE] Erro ao carregar modelo: {e}")
+            return False
+
     def _carregar_modelo_embeddings(self):
-        """Carrega modelo SentenceTransformer (lazy loading)."""
+        """DEPRECATED: Mantido para compatibilidade. Usa _carregar_embeddings_precomputados()."""
         if self._modelo_carregado:
             return
 
-        try:
-            logger.info("[PIPELINE] Carregando modelo SentenceTransformer...")
-            # Modelo multilingual otimizado para similaridade semântica
-            self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        # Tentar carregar pré-computados primeiro
+        if self._carregar_embeddings_precomputados():
+            self._modelo_carregado = True
+            # Referências locais para compatibilidade
+            self.corpus_embeddings = _CORPUS_CACHE['embeddings']
+            self.model = _CORPUS_CACHE.get('model')
+            return
 
-            # Pré-computar embeddings do corpus (cache)
-            logger.info("[PIPELINE] Gerando embeddings do corpus...")
+        # Fallback: gerar em runtime (LENTO - só para dev)
+        logger.warning("[PIPELINE] FALLBACK: Gerando embeddings em runtime (LENTO!)")
+        try:
+            from sentence_transformers import SentenceTransformer
+            import torch
+
+            self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
             corpus_textos = []
             for _, row in self.df_csv.iterrows():
                 texto = f"{row['Macroprocesso']} {row['Processo']} {row['Subprocesso']} {row['Atividade']}"
                 corpus_textos.append(texto)
 
             self.corpus_embeddings = self.model.encode(corpus_textos, convert_to_tensor=True)
-            logger.info(f"[PIPELINE] Embeddings gerados: shape={self.corpus_embeddings.shape}")
-
+            logger.info(f"[PIPELINE] Embeddings gerados (fallback): shape={self.corpus_embeddings.shape}")
             self._modelo_carregado = True
         except Exception as e:
-            logger.error(f"[PIPELINE] Erro ao carregar modelo: {e}")
+            logger.error(f"[PIPELINE] Erro no fallback: {e}")
             self.model = None
 
     def buscar_atividade(
@@ -301,60 +421,79 @@ class BuscaAtividadePipeline:
 
     def _camada2_busca_semantica(self, descricao_usuario: str, area_codigo: str) -> Dict:
         """
-        Camada 2: Busca semântica com SentenceTransformer
-        """
-        # Carregar modelo se necessário
-        self._carregar_modelo_embeddings()
+        Camada 2: Busca semântica com embeddings pré-computados + numpy
 
-        if self.model is None or self.corpus_embeddings is None:
-            logger.error("[PIPELINE] Modelo não carregado - pulando Camada 2")
+        OTIMIZAÇÃO v4.0:
+        - Verifica HELENA_LITE_MODE (pula se ativo)
+        - Usa embeddings de arquivo .npy (não gera em runtime)
+        - Cosine similarity com numpy (rápido)
+        - Fallback gracioso se arquivos não existirem
+        """
+        global _CORPUS_CACHE
+
+        start_time = time.time()
+
+        # ========================================================================
+        # CHECK 1: HELENA_LITE_MODE
+        # ========================================================================
+        if os.getenv('HELENA_LITE_MODE', 'False').lower() in ('true', '1', 'yes'):
+            logger.info("[PIPELINE] LITE MODE ativo - pulando Camada 2 (busca semântica)")
+            return {'sucesso': False, 'score': 0.0}
+
+        # ========================================================================
+        # CHECK 2: Carregar embeddings pré-computados
+        # ========================================================================
+        if not self._carregar_embeddings_precomputados():
+            logger.warning("[PIPELINE] Embeddings não disponíveis - pulando Camada 2")
+            return {'sucesso': False, 'score': 0.0}
+
+        # ========================================================================
+        # CHECK 3: Carregar modelo para query
+        # ========================================================================
+        if not self._carregar_modelo_query():
+            logger.warning("[PIPELINE] Modelo não disponível - pulando Camada 2")
             return {'sucesso': False, 'score': 0.0}
 
         try:
-            # Gerar embedding da consulta do usuário
-            query_embedding = self.model.encode(descricao_usuario, convert_to_tensor=True)
+            # Gerar embedding da query (normalizado)
+            query_embedding = _CORPUS_CACHE['model'].encode(
+                descricao_usuario,
+                convert_to_numpy=True,
+                normalize_embeddings=True
+            )
 
-            # Calcular similaridade cosine
-            cos_scores = util.pytorch_cos_sim(query_embedding, self.corpus_embeddings)[0]
+            # Cosine similarity com numpy (vetores já normalizados = dot product)
+            corpus_embeddings = _CORPUS_CACHE['embeddings']
+            cos_scores = np.dot(corpus_embeddings, query_embedding)
 
-            # BOOST: Dar prioridade para atividades cujo macroprocesso pertence à área selecionada
-            # Respeitar a escolha do usuário - buscar primeiro nas atividades típicas da área dele
+            # BOOST: priorizar atividades da área do usuário
             macros_da_area = self.area_macros_map.get(area_codigo, [])
+            boosted_scores = cos_scores.copy()
 
-            boosted_scores = cos_scores.clone()
-            for idx, row in self.df_csv.iterrows():
-                # Pegar o MACROPROCESSO no CSV (primeiro número do formato 7.2.1.1)
-                numero_csv = str(row.get('Numero', '')).strip()
+            corpus_meta = _CORPUS_CACHE['meta']
+            for idx, meta in enumerate(corpus_meta):
+                numero_csv = meta.get('numero', '')
                 parts = numero_csv.split('.')
-                if len(parts) > 0:
-                    macro_numero_csv = parts[0]
+                if len(parts) > 0 and parts[0] in macros_da_area:
+                    boosted_scores[idx] *= 1.50  # Boost 50%
 
-                    # Se o macroprocesso do CSV pertence aos macroprocessos típicos da área, dar boost
-                    if macro_numero_csv in macros_da_area:
-                        # Boost de 50% para atividades dos macroprocessos da área selecionada
-                        boosted_scores[idx] = boosted_scores[idx] * 1.50
+            # Melhor match
+            best_idx = int(np.argmax(boosted_scores))
+            best_score = float(cos_scores[best_idx])  # Score original
+            best_meta = corpus_meta[best_idx]
 
-            # Encontrar melhor match (com boost aplicado)
-            best_idx = int(torch.argmax(boosted_scores))
-            best_score = float(cos_scores[best_idx])  # Score original (sem boost) para exibição
+            # Log métricas
+            elapsed_ms = (time.time() - start_time) * 1000
+            macro_match = best_meta['numero'].split('.')[0] if '.' in best_meta['numero'] else best_meta['numero']
+            foi_boosted = macro_match in macros_da_area
 
-            # Recuperar linha do CSV
-            row_match = self.df_csv.iloc[best_idx]
+            logger.info(f"[PIPELINE] Camada 2 concluída em {elapsed_ms:.0f}ms")
+            logger.info(f"[PIPELINE] Melhor match: score={best_score:.3f} {'(BOOSTED)' if foi_boosted else ''}")
+            logger.info(f"[PIPELINE]   Atividade: {best_meta['atividade']}")
 
-            # Log do resultado
-            numero_csv_match = str(row_match['Numero']).strip()
-            macro_match = numero_csv_match.split('.')[0] if '.' in numero_csv_match else numero_csv_match
-            foi_boosted = (macro_match in macros_da_area)
-
-            logger.info(f"[PIPELINE] Melhor match semântico: score={best_score:.3f} {'(BOOSTED - macroprocesso ' + macro_match + ' pertence à área ' + area_codigo + ')' if foi_boosted else ''}")
-            logger.info(f"[PIPELINE]   Atividade: {row_match['Atividade']}")
-            logger.info(f"[PIPELINE]   Área usuário: {area_codigo} | Macroprocesso da atividade: {macro_match} | Macroprocessos da área: {macros_da_area}")
-
-            # Gerar CAP completo: prefixo_area_usuario + numero_csv
-            # SEMPRE usa o prefixo da área selecionada pelo usuário
-            # Ex: Usuário escolheu CGRIS (6) → CAP sempre 6.X.X.X.X
+            # Gerar CAP
             prefixo_area = self._obter_prefixo_area(area_codigo)
-            cap_completo = f"{prefixo_area}.{str(row_match['Numero']).strip()}"
+            cap_completo = f"{prefixo_area}.{best_meta['numero']}"
 
             return {
                 'sucesso': True,
@@ -365,15 +504,22 @@ class BuscaAtividadePipeline:
                 'acao_permitida': 'concordar_ou_selecionar_manual',
                 'pode_editar': False,
                 'atividade': {
-                    'macroprocesso': row_match['Macroprocesso'],
-                    'processo': row_match['Processo'],
-                    'subprocesso': row_match['Subprocesso'],
-                    'atividade': row_match['Atividade']
+                    'macroprocesso': best_meta['macroprocesso'],
+                    'processo': best_meta['processo'],
+                    'subprocesso': best_meta['subprocesso'],
+                    'atividade': best_meta['atividade']
+                },
+                'metricas': {
+                    'tempo_ms': elapsed_ms,
+                    'corpus_size': len(corpus_meta),
+                    'cache_hit': _CORPUS_CACHE['loaded']
                 }
             }
 
         except Exception as e:
             logger.error(f"[PIPELINE] Erro na Camada 2: {e}")
+            import traceback
+            traceback.print_exc()
             return {'sucesso': False, 'score': 0.0}
 
     def _preparar_candidatos_dropdown(self, descricao_usuario: str, area_codigo: str, top_k: int = 5) -> List[Dict]:

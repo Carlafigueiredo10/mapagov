@@ -1,0 +1,9 @@
+{
+  "csv_path": "documentos_base/Arquitetura_DECIPEX_mapeada.csv",
+  "csv_hash": "be3432ae5d1a0c5f",
+  "model_name": "paraphrase-multilingual-MiniLM-L12-v2",
+  "n_atividades": 107,
+  "embedding_dim": 384,
+  "gerado_em": "2026-02-03T20:36:54.906004",
+  "versao": "4.0"
+}

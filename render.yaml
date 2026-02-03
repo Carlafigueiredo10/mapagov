@@ -16,8 +16,10 @@ services:
     # Build: Frontend React + Backend Django
     buildCommand: bash build.sh
 
-    # Start: Gunicorn com workers otimizados para Free tier (512MB RAM)
-    startCommand: gunicorn mapagov.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    # Start: Gunicorn otimizado para Free tier (512MB RAM)
+    # 1 worker + 4 threads = menos RAM, mais responsividade
+    # Cache de embeddings carrega 1x por worker (não duplica)
+    startCommand: gunicorn mapagov.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
 
     envVars:
       - key: PYTHON_VERSION
@@ -59,9 +61,10 @@ services:
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://mapagov.onrender.com"
 
-      # Modo lite: economiza RAM no Free tier (512MB)
+      # Modo lite: False = busca semântica ativa (embeddings pré-computados)
+      # True = pula busca semântica (fallback para dropdown)
       - key: HELENA_LITE_MODE
-        value: "True"
+        value: "False"
 
       - key: ENVIRONMENT
         value: production
