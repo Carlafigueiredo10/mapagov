@@ -1,1 +1,1 @@
-# Tests package
+# processos/tests/__init__.py

@@ -17,8 +17,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5173,
     strictPort: true, // Não tenta outras portas se 5173 estiver ocupada
-    // Proxy desabilitado - frontend usa VITE_API_URL diretamente
-    // Em desenvolvimento: http://localhost:8000
-    // Em produção: https://mapagov-api.onrender.com
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+    },
   },
 }))

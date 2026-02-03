@@ -1,5 +1,11 @@
+# =============================================================================
+# MapaGov - Render Deploy (Free Tier + Neon PostgreSQL)
+# =============================================================================
+# Custo: $0/mês (Render Free + Neon Free)
+# Arquitetura: Web Service único servindo Django + React build
+# =============================================================================
+
 services:
-  # Backend Django + Frontend React (tudo junto)
   - type: web
     name: mapagov
     env: python
@@ -7,19 +13,18 @@ services:
     plan: free
     branch: main
 
-    # Build: Executa script de build otimizado
+    # Build: Frontend React + Backend Django
     buildCommand: bash build.sh
 
-    # Start: Gunicorn com workers
+    # Start: Gunicorn com workers otimizados para Free tier (512MB RAM)
     startCommand: gunicorn mapagov.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
 
-    # Variáveis de ambiente
     envVars:
       - key: PYTHON_VERSION
-        value: 3.13.0
+        value: "3.11.0"
 
       - key: DEBUG
-        value: False
+        value: "False"
 
       - key: SECRET_KEY
         generateValue: true
@@ -27,25 +32,39 @@ services:
       - key: ALLOWED_HOSTS
         value: mapagov.onrender.com,.onrender.com
 
-      - key: DATABASE_URL
-        fromDatabase:
-          name: mapagov-db
-          property: connectionString
+      # =========================================
+      # CONFIGURAR MANUALMENTE NO DASHBOARD:
+      # =========================================
 
-      # IMPORTANTE: Adicione sua OPENAI_API_KEY manualmente no dashboard
-      # - key: OPENAI_API_KEY
-      #   sync: false
+      # DATABASE_URL: Copiar do Neon Dashboard
+      # Formato: postgresql://user:pass@ep-xxx.neon.tech/mapagov?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+
+      # OPENAI_API_KEY: Sua chave da OpenAI
+      - key: OPENAI_API_KEY
+        sync: false
+
+      # SENTRY_DSN (opcional): Para monitoramento de erros
+      - key: SENTRY_DSN
+        sync: false
+
+      # =========================================
+      # CONFIGURAÇÕES DE PRODUÇÃO
+      # =========================================
+
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://mapagov.onrender.com"
+
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://mapagov.onrender.com"
+
+      # Modo lite: economiza RAM no Free tier (512MB)
+      - key: HELENA_LITE_MODE
+        value: "True"
 
       - key: ENVIRONMENT
         value: production
 
-    # Healthcheck
+    # Health check na raiz
     healthCheckPath: /
-
-  # Banco de dados PostgreSQL
-  - type: pgsql
-    name: mapagov-db
-    region: oregon
-    plan: free
-    databaseName: mapagov
-    databaseUser: mapagov_user

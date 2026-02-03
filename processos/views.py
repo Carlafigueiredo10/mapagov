@@ -48,12 +48,8 @@ def chat_api_view(request):
         dados_atuais = data.get('dados_atuais', {})
         session_id = data.get('session_id', 'default')
 
-        print(f"\n{'🔥'*80}")
-        print(f"[VIEWS] MENSAGEM RECEBIDA EM /api/chat/")
-        print(f"   user_message: '{user_message[:100]}...'")
-        print(f"   contexto: {contexto}")
-        print(f"   session_id: {session_id}")
-        print(f"{'🔥'*80}\n")
+        # DEBUG removido - causava OSError no Windows
+        logger.debug(f"[VIEWS] Mensagem recebida: '{user_message[:50]}...' contexto={contexto}")
         
         # Validação de entrada com segurança
         valido, msg_erro = validar_entrada_helena(user_message)
@@ -92,35 +88,16 @@ def chat_api_view(request):
                 # Primeira mensagem - criar novo state machine vazio
                 session_data = POPStateMachine().to_dict()
 
-                print(f"\n{'='*80}")
-                print(f"[OK] PONTO A - NOVA SESSAO CRIADA")
-                print(f"   Estado inicial: {session_data['estado']}")
-                print(f"   Session key: {session_key}")
-                print(f"{'='*80}\n")
+                logger.debug(f"[SESSAO] Nova sessão criada: {session_key}")
             else:
                 # Mensagens seguintes - usar estado existente
                 session_data = request.session[session_key]
 
-                print(f"\n{'='*80}")
-                print(f"[RESTORE] PONTO A - SESSAO RESTAURADA")
-                print(f"   Estado atual: {session_data.get('estado')}")
-                print(f"   Nome: {session_data.get('nome_usuario')}")
-                print(f"   Área: {session_data.get('area_selecionada')}")
-                print(f"   Sistemas: {len(session_data.get('dados_coletados', {}).get('sistemas', []))}")
-                print(f"{'='*80}\n")
+                logger.debug(f"[SESSAO] Restaurada: estado={session_data.get('estado')}")
 
             # Instanciar Helena e processar mensagem
             helena = HelenaPOP()
             resultado = helena.processar(user_message, session_data)
-
-            # DEBUG PONTO B - APOS PROCESSAMENTO
-            print(f"\n{'='*80}")
-            print(f"[PROCESS] PONTO B - APOS PROCESSAR MENSAGEM: '{user_message[:50]}...'")
-            print(f"   Estado retornado: {resultado.get('novo_estado', {}).get('estado')}")
-            print(f"   Sistemas: {len(resultado.get('novo_estado', {}).get('dados_coletados', {}).get('sistemas', []))}")
-            print(f"   Dados extraídos: {resultado.get('dados_extraidos', {})}")
-            print(f"   Tipo interface: {resultado.get('tipo_interface')}")
-            print(f"{'='*80}\n")
 
             # Salvar novo estado na sessão (resultado retorna 'novo_estado')
             novo_session_data = resultado.get('novo_estado', session_data)
@@ -128,14 +105,6 @@ def chat_api_view(request):
 
             # Forcar Django a salvar a sessao modificada
             request.session.modified = True
-
-            # DEBUG PONTO C - APOS SALVAR
-            print(f"\n{'='*80}")
-            print(f"[OK] PONTO C - ESTADO SALVO NA SESSAO")
-            print(f"   Estado salvo: {novo_session_data.get('estado')}")
-            print(f"   Sistemas salvos: {len(novo_session_data.get('dados_coletados', {}).get('sistemas', []))}")
-            print(f"   Session modified: {request.session.modified}")
-            print(f"{'='*80}\n")
 
             # Log específico da Helena
             log_helena = LogUtils.log_helena_interacao(
@@ -145,34 +114,8 @@ def chat_api_view(request):
                 estado=novo_session_data.get('estado', 'unknown')
             )
 
-            # DEBUG: Verificar campos antes do return
-            print(f"\n{'='*80}")
-            print(f"[FINAL] ANTES DO JsonResponse:")
-            print(f"   tipo_interface: {resultado.get('tipo_interface')}")
-            print(f"   interface: {resultado.get('interface')}")
-            print(f"   dados_interface: {resultado.get('dados_interface')}")
-            print(f"   dados: {resultado.get('dados')}")
-            print(f"{'='*80}\n")
-
-            # 🔧 FIX: Serialização JSON robusta para evitar perda de dados
-            # JsonResponse padrão descarta silenciosamente objetos não-serializáveis
-            # Solução: fazer dump/load manual com default=str para forçar conversão
-
-            # DEBUG: Log do JSON que REALMENTE será enviado
+            # Serialização JSON robusta
             json_str = json.dumps(resultado, ensure_ascii=False, default=str)
-            print(f"\n🌐 [JSON ENVIADO AO FRONTEND - {len(json_str)} bytes]")
-            print(f"   interface: {resultado.get('interface')}")
-            print(f"   tipo_interface: {resultado.get('tipo_interface')}")
-            print(f"   dados_interface keys: {list(resultado.get('dados_interface', {}).keys()) if resultado.get('dados_interface') else 'None'}")
-
-            # 🔍 DEBUG COMPLETO: Mostrar conteúdo de opcoes_areas se for interface de áreas
-            if resultado.get('tipo_interface') == 'areas' and resultado.get('dados_interface'):
-                opcoes = resultado['dados_interface'].get('opcoes_areas', {})
-                print(f"   📊 OPCOES_AREAS ({len(opcoes)} áreas):")
-                for key, area in list(opcoes.items())[:3]:  # Mostrar apenas 3 primeiras
-                    print(f"      {key}: {area}")
-
-            print(f"   resposta: {resultado.get('resposta')[:50] if resultado.get('resposta') else '<None>'}\n")
 
             return JsonResponse(
                 json.loads(json_str),
@@ -333,10 +276,8 @@ def chat_api_view(request):
             }, status=400)
             
     except Exception as e:
-        print(f"[ERROR] Erro na API Helena: {e}")
-        import traceback
-        traceback.print_exc()
-        
+        logger.exception(f"[ERROR] Erro na API Helena: {e}")
+
         return JsonResponse({
             'resposta': 'Desculpe, ocorreu um erro técnico. Pode repetir a pergunta?',
             'dados_extraidos': {},
@@ -385,10 +326,8 @@ def helena_mapeamento_api(request):
         })
         
     except Exception as e:
-        print(f"[ERROR] Erro na Helena Mapeamento: {e}")
-        import traceback
-        traceback.print_exc()
-        
+        logger.exception(f"[ERROR] Erro na Helena Mapeamento: {e}")
+
         return JsonResponse({
             'resposta': f'Erro ao processar mensagem: {str(e)}',
             'success': False

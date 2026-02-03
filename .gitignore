@@ -6,6 +6,7 @@ __pycache__/
 *.db
 *.sqlite3
 venv/
+.venv/
 .env
 .DS_Store
 
@@ -18,3 +19,19 @@ media/
 # IDEs
 .vscode/
 .idea/
+
+# Claude Code (config local)
+.claude/
+
+# Frontend build (rebuild no deploy)
+frontend/dist/
+
+# Windows artifacts
+nul
+Thumbs.db
+
+# Node
+node_modules/
+
+# Static files coletados (gerado no deploy)
+staticfiles/

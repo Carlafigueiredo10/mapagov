@@ -5,6 +5,8 @@ from . import views
 from .views import helena_mapeamento_api
 from processos.api import chat_api  # FASE 1 - Nova API
 from processos.api import planejamento_estrategico_api as pe_api  # Planejamento Estratégico API
+from processos.api import analise_riscos_api as ar_api  # Analise de Riscos API
+from processos.api import analise_riscos_export as ar_export  # Exportacao Word/PDF
 from processos.infra import metrics  # FASE 3 - Prometheus Metrics
 
 urlpatterns = [
@@ -57,6 +59,29 @@ urlpatterns = [
     path('api/planejamento-estrategico/recomendar/', pe_api.calcular_recomendacao, name='pe-recomendar'),
     path('api/planejamento-estrategico/iniciar-modelo/', pe_api.iniciar_modelo_direto, name='pe-iniciar-modelo'),
     path('api/planejamento-estrategico/confirmar-modelo/', pe_api.confirmar_modelo, name='pe-confirmar-modelo'),
+
+    # ============================================================================
+    # APIs ANALISE DE RISCOS 🎯
+    # ============================================================================
+    path('api/analise-riscos/criar/', ar_api.criar_analise, name='ar-criar'),
+    path('api/analise-riscos/listar/', ar_api.listar_analises, name='ar-listar'),
+    path('api/analise-riscos/<uuid:analise_id>/', ar_api.detalhar_analise, name='ar-detalhar'),
+    path('api/analise-riscos/<uuid:analise_id>/questionario/', ar_api.atualizar_questionario, name='ar-questionario'),
+    path('api/analise-riscos/<uuid:analise_id>/etapa/', ar_api.atualizar_etapa, name='ar-etapa'),
+    path('api/analise-riscos/<uuid:analise_id>/finalizar/', ar_api.finalizar_analise, name='ar-finalizar'),
+    path('api/analise-riscos/<uuid:analise_id>/riscos/', ar_api.adicionar_risco, name='ar-adicionar-risco'),
+    path('api/analise-riscos/<uuid:analise_id>/riscos/<uuid:risco_id>/analise/', ar_api.analisar_risco, name='ar-analisar-risco'),
+    path('api/analise-riscos/<uuid:analise_id>/riscos/<uuid:risco_id>/', ar_api.remover_risco, name='ar-remover-risco'),
+    path('api/analise-riscos/<uuid:analise_id>/riscos/<uuid:risco_id>/respostas/', ar_api.adicionar_resposta, name='ar-adicionar-resposta'),
+
+    # ============================================================================
+    # APIs ANALISE DE RISCOS v2 - NOVO FLUXO 🎯
+    # ============================================================================
+    path('api/analise-riscos/v2/criar/', ar_api.criar_analise_v2, name='ar-v2-criar'),
+    path('api/analise-riscos/<uuid:analise_id>/contexto/', ar_api.salvar_contexto_v2, name='ar-v2-contexto'),
+    path('api/analise-riscos/<uuid:analise_id>/blocos/', ar_api.salvar_blocos_v2, name='ar-v2-blocos'),
+    path('api/analise-riscos/<uuid:analise_id>/inferir/', ar_api.inferir_riscos_v2, name='ar-v2-inferir'),
+    path('api/analise-riscos/<uuid:analise_id>/exportar/', ar_export.exportar_analise, name='ar-exportar'),
 
     # ============================================================================
     # OBSERVABILITY - FASE 3 📊

@@ -14,6 +14,15 @@ from processos.models_new.chat_message import ChatMessage
 from processos.models_new.rbac import Role, Permission, RolePermission, UserRole
 from processos.models_new.audit_log import AuditLog, SecurityEvent
 
+# Models Analise de Riscos (PR2)
+from processos.models_analise_riscos import (
+    AnaliseRiscos,
+    RiscoIdentificado,
+    RespostaRisco,
+    AnaliseSnapshot,
+    MotivoSnapshot,
+)
+
 class ProcessoMestre(models.Model):
     codigo_arquitetura = models.CharField(max_length=100, unique=True, verbose_name="Código da Arquitetura")
     macroprocesso = models.CharField(max_length=255, verbose_name="Macroprocesso")

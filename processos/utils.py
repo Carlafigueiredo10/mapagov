@@ -1642,7 +1642,26 @@ def preparar_dados_para_pdf(dados: Dict[str, Any]) -> Dict[str, Any]:
             dados_limpos['sistemas'] = []
     else:
         dados_limpos['sistemas'] = []
-    
+
+    # Processar operadores (lista)
+    if 'operadores' in dados:
+        operadores = dados['operadores']
+        if isinstance(operadores, list):
+            dados_limpos['operadores'] = [
+                FormatadorUtils.limpar_texto_sistema(str(o))
+                for o in operadores if o
+            ]
+        elif isinstance(operadores, str) and operadores.strip():
+            # Operadores vêm como string separada por '; ' do frontend
+            dados_limpos['operadores'] = [
+                FormatadorUtils.limpar_texto_sistema(o.strip())
+                for o in operadores.split(';') if o.strip()
+            ]
+        else:
+            dados_limpos['operadores'] = []
+    else:
+        dados_limpos['operadores'] = []
+
     # Processar etapas
     if 'etapas' in dados:
         etapas = dados['etapas']

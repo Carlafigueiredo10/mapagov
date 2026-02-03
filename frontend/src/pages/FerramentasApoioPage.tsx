@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FerramentasApoioPage.css';
+import { WizardAnaliseRiscos } from '../components/AnaliseRiscos';
 
 interface Artefato {
   nome: string;
@@ -205,6 +206,7 @@ const ARTEFATOS: Artefato[] = [
 
 const FerramentasApoioPage: React.FC = () => {
   const navigate = useNavigate();
+  const [mostrarWizardRiscos, setMostrarWizardRiscos] = useState(false);
 
   return (
     <div className="ferramentas-apoio-page">
@@ -238,6 +240,45 @@ const FerramentasApoioPage: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* ========== BETA: Wizard Analise de Riscos (temporario) ========== */}
+      <div style={{
+        marginTop: '30px',
+        padding: '20px',
+        background: '#fef3c7',
+        borderRadius: '8px',
+        border: '2px dashed #f59e0b'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <strong style={{ color: '#92400e' }}>Analise de Riscos (BETA)</strong>
+            <p style={{ margin: '5px 0 0', color: '#78350f', fontSize: '14px' }}>
+              Wizard para identificar e analisar riscos de processos.
+            </p>
+          </div>
+          <button
+            onClick={() => setMostrarWizardRiscos(!mostrarWizardRiscos)}
+            style={{
+              padding: '8px 16px',
+              background: mostrarWizardRiscos ? '#dc2626' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {mostrarWizardRiscos ? 'Fechar' : 'Abrir Wizard'}
+          </button>
+        </div>
+
+        {mostrarWizardRiscos && (
+          <div style={{ marginTop: '20px', background: 'white', borderRadius: '8px' }}>
+            <WizardAnaliseRiscos tipoOrigem="POP" origemId="00000000-0000-0000-0000-000000000001" />
+          </div>
+        )}
+      </div>
+      {/* ========== FIM BETA ========== */}
+
     </div>
   );
 };

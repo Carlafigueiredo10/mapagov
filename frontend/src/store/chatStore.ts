@@ -27,7 +27,7 @@ export interface DadosPOP {
   entrega_esperada?: string;
   dispositivos_normativos?: string;
   sistemas?: string[];
-  operadores?: string;
+  operadores?: string[];  // ✅ Agora é lista igual sistemas
   etapas?: Array<{ descricao: string; responsavel: string }>;
   documentos_utilizados?: string;
   pontos_atencao?: string;

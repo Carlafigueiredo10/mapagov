@@ -6,19 +6,39 @@ Arquitetura Clean:
 - Estado gerenciado via session_data
 - Sem dependências externas de domain_old/infra_old
 - Máquina de estados para coleta de dados do processo
+
+Refatorado em 2024-11:
+- Funções de governança extraídas para processos/domain/governanca/
+- Loaders de dados extraídos para processos/infra/loaders/
 """
 from enum import Enum
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List
 import logging
-import pandas as pd
-from datetime import datetime, timezone
-from django.db import transaction
-import hashlib
+import re
+import json
 
 from processos.domain.base import BaseHelena
-from processos.infra.parsers import parse_sistemas, parse_operadores, normalizar_texto
-from processos.infra.pdf_generator import gerar_pop_pdf
-from processos.models_new import ControleIndices, AtividadeSugerida, HistoricoAtividade
+from processos.infra.parsers import parse_operadores
+
+# === IMPORTS DOS MÓDULOS EXTRAÍDOS ===
+# Governança (regras de negócio)
+from processos.domain.governanca import (
+    gerar_cap_provisorio_seguro,
+    detectar_atividades_similares,
+    salvar_atividade_sugerida,
+)
+
+# Loaders (carregamento de dados)
+from processos.infra.loaders import (
+    carregar_areas_organizacionais,
+    carregar_descricoes_areas,
+    carregar_sistemas,
+    carregar_operadores,
+    carregar_orgaos_centralizados,
+    carregar_canais_atendimento,
+    ArquiteturaDecipex,
+    carregar_arquitetura_csv,
+)
 
 # Tentativa de importar BaseLegalSuggestorDECIPEx (opcional)
 try:
@@ -29,10 +49,27 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# LOG DE DIAGNOSTICO - Confirma que este arquivo esta sendo carregado
-print("=" * 80)
-print(">>> helena_pop.py FOI CARREGADO! (VERSAO CORRETA)")
-print("=" * 80)
+logger.info("helena_pop.py carregado (v2.0)")
+
+
+# ============================================================================
+# CONSTANTES - Palavras-chave para detecção de intenção
+# ============================================================================
+
+PALAVRAS_CONFIRMACAO = frozenset([
+    'sim', 's', 'pode', 'ok', 'claro', 'entendi', 'beleza', 'tudo',
+    'concordo', 'confirmar', 'correto', 'certo', 'continuar', 'vamos',
+    'seguir', 'próximo', 'conte', 'contigo', 'melhor', 'farei', 'junto',
+    'tudo certo', 'ja entendi', 'já entendi', 'ok_entendi'
+])
+PALAVRAS_NEGACAO = frozenset(['não', 'nao', 'n', 'nenhum', 'não há', 'nao ha', 'não tem', 'nao tem', 'sem pontos', 'pular', 'skip'])
+PALAVRAS_DUVIDAS = frozenset(['duvida', 'dúvida', 'duvidas', 'dúvidas', 'mais duvidas', 'mais dúvidas', 'tenho duvidas', 'tenho dúvidas'])
+PALAVRAS_DETALHES = frozenset(['detalhada', 'longa', 'detalhes', 'completa', 'detalhe'])
+PALAVRAS_OBJETIVA = frozenset(['objetiva', 'curta', 'rápida', 'rapida', 'resumida'])
+PALAVRAS_EDICAO = frozenset(['editar', 'edit', 'corrigir', 'alterar', 'mudar', 'ajustar', 'arrumar', 'manual'])
+PALAVRAS_PAUSA = frozenset(['pausa', 'pausar', 'esperar', 'depois', 'mais tarde', 'aguardar'])
+PALAVRAS_CANCELAR = frozenset(['cancelar', 'voltar', 'sair'])
+PALAVRAS_MAIS_PERGUNTA = frozenset(['mais_pergunta', 'mais', 'pergunta', 'tenho mais'])
 
 
 # ============================================================================
@@ -72,535 +109,12 @@ class EstadoPOP(str, Enum):
 
 
 # ============================================================================
-# ARQUITETURA DECIPEX
+# NOTA: Funções de governança e ArquiteturaDecipex foram movidas para:
+# - processos/domain/governanca/ (cap_generator, duplicatas, atividade_sugerida, versionamento_csv)
+# - processos/infra/loaders/ (ArquiteturaDecipex, areas, sistemas, operadores, etc.)
+#
+# Os imports no topo do arquivo mantêm compatibilidade.
 # ============================================================================
-
-class ArquiteturaDecipex:
-    """Carrega e consulta arquitetura de processos da DECIPEX"""
-
-    def __init__(self, caminho_csv='documentos_base/Arquitetura_DECIPEX_mapeada.csv'):
-        try:
-            self.df = pd.read_csv(caminho_csv)
-        except FileNotFoundError:
-            logger.warning(f"Arquivo CSV não encontrado: {caminho_csv}")
-            self.df = pd.DataFrame(columns=['Macroprocesso', 'Processo', 'Subprocesso', 'Atividade'])
-        except Exception as e:
-            logger.error(f"Erro ao carregar CSV: {e}")
-            self.df = pd.DataFrame(columns=['Macroprocesso', 'Processo', 'Subprocesso', 'Atividade'])
-
-    def obter_macroprocessos_unicos(self) -> List[str]:
-        return self.df['Macroprocesso'].unique().tolist()
-
-    def obter_processos_por_macro(self, macro: str) -> List[str]:
-        return self.df[self.df['Macroprocesso'] == macro]['Processo'].unique().tolist()
-
-    def obter_subprocessos_por_processo(self, macro: str, processo: str) -> List[str]:
-        filtro = (self.df['Macroprocesso'] == macro) & (self.df['Processo'] == processo)
-        return self.df[filtro]['Subprocesso'].unique().tolist()
-
-    def obter_atividades_por_subprocesso(self, macro: str, processo: str, subprocesso: str) -> List[str]:
-        filtro = (
-            (self.df['Macroprocesso'] == macro) &
-            (self.df['Processo'] == processo) &
-            (self.df['Subprocesso'] == subprocesso)
-        )
-        return self.df[filtro]['Atividade'].unique().tolist()
-
-
-# ============================================================================
-# FUNÇÕES DE GOVERNANÇA - Geração de CAP e Detecção de Duplicatas
-# ============================================================================
-
-def gerar_cap_provisorio_seguro(
-    area_codigo: str,
-    macroprocesso: str,
-    processo: str,
-    subprocesso: str,
-    atividade: str,
-    hierarquia_df: pd.DataFrame
-) -> str:
-    """
-    Gera CAP provisório com lock transacional para evitar race conditions.
-
-    Formato: PREFIXO_AREA.IDX_MACRO.IDX_PROCESSO.IDX_SUB.IDX_ATIVIDADE
-
-    Exemplo: 1.02.03.04.108
-    - 1 = CGBEN
-    - 02 = índice do macroprocesso
-    - 03 = índice do processo
-    - 04 = índice do subprocesso
-    - 108 = próximo índice de atividade (107 + 1)
-
-    Args:
-        area_codigo: Código da área (ex: 'CGBEN')
-        macroprocesso: Nome do macroprocesso
-        processo: Nome do processo
-        subprocesso: Nome do subprocesso
-        atividade: Nome da atividade
-        hierarquia_df: DataFrame com a arquitetura completa para indexação
-
-    Returns:
-        CAP provisório único (ex: '1.02.03.04.108')
-    """
-    # Mapeamento de códigos de área para prefixos
-    PREFIXOS_AREA = {
-        "CGBEN": "1", "CGPAG": "2", "COATE": "3", "CGGAF": "4",
-        "DIGEP": "5", "DIGEP-RO": "5.1", "DIGEP-RR": "5.2", "DIGEP-AP": "5.3",
-        "CGRIS": "6", "CGCAF": "7", "CGECO": "8"
-    }
-
-    prefixo_area = PREFIXOS_AREA.get(area_codigo, "0")
-
-    # Buscar numeração diretamente do CSV (coluna 'Numero')
-    try:
-        filtro = (
-            (hierarquia_df['Macroprocesso'] == macroprocesso) &
-            (hierarquia_df['Processo'] == processo) &
-            (hierarquia_df['Subprocesso'] == subprocesso) &
-            (hierarquia_df['Atividade'] == atividade)
-        )
-        linha_encontrada = hierarquia_df[filtro]
-
-        if not linha_encontrada.empty and 'Numero' in linha_encontrada.columns:
-            # Ler número hierárquico do CSV (ex: "1.1.1.1")
-            numero_csv = str(linha_encontrada.iloc[0]['Numero'])
-            partes = numero_csv.split('.')
-
-            if len(partes) >= 4:
-                idx_macro = int(partes[0])
-                idx_processo = int(partes[1])
-                idx_subprocesso = int(partes[2])
-                idx_atividade = int(partes[3])
-            else:
-                # Fallback: gerar dinamicamente
-                raise ValueError("Formato de numeração inválido no CSV")
-        else:
-            # Fallback: gerar dinamicamente (nova atividade)
-            raise ValueError("Atividade não encontrada no CSV")
-
-    except (ValueError, IndexError, KeyError):
-        # Fallback: gerar índices dinamicamente (para novas atividades)
-        logger.warning(f"[GOVERNANÇA] Numeração não encontrada no CSV, gerando dinamicamente")
-
-        # 1. Índice do macroprocesso
-        macros_unicos = hierarquia_df['Macroprocesso'].unique().tolist()
-        idx_macro = macros_unicos.index(macroprocesso) + 1 if macroprocesso in macros_unicos else len(macros_unicos) + 1
-
-        # 2. Índice do processo dentro do macroprocesso
-        processos_no_macro = hierarquia_df[hierarquia_df['Macroprocesso'] == macroprocesso]['Processo'].unique().tolist()
-        idx_processo = processos_no_macro.index(processo) + 1 if processo in processos_no_macro else len(processos_no_macro) + 1
-
-        # 3. Índice do subprocesso dentro do processo
-        subs_no_processo = hierarquia_df[
-            (hierarquia_df['Macroprocesso'] == macroprocesso) &
-            (hierarquia_df['Processo'] == processo)
-        ]['Subprocesso'].unique().tolist()
-        idx_subprocesso = subs_no_processo.index(subprocesso) + 1 if subprocesso in subs_no_processo else len(subs_no_processo) + 1
-
-        # 4. Índice da atividade - obter próximo com lock transacional
-        with transaction.atomic():
-            controle, created = ControleIndices.objects.select_for_update().get_or_create(
-                area_codigo=area_codigo,
-                defaults={'ultimo_indice': 107}
-            )
-
-            proximo_indice = controle.ultimo_indice + 1
-            controle.ultimo_indice = proximo_indice
-            controle.save()
-
-            idx_atividade = proximo_indice
-
-    # Montar CAP com zero-padding
-    cap_provisorio = f"{prefixo_area}.{idx_macro:02d}.{idx_processo:02d}.{idx_subprocesso:02d}.{idx_atividade:03d}"
-
-    logger.info(f"[GOVERNANÇA] CAP provisório gerado: {cap_provisorio} para área {area_codigo}")
-
-    return cap_provisorio
-
-
-def detectar_atividades_similares(
-    macroprocesso: str,
-    processo: str,
-    subprocesso: str,
-    atividade: str,
-    threshold: float = 0.80
-) -> Tuple[float, List[Dict[str, Any]]]:
-    """
-    Detecta atividades similares já sugeridas usando TF-IDF + Cosine Similarity.
-
-    IMPORTANTE: Sempre retorna scores, mesmo se < threshold (para análise futura).
-
-    Args:
-        macroprocesso: Macroprocesso da atividade
-        processo: Processo da atividade
-        subprocesso: Subprocesso da atividade
-        atividade: Descrição da atividade
-        threshold: Limite de similaridade (padrão 0.80)
-
-    Returns:
-        Tupla (max_score, lista_similares)
-        - max_score: Maior score encontrado (0.0 a 1.0)
-        - lista_similares: Lista de dicts com CAP, descrição e score
-    """
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.metrics.pairwise import cosine_similarity
-
-    # Buscar todas as atividades sugeridas da mesma área hierárquica
-    atividades_existentes = AtividadeSugerida.objects.filter(
-        macroprocesso=macroprocesso,
-        processo=processo,
-        subprocesso=subprocesso
-    ).exclude(status='rejeitada')
-
-    if not atividades_existentes.exists():
-        logger.info(f"[GOVERNANÇA] Nenhuma atividade similar encontrada (nenhuma sugestão prévia nesta hierarquia)")
-        return 0.0, []
-
-    # Preparar textos para comparação
-    texto_novo = atividade.lower().strip()
-    textos_existentes = [a.atividade.lower().strip() for a in atividades_existentes]
-    todos_textos = textos_existentes + [texto_novo]
-
-    # TF-IDF + Cosine Similarity
-    vectorizer = TfidfVectorizer(ngram_range=(1, 3), min_df=1, max_df=0.95)
-    tfidf_matrix = vectorizer.fit_transform(todos_textos)
-
-    # Calcular similaridade do novo texto com todos os existentes
-    similarities = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
-
-    # Preparar resultados
-    max_score = float(similarities.max()) if len(similarities) > 0 else 0.0
-
-    lista_similares = []
-    for idx, score in enumerate(similarities):
-        if score >= threshold:
-            ativ = atividades_existentes[idx]
-            lista_similares.append({
-                'cap': ativ.cap_provisorio,
-                'atividade': ativ.atividade,
-                'status': ativ.status,
-                'score': float(score),
-                'autor': ativ.autor_nome,
-                'data': ativ.data_sugestao_utc.isoformat()
-            })
-
-    # Ordenar por score decrescente
-    lista_similares.sort(key=lambda x: x['score'], reverse=True)
-
-    logger.info(
-        f"[GOVERNANÇA] Detecção de duplicatas: max_score={max_score:.3f}, "
-        f"similares acima de {threshold}={len(lista_similares)}"
-    )
-
-    return max_score, lista_similares
-
-
-def salvar_atividade_sugerida(
-    cap_provisorio: str,
-    area_codigo: str,
-    macroprocesso: str,
-    processo: str,
-    subprocesso: str,
-    atividade: str,
-    entrega_esperada: str,
-    autor_cpf: str,
-    autor_nome: str,
-    autor_area: str,
-    descricao_original: str,
-    score_similaridade: float,
-    sugestoes_similares: List[Dict[str, Any]],
-    scores_similares_todos: List[float],
-    origem_fluxo: str,
-    interacao_id: str
-) -> AtividadeSugerida:
-    """
-    Salva uma nova atividade sugerida no banco de dados com rastreabilidade completa.
-
-    Args:
-        cap_provisorio: CAP provisório gerado
-        area_codigo: Código da área (ex: 'CGBEN')
-        macroprocesso: Nome do macroprocesso
-        processo: Nome do processo
-        subprocesso: Nome do subprocesso
-        atividade: Descrição da atividade
-        entrega_esperada: Entrega esperada da atividade
-        autor_cpf: CPF do autor da sugestão
-        autor_nome: Nome completo do autor
-        autor_area: Área do autor
-        descricao_original: Descrição original fornecida pelo usuário
-        score_similaridade: Score máximo de similaridade encontrado
-        sugestoes_similares: Lista de atividades similares (score >= threshold)
-        scores_similares_todos: Lista completa de scores (para análise futura)
-        origem_fluxo: 'match_exato', 'match_fuzzy', 'nova_atividade_ia', 'selecao_manual'
-        interacao_id: ID da interação (chat_message_id)
-
-    Returns:
-        Instância de AtividadeSugerida criada
-    """
-    # Timestamp UTC atual
-    agora_utc = datetime.now(timezone.utc)
-
-    # Gerar hash único (anti-duplicata)
-    hash_sugestao = AtividadeSugerida.gerar_hash_sugestao(
-        macroprocesso, processo, subprocesso, atividade, autor_cpf, agora_utc
-    )
-
-    # Determinar confiança da IA
-    if score_similaridade >= 0.90:
-        confianca = 'alta'
-    elif score_similaridade >= 0.75:
-        confianca = 'media'
-    else:
-        confianca = 'baixa'
-
-    # Criar registro
-    atividade_obj = AtividadeSugerida.objects.create(
-        cap_provisorio=cap_provisorio,
-        cap_oficial=None,
-        status='sugerida',
-        area_codigo=area_codigo,
-        macroprocesso=macroprocesso,
-        processo=processo,
-        subprocesso=subprocesso,
-        atividade=atividade,
-        entrega_esperada=entrega_esperada,
-        autor_cpf=autor_cpf,
-        autor_nome=autor_nome,
-        autor_area=autor_area,
-        data_sugestao_utc=agora_utc,
-        descricao_original=descricao_original,
-        hash_sugestao=hash_sugestao,
-        score_similaridade=score_similaridade,
-        sugestoes_similares=sugestoes_similares,
-        scores_similares_todos=scores_similares_todos,
-        confianca=confianca,
-        origem_fluxo=origem_fluxo,
-        interacao_id=interacao_id
-    )
-
-    # Registrar no histórico
-    HistoricoAtividade.objects.create(
-        atividade=atividade_obj,
-        tipo_evento='criacao',
-        usuario_cpf=autor_cpf,
-        usuario_nome=autor_nome,
-        comentario=f"Atividade sugerida via {origem_fluxo}"
-    )
-
-    logger.info(
-        f"[GOVERNANÇA] Atividade sugerida salva: {cap_provisorio} | "
-        f"Autor: {autor_nome} ({autor_cpf}) | Confiança: {confianca}"
-    )
-
-    return atividade_obj
-
-
-def criar_versao_csv(
-    csv_path: str = 'documentos_base/Arquitetura_DECIPEX_mapeada.csv',
-    versao_path: str = 'documentos_base/versoes/',
-    changelog_path: str = 'documentos_base/CHANGELOG_ARQUITETURA.json'
-) -> Tuple[str, str]:
-    """
-    Cria versão imutável do CSV com timestamp e hash SHA256.
-
-    Formato: Arquitetura_DECIPEX_vYYYYMMDD_HHMMSS_NNN.csv
-
-    Args:
-        csv_path: Caminho do CSV atual
-        versao_path: Diretório para armazenar versões
-        changelog_path: Caminho do arquivo changelog JSON
-
-    Returns:
-        Tupla (caminho_versao, hash_sha256)
-    """
-    import os
-    import shutil
-    import json
-    from pathlib import Path
-
-    # Criar diretório de versões se não existir
-    Path(versao_path).mkdir(parents=True, exist_ok=True)
-
-    # Timestamp UTC
-    agora_utc = datetime.now(timezone.utc)
-    timestamp_str = agora_utc.strftime('%Y%m%d_%H%M%S')
-
-    # Contar versões existentes para gerar número sequencial
-    versoes_existentes = list(Path(versao_path).glob('Arquitetura_DECIPEX_v*.csv'))
-    numero_versao = len(versoes_existentes) + 1
-
-    # Nome da versão
-    nome_versao = f"Arquitetura_DECIPEX_v{timestamp_str}_{numero_versao:03d}.csv"
-    caminho_versao = os.path.join(versao_path, nome_versao)
-
-    # Copiar CSV atual para versão
-    shutil.copy2(csv_path, caminho_versao)
-
-    # Calcular hash SHA256 do arquivo
-    with open(caminho_versao, 'rb') as f:
-        conteudo = f.read()
-        hash_sha256 = hashlib.sha256(conteudo).hexdigest()
-
-    # Atualizar changelog
-    atualizar_changelog(
-        changelog_path=changelog_path,
-        versao_nome=nome_versao,
-        hash_sha256=hash_sha256,
-        timestamp_utc=agora_utc,
-        motivo="Versão automática gerada pelo sistema"
-    )
-
-    logger.info(f"[GOVERNANÇA] Versão CSV criada: {nome_versao} | Hash: {hash_sha256[:8]}...")
-
-    return caminho_versao, hash_sha256
-
-
-def atualizar_changelog(
-    changelog_path: str,
-    versao_nome: str,
-    hash_sha256: str,
-    timestamp_utc: datetime,
-    motivo: str = "",
-    atividades_adicionadas: List[Dict[str, Any]] = None
-) -> None:
-    """
-    Atualiza changelog com metadados da nova versão do CSV.
-
-    Args:
-        changelog_path: Caminho do arquivo changelog JSON
-        versao_nome: Nome do arquivo de versão
-        hash_sha256: Hash SHA256 do arquivo
-        timestamp_utc: Timestamp da criação
-        motivo: Motivo da criação da versão
-        atividades_adicionadas: Lista de atividades adicionadas nesta versão
-    """
-    import json
-    from pathlib import Path
-
-    # Carregar changelog existente ou criar novo
-    if Path(changelog_path).exists():
-        with open(changelog_path, 'r', encoding='utf-8') as f:
-            changelog = json.load(f)
-    else:
-        changelog = {
-            "versoes": [],
-            "metadados": {
-                "criado_em": datetime.now(timezone.utc).isoformat(),
-                "ultima_atualizacao": None
-            }
-        }
-
-    # Adicionar nova entrada
-    entrada = {
-        "versao": versao_nome,
-        "hash_sha256": hash_sha256,
-        "timestamp_utc": timestamp_utc.isoformat(),
-        "motivo": motivo,
-        "atividades_adicionadas": atividades_adicionadas or [],
-        "total_atividades": len(atividades_adicionadas) if atividades_adicionadas else 0
-    }
-
-    changelog["versoes"].append(entrada)
-    changelog["metadados"]["ultima_atualizacao"] = datetime.now(timezone.utc).isoformat()
-
-    # Salvar changelog atualizado
-    with open(changelog_path, 'w', encoding='utf-8') as f:
-        json.dump(changelog, f, indent=2, ensure_ascii=False)
-
-    logger.info(f"[GOVERNANÇA] Changelog atualizado: {versao_nome}")
-
-
-def injetar_atividade_no_csv(
-    atividade: AtividadeSugerida,
-    csv_path: str = 'documentos_base/Arquitetura_DECIPEX_mapeada.csv'
-) -> bool:
-    """
-    Injeta atividade validada no CSV oficial e cria versão com changelog.
-
-    Fluxo:
-    1. Criar versão do CSV atual (backup)
-    2. Adicionar nova linha ao CSV
-    3. Atualizar status da atividade para 'publicada'
-    4. Registrar CAP oficial
-
-    Args:
-        atividade: Instância de AtividadeSugerida (status='validada')
-        csv_path: Caminho do CSV oficial
-
-    Returns:
-        bool: True se injetado com sucesso, False caso contrário
-    """
-    import pandas as pd
-
-    if atividade.status != 'validada':
-        logger.error(f"[GOVERNANÇA] Atividade {atividade.cap_provisorio} não está validada (status={atividade.status})")
-        return False
-
-    try:
-        # 1. Criar versão do CSV atual (backup)
-        criar_versao_csv(csv_path=csv_path)
-
-        # 2. Ler CSV atual
-        df = pd.read_csv(csv_path)
-
-        # 3. Criar nova linha
-        nova_linha = pd.DataFrame([{
-            'Aba': atividade.area_codigo,
-            'Macroprocesso': atividade.macroprocesso,
-            'Processo': atividade.processo,
-            'Subprocesso': atividade.subprocesso,
-            'Atividade': atividade.atividade,
-            'Entrega Esperada': atividade.entrega_esperada,
-            # Adicionar outras colunas se existirem no CSV
-        }])
-
-        # 4. Concatenar e salvar
-        df_atualizado = pd.concat([df, nova_linha], ignore_index=True)
-        df_atualizado.to_csv(csv_path, index=False, encoding='utf-8')
-
-        # 5. Atualizar status da atividade para 'publicada'
-        atividade.status = 'publicada'
-        atividade.cap_oficial = atividade.cap_provisorio  # CAP provisório vira oficial
-        atividade.save()
-
-        # 6. Registrar no histórico
-        HistoricoAtividade.objects.create(
-            atividade=atividade,
-            tipo_evento='mesclagem',
-            usuario_cpf='SISTEMA',
-            usuario_nome='Sistema Automático',
-            comentario=f"Atividade injetada no CSV oficial e publicada com CAP: {atividade.cap_oficial}"
-        )
-
-        # 7. Atualizar changelog com detalhes da atividade adicionada
-        atualizar_changelog(
-            changelog_path='documentos_base/CHANGELOG_ARQUITETURA.json',
-            versao_nome=f"Arquitetura_DECIPEX_v{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv",
-            hash_sha256="recalcular",  # TODO: Recalcular hash após injeção
-            timestamp_utc=datetime.now(timezone.utc),
-            motivo=f"Injeção de atividade validada: {atividade.cap_provisorio}",
-            atividades_adicionadas=[{
-                'cap': atividade.cap_oficial,
-                'macroprocesso': atividade.macroprocesso,
-                'processo': atividade.processo,
-                'subprocesso': atividade.subprocesso,
-                'atividade': atividade.atividade,
-                'autor': atividade.autor_nome,
-                'validador': atividade.validador_nome,
-                'data_sugestao': atividade.data_sugestao_utc.isoformat(),
-                'data_validacao': atividade.data_validacao_utc.isoformat() if atividade.data_validacao_utc else None
-            }]
-        )
-
-        logger.info(f"[GOVERNANÇA] Atividade {atividade.cap_oficial} injetada no CSV com sucesso!")
-
-        return True
-
-    except Exception as e:
-        logger.error(f"[GOVERNANÇA] Erro ao injetar atividade no CSV: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
 
 
 # ============================================================================
@@ -610,27 +124,30 @@ def injetar_atividade_no_csv(
 class POPStateMachine:
     """Máquina de estados para coletar dados do POP"""
 
+    # Estrutura padrão de dados coletados (evita duplicação)
+    DADOS_COLETADOS_DEFAULT = {
+        'nome_processo': '',
+        'entrega_esperada': '',
+        'dispositivos_normativos': [],
+        'operadores': [],
+        'sistemas': [],
+        'documentos': [],
+        'fluxos_entrada': [],
+        'fluxos_saida': []
+    }
+
     def __init__(self):
-        self.estado = EstadoPOP.NOME_USUARIO  # ✅ FIX: começa direto em NOME_USUARIO
+        self.estado = EstadoPOP.NOME_USUARIO
         self.nome_usuario = ""
         self.nome_temporario = ""
         self.area_selecionada = None
-        self.subarea_selecionada = None  # 🆕 Para áreas com subáreas (ex: DIGEP)
+        self.subarea_selecionada = None
         self.macro_selecionado = None
         self.processo_selecionado = None
         self.subprocesso_selecionado = None
         self.atividade_selecionada = None
-        self.codigo_cap = None  # 🎯 CÓDIGO ÚNICO DO PROCESSO (CPF)
-        self.dados_coletados = {
-            'nome_processo': '',
-            'entrega_esperada': '',
-            'dispositivos_normativos': [],
-            'operadores': [],
-            'sistemas': [],
-            'documentos': [],
-            'fluxos_entrada': [],
-            'fluxos_saida': []
-        }
+        self.codigo_cap = None
+        self.dados_coletados = {**self.DADOS_COLETADOS_DEFAULT}
         self.concluido = False
         # Controle de delegação para Helena Mapeamento
         self.em_modo_duvidas = False
@@ -671,16 +188,7 @@ class POPStateMachine:
         sm.subprocesso_selecionado = data.get('subprocesso_selecionado')
         sm.atividade_selecionada = data.get('atividade_selecionada')
         sm.codigo_cap = data.get('codigo_cap')  # 🎯 CAP ÚNICO
-        sm.dados_coletados = data.get('dados_coletados', {
-            'nome_processo': '',
-            'entrega_esperada': '',
-            'dispositivos_normativos': [],
-            'operadores': [],
-            'sistemas': [],
-            'documentos': [],
-            'fluxos_entrada': [],
-            'fluxos_saida': []
-        })
+        sm.dados_coletados = data.get('dados_coletados', {**cls.DADOS_COLETADOS_DEFAULT})
         sm.concluido = data.get('concluido', False)
         sm.em_modo_duvidas = data.get('em_modo_duvidas', False)
         sm.contexto_duvidas = data.get('contexto_duvidas')
@@ -727,485 +235,70 @@ class HelenaPOP(BaseHelena):
         self._codigos_sugeridos = set()
         self._normas_sugeridas = set()
 
+        # Lazy loading do pipeline de busca
+        self._pipeline_instance = None
+
+    # ========================================================================
+    # HELPER - Detecção de Intenção
+    # ========================================================================
+
+    def _detectar_intencao(self, msg: str, tipo: str) -> bool:
+        """
+        Detecta intenção do usuário baseado em palavras-chave.
+
+        Args:
+            msg: Texto do usuário (deve estar em lowercase)
+            tipo: 'confirmacao', 'negacao', 'duvidas', 'detalhes', 'objetiva',
+                  'edicao', 'pausa', 'cancelar', 'mais_pergunta'
+
+        Returns:
+            True se alguma palavra-chave do tipo foi encontrada na mensagem
+        """
+        palavras_map = {
+            'confirmacao': PALAVRAS_CONFIRMACAO,
+            'negacao': PALAVRAS_NEGACAO,
+            'duvidas': PALAVRAS_DUVIDAS,
+            'detalhes': PALAVRAS_DETALHES,
+            'objetiva': PALAVRAS_OBJETIVA,
+            'edicao': PALAVRAS_EDICAO,
+            'pausa': PALAVRAS_PAUSA,
+            'cancelar': PALAVRAS_CANCELAR,
+            'mais_pergunta': PALAVRAS_MAIS_PERGUNTA,
+        }
+        palavras = palavras_map.get(tipo, frozenset())
+        return any(palavra in msg for palavra in palavras)
+
+    @property
+    def _pipeline(self):
+        """Lazy loading do BuscaAtividadePipeline (instância única)"""
+        if self._pipeline_instance is None:
+            from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
+            self._pipeline_instance = BuscaAtividadePipeline()
+        return self._pipeline_instance
+
+    # ========================================================================
+    # PROPERTIES - Usam os loaders extraídos em processos/infra/loaders/
+    # ========================================================================
+
     @property
     def AREAS_DECIPEX(self) -> Dict[int, Dict[str, str]]:
-        """
-        Áreas organizacionais carregadas do CSV.
-
-        Carrega de: documentos_base/areas_organizacionais.csv
-        Fallback: Dados hardcoded (segurança)
-        """
-        return self._carregar_areas_organizacionais()
-
-    def _carregar_areas_organizacionais(self) -> Dict[int, Dict[str, str]]:
-        """
-        Carrega áreas do CSV com fallback hardcoded.
-
-        Permite escalabilidade: mesmo código serve para DECIPEX, MGI, outros órgãos.
-        Basta trocar o CSV ou usar variável de ambiente.
-        """
-        import os
-
-        # Caminho do CSV (pode ser configurado via env var)
-        # __file__ = processos/domain/helena_produtos/helena_pop.py
-        # dirname 1x = processos/domain/helena_produtos/
-        # dirname 2x = processos/domain/
-        # dirname 3x = processos/
-        # dirname 4x = raiz do projeto
-        csv_path = os.environ.get(
-            'AREAS_CSV_PATH',
-            os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                'documentos_base',
-                'areas_organizacionais.csv'
-            )
-        )
-
-        try:
-            # 🔧 FIX: Forçar encoding UTF-8 para evitar problemas com caracteres especiais
-            df = pd.read_csv(csv_path, encoding='utf-8')
-
-            # Filtrar apenas áreas ativas E que não sejam subáreas (area_pai vazio/NaN)
-            # Subáreas serão carregadas dentro das áreas principais
-            if 'area_pai' in df.columns:
-                df_ativas = df[(df['ativo'] == True) & (df['area_pai'].isna())].sort_values('ordem')
-            else:
-                df_ativas = df[df['ativo'] == True].sort_values('ordem')
-
-            # Converter para dicionário no formato esperado
-            areas_dict = {}
-            for idx, row in df_ativas.iterrows():
-                # FIX: Tratar prefixo corretamente (remover .0 de inteiros, manter decimais)
-                prefixo_float = float(row['prefixo'])
-                if prefixo_float == int(prefixo_float):
-                    # É inteiro: 6.0 -> "6"
-                    prefixo_tratado = str(int(prefixo_float))
-                else:
-                    # Tem decimal: 5.1 -> "5.1"
-                    prefixo_tratado = str(prefixo_float)
-
-                area_info = {
-                    "codigo": row['codigo'],
-                    "sigla": row['codigo'],  # Frontend espera 'sigla'
-                    "nome": row['nome_completo'],
-                    "prefixo": prefixo_tratado
-                }
-
-                # Adicionar informações de subáreas se existirem
-                if 'tem_subareas' in row and row['tem_subareas'] in [True, 'true', 'True']:
-                    area_info['tem_subareas'] = True
-                    # Buscar subáreas dessa área no DataFrame completo (não filtrado)
-                    if 'area_pai' in df.columns:
-                        subareas = df[(df['ativo'] == True) & (df['area_pai'] == row['codigo'])]
-                    else:
-                        subareas = pd.DataFrame()  # Vazio se não houver coluna area_pai
-                    if not subareas.empty:
-                        subareas_list = []
-                        for _, sub in subareas.iterrows():
-                            # FIX: Tratar prefixo das subáreas corretamente
-                            sub_prefixo_float = float(sub['prefixo'])
-                            if sub_prefixo_float == int(sub_prefixo_float):
-                                sub_prefixo = str(int(sub_prefixo_float))
-                            else:
-                                sub_prefixo = str(sub_prefixo_float)
-
-                            subareas_list.append({
-                                'codigo': sub['codigo'],
-                                'nome': sub['nome_curto'],
-                                'nome_completo': sub['nome_completo'],
-                                'prefixo': sub_prefixo
-                            })
-                        area_info['subareas'] = subareas_list
-                else:
-                    area_info['tem_subareas'] = False
-
-                areas_dict[int(row['ordem'])] = area_info
-
-            logger.info(f"[AREAS] Carregadas do CSV: {len(areas_dict)} areas ativas")
-            # 🔍 DEBUG: Mostrar primeiras 3 áreas carregadas
-            print(f"\n📊 [AREAS CSV] Carregadas {len(areas_dict)} áreas ativas:")
-            for key in sorted(list(areas_dict.keys())[:3]):
-                area = areas_dict[key]
-                print(f"   {key}: {area['codigo']} - {area['nome'][:50]}")
-            print()
-            return areas_dict
-
-        except Exception as e:
-            logger.warning(f"⚠️ Erro ao carregar CSV de áreas ({e}). Usando fallback hardcoded.")
-
-            # FALLBACK: Dados hardcoded (segurança)
-            return {
-                1: {"codigo": "CGBEN", "nome": "Coordenação Geral de Benefícios", "prefixo": "1"},
-                2: {"codigo": "CGPAG", "nome": "Coordenação Geral de Pagamentos", "prefixo": "2"},
-                3: {"codigo": "COATE", "nome": "Coordenação de Atendimento", "prefixo": "3"},
-                4: {"codigo": "CGGAF", "nome": "Coordenação Geral de Gestão de Acervos Funcionais", "prefixo": "4"},
-                5: {"codigo": "DIGEP", "nome": "Divisão de Pessoal dos Ex-Territórios", "prefixo": "5"},
-                6: {"codigo": "CGRIS", "nome": "Coordenação Geral de Riscos e Controle", "prefixo": "6"},
-                7: {"codigo": "CGCAF", "nome": "Coordenação Geral de Gestão de Complementação da Folha", "prefixo": "7"},
-                8: {"codigo": "CGECO", "nome": "Coordenação Geral de Extinção e Convênio", "prefixo": "8"}
-            }
+        """Áreas organizacionais carregadas do CSV via loader."""
+        return carregar_areas_organizacionais()
 
     @property
     def DESCRICOES_AREAS(self) -> Dict[str, str]:
-        """
-        Descrições personalizadas de cada área (carregadas do CSV).
-
-        Retorna: {codigo: descricao}
-        Exemplo: {"CGBEN": "que cuida das concessões..."}
-        """
-        import os
-
-        csv_path = os.environ.get(
-            'AREAS_CSV_PATH',
-            os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                'documentos_base',
-                'areas_organizacionais.csv'
-            )
-        )
-
-        try:
-            df = pd.read_csv(csv_path)
-            df_ativas = df[df['ativo'] == True]
-
-            # Converter para dicionário {codigo: descricao}
-            descricoes = {}
-            for idx, row in df_ativas.iterrows():
-                descricoes[row['codigo']] = row['descricao']
-
-            return descricoes
-
-        except Exception as e:
-            # FALLBACK: Dados hardcoded
-            return {
-                "CGBEN": "que cuida das concessões, manutenções e revisões de aposentadorias e pensões, garantindo direitos e segurança jurídica aos beneficiários.",
-                "CGPAG": "responsável pela execução e controle da folha de pagamentos dos aposentados e pensionistas, garantindo que tudo ocorra com precisão e transparência.",
-                "COATE": "que acolhe, orienta e soluciona as demandas dos cidadãos e servidores, garantindo um atendimento humano e eficiente.",
-                "CGGAF": "que organiza, digitaliza e mantém o acervo funcional dos servidores, preservando a memória e o acesso seguro às informações.",
-                "DIGEP": "que assegura os direitos dos servidores vinculados aos ex-territórios, conduzindo análises e gestões complexas com zelo e compromisso histórico.",
-                "CGRIS": "que fortalece a governança, os controles internos e a integridade institucional, promovendo uma gestão pública mais segura e eficiente.",
-                "CGCAF": "responsável pela gestão das complementações de aposentadorias e pensões, garantindo equilíbrio e correção dos pagamentos.",
-                "CGECO": "que gerencia processos de encerramento de órgãos e acordos administrativos, preservando a continuidade institucional e a responsabilidade pública."
-            }
+        """Descrições personalizadas de cada área via loader."""
+        return carregar_descricoes_areas()
 
     @property
     def SISTEMAS_DECIPEX(self) -> Dict[str, List[str]]:
-        """
-        Sistemas carregados do CSV organizados por categoria.
-
-        Carrega de: documentos_base/sistemas.csv
-        Fallback: Dados hardcoded (segurança)
-        """
-        return self._carregar_sistemas()
-
-    def _carregar_sistemas(self) -> Dict[str, List[str]]:
-        """
-        Carrega sistemas do CSV com fallback hardcoded.
-
-        Permite escalabilidade: mesmo código serve para DECIPEX, MGI, outros órgãos.
-        Basta trocar o CSV ou usar variável de ambiente.
-        """
-        import os
-
-        # Caminho do CSV (pode ser configurado via env var)
-        csv_path = os.environ.get(
-            'SISTEMAS_CSV_PATH',
-            os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                'documentos_base',
-                'sistemas.csv'
-            )
-        )
-
-        try:
-            df = pd.read_csv(csv_path)
-
-            # Filtrar apenas sistemas ativos
-            df_ativos = df[df['ativo'] == True].sort_values('ordem')
-
-            # Agrupar por categoria
-            sistemas_dict = {}
-            for categoria in df_ativos['categoria'].unique():
-                sistemas_da_categoria = df_ativos[df_ativos['categoria'] == categoria]['nome'].tolist()
-                sistemas_dict[categoria] = sistemas_da_categoria
-
-            logger.info(f"[SISTEMAS] Carregados do CSV: {len(df_ativos)} sistemas em {len(sistemas_dict)} categorias")
-            return sistemas_dict
-
-        except Exception as e:
-            logger.warning(f"⚠️ Erro ao carregar CSV de sistemas ({e}). Usando fallback hardcoded.")
-
-            # FALLBACK: Dados hardcoded (segurança)
-            return {
-                "gestao_pessoal": ["SIAPE", "E-SIAPE", "SIGEPE", "SIGEP - AFD", "E-Pessoal TCU", "SIAPNET", "SIGAC"],
-                "documentos": ["SEI", "DOINET", "DOU", "SOUGOV", "PETRVS"],
-                "transparencia": ["Portal da Transparência", "CNIS", "Site CGU-PAD", "Sistema de Pesquisa Integrada do TCU", "Consulta CPF RFB"],
-                "previdencia": ["SISTEMA COMPREV", "BG COMPREV"],
-                "comunicacao": ["TEAMS", "OUTLOOK"],
-                "outros": ["DW"]
-            }
+        """Sistemas carregados do CSV via loader."""
+        return carregar_sistemas()
 
     @property
     def OPERADORES_DECIPEX(self) -> List[str]:
-        """
-        Operadores carregados do CSV.
-
-        Carrega de: documentos_base/operadores.csv
-        Fallback: Dados hardcoded (segurança)
-        """
-        return self._carregar_operadores()
-
-    def _carregar_operadores(self) -> List[str]:
-        """
-        Carrega operadores do CSV com fallback hardcoded.
-
-        Permite escalabilidade: mesmo código serve para DECIPEX, MGI, outros órgãos.
-        Basta trocar o CSV ou usar variável de ambiente.
-        """
-        import os
-
-        # Caminho do CSV (pode ser configurado via env var)
-        csv_path = os.environ.get(
-            'OPERADORES_CSV_PATH',
-            os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                'documentos_base',
-                'operadores.csv'
-            )
-        )
-
-        try:
-            df = pd.read_csv(csv_path)
-
-            # Filtrar apenas operadores ativos
-            df_ativos = df[df['ativo'] == True].sort_values('ordem')
-
-            # Converter para lista no formato esperado
-            operadores_list = df_ativos['nome'].tolist()
-
-            logger.info(f"[OPERADORES] Carregados do CSV: {len(operadores_list)} operadores ativos")
-            return operadores_list
-
-        except Exception as e:
-            logger.warning(f"⚠️ Erro ao carregar CSV de operadores ({e}). Usando fallback hardcoded.")
-
-            # FALLBACK: Dados hardcoded (segurança)
-            return [
-                "Técnico Especializado",
-                "Coordenador-Geral",
-                "Coordenador",
-                "Apoio-gabinete",
-                "Equipe técnica",
-                "Outros (especificar)"
-            ]
-
-    def _carregar_orgaos_centralizados(self) -> List[Dict[str, str]]:
-        """
-        Carrega órgãos centralizados do CSV com fallback hardcoded.
-
-        Carrega de: documentos_base/orgaos_centralizados.csv
-        Fallback: Dados hardcoded (segurança)
-
-        Returns:
-            List[Dict]: Lista de dicionários com sigla, nome_completo, observacao
-        """
-        import os
-
-        # Caminho do CSV
-        csv_path = os.environ.get(
-            'ORGAOS_CENTRALIZADOS_CSV_PATH',
-            os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                'documentos_base',
-                'orgaos_centralizados.csv'
-            )
-        )
-
-        try:
-            # 🔧 FIX: Forçar encoding UTF-8 para evitar problemas com caracteres especiais
-            df = pd.read_csv(csv_path, encoding='utf-8')
-
-            # Filtrar apenas órgãos ativos (mesma lógica de areas_organizacionais)
-            if 'ativo' in df.columns:
-                df_ativos = df[df['ativo'] == True]
-            else:
-                df_ativos = df  # Fallback: se não houver coluna ativo, pega todos
-
-            # Converter para lista de dicionários
-            orgaos_list = []
-            for _, row in df_ativos.iterrows():
-                orgaos_list.append({
-                    'sigla': row['sigla'],
-                    'nome_completo': row['nome_completo'],
-                    'observacao': row.get('observacao', '')
-                })
-
-            logger.info(f"[ORGAOS] Centralizados carregados do CSV: {len(orgaos_list)} órgãos ativos")
-            # 🔍 DEBUG: Mostrar primeiros 3 órgãos carregados
-            print(f"\n📊 [ORGAOS CSV] Carregados {len(orgaos_list)} órgãos ativos:")
-            for i, orgao in enumerate(orgaos_list[:3]):
-                print(f"   {i+1}: {orgao['sigla']} - {orgao['nome_completo'][:50]}")
-            print()
-            return orgaos_list
-
-        except Exception as e:
-            logger.warning(f"⚠️ Erro ao carregar CSV de órgãos centralizados ({e}). Usando fallback hardcoded.")
-
-            # FALLBACK: Dados hardcoded (segurança)
-            return [
-                {'sigla': 'MGI', 'nome_completo': 'Ministério da Gestão e da Inovação em Serviços Públicos', 'observacao': ''},
-                {'sigla': 'MF', 'nome_completo': 'Ministério da Fazenda', 'observacao': ''},
-                {'sigla': 'MPO', 'nome_completo': 'Ministério do Planejamento e Orçamento', 'observacao': ''},
-                {'sigla': 'INSS', 'nome_completo': 'Instituto Nacional do Seguro Social', 'observacao': 'Médicos peritos'},
-                {'sigla': 'RFB', 'nome_completo': 'Receita Federal do Brasil', 'observacao': ''},
-            ]
-
-    def _carregar_canais_atendimento(self) -> List[Dict[str, str]]:
-        """
-        Carrega canais de atendimento do CSV com fallback hardcoded.
-
-        Carrega de: documentos_base/canais_atendimento.csv
-        Fallback: Dados hardcoded (segurança)
-
-        Returns:
-            List[Dict]: Lista de dicionários com codigo, nome, descricao
-        """
-        import os
-
-        # Caminho do CSV
-        csv_path = os.environ.get(
-            'CANAIS_ATENDIMENTO_CSV_PATH',
-            os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                'documentos_base',
-                'canais_atendimento.csv'
-            )
-        )
-
-        try:
-            # 🔧 FIX: Forçar encoding UTF-8 para evitar problemas com caracteres especiais
-            df = pd.read_csv(csv_path, encoding='utf-8')
-
-            # Filtrar apenas canais ativos (mesma lógica de areas_organizacionais)
-            if 'ativo' in df.columns:
-                df_ativos = df[df['ativo'] == True]
-            else:
-                df_ativos = df  # Fallback: se não houver coluna ativo, pega todos
-
-            # Converter para lista de dicionários
-            canais_list = []
-            for _, row in df_ativos.iterrows():
-                canais_list.append({
-                    'codigo': row['codigo'],
-                    'nome': row['nome'],
-                    'descricao': row.get('descricao', '')
-                })
-
-            logger.info(f"[CANAIS] Atendimento carregados do CSV: {len(canais_list)} canais ativos")
-            # 🔍 DEBUG: Mostrar primeiros 3 canais carregados
-            print(f"\n📊 [CANAIS CSV] Carregados {len(canais_list)} canais ativos:")
-            for i, canal in enumerate(canais_list[:3]):
-                print(f"   {i+1}: {canal['codigo']} - {canal['nome']}")
-            print()
-            return canais_list
-
-        except Exception as e:
-            logger.warning(f"⚠️ Erro ao carregar CSV de canais de atendimento ({e}). Usando fallback hardcoded.")
-
-            # FALLBACK: Dados hardcoded (segurança)
-            return [
-                {'codigo': 'SOUGOV', 'nome': 'SouGov.br', 'descricao': 'Portal de serviços do governo federal'},
-                {'codigo': 'CENTRAL_TEL', 'nome': 'Central de Atendimento Telefônico', 'descricao': 'Atendimento por telefone (call center)'},
-                {'codigo': 'ATEND_PRES', 'nome': 'Atendimento Presencial', 'descricao': 'Atendimento em balcão/guichê'},
-                {'codigo': 'PROTOCOLO_DIG', 'nome': 'Protocolo Digital', 'descricao': 'Sistema de protocolo eletrônico'},
-                {'codigo': 'ENT_REPRES', 'nome': 'Entidade Representativa', 'descricao': 'Sindicatos e associações de classe'},
-                {'codigo': 'EMAIL', 'nome': 'E-mail', 'descricao': 'Atendimento por correio eletrônico'},
-            ]
-
-    def _carregar_arquitetura_csv(self) -> Dict[str, Any]:
-        """
-        Carrega CSV com 107 atividades mapeadas e estrutura hierarquicamente.
-
-        Returns:
-            dict: Estrutura hierárquica {
-                'macroprocessos': {
-                    'Gestão de Benefícios Previdenciários': {
-                        'processos': {
-                            'Gestão de Aposentadorias': {
-                                'subprocessos': {
-                                    'Concessão de aposentadorias': {
-                                        'atividades': ['Conceder benefício...', ...]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                'flat_list': [  # Lista plana para busca rápida
-                    {
-                        'macroprocesso': '...',
-                        'processo': '...',
-                        'subprocesso': '...',
-                        'atividade': '...'
-                    }
-                ]
-            }
-        """
-        import os
-
-        csv_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-            'documentos_base',
-            'Arquitetura_DECIPEX_mapeada.csv'
-        )
-
-        try:
-            df = pd.read_csv(csv_path, encoding='utf-8')
-
-            # Estrutura hierárquica
-            hierarquia = {}
-            lista_plana = []
-
-            for _, row in df.iterrows():
-                macro = row['Macroprocesso']
-                processo = row['Processo']
-                subprocesso = row['Subprocesso']
-                atividade = row['Atividade']
-
-                # Pular linhas vazias
-                if pd.isna(macro) or pd.isna(atividade):
-                    continue
-
-                # Adicionar à lista plana
-                lista_plana.append({
-                    'macroprocesso': macro,
-                    'processo': processo,
-                    'subprocesso': subprocesso,
-                    'atividade': atividade
-                })
-
-                # Construir hierarquia
-                if macro not in hierarquia:
-                    hierarquia[macro] = {'processos': {}}
-
-                if processo not in hierarquia[macro]['processos']:
-                    hierarquia[macro]['processos'][processo] = {'subprocessos': {}}
-
-                if subprocesso not in hierarquia[macro]['processos'][processo]['subprocessos']:
-                    hierarquia[macro]['processos'][processo]['subprocessos'][subprocesso] = {'atividades': []}
-
-                hierarquia[macro]['processos'][processo]['subprocessos'][subprocesso]['atividades'].append(atividade)
-
-            logger.info(f"[ATIVIDADES] CSV carregado: {len(lista_plana)} atividades em hierarquia")
-
-            return {
-                'macroprocessos': hierarquia,
-                'flat_list': lista_plana
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Erro ao carregar CSV de arquitetura: {e}")
-            return {'macroprocessos': {}, 'flat_list': []}
+        """Operadores carregados do CSV via loader."""
+        return carregar_operadores()
 
     def _preparar_dados_dropdown_hierarquico(self) -> Dict[str, Any]:
         """
@@ -1214,7 +307,7 @@ class HelenaPOP(BaseHelena):
         Returns:
             dict: Dados formatados para o frontend renderizar os dropdowns cascateados
         """
-        estrutura = self._carregar_arquitetura_csv()
+        estrutura = carregar_arquitetura_csv()
 
         # Formato para o frontend
         dados_dropdown = {
@@ -1401,6 +494,15 @@ class HelenaPOP(BaseHelena):
 
         metadados_extra['progresso_detalhado'] = progresso_detalhado
 
+        # Transição automática para HelenaEtapas quando POP finalizado
+        if novo_sm.concluido:
+            metadados_extra['mudar_contexto'] = 'etapas'
+            metadados_extra['dados_herdados'] = {
+                'nome_usuario': novo_sm.nome_usuario,
+                'area_selecionada': novo_sm.area_selecionada,
+                'dados_coletados': novo_sm.dados_coletados,
+            }
+
         # Mesclar metadados_arquitetura se existir (vindo do pipeline)
         if metadados_arquitetura:
             metadados_extra.update(metadados_arquitetura)
@@ -1484,21 +586,12 @@ class HelenaPOP(BaseHelena):
 
         elif novo_sm.estado == EstadoPOP.AREA_DECIPEX:
             tipo_interface = 'areas'
-
-            # 🔍 DEBUG: Ver o que tem em AREAS_DECIPEX
-            print(f"\n🏢 [ESTADO AREA_DECIPEX] Construindo interface de áreas...")
-            print(f"   self.AREAS_DECIPEX tem {len(self.AREAS_DECIPEX)} áreas")
-            for num, info in list(self.AREAS_DECIPEX.items())[:3]:
-                print(f"   {num}: {info}")
-
             dados_interface = {
                 'opcoes_areas': {
                     str(num): {'codigo': info['codigo'], 'nome': info['nome']}
                     for num, info in self.AREAS_DECIPEX.items()
                 }
             }
-
-            print(f"   📦 opcoes_areas criado com {len(dados_interface['opcoes_areas'])} itens\n")
 
         elif novo_sm.estado == EstadoPOP.SUBAREA_DECIPEX:
             tipo_interface = 'subareas'
@@ -1662,6 +755,7 @@ class HelenaPOP(BaseHelena):
             return r[:100]
 
         logger.info(f"[DEBUG] Dados preparados: CAP={formulario_pop.get('codigo_cap')}, Macro={formulario_pop.get('macroprocesso')}, Atividade={formulario_pop.get('atividade')}")
+        logger.info(f"[DEBUG] dados_extraidos.operadores = {dados_extraidos.get('operadores')}")
         logger.debug(f"[RETORNO FINAL] tipo_interface={tipo_interface}, dados_interface presente={dados_interface is not None}, resposta={_short(resposta)}")
 
         # 🔍 DEBUG CRÍTICO: Log completo antes de retornar
@@ -1685,6 +779,158 @@ class HelenaPOP(BaseHelena):
         )
 
     # ========================================================================
+    # HELPERS
+    # ========================================================================
+
+    def _obter_contexto_area(self, sm: POPStateMachine) -> tuple[str, str]:
+        """Retorna (area_nome, area_codigo) baseado na seleção do usuário."""
+        if sm.subarea_selecionada:
+            area_nome = sm.subarea_selecionada.get('nome_completo', sm.subarea_selecionada.get('nome', ''))
+            area_codigo = sm.subarea_selecionada.get('codigo', '')
+        elif sm.area_selecionada:
+            area_nome = sm.area_selecionada.get('nome', '')
+            area_codigo = sm.area_selecionada.get('codigo', '')
+        else:
+            area_nome = 'DECIPEX'
+            area_codigo = 'DECIPEX'
+        return area_nome, area_codigo
+
+    def _parse_json_seguro(self, mensagem: str) -> dict | list | None:
+        """Parse JSON de forma segura, retornando None se falhar."""
+        try:
+            return json.loads(mensagem)
+        except (json.JSONDecodeError, TypeError):
+            return None
+
+    def _parsear_fluxo_json(self, dados_json, chave_lista: str, chave_outros: str, formato_entrada: bool = True) -> list | None:
+        """Extrai lista de fluxos de JSON estruturado (entrada ou saída).
+
+        ⚠️ IMPORTANTE: Rejeita listas simples de strings (como operadores).
+        Aceita apenas:
+        - dict com chaves origens_selecionadas/destinos_selecionados
+        - None (para fallback a texto)
+        """
+        # ✅ FIX: Rejeitar listas simples (ex: ["Coordenador-Geral"] de operadores)
+        # Fluxos válidos vêm como dict com chaves específicas
+        if not isinstance(dados_json, dict):
+            # Se for lista simples de strings, REJEITAR (retorna None para usar fallback)
+            if isinstance(dados_json, list):
+                # Verificar se parece com dados de operadores (lista de strings simples)
+                if all(isinstance(item, str) for item in dados_json):
+                    logger.warning(f"[_parsear_fluxo_json] Rejeitando lista simples de strings: {dados_json[:3]}...")
+                    return None  # Força uso do fallback (texto)
+            return None
+
+        fluxos = []
+        for item in dados_json.get(chave_lista, []):
+            if isinstance(item, dict):
+                tipo = item.get('tipo', '')
+                espec = item.get('especificacao', '')
+                if espec:
+                    fluxos.append(f"{tipo}: {espec}" if formato_entrada else f"{tipo} ({espec})")
+                else:
+                    fluxos.append(tipo)
+            else:
+                fluxos.append(str(item))
+
+        if dados_json.get(chave_outros):
+            fluxos.append(dados_json[chave_outros])
+
+        return fluxos
+
+    def _processar_resposta_rag(self, descricao: str, sm: POPStateMachine) -> tuple:
+        """Processa descrição do usuário na Camada 4 RAG e retorna interface ou erro."""
+        hierarquia_herdada = {
+            'macroprocesso': sm.macro_selecionado,
+            'processo': sm.processo_selecionado,
+            'subprocesso': sm.subprocesso_selecionado
+        }
+        area_codigo = sm.subarea_selecionada['codigo'] if sm.subarea_selecionada else sm.area_selecionada['codigo']
+        autor_dados = {
+            'nome': sm.nome_usuario or "Usuário",
+            'cpf': "00000000000",
+            'area_codigo': area_codigo,
+            'area_nome': sm.area_selecionada['nome']
+        }
+
+        pipeline = self._pipeline
+        resultado = pipeline._camada4_processar_resposta(
+            descricao_atividade=descricao,
+            hierarquia_herdada=hierarquia_herdada,
+            area_codigo=area_codigo,
+            autor_dados=autor_dados
+        )
+
+        if resultado.get('sucesso'):
+            ativ = resultado['atividade']
+            sm.macro_selecionado = ativ['macroprocesso']
+            sm.processo_selecionado = ativ['processo']
+            sm.subprocesso_selecionado = ativ['subprocesso']
+            sm.atividade_selecionada = ativ['atividade']
+            sm.codigo_cap = resultado.get('cap', 'PROVISORIO')
+
+            metadados_extra = {
+                'interface': {
+                    'tipo': 'sugestao_atividade',
+                    'dados': {
+                        'atividade': ativ,
+                        'cap': resultado.get('cap'),
+                        'origem': 'rag_nova_atividade',
+                        'score': 1.0,
+                        'pode_editar': True,
+                        'tipo_cap': 'oficial_gerado_rag',
+                        'mensagem': resultado.get('mensagem', '')
+                    }
+                }
+            }
+            return "", sm, metadados_extra
+        else:
+            return "Desculpe, ocorreu um erro ao criar a atividade. Tente novamente.", sm, None
+
+    def _sugerir_entrega_esperada(self, sm: POPStateMachine, descricao_usuario: str = None) -> str | None:
+        """
+        Sugere entrega esperada usando Helena Ajuda Inteligente.
+
+        Args:
+            sm: State machine com dados da arquitetura selecionada
+            descricao_usuario: Descrição original do usuário (opcional)
+
+        Returns:
+            Sugestão de entrega esperada ou None se falhar
+        """
+        try:
+            from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
+
+            area_nome, area_codigo = self._obter_contexto_area(sm)
+
+            contexto = {
+                'area': area_nome,
+                'area_codigo': area_codigo,
+                'macroprocesso': sm.macro_selecionado,
+                'processo': sm.processo_selecionado,
+                'subprocesso': sm.subprocesso_selecionado,
+                'atividade': sm.atividade_selecionada
+            }
+
+            descricao = descricao_usuario or sm.dados_coletados.get('descricao_original') or sm.atividade_selecionada
+
+            resultado = analisar_atividade_com_helena(
+                descricao_usuario=descricao,
+                nivel_atual='resultado_final',
+                contexto_ja_selecionado=contexto
+            )
+
+            if resultado.get('sucesso') and 'resultado_final' in resultado.get('sugestao', {}):
+                sugestao = resultado['sugestao']['resultado_final']
+                logger.info(f"[ENTREGA] Sugestao IA: {sugestao}")
+                return sugestao
+
+        except Exception as e:
+            logger.error(f"[ENTREGA] Erro ao sugerir entrega: {e}")
+
+        return None
+
+    # ========================================================================
     # PROCESSADORES DE ESTADO
     # ========================================================================
 
@@ -1698,8 +944,6 @@ class HelenaPOP(BaseHelena):
         - Frontend já mostra mensagem hardcoded
         - Backend apenas processa o nome, sem repetir introdução
         """
-        import re
-
         msg_limpa = mensagem.strip()
         palavras = msg_limpa.split()
 
@@ -1777,7 +1021,7 @@ class HelenaPOP(BaseHelena):
         """Processa confirmação do nome e vai direto para escolha de tipo de explicação"""
         msg_lower = mensagem.lower().strip()
 
-        if any(palavra in msg_lower for palavra in ['sim', 's', 'pode', 'ok', 'claro']):
+        if self._detectar_intencao(msg_lower, 'confirmacao'):
             sm.nome_usuario = sm.nome_temporario
             sm.estado = EstadoPOP.ESCOLHA_TIPO_EXPLICACAO
 
@@ -1800,13 +1044,13 @@ class HelenaPOP(BaseHelena):
         msg_lower = mensagem.lower().strip()
 
         # Explicação detalhada/longa
-        if any(palavra in msg_lower for palavra in ['detalhada', 'longa', 'detalhes', 'completa']):
+        if self._detectar_intencao(msg_lower, 'detalhes'):
             sm.estado = EstadoPOP.EXPLICACAO_LONGA
             resposta = self._gerar_explicacao_longa_com_delay()
             return resposta, sm
 
         # Explicação objetiva/curta (fluxo atual)
-        elif any(palavra in msg_lower for palavra in ['objetiva', 'curta', 'rápida', 'rapida', 'resumida']):
+        elif self._detectar_intencao(msg_lower, 'objetiva'):
             sm.estado = EstadoPOP.EXPLICACAO
             sm.tipo_interface = 'confirmacao_explicacao'
             sm.dados_interface = {
@@ -1836,7 +1080,7 @@ class HelenaPOP(BaseHelena):
         msg_lower = mensagem.lower().strip()
 
         # Entendeu tudo - vai para PEDIDO DE COMPROMISSO
-        if any(palavra in msg_lower for palavra in ['sim', 's', 'entendi', 'ok', 'claro', 'beleza', 'tudo']):
+        if self._detectar_intencao(msg_lower, 'confirmacao'):
             sm.estado = EstadoPOP.PEDIDO_COMPROMISSO
 
             resposta = (
@@ -1851,7 +1095,7 @@ class HelenaPOP(BaseHelena):
             return resposta, sm
 
         # Ainda tem dúvidas - ativar Helena Mapeamento internamente
-        elif any(palavra in msg_lower for palavra in ['não', 'nao', 'n', 'duvida', 'dúvida']):
+        elif self._detectar_intencao(msg_lower, 'negacao') or self._detectar_intencao(msg_lower, 'duvidas'):
             sm.estado = EstadoPOP.DUVIDAS_EXPLICACAO
             # Flag para indicar que está em modo dúvidas (Helena Mapeamento ativo)
             sm.em_modo_duvidas = True
@@ -2004,9 +1248,7 @@ class HelenaPOP(BaseHelena):
             return resposta, sm
 
         # Aceita qualquer resposta positiva (ambas opções levam para o mesmo lugar)
-        respostas_positivas = ['sim', 'pode', 'conte', 'contigo', 'melhor', 'farei', 'ok', 'claro', 'vamos', 'junto']
-
-        if any(palavra in msg_lower for palavra in respostas_positivas):
+        if self._detectar_intencao(msg_lower, 'confirmacao'):
             sm.estado = EstadoPOP.AREA_DECIPEX
 
             resposta = (
@@ -2124,20 +1366,16 @@ class HelenaPOP(BaseHelena):
         CAMADA 3: Seleção Manual Hierárquica
         CAMADA 4: RAG (criação de nova atividade)
         """
-        import json
-
         # ================================================================
         # DETECTAR SE É RESPOSTA DE INTERFACE (JSON)
         # ================================================================
-        try:
-            dados_resposta = json.loads(mensagem)
+        dados_resposta = self._parse_json_seguro(mensagem)
+        if dados_resposta:
             acao = dados_resposta.get('acao')
 
             # Se o usuário clicou "Não encontrei" na Camada 3
             if acao == 'nao_encontrei':
                 logger.info("[HELENA POP] Usuário clicou 'Não encontrei' - acionando Camada 4 (RAG)")
-
-                from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
 
                 # Preparar dados do autor
                 area_codigo = sm.subarea_selecionada['codigo'] if sm.subarea_selecionada else sm.area_selecionada['codigo']
@@ -2148,7 +1386,7 @@ class HelenaPOP(BaseHelena):
                     'area_nome': sm.area_selecionada['nome']
                 }
 
-                pipeline = BuscaAtividadePipeline()
+                pipeline = self._pipeline
                 hierarquia_selecionada = dados_resposta.get('selecao')
 
                 # Chamar Camada 4 com hierarquia selecionada
@@ -2186,66 +1424,11 @@ class HelenaPOP(BaseHelena):
             # Se o usuário enviou descrição na Camada 4
             elif acao == 'enviar_descricao':
                 logger.info("[HELENA POP] Processando descrição da Camada 4 (RAG)")
-
-                from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
-
-                descricao_atividade = dados_resposta.get('descricao')
-
-                # Recuperar hierarquia herdada do estado (foi salva na etapa anterior)
-                hierarquia_herdada = {
-                    'macroprocesso': sm.macro_selecionado,
-                    'processo': sm.processo_selecionado,
-                    'subprocesso': sm.subprocesso_selecionado
-                }
-
-                # Preparar dados
-                area_codigo = sm.subarea_selecionada['codigo'] if sm.subarea_selecionada else sm.area_selecionada['codigo']
-                autor_dados = {
-                    'nome': sm.nome_usuario or "Usuário",
-                    'cpf': "00000000000",
-                    'area_codigo': area_codigo,
-                    'area_nome': sm.area_selecionada['nome']
-                }
-
-                pipeline = BuscaAtividadePipeline()
-
-                # Processar resposta e criar atividade
-                resultado = pipeline._camada4_processar_resposta(
-                    descricao_atividade=descricao_atividade,
-                    hierarquia_herdada=hierarquia_herdada,
-                    area_codigo=area_codigo,
-                    autor_dados=autor_dados
-                )
-
-                if resultado.get('sucesso'):
-                    # Salvar dados no estado
-                    ativ = resultado['atividade']
-                    sm.macro_selecionado = ativ['macroprocesso']
-                    sm.processo_selecionado = ativ['processo']
-                    sm.subprocesso_selecionado = ativ['subprocesso']
-                    sm.atividade_selecionada = ativ['atividade']
-                    sm.codigo_cap = resultado.get('cap', 'PROVISORIO')
-                    # NÃO mudar estado - permanecer em ARQUITETURA para permitir "prefiro_digitar"
-                    # sm.estado = EstadoPOP.CONFIRMACAO_ARQUITETURA
-
-                    metadados_extra = {
-                        'interface': {
-                            'tipo': 'sugestao_atividade',
-                            'dados': {
-                                'atividade': ativ,
-                                'cap': resultado.get('cap'),
-                                'origem': 'rag_nova_atividade',
-                                'score': 1.0,
-                                'pode_editar': True,
-                                'tipo_cap': 'oficial_gerado_rag',
-                                'mensagem': resultado.get('mensagem', '')
-                            }
-                        }
-                    }
-
-                    return "", sm, metadados_extra
-                else:
-                    return "Desculpe, ocorreu um erro ao criar a atividade. Tente novamente.", sm
+                descricao = dados_resposta.get('descricao')
+                resposta, sm, metadados = self._processar_resposta_rag(descricao, sm)
+                if metadados:
+                    return resposta, sm, metadados
+                return resposta, sm
 
             # Se o usuário confirmou uma seleção da Camada 3
             elif acao == 'confirmar':
@@ -2268,21 +1451,15 @@ class HelenaPOP(BaseHelena):
                 )
                 return resposta, sm
 
-        except (json.JSONDecodeError, TypeError):
-            # Não é JSON, é descrição normal do usuário
-            pass
-
         # ================================================================
         # TRATAR AÇÃO "selecionar_manual" (botão da interface sugestao_atividade)
         # ================================================================
         if mensagem.strip().lower() in ['selecionar_manual', 'selecionar_manualmente']:
             logger.info("[HELENA POP] Usuário clicou 'Minha atividade não é essa, vou selecionar' - acionando Camada 3 (Dropdown)")
 
-            from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
-
             # Preparar pipeline
             area_codigo = sm.subarea_selecionada['codigo'] if sm.subarea_selecionada else sm.area_selecionada['codigo']
-            pipeline = BuscaAtividadePipeline()
+            pipeline = self._pipeline
 
             # Chamar Camada 3: Seleção Manual Hierárquica (passando area_codigo para gerar CAP correto)
             hierarquia = pipeline._preparar_hierarquia_completa(area_codigo=area_codigo)
@@ -2344,54 +1521,16 @@ class HelenaPOP(BaseHelena):
             # Ir direto para ENTREGA_ESPERADA (usuário já confirmou na interface de sugestão)
             logger.info(f"[HELENA POP] Usuário confirmou sugestão - pulando para ENTREGA_ESPERADA")
 
-            # Sugerir entrega esperada usando Helena Ajuda Inteligente
-            try:
-                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
-
-                # Obter contexto da área
-                if sm.subarea_selecionada:
-                    area_nome = sm.subarea_selecionada.get('nome_completo', sm.subarea_selecionada.get('nome', ''))
-                    area_codigo = sm.subarea_selecionada.get('codigo', '')
-                elif sm.area_selecionada:
-                    area_nome = sm.area_selecionada.get('nome', '')
-                    area_codigo = sm.area_selecionada.get('codigo', '')
-                else:
-                    area_nome = 'DECIPEX'
-                    area_codigo = 'DECIPEX'
-
-                contexto = {
-                    'area': area_nome,
-                    'area_codigo': area_codigo,
-                    'macroprocesso': sm.macro_selecionado,
-                    'processo': sm.processo_selecionado,
-                    'subprocesso': sm.subprocesso_selecionado,
-                    'atividade': sm.atividade_selecionada
-                }
-
-                # Chamar Helena Ajuda Inteligente para sugerir entrega
-                descricao_original = sm.dados_coletados.get('descricao_original', sm.atividade_selecionada)
-                resultado = analisar_atividade_com_helena(
-                    descricao_usuario=descricao_original,
-                    nivel_atual='resultado_final',  # Apenas sugerir entrega
-                    contexto_ja_selecionado=contexto
-                )
-
-                sugestao_entrega = None
-                if resultado.get('sucesso') and 'resultado_final' in resultado.get('sugestao', {}):
-                    sugestao_entrega = resultado['sugestao']['resultado_final']
-                    sm.dados_coletados['entrega_esperada'] = sugestao_entrega
-                    logger.info(f"[ENTREGA] Sugestão da IA: {sugestao_entrega}")
-
-            except Exception as e:
-                logger.error(f"[ENTREGA] Erro ao sugerir entrega: {e}")
-                sugestao_entrega = None
+            # Sugerir entrega esperada usando helper
+            sugestao_entrega = self._sugerir_entrega_esperada(sm)
+            if sugestao_entrega:
+                sm.dados_coletados['entrega_esperada'] = sugestao_entrega
+                sm.dados_coletados['entrega_sugerida_temp'] = sugestao_entrega
 
             # Ir para ENTREGA_ESPERADA
             sm.estado = EstadoPOP.ENTREGA_ESPERADA
 
             if sugestao_entrega:
-                # Salvar sugestão temporariamente para uso posterior
-                sm.dados_coletados['entrega_sugerida_temp'] = sugestao_entrega
 
                 # Enviar interface com sugestão e botões
                 metadados_extra = {
@@ -2449,11 +1588,6 @@ class HelenaPOP(BaseHelena):
 
         logger.info(f"[GOVERNANÇA] Iniciando busca para: '{descricao_usuario}' | Autor: {autor_nome} | Área: {area_codigo}")
 
-        print(f"[DEBUG] Área selecionada: {sm.area_selecionada}")
-        print(f"[DEBUG] Subárea selecionada: {sm.subarea_selecionada}")
-        print(f"[DEBUG] area_nome: {area_nome}")
-        print(f"[DEBUG] area_codigo: {area_codigo}")
-
         # ============================================================================
         # VERIFICAR SE DEVE PULAR BUSCA (usuário rejeitou RAG e digitou manualmente)
         # ============================================================================
@@ -2474,37 +1608,13 @@ class HelenaPOP(BaseHelena):
             # Ir para ENTREGA_ESPERADA
             sm.estado = EstadoPOP.ENTREGA_ESPERADA
 
-            # Sugerir entrega esperada usando Helena Ajuda Inteligente
-            try:
-                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
-
-                contexto = {
-                    'area': area_nome,
-                    'area_codigo': area_codigo,
-                    'macroprocesso': sm.macro_selecionado,
-                    'processo': sm.processo_selecionado,
-                    'subprocesso': sm.subprocesso_selecionado,
-                    'atividade': sm.atividade_selecionada
-                }
-
-                resultado = analisar_atividade_com_helena(
-                    descricao_usuario=descricao_usuario,
-                    nivel_atual='resultado_final',
-                    contexto_ja_selecionado=contexto
-                )
-
-                sugestao_entrega = None
-                if resultado.get('sucesso') and 'resultado_final' in resultado.get('sugestao', {}):
-                    sugestao_entrega = resultado['sugestao']['resultado_final']
-                    sm.dados_coletados['entrega_esperada'] = sugestao_entrega
-                    logger.info(f"[ENTREGA] Sugestão da IA: {sugestao_entrega}")
-
-            except Exception as e:
-                logger.error(f"[ENTREGA] Erro ao sugerir entrega: {e}")
-                sugestao_entrega = None
+            # Sugerir entrega esperada usando helper
+            sugestao_entrega = self._sugerir_entrega_esperada(sm, descricao_usuario)
+            if sugestao_entrega:
+                sm.dados_coletados['entrega_esperada'] = sugestao_entrega
+                sm.dados_coletados['entrega_sugerida_temp'] = sugestao_entrega
 
             if sugestao_entrega:
-                sm.dados_coletados['entrega_sugerida_temp'] = sugestao_entrega
 
                 metadados_extra = {
                     'interface': {
@@ -2536,84 +1646,25 @@ class HelenaPOP(BaseHelena):
                 )
                 return resposta, sm, metadados_extra
 
-        # ============================================================================
-        # DETECTAR SE ESTAMOS AGUARDANDO RESPOSTA DA CAMADA 4 RAG
-        # ============================================================================
+        # Detectar se estamos aguardando resposta da Camada 4 RAG
         if sm.dados_coletados.get('aguardando_descricao_rag', False):
-            logger.info("[HELENA POP] Detectado: usuário respondeu à pergunta da Camada 4 RAG")
-            logger.info(f"[HELENA POP] Descrição recebida: '{mensagem}'")
-
-            from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
-
-            # Recuperar hierarquia herdada do estado (foi salva na etapa anterior)
-            hierarquia_herdada = {
-                'macroprocesso': sm.macro_selecionado,
-                'processo': sm.processo_selecionado,
-                'subprocesso': sm.subprocesso_selecionado
-            }
-
-            # Preparar dados
-            area_codigo = sm.subarea_selecionada['codigo'] if sm.subarea_selecionada else sm.area_selecionada['codigo']
-            autor_dados = {
-                'nome': sm.nome_usuario or "Usuário",
-                'cpf': "00000000000",
-                'area_codigo': area_codigo,
-                'area_nome': sm.area_selecionada['nome']
-            }
-
-            pipeline = BuscaAtividadePipeline()
-
-            # Processar resposta e criar atividade
-            resultado = pipeline._camada4_processar_resposta(
-                descricao_atividade=mensagem,
-                hierarquia_herdada=hierarquia_herdada,
-                area_codigo=area_codigo,
-                autor_dados=autor_dados
-            )
-
-            # Limpar flag
+            logger.info("[HELENA POP] Usuário respondeu à pergunta RAG")
             sm.dados_coletados['aguardando_descricao_rag'] = False
-
-            if resultado.get('sucesso'):
-                # Salvar dados no estado
-                ativ = resultado['atividade']
-                sm.macro_selecionado = ativ['macroprocesso']
-                sm.processo_selecionado = ativ['processo']
-                sm.subprocesso_selecionado = ativ['subprocesso']
-                sm.atividade_selecionada = ativ['atividade']
-                sm.codigo_cap = resultado.get('cap', 'PROVISORIO')
-
-                metadados_extra = {
-                    'interface': {
-                        'tipo': 'sugestao_atividade',
-                        'dados': {
-                            'atividade': ativ,
-                            'cap': resultado.get('cap'),
-                            'origem': 'rag_nova_atividade',
-                            'score': 1.0,
-                            'pode_editar': True,
-                            'tipo_cap': 'oficial_gerado_rag',
-                            'mensagem': resultado.get('mensagem', '')
-                        }
-                    }
-                }
-
-                return "", sm, metadados_extra
-            else:
-                return "Desculpe, ocorreu um erro ao criar a atividade. Tente novamente.", sm
+            resposta, sm, metadados = self._processar_resposta_rag(mensagem, sm)
+            if metadados:
+                return resposta, sm, metadados
+            return resposta, sm
 
         # ============================================================================
-        # NOVO PIPELINE DE BUSCA EM 5 CAMADAS (v3.0)
+        # PIPELINE DE BUSCA EM 4 CAMADAS
         # ============================================================================
         logger.info("="*80)
         logger.info("[PIPELINE] Usando NOVO PIPELINE de busca em 4 camadas (v4.0)")
         logger.info("="*80)
 
         try:
-            from processos.domain.helena_mapeamento.busca_atividade_pipeline import BuscaAtividadePipeline
-
-            # Inicializar pipeline
-            pipeline = BuscaAtividadePipeline()
+            # Usar pipeline com lazy loading
+            pipeline = self._pipeline
 
             # Preparar dados do autor para rastreabilidade
             autor_dados = {
@@ -2637,35 +1688,7 @@ class HelenaPOP(BaseHelena):
             # PROCESSAR RESULTADO DO PIPELINE
             # ========================================================================
 
-            # CASO 1: Dropdown necessário (zona cinza: 0.70 <= score < 0.85)
-            if resultado.get('origem') == 'dropdown_required':
-                logger.info("[PIPELINE] Dropdown necessário - apresentando candidatos ao usuário")
-
-                # TODO: Implementar interface de dropdown no frontend
-                # Por enquanto, vamos aceitar o primeiro candidato automaticamente
-                candidatos = resultado.get('candidatos', [])
-                if candidatos:
-                    melhor = candidatos[0]
-                    sm.macro_selecionado = melhor['macroprocesso']
-                    sm.processo_selecionado = melhor['processo']
-                    sm.subprocesso_selecionado = melhor['subprocesso']
-                    sm.atividade_selecionada = melhor['atividade']
-                    sm.codigo_cap = melhor.get('numero', 'PROVISORIO')
-                    sm.estado = EstadoPOP.CONFIRMACAO_ARQUITETURA
-
-                    resposta = (
-                        f"Encontrei algumas opções similares. A que melhor se adequa é:\n\n"
-                        f"📋 **Macroprocesso:** {melhor['macroprocesso']}\n"
-                        f"📋 **Processo:** {melhor['processo']}\n"
-                        f"📋 **Subprocesso:** {melhor['subprocesso']}\n"
-                        f"📋 **Atividade:** {melhor['atividade']}\n"
-                        f"🔢 **Código:** {melhor.get('numero', 'A definir')}\n\n"
-                        f"*Similaridade: {melhor['score']*100:.1f}%*\n\n"
-                        f"Está correto?"
-                    )
-                    return resposta, sm
-
-            # CASO 2: Seleção manual hierárquica (Camada 3)
+            # Seleção manual hierárquica (Camada 3)
             if resultado.get('origem') == 'selecao_manual':
                 logger.info("[HELENA POP] Enviando interface de seleção manual (dropdown 4 níveis)")
 
@@ -2748,383 +1771,22 @@ class HelenaPOP(BaseHelena):
                     resposta = None  # Modo interface: mensagem textual ausente por design
                     return resposta, sm, metadados_extra
 
-                # Fallback para formato texto (não deveria chegar aqui)
-                else:
-                    sm.macro_selecionado = ativ['macroprocesso']
-                    sm.processo_selecionado = ativ.get('processo', 'A definir')
-                    sm.subprocesso_selecionado = ativ.get('subprocesso', 'A definir')
-                    sm.atividade_selecionada = ativ['atividade']
-                    sm.codigo_cap = resultado.get('cap', 'PROVISORIO')
-                    sm.estado = EstadoPOP.CONFIRMACAO_ARQUITETURA
-
-                    origem_label = {
-                        'match_exato': 'correspondência exata no catálogo oficial',
-                        'match_fuzzy': 'correspondência fuzzy no catálogo oficial',
-                        'semantic': 'busca semântica no catálogo',
-                        'rag': 'análise contextual da Helena',
-                        'rag_nova_atividade': 'nova atividade criada pela Helena',
-                        'nova': 'nova atividade candidata'
-                    }.get(origem, 'busca automática')
-
-                    resposta = (
-                        f"✅ Perfeito! Identifiquei sua atividade via **{origem_label}**:\n\n"
-                        f"📋 **Macroprocesso:** {ativ['macroprocesso']}\n"
-                        f"📋 **Processo:** {ativ.get('processo', 'A definir')}\n"
-                        f"📋 **Subprocesso:** {ativ.get('subprocesso', 'A definir')}\n"
-                        f"📋 **Atividade:** {ativ['atividade']}\n"
-                        f"🔢 **CAP:** {resultado.get('cap', 'A definir')}\n\n"
-                    )
-
-                    if origem in ['nova', 'rag_nova_atividade']:
-                        resposta += (
-                            f"⚠️ **Atenção:** Esta é uma nova atividade que não está no catálogo oficial.\n"
-                            f"Ela será marcada como **candidata** para revisão posterior.\n\n"
-                        )
-                    elif resultado.get('score', 0) < 1.0:
-                        resposta += f"*Confiança: {resultado['score']*100:.1f}%*\n\n"
-
-                    resposta += "Está correto?"
-
-                    return resposta, sm
-
-            # CASO 3: Erro no pipeline - fallback para método antigo
-            logger.warning("[PIPELINE] Pipeline retornou erro - usando fallback")
+            # Pipeline não encontrou resultado adequado
+            logger.warning("[PIPELINE] Pipeline não encontrou resultado - fallback seleção manual")
 
         except Exception as e:
             logger.error(f"[PIPELINE] Erro ao executar pipeline: {e}")
-            logger.info("[PIPELINE] Fallback para método antigo (sklearn)")
 
-        # ============================================================================
-        # FALLBACK: MÉTODO ANTIGO (sklearn/TF-IDF) - MANTIDO COMO SEGURANÇA
-        # ============================================================================
-        logger.info("="*80)
-        logger.info("🧩 [helena_pop.py] FALLBACK - Método de busca por SIMILARIDADE VETORIAL (sklearn)")
-        logger.info("="*80)
-        logger.info(f"🔍 Termo recebido: '{descricao_usuario}'")
-        logger.info(f"   - Length: {len(descricao_usuario)}")
-        logger.info(f"   - Type: {type(descricao_usuario)}")
-        logger.info(f"   - Área código: {area_codigo}")
-
-        try:
-            print("[DEBUG] Tentando importar sklearn...")
-            from sklearn.feature_extraction.text import TfidfVectorizer
-            from sklearn.metrics.pairwise import cosine_similarity
-            print("[DEBUG] sklearn importado com sucesso!")
-            logger.info("✅ sklearn importado com sucesso")
-
-            # Preparar textos do CSV
-            print("[DEBUG] Carregando CSV da arquitetura...")
-            logger.info("📂 Carregando CSV da arquitetura...")
-            df_csv = self.arquitetura.df
-            print(f"[DEBUG] CSV carregado! Linhas: {len(df_csv)}")
-            logger.info(f"📊 CSV carregado! Total de linhas: {len(df_csv)}")
-            logger.info(f"📋 Colunas do CSV: {df_csv.columns.tolist()}")
-            logger.info(f"📝 Primeiras 3 linhas:\n{df_csv.head(3)}")
-
-            if df_csv.empty:
-                raise ValueError("CSV vazio")
-
-            # Criar corpus de textos do CSV
-            textos_csv = []
-            for idx, row in df_csv.iterrows():
-                texto_completo = f"{row['Macroprocesso']} {row['Processo']} {row['Subprocesso']} {row['Atividade']}"
-                textos_csv.append(texto_completo.lower().strip())
-                if idx < 3:
-                    logger.info(f"   Corpus[{idx}]: '{texto_completo[:100]}...'")
-
-            # Adicionar descrição do usuário
-            todos_textos = textos_csv + [descricao_usuario.lower().strip()]
-            logger.info(f"🧠 Número de entradas no corpus: {len(todos_textos)} (incluindo termo do usuário)")
-            logger.info(f"🔍 Termo normalizado: '{descricao_usuario.lower().strip()}'")
-
-            # TF-IDF + Cosine Similarity
-            logger.info("🔢 Vetorizando corpus com TF-IDF...")
-            vectorizer = TfidfVectorizer(ngram_range=(1, 3), min_df=1, max_df=0.95)
-            tfidf_matrix = vectorizer.fit_transform(todos_textos)
-            logger.info(f"📊 Vetor de embeddings: shape={tfidf_matrix.shape}")
-
-            # Calcular similaridade da descrição do usuário com todas as linhas do CSV
-            logger.info("🎯 Calculando similaridade cosine...")
-            similarities = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
-
-            # Encontrar match com maior score
-            idx_melhor = similarities.argmax()
-            score_melhor = float(similarities[idx_melhor])
-
-            logger.info(f"[GOVERNANÇA] Melhor match no CSV: score={score_melhor:.3f} | idx={idx_melhor}")
-            if idx_melhor < len(df_csv):
-                row_match = df_csv.iloc[idx_melhor]
-                logger.info(f"   Match encontrado:")
-                logger.info(f"      Macro: {row_match['Macroprocesso']}")
-                logger.info(f"      Processo: {row_match['Processo']}")
-                logger.info(f"      Subprocesso: {row_match['Subprocesso']}")
-                logger.info(f"      Atividade: {row_match['Atividade']}")
-            logger.info("="*80)
-
-            # ============================================================================
-            # SE SCORE >= 0.85 → MATCH EXATO OU FUZZY (usar atividade do CSV)
-            # ============================================================================
-            if score_melhor >= 0.85:
-                row_match = df_csv.iloc[idx_melhor]
-
-                # Salvar no state machine
-                sm.macro_selecionado = row_match['Macroprocesso']
-                sm.processo_selecionado = row_match['Processo']
-                sm.subprocesso_selecionado = row_match['Subprocesso']
-                sm.atividade_selecionada = row_match['Atividade']
-                sm.dados_coletados['macroprocesso'] = row_match['Macroprocesso']
-                sm.dados_coletados['processo'] = row_match['Processo']
-                sm.dados_coletados['subprocesso'] = row_match['Subprocesso']
-                sm.dados_coletados['atividade'] = row_match['Atividade']
-                sm.dados_coletados['nome_processo'] = row_match['Atividade']
-
-                # Gerar CAP baseado no CSV
-                if not sm.codigo_cap:
-                    sm.codigo_cap = self._gerar_codigo_processo(sm)
-                    logger.info(f"[GOVERNANÇA] CAP gerado (match CSV): {sm.codigo_cap}")
-
-                # Tentar sugerir entrega esperada via IA
-                try:
-                    from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
-
-                    contexto = {
-                        'area': area_nome,
-                        'area_codigo': area_codigo,
-                        'macroprocesso': sm.macro_selecionado,
-                        'processo': sm.processo_selecionado,
-                        'subprocesso': sm.subprocesso_selecionado,
-                        'atividade': sm.atividade_selecionada
-                    }
-
-                    resultado = analisar_atividade_com_helena(
-                        descricao_usuario=descricao_usuario,
-                        nivel_atual='resultado_final',
-                        contexto_ja_selecionado=contexto
-                    )
-
-                    if resultado.get('sucesso') and 'resultado_final' in resultado.get('sugestao', {}):
-                        sm.dados_coletados['entrega_esperada'] = resultado['sugestao']['resultado_final']
-                        logger.info(f"[GOVERNANÇA] Entrega sugerida: {resultado['sugestao']['resultado_final']}")
-
-                except Exception as e:
-                    logger.warning(f"[GOVERNANÇA] Não foi possível sugerir entrega: {e}")
-
-                # Ir para confirmação
-                sm.estado = EstadoPOP.CONFIRMACAO_ARQUITETURA
-
-                tipo_match = "exata" if score_melhor >= 0.95 else "similar"
-                emoji = "🎯" if score_melhor >= 0.95 else "🤔"
-
-                resposta = (
-                    f"{emoji} Encontrei uma correspondência {tipo_match} no meu catálogo oficial (confiança: {score_melhor:.0%}):\n\n"
-                    f"**Arquitetura:**\n"
-                    f"**CAP (Código na Arquitetura de Processos):** {sm.codigo_cap}\n\n"
-                    f"Baseada em:\n"
-                    f"• Área: {area_nome}\n"
-                    f"• Macroprocesso: {row_match['Macroprocesso']}\n"
-                    f"• Processo: {row_match['Processo']}\n"
-                    f"• Subprocesso: {row_match['Subprocesso']}\n"
-                    f"• Atividade: {row_match['Atividade']}\n\n"
-                )
-
-                if sm.dados_coletados.get('entrega_esperada'):
-                    resposta += f"**Entrega Final (sugestão):**\n• {sm.dados_coletados['entrega_esperada']}\n\n"
-
-                resposta += (
-                    f"✅ Esta atividade eu já **mapeei no meu catálogo oficial da DECIPEX**.\n\n"
-                    f"Se você concordar, digite 'sim' para continuar.\n"
-                    f"Se quiser ajustar algo, digite 'ajustar'."
-                )
-
-                logger.info(f"[GOVERNANÇA] Match encontrado no CSV (origem: match_fuzzy | score: {score_melhor:.3f})")
-
-                return resposta, sm
-
-        except ImportError as e:
-            print(f"\n{'🔴'*40}")
-            print(f"[ERRO] SKLEARN NÃO INSTALADO!")
-            print(f"   Erro: {e}")
-            print(f"   Solução: pip install scikit-learn")
-            print(f"{'🔴'*40}\n")
-            logger.error(f"[GOVERNANÇA] sklearn não instalado: {e}")
-            # Ir direto para fallback (dropdowns)
-            sm.estado = EstadoPOP.SELECAO_HIERARQUICA
-            sm.dados_coletados['descricao_original'] = descricao_usuario
-            resposta = (
-                "⚠️ Sistema de busca temporariamente indisponível.\n\n"
-                "Por favor, use os **dropdowns hierárquicos** abaixo para selecionar:\n"
-                "📋 Macroprocesso → Processo → Subprocesso → Atividade"
-            )
-            return resposta, sm
-
-        except Exception as e:
-            print(f"\n{'🔴'*40}")
-            print(f"[ERRO] EXCEÇÃO NA BUSCA NO CSV")
-            print(f"   Erro: {e}")
-            print(f"   Tipo: {type(e).__name__}")
-            print(f"{'🔴'*40}\n")
-            logger.error(f"[GOVERNANÇA] Erro na busca no CSV: {e}")
-            import traceback
-            traceback.print_exc()
-
-        # ============================================================================
-        # NÍVEL 2: SCORE < 0.85 → IA SUGERE NOVA ATIVIDADE
-        # ============================================================================
-        logger.info(f"[GOVERNANÇA] Score < 0.85, atividade NÃO encontrada no catálogo oficial. Sugerindo nova atividade...")
-
-        try:
-            from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
-
-            contexto = {
-                'area': area_nome,
-                'area_codigo': area_codigo
-            }
-
-            # Chamar IA para sugerir arquitetura completa
-            resultado = analisar_atividade_com_helena(
-                descricao_usuario=descricao_usuario,
-                nivel_atual='completo',
-                contexto_ja_selecionado=contexto
-            )
-
-            if not resultado.get('sucesso'):
-                raise ValueError("IA não conseguiu sugerir arquitetura")
-
-            sugestao = resultado['sugestao']
-
-            # Validar sugestão
-            campos_obrigatorios = ['macroprocesso', 'processo', 'subprocesso', 'atividade', 'resultado_final']
-            if not all(campo in sugestao for campo in campos_obrigatorios):
-                raise ValueError("Sugestão incompleta da IA")
-
-            # Detectar atividades similares já sugeridas (anti-duplicata)
-            max_score, lista_similares = detectar_atividades_similares(
-                macroprocesso=sugestao['macroprocesso'],
-                processo=sugestao['processo'],
-                subprocesso=sugestao['subprocesso'],
-                atividade=sugestao['atividade'],
-                threshold=0.80
-            )
-
-            # Gerar CAP provisório com lock transacional
-            cap_provisorio = gerar_cap_provisorio_seguro(
-                area_codigo=area_codigo,
-                macroprocesso=sugestao['macroprocesso'],
-                processo=sugestao['processo'],
-                subprocesso=sugestao['subprocesso'],
-                atividade=sugestao['atividade'],
-                hierarquia_df=self.arquitetura.df
-            )
-
-            # Salvar atividade sugerida no banco com rastreabilidade completa
-            atividade_obj = salvar_atividade_sugerida(
-                cap_provisorio=cap_provisorio,
-                area_codigo=area_codigo,
-                macroprocesso=sugestao['macroprocesso'],
-                processo=sugestao['processo'],
-                subprocesso=sugestao['subprocesso'],
-                atividade=sugestao['atividade'],
-                entrega_esperada=sugestao['resultado_final'],
-                autor_cpf=autor_cpf,
-                autor_nome=autor_nome,
-                autor_area=area_codigo,
-                descricao_original=descricao_usuario,
-                score_similaridade=max_score,
-                sugestoes_similares=lista_similares,
-                scores_similares_todos=[max_score],  # TODO: Salvar todos os scores
-                origem_fluxo='nova_atividade_ia',
-                interacao_id=f"chat_{sm.nome_usuario}_{area_codigo}"  # TODO: Usar ID real da mensagem
-            )
-
-            # Salvar no state machine
-            sm.macro_selecionado = sugestao['macroprocesso']
-            sm.processo_selecionado = sugestao['processo']
-            sm.subprocesso_selecionado = sugestao['subprocesso']
-            sm.atividade_selecionada = sugestao['atividade']
-            sm.dados_coletados['macroprocesso'] = sugestao['macroprocesso']
-            sm.dados_coletados['processo'] = sugestao['processo']
-            sm.dados_coletados['subprocesso'] = sugestao['subprocesso']
-            sm.dados_coletados['atividade'] = sugestao['atividade']
-            sm.dados_coletados['nome_processo'] = sugestao['atividade']
-            sm.dados_coletados['entrega_esperada'] = sugestao['resultado_final']
-            sm.codigo_cap = cap_provisorio
-
-            # Ir para confirmação
-            sm.estado = EstadoPOP.CONFIRMACAO_ARQUITETURA
-
-            # Montar resposta com AVISO CLARO
-            resposta = (
-                f"⚠️ **NOVA ATIVIDADE SUGERIDA** ⚠️\n\n"
-                f"Esta atividade **NÃO encontrei** nas 107 atividades que já mapeei no meu catálogo oficial da DECIPEX.\n\n"
-                f"Por isso, sugeri uma **nova arquitetura** baseada na sua descrição:\n\n"
-                f"**Arquitetura Sugerida:**\n"
-                f"**CAP Provisório (Código na Arquitetura de Processos):** {cap_provisorio}\n\n"
-                f"• Área: {area_nome}\n"
-                f"• Macroprocesso: {sugestao['macroprocesso']}\n"
-                f"• Processo: {sugestao['processo']}\n"
-                f"• Subprocesso: {sugestao['subprocesso']}\n"
-                f"• Atividade: {sugestao['atividade']}\n\n"
-                f"**Entrega Final (minha sugestão):**\n"
-                f"• {sugestao['resultado_final']}\n\n"
-            )
-
-            # Se houver atividades similares, alertar
-            if lista_similares:
-                resposta += (
-                    f"⚠️ **ATENÇÃO:** Encontrei {len(lista_similares)} atividade(s) similar(es) já sugerida(s) por outros usuários:\n"
-                )
-                for sim in lista_similares[:3]:  # Mostrar top 3
-                    resposta += f"  • {sim['cap']}: {sim['atividade'][:60]}... (similaridade: {sim['score']:.0%})\n"
-                resposta += "\n"
-
-            resposta += (
-                f"📋 Vou enviar esta sugestão para **validação do gestor** antes de ela se tornar oficial.\n\n"
-                f"💡 **Alternativa:** Se você preferir, digite 'dropdowns' para selecionar manualmente entre as 107 atividades que já mapeei.\n\n"
-                f"Se concordar com a minha sugestão, digite 'sim' para continuar.\n"
-                f"Se quiser ajustar algo, digite 'ajustar'."
-            )
-
-            logger.info(f"[GOVERNANÇA] Nova atividade sugerida: {cap_provisorio} (confiança: {atividade_obj.confianca})")
-
-            return resposta, sm
-
-        except Exception as e:
-            print(f"\n{'🔴'*40}")
-            print(f"[ERRO] EXCEÇÃO AO SUGERIR NOVA ATIVIDADE")
-            print(f"   Erro: {e}")
-            print(f"   Tipo: {type(e).__name__}")
-            print(f"{'🔴'*40}\n")
-            logger.error(f"[GOVERNANÇA] Erro ao sugerir nova atividade: {e}")
-            import traceback
-            traceback.print_exc()
-            # Não deixar o servidor travar - ir para fallback
-            sm.estado = EstadoPOP.SELECAO_HIERARQUICA
-            sm.dados_coletados['descricao_original'] = descricao_usuario
-            resposta = (
-                "⚠️ Não consegui processar sua descrição automaticamente.\n\n"
-                "Sem problemas! Use os **dropdowns hierárquicos** abaixo:\n"
-                "📋 Macroprocesso → Processo → Subprocesso → Atividade"
-            )
-            return resposta, sm
-
-        # ============================================================================
-        # FALLBACK: SELEÇÃO MANUAL VIA DROPDOWNS HIERÁRQUICOS
-        # ============================================================================
+        # Fallback: Seleção manual via dropdowns hierárquicos
         sm.estado = EstadoPOP.SELECAO_HIERARQUICA
         sm.dados_coletados['descricao_original'] = descricao_usuario
+        logger.info("[PIPELINE] Fallback para seleção manual")
 
-        resposta = (
+        return (
             "Entendi! Não consegui mapear automaticamente sua descrição.\n\n"
-            "Sem problemas! Abaixo você encontrará os **dropdowns hierárquicos** com todas as "
-            "**107 atividades mapeadas** da DECIPEX organizadas por:\n\n"
-            "📋 Macroprocesso → Processo → Subprocesso → Atividade\n\n"
-            "É só ir selecionando cada nível que os próximos aparecem automaticamente. "
-            "Encontre onde seu trabalho se encaixa! 🎯"
-        )
-
-        logger.info(f"[GOVERNANÇA] Fallback para seleção manual (dropdowns)")
-
-        return resposta, sm
+            "Use os **dropdowns hierárquicos** abaixo para selecionar sua atividade:\n"
+            "Macroprocesso → Processo → Subprocesso → Atividade"
+        ), sm
 
     def _processar_confirmacao_arquitetura(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """
@@ -3137,7 +1799,7 @@ class HelenaPOP(BaseHelena):
         msg_lower = mensagem.lower().strip()
 
         # Se confirmar → ir para ENTREGA ESPERADA com sugestão da IA
-        if any(palavra in msg_lower for palavra in ['sim', 'concordo', 'confirmar', 'correto', 'ok', 'certo']):
+        if self._detectar_intencao(msg_lower, 'confirmacao'):
             # 🐛 DEBUG: Verificar se dados da arquitetura estão salvos
             logger.info(f"[DEBUG] CONFIRMACAO ARQUITETURA:")
             logger.info(f"  - CAP: {sm.codigo_cap}")
@@ -3147,54 +1809,16 @@ class HelenaPOP(BaseHelena):
             logger.info(f"  - Atividade: {sm.atividade_selecionada}")
             logger.info(f"  - dados_coletados: {sm.dados_coletados}")
 
-            # Sugerir entrega esperada usando Helena Ajuda Inteligente
-            try:
-                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
-
-                # Obter contexto da área
-                if sm.subarea_selecionada:
-                    area_nome = sm.subarea_selecionada.get('nome_completo', sm.subarea_selecionada.get('nome', ''))
-                    area_codigo = sm.subarea_selecionada.get('codigo', '')
-                elif sm.area_selecionada:
-                    area_nome = sm.area_selecionada.get('nome', '')
-                    area_codigo = sm.area_selecionada.get('codigo', '')
-                else:
-                    area_nome = 'DECIPEX'
-                    area_codigo = 'DECIPEX'
-
-                contexto = {
-                    'area': area_nome,
-                    'area_codigo': area_codigo,
-                    'macroprocesso': sm.macro_selecionado,
-                    'processo': sm.processo_selecionado,
-                    'subprocesso': sm.subprocesso_selecionado,
-                    'atividade': sm.atividade_selecionada
-                }
-
-                # Chamar Helena Ajuda Inteligente para sugerir entrega
-                descricao_original = sm.dados_coletados.get('descricao_original', sm.atividade_selecionada)
-                resultado = analisar_atividade_com_helena(
-                    descricao_usuario=descricao_original,
-                    nivel_atual='resultado_final',  # Apenas sugerir entrega
-                    contexto_ja_selecionado=contexto
-                )
-
-                sugestao_entrega = None
-                if resultado.get('sucesso') and 'resultado_final' in resultado.get('sugestao', {}):
-                    sugestao_entrega = resultado['sugestao']['resultado_final']
-                    sm.dados_coletados['entrega_esperada'] = sugestao_entrega
-                    logger.info(f"[ENTREGA] Sugestão da IA: {sugestao_entrega}")
-
-            except Exception as e:
-                logger.error(f"[ENTREGA] Erro ao sugerir entrega: {e}")
-                sugestao_entrega = None
+            # Sugerir entrega esperada usando helper
+            sugestao_entrega = self._sugerir_entrega_esperada(sm)
+            if sugestao_entrega:
+                sm.dados_coletados['entrega_esperada'] = sugestao_entrega
+                sm.dados_coletados['entrega_sugerida_temp'] = sugestao_entrega
 
             # Ir para ENTREGA_ESPERADA
             sm.estado = EstadoPOP.ENTREGA_ESPERADA
 
             if sugestao_entrega:
-                # Salvar sugestão temporariamente para uso posterior
-                sm.dados_coletados['entrega_sugerida_temp'] = sugestao_entrega
 
                 # Enviar interface com sugestão e botões
                 metadados_extra = {
@@ -3216,7 +1840,7 @@ class HelenaPOP(BaseHelena):
                 return resposta, sm
 
         # Se quiser editar → voltar para ENTREGA ESPERADA (arquitetura já está definida)
-        elif any(palavra in msg_lower for palavra in ['editar', 'ajustar', 'mudar', 'alterar', 'manual']):
+        elif self._detectar_intencao(msg_lower, 'edicao'):
             # ✅ FIX: Não perguntar nome do processo novamente, só editar entrega
             sm.estado = EstadoPOP.CONFIRMACAO_ENTREGA
             resposta = (
@@ -3242,12 +1866,15 @@ class HelenaPOP(BaseHelena):
 
         Espera JSON com: {"macro": "...", "processo": "...", "subprocesso": "...", "atividade": "..."}
         """
-        import json
+        selecao = self._parse_json_seguro(mensagem)
+        if not selecao:
+            resposta = (
+                "Por favor, selecione a arquitetura usando os dropdowns acima. "
+                "É só ir escolhendo: Macroprocesso → Processo → Subprocesso → Atividade 📋"
+            )
+            return resposta, sm
 
         try:
-            # Parse da seleção vinda do frontend
-            selecao = json.loads(mensagem)
-
             # Validar campos obrigatórios
             campos_obrigatorios = ['macroprocesso', 'processo', 'subprocesso', 'atividade']
             if not all(campo in selecao for campo in campos_obrigatorios):
@@ -3271,47 +1898,8 @@ class HelenaPOP(BaseHelena):
                 sm.codigo_cap = self._gerar_codigo_processo(sm)
                 logger.info(f"[CAP] Codigo gerado (selecao manual): {sm.codigo_cap}")
 
-            # 🎯 SUGERIR ENTREGA ESPERADA usando IA baseado na seleção + descrição original
-            descricao_original = sm.dados_coletados.get('descricao_original', '')
-
-            try:
-                from processos.domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena
-
-                # Obter nome e código da área (considerando subárea se existir)
-                if sm.subarea_selecionada:
-                    area_nome = sm.subarea_selecionada.get('nome_completo', sm.subarea_selecionada.get('nome', ''))
-                    area_codigo = sm.subarea_selecionada.get('codigo', '')
-                elif sm.area_selecionada:
-                    area_nome = sm.area_selecionada.get('nome', '')
-                    area_codigo = sm.area_selecionada.get('codigo', '')
-                else:
-                    area_nome = 'DECIPEX'
-                    area_codigo = 'DECIPEX'
-
-                contexto = {
-                    'area': area_nome,
-                    'area_codigo': area_codigo,
-                    'macroprocesso': sm.macro_selecionado,
-                    'processo': sm.processo_selecionado,
-                    'subprocesso': sm.subprocesso_selecionado,
-                    'atividade': sm.atividade_selecionada
-                }
-
-                # Tentar sugerir entrega esperada
-                resultado = analisar_atividade_com_helena(
-                    descricao_usuario=descricao_original or sm.atividade_selecionada,
-                    nivel_atual='resultado_final',  # Apenas sugerir entrega
-                    contexto_ja_selecionado=contexto
-                )
-
-                sugestao_entrega = None
-                if resultado.get('sucesso') and 'resultado_final' in resultado.get('sugestao', {}):
-                    sugestao_entrega = resultado['sugestao']['resultado_final']
-                    logger.info(f"[IA] Sugestao de entrega esperada: {sugestao_entrega}")
-
-            except Exception as e:
-                logger.warning(f"Não foi possível sugerir entrega esperada com IA: {e}")
-                sugestao_entrega = None
+            # Sugerir entrega esperada usando helper
+            sugestao_entrega = self._sugerir_entrega_esperada(sm)
 
             # Ir direto para ENTREGA_ESPERADA (pular confirmação de arquitetura)
             sm.estado = EstadoPOP.ENTREGA_ESPERADA
@@ -3333,14 +1921,6 @@ class HelenaPOP(BaseHelena):
                     f"Exemplo: 'Demanda de controle respondida', 'Solicitação analisada e decidida', 'Relatório elaborado'"
                 )
 
-            return resposta, sm
-
-        except json.JSONDecodeError:
-            # Se não for JSON, pode ser resposta textual do usuário
-            resposta = (
-                "Por favor, selecione a arquitetura usando os dropdowns acima. "
-                "É só ir escolhendo: Macroprocesso → Processo → Subprocesso → Atividade 📋"
-            )
             return resposta, sm
 
         except Exception as e:
@@ -3433,7 +2013,7 @@ class HelenaPOP(BaseHelena):
         """Processa confirmação ou edição da entrega"""
         msg_lower = mensagem.lower().strip()
 
-        if any(palavra in msg_lower for palavra in ['edit', 'corrigir', 'alterar', 'mudar']):
+        if self._detectar_intencao(msg_lower, 'edicao'):
             # Volta para entrega_esperada
             sm.estado = EstadoPOP.ENTREGA_ESPERADA
             sm.tipo_interface = None
@@ -3482,14 +2062,10 @@ class HelenaPOP(BaseHelena):
     def _processar_dispositivos_normativos(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """Processa coleta de dispositivos normativos e vai para reconhecimento"""
         # Separar por vírgula ou quebra de linha (ou aceitar JSON de seleção)
-        try:
-            import json as json_lib
-            dados = json_lib.loads(mensagem)
-            if isinstance(dados, list):
-                normas = dados
-            else:
-                normas = [mensagem.strip()]
-        except:
+        dados = self._parse_json_seguro(mensagem)
+        if isinstance(dados, list):
+            normas = dados
+        else:
             normas = [n.strip() for n in mensagem.replace('\n', ',').split(',') if n.strip()]
 
         sm.dados_coletados['dispositivos_normativos'] = normas
@@ -3543,17 +2119,13 @@ class HelenaPOP(BaseHelena):
         logger.info(f"[OPERADORES] Processando mensagem: {mensagem[:100]}")
 
         # Aceitar JSON (de interface) ou texto
-        try:
-            import json as json_lib
-            dados = json_lib.loads(mensagem)
-            if isinstance(dados, list):
-                operadores = dados
-                logger.info(f"[OPERADORES] Parsed JSON com sucesso: {operadores}")
-            else:
-                raise ValueError("Não é lista JSON, fazer parsing manual")
-        except Exception as e:
+        dados = self._parse_json_seguro(mensagem)
+        if isinstance(dados, list):
+            operadores = dados
+            logger.info(f"[OPERADORES] Parsed JSON com sucesso: {operadores}")
+        else:
             # FUZZY PARSING de operadores
-            logger.info(f"[OPERADORES] Caindo no fuzzy parsing (erro JSON: {e})")
+            logger.info("[OPERADORES] Caindo no fuzzy parsing")
             operadores = parse_operadores(mensagem, self.OPERADORES_DECIPEX)
             logger.info(f"[OPERADORES] Fuzzy parsing result: {operadores}")
 
@@ -3564,21 +2136,21 @@ class HelenaPOP(BaseHelena):
         # Interface de entrada de processo
         # ✅ CRÍTICO: Carregar dados com tratamento de exceção individual
         try:
-            areas_organizacionais = self._carregar_areas_organizacionais()
+            areas_organizacionais = carregar_areas_organizacionais()
             logger.info(f"[OPERADORES] Áreas carregadas: {len(areas_organizacionais)} áreas")
         except Exception as e:
             logger.error(f"[OPERADORES] ERRO ao carregar áreas: {e}")
             areas_organizacionais = {}  # Fallback vazio
 
         try:
-            orgaos_centralizados = self._carregar_orgaos_centralizados()
+            orgaos_centralizados = carregar_orgaos_centralizados()
             logger.info(f"[OPERADORES] Órgãos carregados: {len(orgaos_centralizados)} órgãos")
         except Exception as e:
             logger.error(f"[OPERADORES] ERRO ao carregar órgãos: {e}")
             orgaos_centralizados = []  # Fallback vazio
 
         try:
-            canais_atendimento = self._carregar_canais_atendimento()
+            canais_atendimento = carregar_canais_atendimento()
             logger.info(f"[OPERADORES] Canais carregados: {len(canais_atendimento)} canais")
         except Exception as e:
             logger.error(f"[OPERADORES] ERRO ao carregar canais: {e}")
@@ -3608,17 +2180,14 @@ class HelenaPOP(BaseHelena):
 
     def _processar_sistemas(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """Processa sistemas utilizados"""
-        import json as json_lib
-
         # Parse: espera JSON array ["SIAPE", "SEI"] ou texto "nenhum"
         if mensagem.strip().lower() in ['nenhum', 'nao sei', 'não sei']:
             sistemas = []
         else:
-            try:
-                sistemas = json_lib.loads(mensagem)
-                if not isinstance(sistemas, list):
-                    sistemas = []
-            except:
+            dados = self._parse_json_seguro(mensagem)
+            if isinstance(dados, list):
+                sistemas = dados
+            else:
                 sistemas = []
 
         # Salvar e avançar para DISPOSITIVOS_NORMATIVOS
@@ -3664,45 +2233,18 @@ class HelenaPOP(BaseHelena):
             if msg_lower in ['nenhum', 'nao', 'não', 'nao_sei']:
                 sm.dados_coletados['fluxos_entrada'] = []
             else:
-                # Aceitar JSON estruturado (da InterfaceFluxosEntrada) ou texto simples
-                try:
-                    import json as json_lib
-                    dados_json = json_lib.loads(mensagem)
-                    if isinstance(dados_json, dict):
-                        # Formato novo: JSON com origens_selecionadas e outras_origens
-                        fluxos = []
-                        for origem in dados_json.get('origens_selecionadas', []):
-                            if isinstance(origem, dict):
-                                tipo = origem.get('tipo', '')
-                                espec = origem.get('especificacao', '')
-                                area = origem.get('area_decipex', '')
-
-                                # Montar descrição completa
-                                if espec:
-                                    fluxos.append(f"{tipo}: {espec}")
-                                else:
-                                    fluxos.append(tipo)
-                            else:
-                                fluxos.append(str(origem))
-
-                        if dados_json.get('outras_origens'):
-                            fluxos.append(dados_json['outras_origens'])
-
-                        sm.dados_coletados['fluxos_entrada'] = fluxos
-                    else:
-                        # JSON mas não é dict, usar como lista
-                        fluxos = dados_json if isinstance(dados_json, list) else [mensagem]
-                        sm.dados_coletados['fluxos_entrada'] = fluxos
-                except:
-                    # Formato antigo: texto separado por |
+                # Aceitar JSON estruturado ou texto simples
+                dados_json = self._parse_json_seguro(mensagem)
+                fluxos = self._parsear_fluxo_json(dados_json, 'origens_selecionadas', 'outras_origens', formato_entrada=True)
+                if fluxos is None:
                     fluxos = [f.strip() for f in mensagem.replace('\n', ',').split('|') if f.strip()]
-                    sm.dados_coletados['fluxos_entrada'] = fluxos
+                sm.dados_coletados['fluxos_entrada'] = fluxos
 
-            # ✅ FIX: Carregar dados para interface de fluxos de SAÍDA
+            # Carregar dados para interface de fluxos de SAÍDA
             try:
-                areas_organizacionais = self._carregar_areas_organizacionais()
-                orgaos_centralizados = self._carregar_orgaos_centralizados()
-                canais_atendimento = self._carregar_canais_atendimento()
+                areas_organizacionais = carregar_areas_organizacionais()
+                orgaos_centralizados = carregar_orgaos_centralizados()
+                canais_atendimento = carregar_canais_atendimento()
             except Exception as e:
                 logger.error(f"[FLUXOS] Erro ao carregar dados: {e}")
                 areas_organizacionais = []
@@ -3724,32 +2266,10 @@ class HelenaPOP(BaseHelena):
                 sm.dados_coletados['fluxos_saida'] = []
             else:
                 # Aceitar JSON estruturado ou texto simples
-                try:
-                    import json as json_lib
-                    dados_json = json_lib.loads(mensagem)
-                    if isinstance(dados_json, dict):
-                        # Formato novo: JSON com destinos_selecionados e outros_destinos
-                        fluxos = []
-                        for destino in dados_json.get('destinos_selecionados', []):
-                            if isinstance(destino, dict):
-                                label = destino.get('tipo', '')
-                                espec = destino.get('especificacao', '')
-                                if espec:
-                                    fluxos.append(f"{label} ({espec})")
-                                else:
-                                    fluxos.append(label)
-                            else:
-                                fluxos.append(str(destino))
-
-                        if dados_json.get('outros_destinos'):
-                            fluxos.append(dados_json['outros_destinos'])
-                    else:
-                        # JSON mas não é dict, usar como lista
-                        fluxos = dados_json if isinstance(dados_json, list) else [mensagem]
-                except:
-                    # Formato antigo: texto separado por vírgulas
+                dados_json = self._parse_json_seguro(mensagem)
+                fluxos = self._parsear_fluxo_json(dados_json, 'destinos_selecionados', 'outros_destinos', formato_entrada=False)
+                if fluxos is None:
                     fluxos = [f.strip() for f in mensagem.replace('\n', ',').split(',') if f.strip()]
-
                 sm.dados_coletados['fluxos_saida'] = fluxos
 
             # Ir para PONTOS_ATENCAO (fluxo completo: PONTOS → REVISAO → TRANSICAO_EPICA)
@@ -3825,7 +2345,7 @@ class HelenaPOP(BaseHelena):
         nome = sm.nome_usuario or "você"
 
         # Se confirmar/seguir → TRANSICAO_EPICA
-        if any(palavra in msg_lower for palavra in ['seguir', 'tudo certo', 'confirmar', 'ok', 'continuar', 'sim', 'vamos']):
+        if self._detectar_intencao(msg_lower, 'confirmacao'):
             sm.estado = EstadoPOP.TRANSICAO_EPICA
             sm.tipo_interface = None
             sm.dados_interface = {}
@@ -3856,7 +2376,7 @@ class HelenaPOP(BaseHelena):
             return resposta, sm
 
         # Se editar → SELECAO_EDICAO com 9 campos
-        elif any(palavra in msg_lower for palavra in ['editar', 'edit', 'alterar', 'corrigir', 'mudar', 'arrumar']):
+        elif self._detectar_intencao(msg_lower, 'edicao'):
             sm.estado = EstadoPOP.SELECAO_EDICAO
             sm.tipo_interface = 'selecao_edicao'
             sm._voltou_de_revisao = True  # Flag para saber que veio da revisão
@@ -3921,14 +2441,7 @@ class HelenaPOP(BaseHelena):
         msg_lower = mensagem.lower().strip()
         nome = sm.nome_usuario
 
-        # Palavras que indicam continuidade (incluindo clique no botão)
-        continuar_palavras = ['ok', 'continuar', 'sim', 'vamos', 'próximo', 'seguir', 'bora', 'vai',
-                             'começar', 'pode ser', 'partiu', 'lets go', 'vamos começar']
-
-        # Palavras que indicam pausa
-        pausa_palavras = ['pausa', 'pausar', 'esperar', 'depois', 'mais tarde', 'aguardar', 'não', 'nao']
-
-        if any(palavra in msg_lower for palavra in pausa_palavras):
+        if self._detectar_intencao(msg_lower, 'pausa') or self._detectar_intencao(msg_lower, 'negacao'):
             # Usuário quer pausar - mensagem humanizada com resumo
             resposta = (
                 f"Sem problema, {nome}! 😊\n\n"
@@ -3945,7 +2458,7 @@ class HelenaPOP(BaseHelena):
             # Não muda o estado, fica esperando
             return resposta, sm
 
-        elif any(palavra in msg_lower for palavra in continuar_palavras):
+        elif self._detectar_intencao(msg_lower, 'confirmacao'):
             # Usuário confirmou - avançar para delegação com troféu
             sm.estado = EstadoPOP.DELEGACAO_ETAPAS
 
@@ -3995,7 +2508,7 @@ class HelenaPOP(BaseHelena):
         msg_lower = mensagem.lower().strip()
 
         # Verificar se é cancelamento
-        if any(palavra in msg_lower for palavra in ['cancelar', 'voltar', 'sair', 'não']):
+        if self._detectar_intencao(msg_lower, 'cancelar') or msg_lower == 'não':
             # Verificar se veio da revisão
             if hasattr(sm, '_voltou_de_revisao') and sm._voltou_de_revisao:
                 sm._voltou_de_revisao = False
@@ -4065,7 +2578,7 @@ class HelenaPOP(BaseHelena):
         """Processa delegação para Helena Etapas"""
         msg_lower = mensagem.lower().strip()
 
-        if any(palavra in msg_lower for palavra in ['ok', 'continuar', 'sim', 'vamos', 'próximo']):
+        if self._detectar_intencao(msg_lower, 'confirmacao'):
             sm.concluido = True
             sm.estado = EstadoPOP.FINALIZADO
 
@@ -4123,112 +2636,72 @@ class HelenaPOP(BaseHelena):
             logger.error(f"Erro ao sugerir base legal contextual: {e}")
             return []
 
+    def _buscar_linha_arquitetura(self, sm: POPStateMachine):
+        """Busca linha no CSV da arquitetura pelo filtro hierárquico."""
+        filtro = (
+            (self.arquitetura.df['Macroprocesso'] == sm.macro_selecionado) &
+            (self.arquitetura.df['Processo'] == sm.processo_selecionado) &
+            (self.arquitetura.df['Subprocesso'] == sm.subprocesso_selecionado) &
+            (self.arquitetura.df['Atividade'] == sm.atividade_selecionada)
+        )
+        return self.arquitetura.df[filtro]
+
     def _gerar_codigo_processo(self, sm: POPStateMachine) -> str:
-        """Gera código CAP (Código na Arquitetura de Processos) automaticamente
-
-        Formato: PREFIXO.MACRO.PROCESSO.SUBPROCESSO.ATIVIDADE
-        Exemplo: 1.2.3.4.5 (CGBEN.2.3.4.5)
-
-        Valida duplicatas e incrementa sufixos se necessário
-        """
+        """Gera código CAP (Código na Arquitetura de Processos) automaticamente."""
         area_info = sm.area_selecionada
         if not area_info:
             return "X.X.X.X.X"
 
         prefixo = area_info.get("prefixo", "X")
+        logger.info(f"[CAP] Buscando: {sm.macro_selecionado}/{sm.processo_selecionado}/{sm.subprocesso_selecionado}/{sm.atividade_selecionada}")
 
+        # Tentar buscar código direto no CSV
         try:
-            # Tentar buscar código no CSV primeiro
-            logger.info(f"[CAP] Buscando no CSV:")
-            logger.info(f"  Macro: '{sm.macro_selecionado}'")
-            logger.info(f"  Processo: '{sm.processo_selecionado}'")
-            logger.info(f"  Subprocesso: '{sm.subprocesso_selecionado}'")
-            logger.info(f"  Atividade: '{sm.atividade_selecionada}'")
-
-            filtro = (
-                (self.arquitetura.df['Macroprocesso'] == sm.macro_selecionado) &
-                (self.arquitetura.df['Processo'] == sm.processo_selecionado) &
-                (self.arquitetura.df['Subprocesso'] == sm.subprocesso_selecionado) &
-                (self.arquitetura.df['Atividade'] == sm.atividade_selecionada)
-            )
-            linha = self.arquitetura.df[filtro]
-
-            if 'Codigo' in self.arquitetura.df.columns and not linha.empty:
-                codigo_csv = linha['Codigo'].iloc[0]
-                logger.info(f"[CAP] Encontrado no CSV: {codigo_csv}")
-                if not self._codigo_existe_no_banco(codigo_csv):
-                    return codigo_csv
-            elif 'codigo' in self.arquitetura.df.columns and not linha.empty:
-                codigo_csv = linha['codigo'].iloc[0]
-                logger.info(f"[CAP] Encontrado no CSV: {codigo_csv}")
-                if not self._codigo_existe_no_banco(codigo_csv):
-                    return codigo_csv
-            else:
-                logger.warning(f"⚠️ [CAP] NÃO encontrado no CSV com match exato. Gerando por índice.")
+            linha = self._buscar_linha_arquitetura(sm)
+            if not linha.empty:
+                # Buscar coluna Codigo (case insensitive)
+                col_codigo = next((c for c in linha.columns if c.lower() == 'codigo'), None)
+                if col_codigo:
+                    codigo_csv = linha[col_codigo].iloc[0]
+                    if not self._codigo_existe_no_banco(codigo_csv):
+                        logger.info(f"[CAP] Encontrado no CSV: {codigo_csv}")
+                        return codigo_csv
         except Exception as e:
-            logger.error(f"❌ [CAP] Erro ao buscar no CSV: {e}")
-            pass
+            logger.error(f"[CAP] Erro ao buscar no CSV: {e}")
 
-        # Gerar código baseado em numeração do CSV (coluna 'Numero')
+        # Gerar código baseado em numeração do CSV ou índices dinâmicos
         try:
-            # Tentar buscar numeração da coluna 'Numero' do CSV
-            filtro = (
-                (self.arquitetura.df['Macroprocesso'] == sm.macro_selecionado) &
-                (self.arquitetura.df['Processo'] == sm.processo_selecionado) &
-                (self.arquitetura.df['Subprocesso'] == sm.subprocesso_selecionado) &
-                (self.arquitetura.df['Atividade'] == sm.atividade_selecionada)
-            )
-            linha_encontrada = self.arquitetura.df[filtro]
-
-            if not linha_encontrada.empty and 'Numero' in linha_encontrada.columns:
-                # Ler número hierárquico do CSV (ex: "1.1.1.1")
-                numero_csv = str(linha_encontrada.iloc[0]['Numero'])
-                partes = numero_csv.split('.')
-
+            linha = self._buscar_linha_arquitetura(sm)
+            if not linha.empty and 'Numero' in linha.columns:
+                partes = str(linha.iloc[0]['Numero']).split('.')
                 if len(partes) >= 4:
-                    idx_macro = int(partes[0])
-                    idx_processo = int(partes[1])
-                    idx_subprocesso = int(partes[2])
-                    idx_atividade = int(partes[3])
+                    codigo_base = f"{prefixo}.{partes[0]}.{partes[1]}.{partes[2]}.{partes[3]}"
                 else:
-                    raise ValueError("Formato de numeração inválido no CSV")
+                    raise ValueError("Formato inválido")
             else:
-                raise ValueError("Numeração não encontrada no CSV")
-
-            codigo_base = f"{prefixo}.{idx_macro}.{idx_processo}.{idx_subprocesso}.{idx_atividade}"
-
-        except (ValueError, IndexError, KeyError) as e:
+                raise ValueError("Numeração não encontrada")
+        except (ValueError, IndexError, KeyError):
             # Fallback: gerar índices dinamicamente
-            logger.warning(f"[CAP] Numeração não encontrada no CSV, gerando dinamicamente: {e}")
+            logger.warning("[CAP] Gerando código dinamicamente")
+            def idx(lista, valor):
+                return lista.index(valor) + 1 if valor in lista else 1
 
             macros = self.arquitetura.obter_macroprocessos_unicos()
-            idx_macro = macros.index(sm.macro_selecionado) + 1 if sm.macro_selecionado in macros else 1
-
             processos = self.arquitetura.obter_processos_por_macro(sm.macro_selecionado)
-            idx_processo = processos.index(sm.processo_selecionado) + 1 if sm.processo_selecionado in processos else 1
-
             subprocessos = self.arquitetura.obter_subprocessos_por_processo(sm.macro_selecionado, sm.processo_selecionado)
-            idx_subprocesso = subprocessos.index(sm.subprocesso_selecionado) + 1 if sm.subprocesso_selecionado in subprocessos else 1
-
             atividades = self.arquitetura.obter_atividades_por_subprocesso(sm.macro_selecionado, sm.processo_selecionado, sm.subprocesso_selecionado)
-            idx_atividade = atividades.index(sm.atividade_selecionada) + 1 if sm.atividade_selecionada in atividades else 1
 
-            codigo_base = f"{prefixo}.{idx_macro}.{idx_processo}.{idx_subprocesso}.{idx_atividade}"
+            codigo_base = f"{prefixo}.{idx(macros, sm.macro_selecionado)}.{idx(processos, sm.processo_selecionado)}.{idx(subprocessos, sm.subprocesso_selecionado)}.{idx(atividades, sm.atividade_selecionada)}"
 
-            # Validar duplicatas e incrementar sufixo se necessário
-            codigo_final = codigo_base
-            sufixo = 1
-            while self._codigo_existe_no_banco(codigo_final):
-                codigo_final = f"{codigo_base}-{sufixo}"
-                sufixo += 1
-                if sufixo > 50:  # Limite de segurança
-                    break
+        # Validar duplicatas e incrementar sufixo se necessário
+        codigo_final = codigo_base
+        for sufixo in range(1, 51):
+            if not self._codigo_existe_no_banco(codigo_final):
+                break
+            codigo_final = f"{codigo_base}-{sufixo}"
 
-            logger.info(f"CAP gerado: {codigo_final}")
-            return codigo_final
-        except Exception as e:
-            logger.error(f"Erro ao gerar CAP: {e}")
-            return f"{prefixo}.1.1.1.1"
+        logger.info(f"[CAP] Gerado: {codigo_final}")
+        return codigo_final
 
     def _codigo_existe_no_banco(self, codigo: str) -> bool:
         """Verifica se código CAP já existe no banco de dados"""
@@ -4243,110 +2716,55 @@ class HelenaPOP(BaseHelena):
             return False
 
     def _calcular_progresso(self, sm: POPStateMachine) -> str:
-        """
-        Calcula progresso da coleta baseado em campos preenchidos (não estados).
-        Retorna formato "X/13" onde 13 é o total de campos principais.
-        """
-        total_campos = 13  # Total de campos principais no POP
-        campos_preenchidos = 0
-
-        # Nome usuário
-        if sm.nome_usuario:
-            campos_preenchidos += 1
-
-        # Área DECIPEX
-        if sm.dados_coletados.get('area_decipex'):
-            campos_preenchidos += 1
-
-        # Arquitetura (macro/processo/subprocesso/atividade)
-        if sm.dados_coletados.get('macroprocesso'):
-            campos_preenchidos += 1
-        if sm.dados_coletados.get('processo'):
-            campos_preenchidos += 1
-        if sm.dados_coletados.get('subprocesso'):
-            campos_preenchidos += 1
-        if sm.dados_coletados.get('atividade'):
-            campos_preenchidos += 1
-
-        # Nome do processo
-        if sm.dados_coletados.get('nome_processo'):
-            campos_preenchidos += 1
-
-        # Entrega esperada
-        if sm.dados_coletados.get('entrega_esperada'):
-            campos_preenchidos += 1
-
-        # Dispositivos normativos
-        if sm.dados_coletados.get('dispositivos_normativos'):
-            campos_preenchidos += 1
-
-        # Operadores
-        if sm.dados_coletados.get('operadores'):
-            campos_preenchidos += 1
-
-        # Sistemas
-        if sm.dados_coletados.get('sistemas'):
-            campos_preenchidos += 1
-
-        # Documentos (entrada/saída)
-        if sm.dados_coletados.get('documentos_entrada') or sm.dados_coletados.get('documentos_saida'):
-            campos_preenchidos += 1
-
-        # Fluxos (entrada/saída)
-        if sm.dados_coletados.get('fluxos_entrada') or sm.dados_coletados.get('fluxos_saida'):
-            campos_preenchidos += 1
-
-        return f"{campos_preenchidos}/{total_campos}"
+        """Calcula progresso da coleta baseado em campos preenchidos."""
+        d = sm.dados_coletados
+        campos = [
+            sm.nome_usuario,
+            d.get('area_decipex'),
+            d.get('macroprocesso'),
+            d.get('processo'),
+            d.get('subprocesso'),
+            d.get('atividade'),
+            d.get('nome_processo'),
+            d.get('entrega_esperada'),
+            d.get('dispositivos_normativos'),
+            d.get('operadores'),
+            d.get('sistemas'),
+            d.get('documentos_entrada') or d.get('documentos_saida'),
+            d.get('fluxos_entrada') or d.get('fluxos_saida'),
+        ]
+        preenchidos = sum(1 for c in campos if c)
+        return f"{preenchidos}/{len(campos)}"
 
     def obter_progresso(self, sm: POPStateMachine) -> dict:
-        """
-        Retorna detalhes completos do progresso atual.
-
-        Returns:
-            dict: {
-                "campos_preenchidos": int,
-                "total_campos": int,
-                "percentual": int (0-100),
-                "estado_atual": str,
-                "campos_faltantes": list[str],
-                "completo": bool
-            }
-        """
-        total_campos = 13
-        campos_preenchidos = 0
-        campos_faltantes = []
-
-        # Mapear campos e verificar preenchimento
-        campos_map = {
-            'nome_usuario': ('Nome do usuário', sm.nome_usuario),
-            'area_decipex': ('Área DECIPEX', sm.dados_coletados.get('area_decipex')),
-            'macroprocesso': ('Macroprocesso', sm.dados_coletados.get('macroprocesso')),
-            'processo': ('Processo', sm.dados_coletados.get('processo')),
-            'subprocesso': ('Subprocesso', sm.dados_coletados.get('subprocesso')),
-            'atividade': ('Atividade', sm.dados_coletados.get('atividade')),
-            'nome_processo': ('Nome do processo', sm.dados_coletados.get('nome_processo')),
-            'entrega_esperada': ('Entrega esperada', sm.dados_coletados.get('entrega_esperada')),
-            'dispositivos_normativos': ('Dispositivos normativos', sm.dados_coletados.get('dispositivos_normativos')),
-            'operadores': ('Operadores', sm.dados_coletados.get('operadores')),
-            'sistemas': ('Sistemas', sm.dados_coletados.get('sistemas')),
-            'documentos': ('Documentos', sm.dados_coletados.get('documentos_entrada') or sm.dados_coletados.get('documentos_saida')),
-            'fluxos': ('Fluxos', sm.dados_coletados.get('fluxos_entrada') or sm.dados_coletados.get('fluxos_saida')),
-        }
-
-        for campo_id, (campo_nome, valor) in campos_map.items():
-            if valor:
-                campos_preenchidos += 1
-            else:
-                campos_faltantes.append(campo_nome)
-
-        percentual = int((campos_preenchidos / total_campos) * 100)
+        """Retorna detalhes completos do progresso atual."""
+        d = sm.dados_coletados
+        campos = [
+            ('Nome do usuário', sm.nome_usuario),
+            ('Área DECIPEX', d.get('area_decipex')),
+            ('Macroprocesso', d.get('macroprocesso')),
+            ('Processo', d.get('processo')),
+            ('Subprocesso', d.get('subprocesso')),
+            ('Atividade', d.get('atividade')),
+            ('Nome do processo', d.get('nome_processo')),
+            ('Entrega esperada', d.get('entrega_esperada')),
+            ('Dispositivos normativos', d.get('dispositivos_normativos')),
+            ('Operadores', d.get('operadores')),
+            ('Sistemas', d.get('sistemas')),
+            ('Documentos', d.get('documentos_entrada') or d.get('documentos_saida')),
+            ('Fluxos', d.get('fluxos_entrada') or d.get('fluxos_saida')),
+        ]
+        preenchidos = sum(1 for _, v in campos if v)
+        faltantes = [nome for nome, v in campos if not v]
+        total = len(campos)
+        percentual = int((preenchidos / total) * 100)
 
         return {
-            "campos_preenchidos": campos_preenchidos,
-            "total_campos": total_campos,
+            "campos_preenchidos": preenchidos,
+            "total_campos": total,
             "percentual": percentual,
             "estado_atual": sm.estado.value,
-            "campos_faltantes": campos_faltantes,
+            "campos_faltantes": faltantes,
             "completo": sm.estado == EstadoPOP.DELEGACAO_ETAPAS or percentual == 100
         }
 
@@ -4361,6 +2779,9 @@ class HelenaPOP(BaseHelena):
             dict: Dados formatados para o FormularioPOP.tsx
         """
         dados = sm.dados_coletados
+        logger.info(f"[_preparar_dados_formulario] dados_coletados.operadores = {dados.get('operadores')}")
+        logger.info(f"[_preparar_dados_formulario] dados_coletados.fluxos_entrada = {dados.get('fluxos_entrada')}")
+        logger.info(f"[_preparar_dados_formulario] dados_coletados.fluxos_saida = {dados.get('fluxos_saida')}")
         area_info = sm.area_selecionada or {}
 
         # Gerar código CAP se ainda não foi gerado
@@ -4384,7 +2805,8 @@ class HelenaPOP(BaseHelena):
             "nome_processo": dados.get("nome_processo", "") or sm.atividade_selecionada or "",  # ✅ Fallback para atividade
             "entrega_esperada": dados.get("entrega_esperada", ""),
             "dispositivos_normativos": dados.get("dispositivos_normativos", []),
-            "operadores": '; '.join(dados.get("operadores", [])) if isinstance(dados.get("operadores", []), list) else dados.get("operadores", ""),
+            # ✅ FIX: Manter operadores como LISTA (igual sistemas)
+            "operadores": dados.get("operadores", []),
             "sistemas": dados.get("sistemas", []),
             "documentos": dados.get("documentos", []),
             "fluxos_entrada": dados.get("fluxos_entrada", []),

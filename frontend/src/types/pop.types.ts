@@ -7,7 +7,7 @@ export interface POPData {
   entrega_esperada?: string;
   dispositivos_normativos?: string;
   sistemas_utilizados?: string | string[];
-  operadores?: string;
+  operadores?: string | string[];
   etapas?: Etapa[];
   documentos_utilizados?: string;
   pontos_atencao?: string;
