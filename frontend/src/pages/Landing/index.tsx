@@ -16,9 +16,9 @@ export default function Landing() {
                 Setor Público
               </h1>
               <p>
-                Sistema completo de GRC baseado em padrões DECIPEX/MGI, referenciais TCU/CGU e
-                normas internacionais. Transforme como seu órgão gerencia processos, riscos e
-                conformidade.
+                <strong>Transforme mapeamentos dispersos e controles informais em processos, riscos e decisões estruturadas.</strong>
+                {' '}Planejamento estratégico, análise de riscos e revisão de artefatos em um único
+                sistema, com método, ferramentas e rastreabilidade.
               </p>
 
               <div className={styles.heroButtons}>

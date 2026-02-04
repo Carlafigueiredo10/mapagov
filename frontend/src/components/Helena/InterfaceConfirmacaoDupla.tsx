@@ -1,4 +1,5 @@
 import React from 'react';
+import { CHAT_CMD } from '../../constants/chatCommands';
 
 interface InterfaceConfirmacaoDuplaProps {
   dados: {
@@ -14,9 +15,19 @@ const InterfaceConfirmacaoDupla: React.FC<InterfaceConfirmacaoDuplaProps> = ({ d
   const {
     botao_confirmar = 'Confirmar ✅',
     botao_editar = 'Editar ✏️',
-    valor_confirmar = 'CONFIRMAR',
-    valor_editar = 'EDITAR'
+    valor_confirmar: valor_backend_confirmar,
+    valor_editar: valor_backend_editar,
   } = dados;
+
+  // ✅ FIX: Usar valores do backend quando específicos, tokens só para genéricos
+  // Se backend envia "objetiva"/"detalhada"/etc → usa esses valores
+  // Se backend envia "CONFIRMAR"/"EDITAR" ou nada → usa tokens determinísticos
+  const valor_confirmar = (valor_backend_confirmar && !['CONFIRMAR', 'SEGUIR'].includes(valor_backend_confirmar))
+    ? valor_backend_confirmar
+    : CHAT_CMD.CONFIRMAR_DUPLA;
+  const valor_editar = (valor_backend_editar && valor_backend_editar !== 'EDITAR')
+    ? valor_backend_editar
+    : CHAT_CMD.EDITAR_DUPLA;
 
   const handleConfirmar = () => {
     onEnviar(valor_confirmar);

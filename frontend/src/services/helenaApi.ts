@@ -19,6 +19,9 @@ export interface ChatResponse {
     auto_continue_message?: string;
     [key: string]: unknown;
   };
+  // ⚠️ Compat legado: backend às vezes envia esses ao invés dos acima
+  interface?: string;
+  dados?: Record<string, unknown>;
 }
 
 export interface ValidationRequest {
@@ -43,6 +46,33 @@ export interface PDFResponse {
   error?: string;
 }
 
+// ✅ FIX: Converte string para objeto (backend às vezes retorna string com NaN)
+const toObjectSafe = (raw: unknown): Record<string, unknown> => {
+  if (typeof raw === 'string') {
+    // Corrigir NaN → null para virar JSON válido
+    const patched = raw.replace(/\bNaN\b/g, 'null');
+    try {
+      return JSON.parse(patched);
+    } catch {
+      console.error('[helenaApi] Erro ao parsear resposta como JSON:', raw.substring(0, 200));
+      return {};
+    }
+  }
+  return (raw as Record<string, unknown>) ?? {};
+};
+
+// ✅ FIX: Sanitiza NaN em objetos já parseados
+const sanitizeNaN = (value: unknown): unknown => {
+  if (typeof value === 'number' && Number.isNaN(value)) return null;
+  if (Array.isArray(value)) return value.map(sanitizeNaN);
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) out[k] = sanitizeNaN(v);
+    return out;
+  }
+  return value;
+};
+
 // Chat principal com Helena (USA /chat/ com POPStateMachine corrigido)
 export const chatHelena = async (request: ChatRequest): Promise<ChatResponse> => {
   console.log("[helenaApi.ts] 📤 Enviando para /chat/:", {
@@ -53,12 +83,30 @@ export const chatHelena = async (request: ChatRequest): Promise<ChatResponse> =>
 
   const response = await api.post('/chat/', {
     message: request.message,
-    contexto: request.contexto,  // ✅ Envia contexto 'gerador_pop'
+    contexto: request.contexto,
     session_id: request.session_id
   });
 
-  console.log("[helenaApi.ts] 📥 Resposta CRUA da API /chat/:", response.data);
-  return response.data;
+  // ✅ FIX: Converter para objeto (backend às vezes retorna string com NaN)
+  const raw: any = toObjectSafe(response.data);
+  console.log("[helenaApi.ts] 📥 Resposta (objeto):", raw);
+
+  // ✅ FIX: Normalização robusta (interface/dados -> tipo_interface/dados_interface)
+  const normalized: ChatResponse = {
+    resposta: String(raw.resposta ?? ''),
+    tipo_interface: raw.tipo_interface ?? raw.interface ?? undefined,
+    dados_interface: sanitizeNaN(raw.dados_interface ?? raw.dados ?? {}) as Record<string, unknown>,
+    dados_extraidos: raw.dados_extraidos ?? raw.formulario_pop ?? undefined,
+    progresso: raw.progresso ?? undefined,
+    conversa_completa: raw.conversa_completa ?? undefined,
+    metadados: raw.metadados ?? {}
+  };
+
+  // ✅ FIX: Retornar snapshot limpo (evita referências/mutações)
+  const snap = JSON.parse(JSON.stringify(normalized));
+  console.log("[helenaApi.ts] ✅ Normalized SNAP:", snap);
+
+  return snap;
 };
 
 // Chat de ajuda/mapeamento
