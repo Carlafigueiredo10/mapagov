@@ -107,15 +107,39 @@ export const HelenaPEModerna: React.FC = () => {
     }
   }, [mensagens]);
 
-  // 🔧 Detectar rota direta e abrir workspace automaticamente
+  // 🔧 Sincronização URL → Estado (URL é a fonte da verdade)
   useEffect(() => {
-    // Se estiver na rota /planejamento-estrategico/modelos, vai direto para tela de seleção
-    if (location.pathname === '/planejamento-estrategico/modelos' && estado === 'inicial') {
-      console.log('[Route] Detectada rota /planejamento-estrategico/modelos → Indo para seleção de modelos');
-      setEstado('modelos');
+    const p = location.pathname;
+
+    // 1) Home - rota raiz
+    if (p === '/planejamento-estrategico') {
+      setEstado('inicial');
+      setModeloSelecionado(null);
+      setWorkspaceVisivel(false);
+      setMostrarCardIntro(false);
+      setAguardandoConfirmacao(false);
       return;
     }
 
+    // 2) Diagnóstico
+    if (p === '/planejamento-estrategico/diagnostico') {
+      setEstado('diagnostico');
+      setModeloSelecionado(null);
+      setWorkspaceVisivel(false);
+      setMostrarCardIntro(false);
+      return;
+    }
+
+    // 3) Lista de modelos
+    if (p === '/planejamento-estrategico/modelos') {
+      setEstado('modelos');
+      setModeloSelecionado(null);
+      setWorkspaceVisivel(false);
+      setMostrarCardIntro(false);
+      return;
+    }
+
+    // 4) Rotas de modelo → chat
     const rotaParaModelo: Record<string, string> = {
       '/planejamento-estrategico/modelos/tradicional': 'tradicional',
       '/planejamento-estrategico/modelos/bsc': 'bsc',
@@ -126,15 +150,20 @@ export const HelenaPEModerna: React.FC = () => {
       '/metodos/hoshin': 'hoshin'
     };
 
-    const modeloId = rotaParaModelo[location.pathname];
-
-    if (modeloId && !modeloSelecionado) {
-      console.log(`[Route] Detectada rota direta: ${location.pathname} → Modelo: ${modeloId}`);
+    const modeloId = rotaParaModelo[p];
+    if (modeloId) {
+      setEstado('chat');
       setModeloSelecionado(modeloId);
       setWorkspaceVisivel(true);
-      setEstado('chat'); // Muda para estado de chat para exibir workspace
+      return;
     }
-  }, [location.pathname, modeloSelecionado, estado]);
+
+    // 5) Fallback seguro (qualquer outra rota)
+    setEstado('inicial');
+    setModeloSelecionado(null);
+    setWorkspaceVisivel(false);
+    setMostrarCardIntro(false);
+  }, [location.pathname]); // IMPORTANTE: só pathname, sem estado/modeloSelecionado
 
   // Adiciona mensagem ao histórico
   const adicionarMensagem = (tipo: 'user' | 'helena', texto: string) => {
@@ -444,9 +473,9 @@ export const HelenaPEModerna: React.FC = () => {
           <Button
             variant="outline"
             onClick={() => {
-              setEstado('inicial');
               setPerguntaAtual(0);
               setRespostasDiagnostico({});
+              navigate('/planejamento-estrategico');
             }}
             size="md"
             disabled={loading}
@@ -659,15 +688,12 @@ export const HelenaPEModerna: React.FC = () => {
                 {workspaceVisivel ? '💬 Apenas Chat' : '📊 Ver Workspace'}
               </Button>
               <Button variant="outline" onClick={() => {
+                // Limpa dados da sessão (useEffect cuida do estado de navegação)
                 setMensagens([]);
-                setModeloSelecionado(null);
-                setWorkspaceVisivel(false);
                 setDadosWorkspace(null);
-                setMostrarCardIntro(false);
-                setAguardandoConfirmacao(false);
-                setSessionData(null); // 🔄 RESET: Zera sessionData
+                setSessionData(null);
                 helenaPEService.resetar();
-                sessionManager.clearSession(); // Limpa sessão do localStorage
+                sessionManager.clearSession();
                 navigate('/planejamento-estrategico');
               }} size="sm">
                 ← Nova Sessão
@@ -844,13 +870,7 @@ export const HelenaPEModerna: React.FC = () => {
                   </div>
 
                   <Button
-                    onClick={() => {
-                      setMostrarCardIntro(false);
-                      navigate('/planejamento-estrategico/modelos');
-                      setEstado('modelos');
-                      setModeloSelecionado(null);
-                      setWorkspaceVisivel(false);
-                    }}
+                    onClick={() => navigate('/planejamento-estrategico/modelos')}
                     disabled={loading}
                     style={{
                       background: 'transparent',
@@ -903,13 +923,7 @@ export const HelenaPEModerna: React.FC = () => {
                     ✓ Confirmar
                   </Button>
                   <Button
-                    onClick={() => {
-                      setAguardandoConfirmacao(false);
-                      navigate('/planejamento-estrategico/modelos');
-                      setEstado('modelos');
-                      setModeloSelecionado(null);
-                      setWorkspaceVisivel(false);
-                    }}
+                    onClick={() => navigate('/planejamento-estrategico/modelos')}
                     style={{
                       background: 'rgba(255, 255, 255, 0.2)',
                       color: '#2C3E50',
