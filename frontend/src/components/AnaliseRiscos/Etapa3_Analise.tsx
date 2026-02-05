@@ -1,7 +1,7 @@
 /**
- * Etapa3_Analise - Analisar probabilidade e impacto dos riscos
+ * Etapa3_Analise - Analisar probabilidade e impacto dos riscos identificados
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAnaliseRiscosStore } from '../../store/analiseRiscosStore';
 import { CORES_NIVEL, NivelRisco } from '../../types/analiseRiscos.types';
 
@@ -19,6 +19,13 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
   const [impactoTemp, setImpactoTemp] = useState<number | undefined>(undefined);
 
   const riscos = currentAnalise?.riscos || [];
+
+  // Validacao: todos os riscos devem ter P/I preenchidos para avancar
+  const riscosSemPI = useMemo(() => {
+    return riscos.filter(r => r.probabilidade == null || r.impacto == null);
+  }, [riscos]);
+
+  const podeAvancar = riscos.length > 0 && riscosSemPI.length === 0;
 
   const handleIniciarEdicao = (
     riscoId: string,
@@ -44,6 +51,10 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
   };
 
   const handleAvancar = () => {
+    if (!podeAvancar) {
+      alert(`${riscosSemPI.length} risco(s) ainda sem Probabilidade/Impacto. Preencha todos para avancar.`);
+      return;
+    }
     onAvancar();
   };
 
@@ -53,13 +64,26 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
 
   return (
     <div>
-      <h3>Etapa 3: Analise de Probabilidade e Impacto</h3>
+      <h3 style={{ marginBottom: '8px' }}>Análise de Probabilidade e Impacto</h3>
 
-      <p style={{ color: '#666', marginBottom: '20px' }}>
-        Revise e ajuste a probabilidade e impacto de cada risco identificado.
+      <p style={{ color: '#555', marginBottom: '12px', lineHeight: '1.6' }}>
+        Nesta etapa, cada risco identificado deve ser classificado quanto à probabilidade e ao impacto, em escala de 1 a 5.
+      </p>
+      <p style={{ color: '#555', marginBottom: '20px', lineHeight: '1.6' }}>
+        O avanço da análise exige que todos os riscos estejam classificados.
+        Para registrar a avaliação, selecione o risco desejado e clique em{' '}
+        <span style={{
+          display: 'inline-block',
+          padding: '2px 8px',
+          background: '#3b82f6',
+          color: 'white',
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontWeight: '500',
+        }}>Editar</span>.
       </p>
 
-      {/* Lista de riscos para analise */}
+      {/* Lista de riscos para análise */}
       <div
         style={{
           padding: '15px',
@@ -68,7 +92,7 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
           marginBottom: '20px',
         }}
       >
-        <h4 style={{ marginTop: 0 }}>Riscos para Analise ({riscos.length})</h4>
+        <h4 style={{ marginTop: 0 }}>Riscos para Análise ({riscos.length})</h4>
 
         {riscos.length === 0 ? (
           <p style={{ color: '#666' }}>Nenhum risco para analisar.</p>
@@ -219,6 +243,22 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
         )}
       </div>
 
+      {/* Alerta de riscos pendentes */}
+      {riscosSemPI.length > 0 && (
+        <div
+          style={{
+            padding: '12px 15px',
+            background: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            color: '#92400e',
+          }}
+        >
+          <strong>{riscosSemPI.length} risco(s) pendente(s):</strong> Preencha Probabilidade e Impacto de todos os riscos para avancar.
+        </div>
+      )}
+
       {/* Resumo */}
       {riscos.length > 0 && (
         <div
@@ -229,7 +269,7 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
             marginBottom: '20px',
           }}
         >
-          <h4 style={{ marginTop: 0 }}>Resumo da Analise</h4>
+          <h4 style={{ marginTop: 0 }}>Resumo da Análise</h4>
           <div style={{ display: 'flex', gap: '20px' }}>
             {(['CRITICO', 'ALTO', 'MEDIO', 'BAIXO'] as NivelRisco[]).map(
               (nivel) => {
@@ -281,14 +321,15 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
 
         <button
           onClick={handleAvancar}
-          disabled={riscos.length === 0}
+          disabled={!podeAvancar}
+          title={!podeAvancar ? `${riscosSemPI.length} risco(s) sem P/I` : ''}
           style={{
             padding: '10px 30px',
-            background: riscos.length === 0 ? '#d1d5db' : '#3b82f6',
+            background: !podeAvancar ? '#d1d5db' : '#3b82f6',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
-            cursor: riscos.length === 0 ? 'not-allowed' : 'pointer',
+            cursor: !podeAvancar ? 'not-allowed' : 'pointer',
           }}
         >
           Ver Matriz →

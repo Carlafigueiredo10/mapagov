@@ -9,10 +9,54 @@ interface Props {
   onAvancar: (textoExtraido?: string) => void;
 }
 
+// Ícones SVG inline (azul institucional Gov.br)
+const IconeFormulario = () => (
+  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1351B4" strokeWidth="1.5">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="8" y1="13" x2="16" y2="13" />
+    <line x1="8" y1="17" x2="12" y2="17" />
+  </svg>
+);
+
+const IconeDocumento = () => (
+  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1351B4" strokeWidth="1.5">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <path d="M9 15l2 2 4-4" />
+  </svg>
+);
+
+const IconeRepositorio = () => (
+  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1351B4" strokeWidth="1.5">
+    <ellipse cx="12" cy="5" rx="9" ry="3" />
+    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+  </svg>
+);
+
 const MODOS_ENTRADA = [
-  { valor: 'QUESTIONARIO' as ModoEntrada, label: 'Vou explicar a ideia', descricao: 'Preencher manualmente o contexto', icone: '📝' },
-  { valor: 'PDF' as ModoEntrada, label: 'Tenho documento', descricao: 'Upload de PDF formalizado', icone: '📄' },
-  { valor: 'ID' as ModoEntrada, label: 'Já existe no MapaGov', descricao: 'Buscar por ID no sistema', icone: '🔍' },
+  {
+    valor: 'QUESTIONARIO' as ModoEntrada,
+    label: 'Preenchimento manual',
+    descricao: 'Informar o contexto manualmente',
+    texto: 'Utilize esta opção quando o objeto ainda estiver em fase inicial ou quando não houver documentação formal consolidada.',
+    Icone: IconeFormulario,
+  },
+  {
+    valor: 'PDF' as ModoEntrada,
+    label: 'Tenho documento',
+    descricao: 'Utilizar documento formal',
+    texto: 'Utilize esta opção quando existir documentação formalizada, como termo de abertura, plano, relatório ou outro documento oficial.',
+    Icone: IconeDocumento,
+  },
+  {
+    valor: 'ID' as ModoEntrada,
+    label: 'Já existe no MapaGov',
+    descricao: 'Buscar registro cadastrado',
+    texto: 'Utilize esta opção quando o objeto já estiver registrado no MapaGov. As informações existentes serão recuperadas para apoiar a análise.',
+    Icone: IconeRepositorio,
+  },
 ];
 
 const Etapa0Entrada: React.FC<Props> = ({ onAvancar }) => {
@@ -103,7 +147,7 @@ const Etapa0Entrada: React.FC<Props> = ({ onAvancar }) => {
     );
 
     if (!analiseId) {
-      setErro('Erro ao criar analise. Tente novamente.');
+      setErro('Erro ao criar análise. Tente novamente.');
       return;
     }
 
@@ -115,12 +159,13 @@ const Etapa0Entrada: React.FC<Props> = ({ onAvancar }) => {
   if (etapaInterna === 1) {
     return (
       <div>
-        <h3>O que voce quer analisar?</h3>
-        <p style={{ color: '#666', marginBottom: '20px' }}>
-          Selecione o tipo de objeto que sera avaliado quanto a riscos.
+        <h3 style={{ marginBottom: '8px' }}>Definição do objeto da análise</h3>
+        <p style={{ color: '#555', marginBottom: '24px', lineHeight: '1.6' }}>
+          Nesta etapa, selecione o tipo de objeto que será avaliado quanto aos riscos.
+          O objeto define o contexto da análise e influencia as etapas seguintes.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '32px' }}>
           {TIPOS_ORIGEM.map((tipo) => (
             <button
               key={tipo.valor}
@@ -147,6 +192,21 @@ const Etapa0Entrada: React.FC<Props> = ({ onAvancar }) => {
             </button>
           ))}
         </div>
+
+        {/* Exemplos de objetos */}
+        <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #1351B4' }}>
+          <p style={{ fontWeight: '600', color: '#333', marginBottom: '12px', fontSize: '14px' }}>
+            Exemplos de objetos de análise:
+          </p>
+          <ul style={{ margin: 0, paddingLeft: '20px', color: '#555', fontSize: '14px', lineHeight: '1.8' }}>
+            <li><strong>Projeto</strong> – iniciativa temporária, com início e fim definidos, voltada à entrega de um resultado específico.</li>
+            <li><strong>Processo</strong> – conjunto de atividades recorrentes realizadas para cumprir uma função institucional.</li>
+            <li><strong>POP / Procedimento</strong> – documento que descreve como uma atividade deve ser executada.</li>
+            <li><strong>Política</strong> – diretriz institucional que orienta decisões e comportamentos.</li>
+            <li><strong>Norma</strong> – instrumento normativo que estabelece regras ou requisitos formais.</li>
+            <li><strong>Plano</strong> – instrumento de planejamento que define objetivos, metas e ações.</li>
+          </ul>
+        </div>
       </div>
     );
   }
@@ -161,13 +221,13 @@ const Etapa0Entrada: React.FC<Props> = ({ onAvancar }) => {
         ← Voltar
       </button>
 
-      <h3>Como voce vai informar sobre o {tipoOrigem?.toLowerCase()}?</h3>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
-        Escolha como deseja fornecer as informacoes para analise.
+      <h3 style={{ marginBottom: '8px' }}>Como você vai informar sobre o {tipoOrigem?.toLowerCase()}?</h3>
+      <p style={{ color: '#555', marginBottom: '24px', lineHeight: '1.6' }}>
+        Selecione a forma mais adequada para fornecer as informações que serão utilizadas na análise.
       </p>
 
       {/* Selecao do modo */}
-      <div style={{ display: 'flex', gap: '15px', marginBottom: '25px' }}>
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
         {MODOS_ENTRADA.map((modo) => (
           <button
             key={modo.valor}
@@ -175,19 +235,25 @@ const Etapa0Entrada: React.FC<Props> = ({ onAvancar }) => {
             style={{
               flex: 1,
               padding: '20px',
-              border: modoEntrada === modo.valor ? '2px solid #3b82f6' : '1px solid #ddd',
+              border: modoEntrada === modo.valor ? '2px solid #1351B4' : '1px solid #ddd',
               borderRadius: '8px',
-              background: modoEntrada === modo.valor ? '#eff6ff' : 'white',
+              background: modoEntrada === modo.valor ? '#E8F0FE' : 'white',
               cursor: 'pointer',
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: '28px', marginBottom: '10px' }}>{modo.icone}</div>
-            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>{modo.label}</div>
-            <div style={{ fontSize: '12px', color: '#666' }}>{modo.descricao}</div>
+            <div style={{ marginBottom: '12px', textAlign: 'center' }}><modo.Icone /></div>
+            <div style={{ fontWeight: '600', marginBottom: '4px', color: '#333', textAlign: 'center' }}>{modo.label}</div>
+            <div style={{ fontSize: '13px', color: '#666', marginBottom: '8px', textAlign: 'center' }}>{modo.descricao}</div>
+            <div style={{ fontSize: '12px', color: '#555', lineHeight: '1.5', textAlign: 'center' }}>{modo.texto}</div>
           </button>
         ))}
       </div>
+
+      {/* Microcopy de apoio */}
+      <p style={{ fontSize: '13px', color: '#666', marginBottom: '24px', fontStyle: 'italic' }}>
+        Escolha a opção que melhor representa a situação atual. As informações poderão ser complementadas nas etapas seguintes.
+      </p>
 
       {/* Campos condicionais por modo */}
       {modoEntrada === 'PDF' && (
@@ -285,7 +351,7 @@ const Etapa0Entrada: React.FC<Props> = ({ onAvancar }) => {
             fontSize: '16px',
           }}
         >
-          {loading ? 'Criando...' : 'Iniciar Analise →'}
+          {loading ? 'Criando...' : 'Iniciar Análise →'}
         </button>
       </div>
     </div>

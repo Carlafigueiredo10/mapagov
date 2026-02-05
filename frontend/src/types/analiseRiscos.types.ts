@@ -181,33 +181,33 @@ export interface BlocoBEstruturado {
 export const BLOCO_B_RECURSOS: Array<{ valor: BlocoBRecurso; label: string }> = [
   { valor: 'PESSOAS', label: 'Pessoas/Equipe' },
   { valor: 'TI', label: 'Sistemas/TI' },
-  { valor: 'ORCAMENTO', label: 'Orcamento/Verba' },
+  { valor: 'ORCAMENTO', label: 'Orçamento/Verba' },
   { valor: 'EQUIPAMENTOS', label: 'Equipamentos' },
   { valor: 'INFRAESTRUTURA', label: 'Infraestrutura' },
   { valor: 'MATERIAIS', label: 'Materiais' },
 ];
 
-// Labels para dependencia
+// Labels para dependência
 export const BLOCO_B_DEPENDENCIAS: Array<{ valor: BlocoBDependencia; label: string }> = [
-  { valor: 'NAO', label: 'Nao ha dependencia externa' },
+  { valor: 'NAO', label: 'Não há dependência externa' },
   { valor: 'SISTEMAS', label: 'Apenas sistemas externos' },
   { valor: 'TERCEIROS', label: 'Apenas terceiros/fornecedores' },
   { valor: 'AMBOS', label: 'Sistemas e terceiros' },
-  { valor: 'NAO_SEI', label: 'Nao sei/Nao tenho certeza' },
+  { valor: 'NAO_SEI', label: 'Não sei/Não tenho certeza' },
 ];
 
 // Labels para SLA
 export const BLOCO_B_SLA: Array<{ valor: BlocoBSLA; label: string }> = [
   { valor: 'SIM', label: 'Sim, existem prazos' },
-  { valor: 'NAO', label: 'Nao existem prazos' },
-  { valor: 'NAO_SEI', label: 'Nao sei/Nao tenho certeza' },
+  { valor: 'NAO', label: 'Não existem prazos' },
+  { valor: 'NAO_SEI', label: 'Não sei/Não tenho certeza' },
 ];
 
 // Labels para incidentes
 export const BLOCO_B_INCIDENTES: Array<{ valor: BlocoBIncidentes; label: string }> = [
   { valor: 'SIM', label: 'Sim, houve incidentes' },
-  { valor: 'NAO', label: 'Nao houve incidentes' },
-  { valor: 'NAO_SEI', label: 'Nao sei/Nao tenho certeza' },
+  { valor: 'NAO', label: 'Não houve incidentes' },
+  { valor: 'NAO_SEI', label: 'Não sei/Não tenho certeza' },
 ];
 
 // Contexto estruturado (Etapa 1)
@@ -254,34 +254,34 @@ export const CORES_NIVEL: Record<NivelRisco, string> = {
 // Descricoes das categorias
 export const DESCRICOES_CATEGORIA: Record<CategoriaRisco, string> = {
   OPERACIONAL: 'Falhas em processos ou recursos',
-  FINANCEIRO: 'Perdas orcamentarias',
+  FINANCEIRO: 'Perdas orçamentárias',
   LEGAL: 'Descumprimento normativo',
-  REPUTACIONAL: 'Dano a imagem institucional',
+  REPUTACIONAL: 'Dano à imagem institucional',
   TECNOLOGICO: 'Falhas em sistemas/TI',
-  IMPACTO_DESIGUAL: 'Impacto desigual por ausencia de analise distributiva',
+  IMPACTO_DESIGUAL: 'Impacto desigual por ausência de análise distributiva',
 };
 
-// Descricoes das estrategias (4 oficiais do Guia MGI)
+// Descrições das estratégias (4 oficiais do Guia MGI)
 export const DESCRICOES_ESTRATEGIA: Record<EstrategiaResposta, string> = {
   MITIGAR: 'Reduzir probabilidade ou impacto',
   EVITAR: 'Eliminar a causa do risco',
   COMPARTILHAR: 'Compartilhar/transferir parte do risco',
-  ACEITAR: 'Reconhecer sem acao (requer justificativa para ALTO/CRITICO)',
+  ACEITAR: 'Reconhecer sem ação (requer justificativa para ALTO/CRÍTICO)',
 };
 
-// Areas DECIPEX disponiveis (do CSV areas_organizacionais.csv)
+// Áreas DECIPEX disponíveis (do CSV areas_organizacionais.csv)
 export const AREAS_DECIPEX: Array<{ codigo: string; nome: string; prefixo: string }> = [
-  { prefixo: '1', codigo: 'CGBEN', nome: 'Beneficios' },
+  { prefixo: '1', codigo: 'CGBEN', nome: 'Benefícios' },
   { prefixo: '2', codigo: 'CGPAG', nome: 'Pagamentos' },
   { prefixo: '3', codigo: 'COATE', nome: 'Atendimento' },
   { prefixo: '4', codigo: 'CGGAF', nome: 'Acervos Funcionais' },
-  { prefixo: '5', codigo: 'DIGEP', nome: 'Ex-Territorios' },
-  { prefixo: '5.1', codigo: 'DIGEP-RO', nome: 'Rondonia' },
+  { prefixo: '5', codigo: 'DIGEP', nome: 'Ex-Territórios' },
+  { prefixo: '5.1', codigo: 'DIGEP-RO', nome: 'Rondônia' },
   { prefixo: '5.2', codigo: 'DIGEP-RR', nome: 'Roraima' },
-  { prefixo: '5.3', codigo: 'DIGEP-AP', nome: 'Amapa' },
+  { prefixo: '5.3', codigo: 'DIGEP-AP', nome: 'Amapá' },
   { prefixo: '6', codigo: 'CGRIS', nome: 'Riscos e Controle' },
-  { prefixo: '7', codigo: 'CGCAF', nome: 'Complementacao' },
-  { prefixo: '8', codigo: 'CGECO', nome: 'Extincao e Convenio' },
+  { prefixo: '7', codigo: 'CGCAF', nome: 'Complementação' },
+  { prefixo: '8', codigo: 'CGECO', nome: 'Extinção e Convênio' },
   { prefixo: '9', codigo: 'COADM', nome: 'Apoio Administrativo' },
   { prefixo: '10', codigo: 'ASDIR', nome: 'Assessoria Diretor' },
 ];
@@ -306,10 +306,10 @@ export const TIPOS_ORIGEM: Array<{ valor: TipoOrigem; label: string }> = [
   { valor: 'PLANO', label: 'Plano' },
 ];
 
-// Frequencias de execucao (Bloco B)
+// Frequências de execução (Bloco B)
 export const FREQUENCIAS_EXECUCAO = [
-  { valor: 'CONTINUO', label: 'Continuo (diario/semanal)' },
-  { valor: 'PERIODICO', label: 'Periodico (mensal/trimestral)' },
-  { valor: 'PONTUAL', label: 'Pontual (evento unico)' },
+  { valor: 'CONTINUO', label: 'Contínuo (diário/semanal)' },
+  { valor: 'PERIODICO', label: 'Periódico (mensal/trimestral)' },
+  { valor: 'PONTUAL', label: 'Pontual (evento único)' },
   { valor: 'SOB_DEMANDA', label: 'Sob demanda' },
 ];

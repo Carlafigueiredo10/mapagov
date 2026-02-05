@@ -2,6 +2,7 @@
  * AnaliseRiscos Components - Barrel Export
  */
 
+export { default as AnaliseRiscosLanding } from './AnaliseRiscosLanding';
 export { default as WizardAnaliseRiscos } from './WizardAnaliseRiscos';
 export { default as Etapa0Entrada } from './Etapa0_Entrada';
 export { default as Etapa1Contexto } from './Etapa1_Contexto';

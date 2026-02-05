@@ -291,6 +291,22 @@ def atualizar_etapa(request, analise_id):
         if not (1 <= nova_etapa <= 6):
             return resposta_erro("Etapa deve ser entre 1 e 6", "ETAPA_INVALIDA")
 
+        # GATE Etapa 4+: P/I obrigatorios
+        # Nao pode avancar para Matriz (etapa 4) ou alem sem todos os riscos avaliados
+        if nova_etapa >= 4:
+            from django.db.models import Q
+            riscos_sem_pi = analise.riscos.filter(
+                ativo=True
+            ).filter(
+                Q(probabilidade__isnull=True) | Q(impacto__isnull=True)
+            ).count()
+            if riscos_sem_pi > 0:
+                return resposta_erro(
+                    f"{riscos_sem_pi} risco(s) sem Probabilidade/Impacto definido. "
+                    "Preencha todos na Etapa 3 antes de avancar.",
+                    "PI_OBRIGATORIO"
+                )
+
         analise.etapa_atual = nova_etapa
         if nova_etapa > 1:
             analise.status = StatusAnalise.EM_ANALISE.value

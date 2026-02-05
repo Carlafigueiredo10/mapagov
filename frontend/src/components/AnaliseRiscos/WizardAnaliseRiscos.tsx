@@ -1,5 +1,5 @@
 /**
- * WizardAnaliseRiscos - Wizard de 6 etapas para Analise de Riscos v2
+ * WizardAnaliseRiscos - Wizard de 6 etapas para Análise de Riscos v2
  *
  * Etapa 0: Selecao do tipo de objeto
  * Etapa 1: Contexto (Bloco A + B)
@@ -89,15 +89,15 @@ const WizardAnaliseRiscos: React.FC = () => {
       return (
         <div style={{ textAlign: 'center', padding: '40px' }}>
           <div style={{ fontSize: '48px', marginBottom: '20px' }}>✓</div>
-          <h3 style={{ color: '#10b981' }}>Analise Finalizada com Sucesso!</h3>
+          <h3 style={{ color: '#10b981' }}>Análise Finalizada com Sucesso!</h3>
           <p style={{ color: '#666', marginBottom: '30px' }}>
-            A analise de riscos foi concluida e salva.
+            A análise de riscos foi concluída e salva.
           </p>
 
-          {/* Botoes de Exportacao */}
+          {/* Botões de Exportação */}
           <div style={{ marginBottom: '30px' }}>
             <p style={{ color: '#666', marginBottom: '15px', fontWeight: 'bold' }}>
-              Exportar Relatorio:
+              Exportar Relatório:
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
               <button
@@ -148,7 +148,7 @@ const WizardAnaliseRiscos: React.FC = () => {
               cursor: 'pointer',
             }}
           >
-            Iniciar Nova Analise
+            Iniciar Nova Análise
           </button>
         </div>
       );
@@ -175,7 +175,7 @@ const WizardAnaliseRiscos: React.FC = () => {
   return (
     <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0 }}>Analise de Riscos</h2>
+        <h2 style={{ margin: 0 }}>Análise de Riscos</h2>
         {currentAnaliseId && (
           <button
             onClick={handleNovaAnalise}
@@ -187,7 +187,7 @@ const WizardAnaliseRiscos: React.FC = () => {
               cursor: 'pointer',
             }}
           >
-            Nova Analise
+            Nova Análise
           </button>
         )}
       </div>
@@ -225,25 +225,47 @@ const WizardAnaliseRiscos: React.FC = () => {
       {currentAnaliseId && (
         <div
           style={{
-            padding: '10px',
-            background: '#e0f2fe',
+            padding: '12px 16px',
+            background: '#f8f9fa',
+            border: '1px solid #e6e6e6',
             borderRadius: '4px',
             marginBottom: '15px',
             fontSize: '14px',
             display: 'flex',
             justifyContent: 'space-between',
+            alignItems: 'center',
           }}
         >
-          <span>
-            ID: {currentAnaliseId.slice(0, 8)}...
-            {currentAnalise?.tipo_origem && ` | ${currentAnalise.tipo_origem}`}
-            {currentAnalise?.status && ` | ${currentAnalise.status}`}
-          </span>
-          {currentAnalise?.riscos?.length ? (
-            <span style={{ fontWeight: 'bold' }}>
-              {currentAnalise.riscos.length} risco(s) identificado(s)
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+            {currentAnalise?.tipo_origem && (
+              <span>
+                <span style={{ color: '#636363' }}>Objeto:</span>{' '}
+                <strong style={{ color: '#333' }}>{currentAnalise.tipo_origem}</strong>
+              </span>
+            )}
+            <span>
+              <span style={{ color: '#636363' }}>ID:</span>{' '}
+              <span style={{ fontFamily: 'monospace', color: '#333' }}>{currentAnaliseId.slice(0, 8)}</span>
             </span>
-          ) : null}
+            {currentAnalise?.status && (
+              <span>
+                <span style={{ color: '#636363' }}>Status:</span>{' '}
+                <span style={{ color: currentAnalise.status === 'RASCUNHO' ? '#b45309' : '#166534' }}>
+                  {currentAnalise.status}
+                </span>
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {currentAnalise?.riscos?.length ? (
+              <span style={{ color: '#1351B4', fontWeight: '600' }}>
+                {currentAnalise.riscos.length} risco(s)
+              </span>
+            ) : null}
+            <span style={{ color: '#636363', fontSize: '13px' }}>
+              Etapa {etapaAtual + 1} de 6
+            </span>
+          </div>
         </div>
       )}
 

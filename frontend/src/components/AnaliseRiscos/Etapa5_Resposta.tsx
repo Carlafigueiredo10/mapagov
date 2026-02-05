@@ -57,7 +57,7 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
   const handleSalvarResposta = async (riscoId: string) => {
     const resp = respostasLocal[riscoId];
     if (!resp?.estrategia) {
-      setErrosValidacao((prev) => ({ ...prev, [riscoId]: 'Selecione uma estrategia' }));
+      setErrosValidacao((prev) => ({ ...prev, [riscoId]: 'Selecione uma estratégia' }));
       return;
     }
 
@@ -65,7 +65,7 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
     if (precisaJustificativa(riscoId)) {
       setErrosValidacao((prev) => ({
         ...prev,
-        [riscoId]: 'Para ACEITAR risco ALTO/CRITICO, e obrigatorio registrar justificativa na acao planejada.',
+        [riscoId]: 'Para ACEITAR risco ALTO/CRÍTICO, é obrigatório registrar justificativa na ação planejada.',
       }));
       return;
     }
@@ -138,9 +138,18 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
 
   return (
     <div>
-      <h3>Etapa 5: Estrategias de Resposta</h3>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
-        Defina como tratar cada risco identificado. Priorize os riscos CRITICOS e ALTOS.
+      <h3 style={{ marginBottom: '8px' }}>Estratégias de Resposta ao Risco</h3>
+      <p style={{ color: '#555', marginBottom: '12px', lineHeight: '1.6' }}>
+        Nesta etapa, deve ser definida a estratégia de resposta aplicável a cada risco identificado,
+        com o registro da ação planejada e do responsável pelo seu gerenciamento.
+      </p>
+      <p style={{ color: '#555', marginBottom: '12px', lineHeight: '1.6' }}>
+        Ao selecionar a estratégia de resposta, o sistema apresenta sugestões de ações, que podem
+        ser adotadas diretamente ou ajustadas conforme a necessidade. Também é possível registrar
+        a ação manualmente.
+      </p>
+      <p style={{ color: '#555', marginBottom: '20px', lineHeight: '1.6' }}>
+        Todo risco deve possuir responsável definido pelo gerenciamento da estratégia adotada.
       </p>
 
       {/* Legenda de estrategias */}
@@ -152,7 +161,7 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
           marginBottom: '20px',
         }}
       >
-        <h4 style={{ marginTop: 0, marginBottom: '10px' }}>Estrategias Disponiveis</h4>
+        <h4 style={{ marginTop: 0, marginBottom: '10px' }}>Estratégias Disponíveis</h4>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
           {ESTRATEGIAS.map((est) => (
             <div key={est} style={{ flex: '1 1 180px' }}>
@@ -235,7 +244,7 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
                 <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #e5e7eb' }}>
                   <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Estrategia de Resposta *
+                      Estratégia de Resposta *
                     </label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                       {ESTRATEGIAS.map((est) => (
@@ -259,11 +268,11 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
 
                   <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Acao Planejada
+                      Ação Planejada
                       {respLocal.estrategia === 'ACEITAR' &&
                         ['ALTO', 'CRITICO'].includes(risco.nivel_risco) && (
                           <span style={{ color: '#dc2626', fontWeight: 'normal', marginLeft: '8px' }}>
-                            * Obrigatoria para ACEITAR risco {risco.nivel_risco}
+                            * Obrigatória para ACEITAR risco {risco.nivel_risco}
                           </span>
                         )}
                     </label>
@@ -283,8 +292,8 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
                       placeholder={
                         respLocal.estrategia === 'ACEITAR' &&
                         ['ALTO', 'CRITICO'].includes(risco.nivel_risco)
-                          ? 'Justifique a decisao de aceitar este risco ALTO/CRITICO...'
-                          : 'Descreva a acao a ser tomada...'
+                          ? 'Justifique a decisão de aceitar este risco ALTO/CRÍTICO...'
+                          : 'Descreva a ação a ser tomada...'
                       }
                       rows={2}
                       style={{
@@ -314,7 +323,7 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
                     {respLocal.estrategia && (
                       <div style={{ marginTop: '10px' }}>
                         <span style={{ fontSize: '13px', color: '#666', marginBottom: '5px', display: 'block' }}>
-                          Sugestoes (clique para usar):
+                          Sugestões (clique para usar):
                         </span>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                           {getSugestoes(risco.categoria as CategoriaRisco, respLocal.estrategia).map((sug, idx) => (
@@ -347,13 +356,13 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
 
                   <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Responsavel
+                      Responsável
                     </label>
                     <input
                       type="text"
                       value={respLocal.responsavel || ''}
                       onChange={(e) => handleSetResposta(risco.id, 'responsavel', e.target.value)}
-                      placeholder="Nome ou cargo do responsavel..."
+                      placeholder="Nome ou cargo do responsável..."
                       style={{ width: '100%', padding: '8px' }}
                     />
                   </div>
@@ -428,7 +437,7 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
             fontWeight: 'bold',
           }}
         >
-          {loading ? 'Finalizando...' : 'Finalizar Analise ✓'}
+          {loading ? 'Finalizando...' : 'Finalizar Análise ✓'}
         </button>
       </div>
     </div>

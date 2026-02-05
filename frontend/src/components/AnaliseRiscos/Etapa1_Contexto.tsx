@@ -120,34 +120,34 @@ const Etapa1Contexto: React.FC<Props> = ({ onAvancar, onVoltar, textoExtraido })
   };
 
   const handleAvancar = async () => {
-    // Validar campos obrigatorios do Bloco A
+    // Validar campos obrigatórios do Bloco A
     if (!nomeObjeto.trim() || !objetivoFinalidade.trim() || !areaResponsavel.trim()) {
-      alert('Preencha os campos obrigatorios do Bloco A (nome, objetivo, area)');
+      alert('Preencha os campos obrigatórios do Bloco A (nome, objetivo, área)');
       return;
     }
 
-    // Validar campos obrigatorios do Bloco B
+    // Validar campos obrigatórios do Bloco B
     // REGRA v2: aceita campo antigo OU novo para cada conceito
 
     // 1. Recursos: texto antigo OU checklist novo ([] conta como respondido)
     const temRecursos = recursosNecessarios.trim() || blocoB.recursos !== undefined;
 
-    // 2. Atores: apenas texto (nao tem equivalente novo)
+    // 2. Atores: apenas texto (não tem equivalente novo)
     const temAtores = areasAtoresEnvolvidos.trim();
 
-    // 3. Frequencia: selecao antiga OU nova
+    // 3. Frequência: seleção antiga OU nova
     const temFrequencia = frequenciaExecucao || blocoB.frequencia;
 
     // 4. SLA: texto antigo OU radio novo (SIM/NAO/NAO_SEI conta)
     const temSla = prazosSlas.trim() || blocoB.sla;
 
-    // 5. Dependencias: texto antigo OU radio novo
+    // 5. Dependências: texto antigo OU radio novo
     const temDependencia = dependenciasExternas.trim() || blocoB.dependencia;
 
-    // 6. Historico: texto antigo OU radio novo
+    // 6. Histórico: texto antigo OU radio novo
     const temHistorico = historicoProblemas.trim() || blocoB.incidentes;
 
-    // 7. Impacto: SEMPRE obrigatorio (ancora)
+    // 7. Impacto: SEMPRE obrigatório (âncora)
     const temImpacto = impactoSeFalhar.trim();
 
     // Validar
@@ -156,12 +156,12 @@ const Etapa1Contexto: React.FC<Props> = ({ onAvancar, onVoltar, textoExtraido })
       const faltando: string[] = [];
       if (!temRecursos) faltando.push('recursos');
       if (!temAtores) faltando.push('atores envolvidos');
-      if (!temFrequencia) faltando.push('frequencia');
+      if (!temFrequencia) faltando.push('frequência');
       if (!temSla) faltando.push('prazos/SLAs');
-      if (!temDependencia) faltando.push('dependencias');
-      if (!temHistorico) faltando.push('historico de problemas');
+      if (!temDependencia) faltando.push('dependências');
+      if (!temHistorico) faltando.push('histórico de problemas');
       if (!temImpacto) faltando.push('impacto se falhar');
-      alert(`Preencha os campos obrigatorios do Bloco B: ${faltando.join(', ')}`);
+      alert(`Preencha os campos obrigatórios do Bloco B: ${faltando.join(', ')}`);
       return;
     }
 
@@ -214,9 +214,10 @@ const Etapa1Contexto: React.FC<Props> = ({ onAvancar, onVoltar, textoExtraido })
 
   return (
     <div>
-      <h3>Contexto do Objeto</h3>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
-        Descreva o {currentAnalise?.tipo_origem?.toLowerCase() || 'objeto'} que sera analisado.
+      <h3 style={{ marginBottom: '8px' }}>Contexto do objeto</h3>
+      <p style={{ color: '#555', marginBottom: '24px', lineHeight: '1.6' }}>
+        Nesta etapa, você deverá informar os dados básicos sobre o {currentAnalise?.tipo_origem?.toLowerCase() || 'objeto'} selecionado na etapa anterior.
+        Essas informações constarão no relatório final e servirão de subsídio para a análise de riscos.
       </p>
 
       {/* Texto extraido do PDF */}
@@ -306,7 +307,7 @@ const Etapa1Contexto: React.FC<Props> = ({ onAvancar, onVoltar, textoExtraido })
           />
         )}
 
-        {/* Fallback: textarea antigo (somente leitura se ja tem estruturado) */}
+        {/* Fallback: textarea antigo (somente leitura se já tem estruturado) */}
         {recursosNecessarios && blocoB.recursos === undefined && (
           <>
             <label style={{ ...labelStyle, fontSize: '12px', color: '#6b7280' }}>Texto anterior (legado)</label>
@@ -326,12 +327,12 @@ const Etapa1Contexto: React.FC<Props> = ({ onAvancar, onVoltar, textoExtraido })
           type="text"
           value={areasAtoresEnvolvidos}
           onChange={(e) => setAreasAtoresEnvolvidos(e.target.value)}
-          placeholder="Liste as areas e papeis envolvidos"
+          placeholder="Liste as áreas e papéis envolvidos"
           style={inputStyle}
         />
 
-        {/* 3. FREQUENCIA - Dropdown */}
-        <label style={labelStyle}>Com que frequencia ocorre? *</label>
+        {/* 3. FREQUÊNCIA - Dropdown */}
+        <label style={labelStyle}>Com que frequência ocorre? *</label>
         <select
           value={blocoB.frequencia || frequenciaExecucao}
           onChange={(e) => {
@@ -384,8 +385,8 @@ const Etapa1Contexto: React.FC<Props> = ({ onAvancar, onVoltar, textoExtraido })
           </>
         )}
 
-        {/* 5. DEPENDENCIA EXTERNA - Radio group + Detalhe */}
-        <label style={labelStyle}>Ha dependencia de sistemas externos ou terceiros?</label>
+        {/* 5. DEPENDÊNCIA EXTERNA - Radio group + Detalhe */}
+        <label style={labelStyle}>Há dependência de sistemas externos ou terceiros?</label>
         <div style={radioGroupStyle}>
           {BLOCO_B_DEPENDENCIAS.map((opt) => (
             <label key={opt.valor} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
@@ -404,7 +405,7 @@ const Etapa1Contexto: React.FC<Props> = ({ onAvancar, onVoltar, textoExtraido })
             type="text"
             value={blocoB.dependencia_detalhe ?? ''}
             onChange={(e) => updateBlocoB('dependencia_detalhe', e.target.value)}
-            placeholder="Descreva as dependencias"
+            placeholder="Descreva as dependências"
             style={inputStyle}
           />
         )}
@@ -421,8 +422,8 @@ const Etapa1Contexto: React.FC<Props> = ({ onAvancar, onVoltar, textoExtraido })
           </>
         )}
 
-        {/* 6. INCIDENTES / HISTORICO - Radio group + Detalhe */}
-        <label style={labelStyle}>Ja houve problemas ou incidentes anteriores?</label>
+        {/* 6. INCIDENTES / HISTÓRICO - Radio group + Detalhe */}
+        <label style={labelStyle}>Já houve problemas ou incidentes anteriores?</label>
         <div style={radioGroupStyle}>
           {BLOCO_B_INCIDENTES.map((opt) => (
             <label key={opt.valor} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
@@ -440,7 +441,7 @@ const Etapa1Contexto: React.FC<Props> = ({ onAvancar, onVoltar, textoExtraido })
           <textarea
             value={blocoB.incidentes_detalhe ?? ''}
             onChange={(e) => updateBlocoB('incidentes_detalhe', e.target.value)}
-            placeholder="Descreva os incidentes/problemas"
+            placeholder="Descreva os incidentes ou problemas ocorridos"
             rows={2}
             style={inputStyle}
           />
@@ -458,12 +459,12 @@ const Etapa1Contexto: React.FC<Props> = ({ onAvancar, onVoltar, textoExtraido })
           </>
         )}
 
-        {/* 7. IMPACTO / CONSEQUENCIA - Texto livre (ancora) */}
-        <label style={labelStyle}>O que acontece se isso nao funcionar? *</label>
+        {/* 7. IMPACTO / CONSEQUÊNCIA - Texto livre (âncora) */}
+        <label style={labelStyle}>O que acontece se isso não funcionar? *</label>
         <textarea
           value={impactoSeFalhar}
           onChange={(e) => setImpactoSeFalhar(e.target.value)}
-          placeholder="Descreva as consequencias de falha"
+          placeholder="Descreva as consequências de falha"
           rows={2}
           style={inputStyle}
         />

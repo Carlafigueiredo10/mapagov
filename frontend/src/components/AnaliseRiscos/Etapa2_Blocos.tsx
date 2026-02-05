@@ -13,22 +13,22 @@ interface Props {
 const BLOCOS = [
   {
     id: 'BLOCO_1',
-    titulo: 'Dependencia de Terceiros',
+    titulo: 'Dependência de Terceiros',
     perguntas: [
-      { id: 'Q1', texto: 'O projeto/processo depende de terceiros para sua execucao?', opcoes: ['NAO_EXISTE', 'BAIXA', 'MEDIA', 'ALTA'] },
-      { id: 'Q2', texto: 'Qual o nivel de formalizacao da relacao com terceiros?', opcoes: ['FORMAL', 'PARCIAL', 'INFORMAL'], condicional: { Q1: ['BAIXA', 'MEDIA', 'ALTA'] } },
-      { id: 'Q3', texto: 'Qual a natureza da contratacao?', opcoes: ['CONTRATO_VIGENTE', 'CONTRATACAO_FUTURA', 'LICITACAO_NAO_REALIZADA', 'NAO_SE_APLICA'], condicional: { Q1: ['BAIXA', 'MEDIA', 'ALTA'] } },
-      { id: 'Q4', texto: 'A entrega do terceiro e critica para o resultado?', opcoes: ['NAO_CRITICA', 'IMPORTANTE', 'CRITICA_PARA_RESULTADO_FINAL'], condicional: { Q1: ['BAIXA', 'MEDIA', 'ALTA'] } },
+      { id: 'Q1', texto: 'O projeto/processo depende de terceiros para sua execução?', opcoes: ['NAO_EXISTE', 'BAIXA', 'MEDIA', 'ALTA'] },
+      { id: 'Q2', texto: 'Qual o nível de formalização da relação com terceiros?', opcoes: ['FORMAL', 'PARCIAL', 'INFORMAL'], condicional: { Q1: ['BAIXA', 'MEDIA', 'ALTA'] } },
+      { id: 'Q3', texto: 'Qual a natureza da contratação?', opcoes: ['CONTRATO_VIGENTE', 'CONTRATACAO_FUTURA', 'LICITACAO_NAO_REALIZADA', 'NAO_SE_APLICA'], condicional: { Q1: ['BAIXA', 'MEDIA', 'ALTA'] } },
+      { id: 'Q4', texto: 'A entrega do terceiro é crítica para o resultado?', opcoes: ['NAO_CRITICA', 'IMPORTANTE', 'CRITICA_PARA_RESULTADO_FINAL'], condicional: { Q1: ['BAIXA', 'MEDIA', 'ALTA'] } },
     ],
   },
   {
     id: 'BLOCO_2',
     titulo: 'Recursos Humanos e Capacidades',
     perguntas: [
-      { id: 'Q1', texto: 'A execucao depende de pessoas-chave especificas?', opcoes: ['NAO_EXISTE', 'BAIXA', 'MEDIA', 'ALTA'] },
-      { id: 'Q2', texto: 'Qual o tempo e custo de substituicao dessas pessoas?', opcoes: ['CURTO', 'MEDIO', 'LONGO'], condicional: { Q1: ['BAIXA', 'MEDIA', 'ALTA'] } },
-      { id: 'Q3', texto: 'Ha risco de afastamento ou rotatividade?', opcoes: ['NAO', 'MODERADO', 'ELEVADO'] },
-      { id: 'Q4', texto: 'O nivel de capacitacao da equipe e:', opcoes: ['ADEQUADO', 'PARCIAL', 'INSUFICIENTE'] },
+      { id: 'Q1', texto: 'A execução depende de pessoas-chave específicas?', opcoes: ['NAO_EXISTE', 'BAIXA', 'MEDIA', 'ALTA'] },
+      { id: 'Q2', texto: 'Qual o tempo e custo de substituição dessas pessoas?', opcoes: ['CURTO', 'MEDIO', 'LONGO'], condicional: { Q1: ['BAIXA', 'MEDIA', 'ALTA'] } },
+      { id: 'Q3', texto: 'Há risco de afastamento ou rotatividade?', opcoes: ['NAO', 'MODERADO', 'ELEVADO'] },
+      { id: 'Q4', texto: 'O nível de capacitação da equipe é:', opcoes: ['ADEQUADO', 'PARCIAL', 'INSUFICIENTE'] },
     ],
   },
   {
@@ -36,39 +36,39 @@ const BLOCOS = [
     titulo: 'Tecnologia e Sistemas',
     perguntas: [
       { id: 'Q1', texto: 'O processo depende de sistemas de TI?', opcoes: ['NAO_DEPENDE', 'DEPENDE_PARCIALMENTE', 'DEPENDE_CRITICAMENTE'] },
-      { id: 'Q2', texto: 'Os sistemas sao internos, externos ou mistos?', opcoes: ['INTERNO', 'EXTERNO', 'MISTO'], condicional: { Q1: ['DEPENDE_PARCIALMENTE', 'DEPENDE_CRITICAMENTE'] } },
-      { id: 'Q3', texto: 'Qual o estagio de maturidade dos sistemas?', opcoes: ['ESTAVEL_CONSOLIDADO', 'EM_IMPLANTACAO_OU_EVOLUCAO', 'INSTAVEL_OU_CRITICO'], condicional: { Q1: ['DEPENDE_PARCIALMENTE', 'DEPENDE_CRITICAMENTE'] } },
-      { id: 'Q4', texto: 'O processo pode continuar manualmente se sistema falhar?', opcoes: ['SIM_PLENA', 'PARCIAL', 'NAO_EXISTE'], condicional: { Q1: ['DEPENDE_PARCIALMENTE', 'DEPENDE_CRITICAMENTE'] } },
-      { id: 'Q5', texto: 'Ha historico recente de falhas?', opcoes: ['NAO', 'OCASIONAL', 'RECORRENTE'], condicional: { Q1: ['DEPENDE_PARCIALMENTE', 'DEPENDE_CRITICAMENTE'] } },
+      { id: 'Q2', texto: 'Os sistemas são internos, externos ou mistos?', opcoes: ['INTERNO', 'EXTERNO', 'MISTO'], condicional: { Q1: ['DEPENDE_PARCIALMENTE', 'DEPENDE_CRITICAMENTE'] } },
+      { id: 'Q3', texto: 'Qual o estágio de maturidade dos sistemas?', opcoes: ['ESTAVEL_CONSOLIDADO', 'EM_IMPLANTACAO_OU_EVOLUCAO', 'INSTAVEL_OU_CRITICO'], condicional: { Q1: ['DEPENDE_PARCIALMENTE', 'DEPENDE_CRITICAMENTE'] } },
+      { id: 'Q4', texto: 'O processo pode continuar manualmente se o sistema falhar?', opcoes: ['SIM_PLENA', 'PARCIAL', 'NAO_EXISTE'], condicional: { Q1: ['DEPENDE_PARCIALMENTE', 'DEPENDE_CRITICAMENTE'] } },
+      { id: 'Q5', texto: 'Há histórico recente de falhas?', opcoes: ['NAO', 'OCASIONAL', 'RECORRENTE'], condicional: { Q1: ['DEPENDE_PARCIALMENTE', 'DEPENDE_CRITICAMENTE'] } },
     ],
   },
   {
     id: 'BLOCO_4',
-    titulo: 'Prazos, SLAs e Pressoes Legais',
+    titulo: 'Prazos, SLAs e Pressões Legais',
     perguntas: [
       { id: 'Q1', texto: 'Existem prazos legais ou normativos?', opcoes: ['NAO_EXISTEM', 'EXISTEM_COM_MARGEM', 'EXISTEM_CRITICOS'] },
-      { id: 'Q2', texto: 'Qual a origem da obrigacao de prazo?', opcoes: ['LEGAL', 'REGULAMENTAR', 'CONTRATUAL', 'ADMINISTRATIVA'], condicional: { Q1: ['EXISTEM_COM_MARGEM', 'EXISTEM_CRITICOS'] } },
+      { id: 'Q2', texto: 'Qual a origem da obrigação de prazo?', opcoes: ['LEGAL', 'REGULAMENTAR', 'CONTRATUAL', 'ADMINISTRATIVA'], condicional: { Q1: ['EXISTEM_COM_MARGEM', 'EXISTEM_CRITICOS'] } },
       { id: 'Q3', texto: 'O que acontece em caso de descumprimento?', opcoes: ['ADMINISTRATIVA', 'FINANCEIRA', 'RESPONSABILIZACAO_AGENTES', 'JUDICIALIZACAO', 'MULTIPLA'], condicional: { Q1: ['EXISTEM_COM_MARGEM', 'EXISTEM_CRITICOS'] } },
-      { id: 'Q4', texto: 'Existe margem para renegociacao do prazo?', opcoes: ['SIM_CLARA', 'LIMITADA', 'INEXISTENTE'], condicional: { Q1: ['EXISTEM_COM_MARGEM', 'EXISTEM_CRITICOS'] } },
-      { id: 'Q5', texto: 'Ha pressao externa associada ao prazo?', opcoes: ['NAO', 'ORGAOS_CONTROLE', 'MIDIA_SOCIEDADE', 'PODER_JUDICIARIO'], condicional: { Q1: ['EXISTEM_COM_MARGEM', 'EXISTEM_CRITICOS'] } },
+      { id: 'Q4', texto: 'Existe margem para renegociação do prazo?', opcoes: ['SIM_CLARA', 'LIMITADA', 'INEXISTENTE'], condicional: { Q1: ['EXISTEM_COM_MARGEM', 'EXISTEM_CRITICOS'] } },
+      { id: 'Q5', texto: 'Há pressão externa associada ao prazo?', opcoes: ['NAO', 'ORGAOS_CONTROLE', 'MIDIA_SOCIEDADE', 'PODER_JUDICIARIO'], condicional: { Q1: ['EXISTEM_COM_MARGEM', 'EXISTEM_CRITICOS'] } },
     ],
   },
   {
     id: 'BLOCO_5',
-    titulo: 'Governanca e Tomada de Decisao',
+    titulo: 'Governança e Tomada de Decisão',
     perguntas: [
-      { id: 'Q1', texto: 'Existe ato formal que define a instancia decisoria?', opcoes: ['CLARA_E_FORMAL', 'CLARA_MAS_INFORMAL', 'DIFUSA', 'INEXISTENTE'] },
-      { id: 'Q2', texto: 'Existe ato formal de governanca (portaria, regimento)?', opcoes: ['EXISTE', 'PARCIAL', 'NAO_EXISTE'] },
-      { id: 'Q3', texto: 'Ha dependencia de instancias externas para decisao?', opcoes: ['NAO', 'UMA_INSTANCIA', 'MULTIPLAS_INSTANCIAS'] },
-      { id: 'Q4', texto: 'O fluxo decisorio e previsivel?', opcoes: ['PREVISIVEL', 'PARCIALMENTE_PREVISIVEL', 'IMPREVISIVEL'] },
-      { id: 'Q5', texto: 'Ha risco de conflito de competencia?', opcoes: ['NAO', 'POSSIVEL', 'PROVAVEL'] },
+      { id: 'Q1', texto: 'Existe ato formal que define a instância decisória?', opcoes: ['CLARA_E_FORMAL', 'CLARA_MAS_INFORMAL', 'DIFUSA', 'INEXISTENTE'] },
+      { id: 'Q2', texto: 'Existe ato formal de governança (portaria, regimento)?', opcoes: ['EXISTE', 'PARCIAL', 'NAO_EXISTE'] },
+      { id: 'Q3', texto: 'Há dependência de instâncias externas para decisão?', opcoes: ['NAO', 'UMA_INSTANCIA', 'MULTIPLAS_INSTANCIAS'] },
+      { id: 'Q4', texto: 'O fluxo decisório é previsível?', opcoes: ['PREVISIVEL', 'PARCIALMENTE_PREVISIVEL', 'IMPREVISIVEL'] },
+      { id: 'Q5', texto: 'Há risco de conflito de competência?', opcoes: ['NAO', 'POSSIVEL', 'PROVAVEL'] },
     ],
   },
   {
     id: 'BLOCO_6',
     titulo: 'Impacto Desigual e Sensibilidade Social',
     perguntas: [
-      { id: 'Q1', texto: 'O projeto pode afetar grupos especificos de forma diferenciada?', opcoes: ['NAO', 'POSSIVEL', 'PROVAVEL'] },
+      { id: 'Q1', texto: 'O projeto pode afetar grupos específicos de forma diferenciada?', opcoes: ['NAO', 'POSSIVEL', 'PROVAVEL'] },
       { id: 'Q2', texto: 'Quais grupos podem ser afetados?', opcoes: ['MULHERES', 'PESSOAS_NEGRAS', 'PESSOAS_COM_DEFICIENCIA', 'POPULACOES_VULNERAVEIS', 'TERRITORIOS_ESPECIFICOS', 'OUTROS'], multipla: true, condicional: { Q1: ['POSSIVEL', 'PROVAVEL'] } },
       { id: 'Q3', texto: 'Qual a natureza do impacto?', opcoes: ['ACESSO', 'QUALIDADE_DO_SERVICO', 'TRATAMENTO_DESIGUAL', 'BARREIRA_TECNOLOGICA', 'EXPOSICAO_A_RISCO'], multipla: true, condicional: { Q1: ['POSSIVEL', 'PROVAVEL'] } },
       { id: 'Q4', texto: 'Qual a escala do impacto?', opcoes: ['PONTUAL', 'RECORRENTE', 'SISTEMICO'], condicional: { Q1: ['POSSIVEL', 'PROVAVEL'] } },
@@ -76,6 +76,109 @@ const BLOCOS = [
     ],
   },
 ];
+
+// Mapeamento de valores internos para labels amigáveis em português
+const LABELS_OPCOES: Record<string, string> = {
+  // Gerais
+  NAO: 'Não',
+  SIM: 'Sim',
+  NAO_EXISTE: 'Não existe',
+  NAO_EXISTEM: 'Não existem',
+  NAO_SE_APLICA: 'Não se aplica',
+  NAO_DEPENDE: 'Não depende',
+  NAO_CRITICA: 'Não crítica',
+  NAO_PREVISTAS: 'Não previstas',
+
+  // Níveis
+  BAIXA: 'Baixa',
+  MEDIA: 'Média',
+  ALTA: 'Alta',
+  MODERADO: 'Moderado',
+  ELEVADO: 'Elevado',
+  CURTO: 'Curto',
+  MEDIO: 'Médio',
+  LONGO: 'Longo',
+  ADEQUADO: 'Adequado',
+  PARCIAL: 'Parcial',
+  INSUFICIENTE: 'Insuficiente',
+  PONTUAL: 'Pontual',
+  RECORRENTE: 'Recorrente',
+  SISTEMICO: 'Sistêmico',
+  OCASIONAL: 'Ocasional',
+
+  // Formalização
+  FORMAL: 'Formal',
+  INFORMAL: 'Informal',
+  EXISTE: 'Existe',
+  INEXISTENTE: 'Inexistente',
+  LIMITADA: 'Limitada',
+
+  // Contratação
+  CONTRATO_VIGENTE: 'Contrato vigente',
+  CONTRATACAO_FUTURA: 'Contratação futura',
+  LICITACAO_NAO_REALIZADA: 'Licitação não realizada',
+
+  // Criticidade
+  IMPORTANTE: 'Importante',
+  CRITICA_PARA_RESULTADO_FINAL: 'Crítica para resultado final',
+
+  // Tecnologia
+  DEPENDE_PARCIALMENTE: 'Depende parcialmente',
+  DEPENDE_CRITICAMENTE: 'Depende criticamente',
+  INTERNO: 'Interno',
+  EXTERNO: 'Externo',
+  MISTO: 'Misto',
+  ESTAVEL_CONSOLIDADO: 'Estável/Consolidado',
+  EM_IMPLANTACAO_OU_EVOLUCAO: 'Em implantação ou evolução',
+  INSTAVEL_OU_CRITICO: 'Instável ou crítico',
+  SIM_PLENA: 'Sim, plenamente',
+
+  // Prazos
+  EXISTEM_COM_MARGEM: 'Existem, com margem',
+  EXISTEM_CRITICOS: 'Existem, críticos',
+  LEGAL: 'Legal',
+  REGULAMENTAR: 'Regulamentar',
+  CONTRATUAL: 'Contratual',
+  ADMINISTRATIVA: 'Administrativa',
+  FINANCEIRA: 'Financeira',
+  RESPONSABILIZACAO_AGENTES: 'Responsabilização de agentes',
+  JUDICIALIZACAO: 'Judicialização',
+  MULTIPLA: 'Múltipla',
+  SIM_CLARA: 'Sim, clara',
+  ORGAOS_CONTROLE: 'Órgãos de controle',
+  MIDIA_SOCIEDADE: 'Mídia/Sociedade',
+  PODER_JUDICIARIO: 'Poder Judiciário',
+
+  // Governança
+  CLARA_E_FORMAL: 'Clara e formal',
+  CLARA_MAS_INFORMAL: 'Clara, mas informal',
+  DIFUSA: 'Difusa',
+  UMA_INSTANCIA: 'Uma instância',
+  MULTIPLAS_INSTANCIAS: 'Múltiplas instâncias',
+  PREVISIVEL: 'Previsível',
+  PARCIALMENTE_PREVISIVEL: 'Parcialmente previsível',
+  IMPREVISIVEL: 'Imprevisível',
+  POSSIVEL: 'Possível',
+  PROVAVEL: 'Provável',
+
+  // Impacto social
+  MULHERES: 'Mulheres',
+  PESSOAS_NEGRAS: 'Pessoas negras',
+  PESSOAS_COM_DEFICIENCIA: 'Pessoas com deficiência',
+  POPULACOES_VULNERAVEIS: 'Populações vulneráveis',
+  TERRITORIOS_ESPECIFICOS: 'Territórios específicos',
+  OUTROS: 'Outros',
+  ACESSO: 'Acesso',
+  QUALIDADE_DO_SERVICO: 'Qualidade do serviço',
+  TRATAMENTO_DESIGUAL: 'Tratamento desigual',
+  BARREIRA_TECNOLOGICA: 'Barreira tecnológica',
+  EXPOSICAO_A_RISCO: 'Exposição a risco',
+  PREVISTAS_PARCIALMENTE: 'Previstas parcialmente',
+  PREVISTAS_E_FORMALIZADAS: 'Previstas e formalizadas',
+};
+
+// Helper para obter label amigável
+const getLabel = (valor: string): string => LABELS_OPCOES[valor] || valor.replace(/_/g, ' ');
 
 const Etapa2Blocos: React.FC<Props> = ({ onAvancar, onVoltar }) => {
   const { currentAnalise, salvarBlocos, inferirRiscos, loading, error } = useAnaliseRiscosStore();
@@ -135,9 +238,10 @@ const Etapa2Blocos: React.FC<Props> = ({ onAvancar, onVoltar }) => {
 
   return (
     <div>
-      <h3>Identificacao de Riscos</h3>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
-        Responda as perguntas abaixo. O sistema identificara riscos automaticamente.
+      <h3 style={{ marginBottom: '8px' }}>Identificação de Riscos</h3>
+      <p style={{ color: '#555', marginBottom: '20px', lineHeight: '1.6' }}>
+        As respostas às perguntas abaixo subsidiam a identificação dos riscos associados ao objeto da análise.
+        Com base nessas informações, o sistema organiza e registra os riscos identificados.
       </p>
 
       {BLOCOS.map((bloco) => (
@@ -202,7 +306,7 @@ const Etapa2Blocos: React.FC<Props> = ({ onAvancar, onVoltar }) => {
                                   setResposta(bloco.id, pergunta.id, novas);
                                 }}
                               />
-                              {opcao.replace(/_/g, ' ')}
+                              {getLabel(opcao)}
                             </label>
                           );
                         })}
@@ -223,7 +327,7 @@ const Etapa2Blocos: React.FC<Props> = ({ onAvancar, onVoltar }) => {
                               fontSize: '14px',
                             }}
                           >
-                            {opcao.replace(/_/g, ' ')}
+                            {getLabel(opcao)}
                           </button>
                         ))}
                       </div>
