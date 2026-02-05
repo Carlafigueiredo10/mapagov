@@ -24,7 +24,6 @@ import uuid
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth.decorators import login_required
 from django.db import transaction
 
 from processos.infra.rate_limiting import rate_limit_user
@@ -36,9 +35,13 @@ from processos.models_analise_riscos import (
     MotivoSnapshot,
     FonteSugestao,
 )
-from processos.analise_riscos_enums import StatusAnalise, ModoEntrada, TipoOrigem
+from processos.analise_riscos_enums import StatusAnalise, ModoEntrada, TipoOrigem, StatusTratamento
 from processos.domain.helena_analise_riscos.contexto_schema import validar_contexto_minimo
 from processos.domain.helena_analise_riscos.regras_inferencia import inferir_todos_riscos
+from processos.domain.helena_analise_riscos.leitura_mgi import (
+    gerar_leitura_mgi,
+    gerar_resumo_mgi,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +72,6 @@ def get_orgao_id(request):
 # =============================================================================
 
 @api_view(["POST"])
-@login_required
 @rate_limit_user(limit=30, window=60)
 def criar_analise(request):
     """POST /api/analise-riscos/criar/"""
@@ -105,7 +107,6 @@ def criar_analise(request):
 
 
 @api_view(["GET"])
-@login_required
 @rate_limit_user(limit=60, window=60)
 def listar_analises(request):
     """GET /api/analise-riscos/listar/"""
@@ -149,8 +150,42 @@ def detalhar_analise(request, analise_id):
         if not analise:
             return resposta_erro("Analise nao encontrada", "NAO_ENCONTRADA", 404)
 
-        riscos = [
-            {
+        # Construir lista de riscos com leitura MGI
+        riscos = []
+        for r in analise.riscos.filter(ativo=True):
+            # Gerar leitura institucional MGI apenas se risco foi avaliado (P/I definidos)
+            leitura_mgi_dict = None
+            if r.score_risco is not None:
+                leitura = gerar_leitura_mgi(
+                    titulo=r.titulo,
+                    categoria_tecnica=r.categoria,
+                    score=r.score_risco,
+                    descricao=r.descricao or "",
+                    justificativa=r.justificativa or "",
+                    bloco_origem=r.bloco_origem or "",
+                    tipo_origem=analise.tipo_origem,
+                )
+                leitura_mgi_dict = {
+                    "categoria_mgi": leitura.categoria_mgi,
+                    "nivel_mgi": leitura.nivel_mgi,
+                    "is_integridade": leitura.is_integridade,
+                    "fora_do_apetite": leitura.fora_do_apetite,
+                    "justificativa_categoria": leitura.justificativa_categoria,
+                    "justificativa_apetite": leitura.justificativa_apetite,
+                    "integridade_motivo": leitura.integridade_motivo,
+                    "integridade_gatilhos": leitura.integridade_gatilhos,
+                }
+
+            # Derivar status de tratamento e estrategia (sem migration)
+            ultima_resposta = r.respostas.order_by("-id").first()
+            tem_resposta = ultima_resposta is not None
+            status_tratamento = (
+                StatusTratamento.RESPONDIDO.value
+                if tem_resposta
+                else StatusTratamento.PENDENTE_DE_DELIBERACAO.value
+            )
+
+            riscos.append({
                 "id": str(r.id),
                 "titulo": r.titulo,
                 "descricao": r.descricao,
@@ -163,9 +198,19 @@ def detalhar_analise(request, analise_id):
                 "grau_confianca": r.grau_confianca,
                 "fonte_sugestao": r.fonte_sugestao,
                 "ativo": r.ativo,
-            }
-            for r in analise.riscos.filter(ativo=True)
-        ]
+                # Status de tratamento (derivado, transparencia gerencial)
+                "status_tratamento": status_tratamento,
+                "resposta_definida": tem_resposta,
+                # Dados da resposta (denormalizado para o frontend)
+                "estrategia": ultima_resposta.estrategia if ultima_resposta else None,
+                "acao_planejada": ultima_resposta.descricao_acao if ultima_resposta else None,
+                "responsavel": ultima_resposta.responsavel_nome if ultima_resposta else None,
+                # Camada de leitura institucional MGI (None se pendente de avaliacao)
+                "leitura_mgi": leitura_mgi_dict,
+            })
+
+        # Gerar resumo MGI para a analise
+        resumo_mgi = gerar_resumo_mgi(riscos)
 
         return resposta_sucesso(
             resposta="Analise detalhada",
@@ -181,6 +226,7 @@ def detalhar_analise(request, analise_id):
                 "questoes_respondidas": analise.questoes_respondidas,
                 "area_decipex": analise.area_decipex,
                 "riscos": riscos,
+                "resumo_mgi": resumo_mgi,
                 "criado_em": analise.criado_em.isoformat(),
                 "atualizado_em": analise.atualizado_em.isoformat(),
             },
@@ -191,7 +237,6 @@ def detalhar_analise(request, analise_id):
 
 
 @api_view(["PATCH"])
-@login_required
 @rate_limit_user(limit=30, window=60)
 def atualizar_questionario(request, analise_id):
     """PATCH /api/analise-riscos/<id>/questionario/"""
@@ -313,7 +358,6 @@ def finalizar_analise(request, analise_id):
 # =============================================================================
 
 @api_view(["POST"])
-@login_required
 @rate_limit_user(limit=30, window=60)
 def adicionar_risco(request, analise_id):
     """POST /api/analise-riscos/<id>/riscos/"""
@@ -332,14 +376,24 @@ def adicionar_risco(request, analise_id):
         if not titulo:
             return resposta_erro("titulo obrigatorio", "TITULO_OBRIGATORIO")
 
+        # P/I podem ser None (pendente de avaliacao) - NAO usar defaults
+        prob = data.get("probabilidade")
+        imp = data.get("impacto")
+
+        # Valida se fornecidos
+        if prob is not None and not (1 <= prob <= 5):
+            return resposta_erro("Probabilidade deve ser 1-5", "PROB_INVALIDA")
+        if imp is not None and not (1 <= imp <= 5):
+            return resposta_erro("Impacto deve ser 1-5", "IMPACTO_INVALIDO")
+
         risco = RiscoIdentificado.objects.create(
             orgao_id=orgao_id,
             analise=analise,
             titulo=titulo,
             descricao=data.get("descricao", ""),
             categoria=data.get("categoria", "OPERACIONAL"),
-            probabilidade=data.get("probabilidade", 3),
-            impacto=data.get("impacto", 3),
+            probabilidade=prob,
+            impacto=imp,
             fonte_sugestao=data.get("fonte_sugestao", "USUARIO"),
         )
 
@@ -403,7 +457,6 @@ def analisar_risco(request, analise_id, risco_id):
 
 
 @api_view(["DELETE"])
-@login_required
 @rate_limit_user(limit=20, window=60)
 def remover_risco(request, analise_id, risco_id):
     """DELETE /api/analise-riscos/<id>/riscos/<risco_id>/"""
@@ -434,7 +487,6 @@ def remover_risco(request, analise_id, risco_id):
 # =============================================================================
 
 @api_view(["POST"])
-@login_required
 @rate_limit_user(limit=30, window=60)
 def adicionar_resposta(request, analise_id, risco_id):
     """POST /api/analise-riscos/<id>/riscos/<risco_id>/respostas/"""
@@ -577,22 +629,43 @@ def criar_analise_v2(request):
         return resposta_erro_v2(str(e), "ERRO_INTERNO", 500)
 
 
-@api_view(["PATCH"])
+@api_view(["GET", "PATCH"])
 @rate_limit_user(limit=30, window=60)
 def salvar_contexto_v2(request, analise_id):
-    """PATCH /api/analise-riscos/<id>/contexto/
+    """GET/PATCH /api/analise-riscos/<id>/contexto/
 
-    Salva contexto estruturado (Etapa 1 - Bloco A + B).
+    GET: Retorna contexto estruturado atual (para carregar no formulario)
+    PATCH: Salva contexto estruturado (Etapa 1 - Bloco A + B)
 
-    Body:
+    Body (PATCH):
         contexto_estruturado: {
             bloco_a: {...},
-            bloco_b: {...}
+            bloco_b: {...}  // Suporta campos estruturados v2 (aditivos)
         }
     """
     try:
-        data = request.data
         orgao_id = get_orgao_id(request)
+
+        analise = AnaliseRiscos.objects.filter(
+            id=analise_id, orgao_id=orgao_id
+        ).first()
+
+        if not analise:
+            return resposta_erro_v2("Analise nao encontrada", "NAO_ENCONTRADA", 404)
+
+        # GET: retorna contexto atual
+        if request.method == "GET":
+            return resposta_sucesso(
+                resposta="Contexto carregado",
+                dados={
+                    "id": str(analise.id),
+                    "contexto_estruturado": analise.contexto_estruturado or {},
+                    "etapa_atual": analise.etapa_atual,
+                },
+            )
+
+        # PATCH: salva contexto
+        data = request.data
 
         # Garantir usuario valido
         from django.contrib.auth.models import User
@@ -604,34 +677,35 @@ def salvar_contexto_v2(request, analise_id):
                 defaults={'email': 'teste@helena.com'}
             )
 
-        analise = AnaliseRiscos.objects.filter(
-            id=analise_id, orgao_id=orgao_id
-        ).first()
+        contexto_novo = data.get("contexto_estruturado", {})
+        validar = data.get("validar", False)  # Cliente pode pedir validacao explicita
 
-        if not analise:
-            return resposta_erro_v2("Analise nao encontrada", "NAO_ENCONTRADA", 404)
+        # Merge profundo: preserva campos existentes que nao foram enviados
+        contexto_atual = analise.contexto_estruturado or {}
+        contexto_merged = _merge_contexto(contexto_atual, contexto_novo)
 
-        contexto = data.get("contexto_estruturado", {})
-
-        # Validar GATE de contexto minimo
-        erros = validar_contexto_minimo(contexto, analise.modo_entrada)
-        if erros:
-            campos_faltando = list(erros.keys())
-            return resposta_erro_v2(
-                "Contexto incompleto",
-                "CONTEXTO_INCOMPLETO",
-                400,
-                dados={"faltando": campos_faltando, "erros": erros}
-            )
+        # Validar GATE de contexto minimo SOMENTE se:
+        # - Cliente pediu explicitamente (validar=true)
+        # - Ou esta tentando avancar etapa (etapa_atual >= 1 e quer ir para 2+)
+        if validar:
+            erros = validar_contexto_minimo(contexto_merged, analise.modo_entrada)
+            if erros:
+                campos_faltando = list(erros.keys())
+                return resposta_erro_v2(
+                    "Contexto incompleto",
+                    "CONTEXTO_INCOMPLETO",
+                    400,
+                    dados={"faltando": campos_faltando, "erros": erros}
+                )
 
         # Se ja existir contexto, criar snapshot antes de atualizar
-        if analise.contexto_estruturado and analise.contexto_estruturado != {}:
+        if contexto_atual and contexto_atual != {}:
             ultima_versao = AnaliseSnapshot.objects.filter(analise=analise).count()
             AnaliseSnapshot.objects.create(
                 analise=analise,
                 versao=ultima_versao + 1,
                 dados_completos={
-                    "contexto_estruturado": analise.contexto_estruturado,
+                    "contexto_estruturado": contexto_atual,
                     "etapa_atual": analise.etapa_atual,
                 },
                 motivo_snapshot=MotivoSnapshot.EDICAO_CONTEXTO,
@@ -639,7 +713,7 @@ def salvar_contexto_v2(request, analise_id):
             )
             logger.info(f"Snapshot criado para analise {analise.id} antes de editar contexto")
 
-        analise.contexto_estruturado = contexto
+        analise.contexto_estruturado = contexto_merged
         analise.etapa_atual = max(analise.etapa_atual, 1)  # Avanca para etapa 1 se estava em 0
         analise.save()
 
@@ -648,11 +722,35 @@ def salvar_contexto_v2(request, analise_id):
             dados={
                 "id": str(analise.id),
                 "etapa_atual": analise.etapa_atual,
+                "contexto_estruturado": analise.contexto_estruturado,
             },
         )
     except Exception as e:
         logger.exception("Erro ao salvar contexto v2")
         return resposta_erro_v2(str(e), "ERRO_INTERNO", 500)
+
+
+def _merge_contexto(atual: dict, novo: dict) -> dict:
+    """
+    Merge profundo de contexto: bloco_a e bloco_b separadamente.
+
+    Preserva campos existentes que nao foram enviados no payload novo.
+    Isso garante retrocompatibilidade: campos antigos nao sao apagados
+    quando o frontend envia apenas campos novos.
+    """
+    resultado = {}
+
+    # Merge bloco_a
+    bloco_a_atual = atual.get("bloco_a", {})
+    bloco_a_novo = novo.get("bloco_a", {})
+    resultado["bloco_a"] = {**bloco_a_atual, **bloco_a_novo}
+
+    # Merge bloco_b (campos antigos + estruturados v2)
+    bloco_b_atual = atual.get("bloco_b", {})
+    bloco_b_novo = novo.get("bloco_b", {})
+    resultado["bloco_b"] = {**bloco_b_atual, **bloco_b_novo}
+
+    return resultado
 
 
 @api_view(["PATCH"])
@@ -801,6 +899,7 @@ def inferir_riscos_v2(request, analise_id):
                     riscos_existentes += 1
                     continue
 
+                # P/I ficam None - usuario DEVE avaliar na Etapa 3
                 risco = RiscoIdentificado.objects.create(
                     orgao_id=orgao_id,
                     analise=analise,
@@ -812,8 +911,7 @@ def inferir_riscos_v2(request, analise_id):
                     grau_confianca=ri.grau_confianca,
                     justificativa=ri.justificativa,
                     fonte_sugestao=FonteSugestao.HELENA_INFERENCIA,
-                    probabilidade=3,  # Default, usuario ajusta na Etapa 3
-                    impacto=3,
+                    # probabilidade e impacto ficam None (pendente de avaliacao)
                 )
                 riscos_criados.append({
                     "id": str(risco.id),

@@ -57,11 +57,10 @@ DESCRICOES_CATEGORIA = {
     "IMPACTO_DESIGUAL": "Impacto desigual/excludente por ausencia ou insuficiencia de analise distributiva",
 }
 
-# Descricoes das estrategias
+# Descricoes das estrategias (4 oficiais do Guia MGI)
 DESCRICOES_ESTRATEGIA = {
     "MITIGAR": "Reduzir probabilidade ou impacto",
     "EVITAR": "Eliminar a causa do risco",
     "COMPARTILHAR": "Compartilhar/transferir parte do risco (ex.: contrato, cooperacao, seguro)",
-    "ACEITAR": "Reconhecer sem acao",
-    "RESGUARDAR": "Documentar para compliance",
+    "ACEITAR": "Reconhecer sem acao (requer justificativa para ALTO/CRITICO)",
 }

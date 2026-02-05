@@ -56,19 +56,24 @@ logger.info("helena_pop.py carregado (v2.0)")
 # CONSTANTES - Palavras-chave para detecção de intenção
 # ============================================================================
 
+# ✅ Tokens determinísticos (lowercase para comparação com casefold)
+# Frontend envia em UPPERCASE, backend compara em lowercase via casefold()
+
 PALAVRAS_CONFIRMACAO = frozenset([
     'sim', 's', 'pode', 'ok', 'claro', 'entendi', 'beleza', 'tudo',
     'concordo', 'confirmar', 'correto', 'certo', 'continuar', 'vamos',
     'seguir', 'próximo', 'conte', 'contigo', 'melhor', 'farei', 'junto',
-    'tudo certo', 'ja entendi', 'já entendi', 'ok_entendi'
+    'tudo certo', 'ja entendi', 'já entendi', 'ok_entendi',
+    # Tokens determinísticos (lowercase)
+    '__confirmar_dupla__', '__confirmar__', '__seguir__'
 ])
-PALAVRAS_NEGACAO = frozenset(['não', 'nao', 'n', 'nenhum', 'não há', 'nao ha', 'não tem', 'nao tem', 'sem pontos', 'pular', 'skip'])
+PALAVRAS_NEGACAO = frozenset(['não', 'nao', 'n', 'nenhum', 'não há', 'nao ha', 'não tem', 'nao tem', 'sem pontos', 'pular', 'skip', '__pular__'])
 PALAVRAS_DUVIDAS = frozenset(['duvida', 'dúvida', 'duvidas', 'dúvidas', 'mais duvidas', 'mais dúvidas', 'tenho duvidas', 'tenho dúvidas'])
 PALAVRAS_DETALHES = frozenset(['detalhada', 'longa', 'detalhes', 'completa', 'detalhe'])
 PALAVRAS_OBJETIVA = frozenset(['objetiva', 'curta', 'rápida', 'rapida', 'resumida'])
-PALAVRAS_EDICAO = frozenset(['editar', 'edit', 'corrigir', 'alterar', 'mudar', 'ajustar', 'arrumar', 'manual'])
+PALAVRAS_EDICAO = frozenset(['editar', 'edit', 'corrigir', 'alterar', 'mudar', 'ajustar', 'arrumar', 'manual', '__editar_dupla__'])
 PALAVRAS_PAUSA = frozenset(['pausa', 'pausar', 'esperar', 'depois', 'mais tarde', 'aguardar'])
-PALAVRAS_CANCELAR = frozenset(['cancelar', 'voltar', 'sair'])
+PALAVRAS_CANCELAR = frozenset(['cancelar', 'voltar', 'sair', '__cancelar__'])
 PALAVRAS_MAIS_PERGUNTA = frozenset(['mais_pergunta', 'mais', 'pergunta', 'tenho mais'])
 
 
@@ -153,6 +158,9 @@ class POPStateMachine:
         self.em_modo_duvidas = False
         self.contexto_duvidas = None
         self.estado_helena_mapeamento = None  # Estado interno do Helena Mapeamento
+        # ✅ FIX: Persistir interface entre requests (resolve bug de 3 cliques)
+        self.tipo_interface = None
+        self.dados_interface = {}
 
     def to_dict(self) -> Dict[str, Any]:
         """Serializa o state machine para JSON"""
@@ -171,7 +179,10 @@ class POPStateMachine:
             'concluido': self.concluido,
             'em_modo_duvidas': self.em_modo_duvidas,
             'contexto_duvidas': self.contexto_duvidas,
-            'estado_helena_mapeamento': self.estado_helena_mapeamento
+            'estado_helena_mapeamento': self.estado_helena_mapeamento,
+            # ✅ FIX: Persistir interface entre requests (resolve bug de 3 cliques)
+            'tipo_interface': self.tipo_interface,
+            'dados_interface': self.dados_interface,
         }
 
     @classmethod
@@ -193,6 +204,9 @@ class POPStateMachine:
         sm.em_modo_duvidas = data.get('em_modo_duvidas', False)
         sm.contexto_duvidas = data.get('contexto_duvidas')
         sm.estado_helena_mapeamento = data.get('estado_helena_mapeamento')
+        # ✅ FIX: Recuperar interface entre requests (resolve bug de 3 cliques)
+        sm.tipo_interface = data.get('tipo_interface')
+        sm.dados_interface = data.get('dados_interface', {})
         return sm
 
 
@@ -247,13 +261,31 @@ class HelenaPOP(BaseHelena):
         Detecta intenção do usuário baseado em palavras-chave.
 
         Args:
-            msg: Texto do usuário (deve estar em lowercase)
+            msg: Texto do usuário
             tipo: 'confirmacao', 'negacao', 'duvidas', 'detalhes', 'objetiva',
                   'edicao', 'pausa', 'cancelar', 'mais_pergunta'
 
         Returns:
             True se alguma palavra-chave do tipo foi encontrada na mensagem
         """
+        # Normaliza para comparação case-insensitive
+        msg_norm = (msg or "").strip().casefold()
+
+        # ✅ DETECÇÃO EXATA de tokens determinísticos (comparação em minúsculo)
+        if tipo == 'confirmacao':
+            if msg_norm in ("__confirmar_dupla__", "__confirmar__", "__seguir__"):
+                return True
+        elif tipo == 'edicao':
+            if msg_norm == "__editar_dupla__":
+                return True
+        elif tipo == 'negacao':
+            if msg_norm == "__pular__":
+                return True
+        elif tipo == 'cancelar':
+            if msg_norm == "__cancelar__":
+                return True
+
+        # Heurísticas normais (palavras-chave)
         palavras_map = {
             'confirmacao': PALAVRAS_CONFIRMACAO,
             'negacao': PALAVRAS_NEGACAO,
@@ -266,7 +298,7 @@ class HelenaPOP(BaseHelena):
             'mais_pergunta': PALAVRAS_MAIS_PERGUNTA,
         }
         palavras = palavras_map.get(tipo, frozenset())
-        return any(palavra in msg for palavra in palavras)
+        return any(palavra in msg_norm for palavra in palavras)
 
     @property
     def _pipeline(self):
@@ -449,6 +481,8 @@ class HelenaPOP(BaseHelena):
             resposta, novo_sm = self._processar_operadores(mensagem, sm)
             logger.info(f"[PROCESSAR] Estado DEPOIS de _processar_operadores: {novo_sm.estado}")
             logger.info(f"[PROCESSAR] tipo_interface setado pelo handler: {novo_sm.tipo_interface}")
+            # 🔍 DEBUG: Verificar se operadores foram salvos
+            logger.info(f"[PROCESSAR] 🔍 OPERADORES SALVOS: {novo_sm.dados_coletados.get('operadores')}")
 
         elif sm.estado == EstadoPOP.SISTEMAS:
             resposta, novo_sm = self._processar_sistemas(mensagem, sm)
@@ -1025,6 +1059,15 @@ class HelenaPOP(BaseHelena):
             sm.nome_usuario = sm.nome_temporario
             sm.estado = EstadoPOP.ESCOLHA_TIPO_EXPLICACAO
 
+            # ✅ FIX: Setar interface correta para ESCOLHA_TIPO_EXPLICACAO
+            sm.tipo_interface = 'confirmacao_dupla'
+            sm.dados_interface = {
+                'botao_confirmar': '⚡ Explicação objetiva',
+                'botao_editar': '📘 Explicação detalhada',
+                'valor_confirmar': 'objetiva',
+                'valor_editar': 'detalhada'
+            }
+
             resposta = (
                 f"Ótimo então, {sm.nome_usuario}. 😊\n\n"
                 f"Antes de seguir, preciso te explicar rapidinho como tudo vai funcionar.\n\n"
@@ -1035,6 +1078,8 @@ class HelenaPOP(BaseHelena):
             )
         else:
             sm.estado = EstadoPOP.NOME_USUARIO
+            sm.tipo_interface = None
+            sm.dados_interface = {}
             resposta = "Sem problemas! Como você prefere que eu te chame?"
 
         return resposta, sm
@@ -1066,8 +1111,16 @@ class HelenaPOP(BaseHelena):
             )
             return resposta, sm
 
-        # Não entendeu
+        # Não entendeu - re-renderiza interface correta
         else:
+            # ✅ FIX: Re-setar interface correta para este estado
+            sm.tipo_interface = 'confirmacao_dupla'
+            sm.dados_interface = {
+                'botao_confirmar': '⚡ Explicação objetiva',
+                'botao_editar': '📘 Explicação detalhada',
+                'valor_confirmar': 'objetiva',
+                'valor_editar': 'detalhada'
+            }
             resposta = (
                 f"Desculpe, não entendi. Por favor, escolha:\n\n"
                 f"📘 **Explicação detalhada** - para entender tudo em detalhes\n"
@@ -2237,6 +2290,37 @@ class HelenaPOP(BaseHelena):
                 dados_json = self._parse_json_seguro(mensagem)
                 fluxos = self._parsear_fluxo_json(dados_json, 'origens_selecionadas', 'outras_origens', formato_entrada=True)
                 if fluxos is None:
+                    # ✅ GUARD RAIL: Detectar se resposta é operadores duplicados (não fluxos)
+                    ops = sm.dados_coletados.get('operadores') or []
+                    if (
+                        isinstance(dados_json, list)
+                        and all(isinstance(item, str) for item in dados_json)
+                        and ops
+                        and set(map(str.lower, dados_json)) == set(map(str.lower, ops))
+                    ):
+                        logger.warning(
+                            f"[FLUXOS_ENTRADA] Resposta é operadores duplicados. "
+                            f"estado={sm.estado}, ops={ops[:3]}, dados={dados_json[:3]}"
+                        )
+                        # Re-renderizar interface de fluxos_entrada sem modificar estado
+                        try:
+                            areas_organizacionais = carregar_areas_organizacionais()
+                            orgaos_centralizados = carregar_orgaos_centralizados()
+                            canais_atendimento = carregar_canais_atendimento()
+                        except Exception as e:
+                            logger.error(f"[FLUXOS] Erro ao carregar dados: {e}")
+                            areas_organizacionais = {}
+                            orgaos_centralizados = []
+                            canais_atendimento = []
+                        sm.tipo_interface = 'fluxos_entrada'
+                        sm.dados_interface = {
+                            'areas_organizacionais': list(areas_organizacionais.values()) if isinstance(areas_organizacionais, dict) else areas_organizacionais,
+                            'orgaos_centralizados': orgaos_centralizados,
+                            'canais_atendimento': canais_atendimento
+                        }
+                        resposta = "Por favor, selecione de onde vem o processo (origens de entrada)."
+                        return resposta, sm
+                    # Fallback normal (texto livre)
                     fluxos = [f.strip() for f in mensagem.replace('\n', ',').split('|') if f.strip()]
                 sm.dados_coletados['fluxos_entrada'] = fluxos
 
@@ -2269,6 +2353,37 @@ class HelenaPOP(BaseHelena):
                 dados_json = self._parse_json_seguro(mensagem)
                 fluxos = self._parsear_fluxo_json(dados_json, 'destinos_selecionados', 'outros_destinos', formato_entrada=False)
                 if fluxos is None:
+                    # ✅ GUARD RAIL: Detectar se resposta é operadores duplicados (não fluxos)
+                    ops = sm.dados_coletados.get('operadores') or []
+                    if (
+                        isinstance(dados_json, list)
+                        and all(isinstance(item, str) for item in dados_json)
+                        and ops
+                        and set(map(str.lower, dados_json)) == set(map(str.lower, ops))
+                    ):
+                        logger.warning(
+                            f"[FLUXOS_SAIDA] Resposta é operadores duplicados. "
+                            f"estado={sm.estado}, ops={ops[:3]}, dados={dados_json[:3]}"
+                        )
+                        # Re-renderizar interface de fluxos_saida sem modificar estado
+                        try:
+                            areas_organizacionais = carregar_areas_organizacionais()
+                            orgaos_centralizados = carregar_orgaos_centralizados()
+                            canais_atendimento = carregar_canais_atendimento()
+                        except Exception as e:
+                            logger.error(f"[FLUXOS] Erro ao carregar dados: {e}")
+                            areas_organizacionais = {}
+                            orgaos_centralizados = []
+                            canais_atendimento = []
+                        sm.tipo_interface = 'fluxos_saida'
+                        sm.dados_interface = {
+                            'areas_organizacionais': list(areas_organizacionais.values()) if isinstance(areas_organizacionais, dict) else areas_organizacionais,
+                            'orgaos_centralizados': orgaos_centralizados,
+                            'canais_atendimento': canais_atendimento
+                        }
+                        resposta = "Por favor, selecione para onde vai o resultado do processo (destinos de saída)."
+                        return resposta, sm
+                    # Fallback normal (texto livre)
                     fluxos = [f.strip() for f in mensagem.replace('\n', ',').split(',') if f.strip()]
                 sm.dados_coletados['fluxos_saida'] = fluxos
 

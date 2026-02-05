@@ -155,14 +155,17 @@ class RiscoIdentificado(models.Model):
     )
 
     # Campos de analise P x I
-    probabilidade = models.PositiveSmallIntegerField(default=3)
-    impacto = models.PositiveSmallIntegerField(default=3)
-    score_risco = models.PositiveSmallIntegerField(editable=False, default=9)
+    # NOTA: null=True permite que riscos fiquem "pendentes de avaliacao"
+    # ate o gestor definir P/I explicitamente. Isso evita "tudo medio" por default.
+    probabilidade = models.PositiveSmallIntegerField(null=True, blank=True)
+    impacto = models.PositiveSmallIntegerField(null=True, blank=True)
+    score_risco = models.PositiveSmallIntegerField(editable=False, null=True, blank=True)
     nivel_risco = models.CharField(
         max_length=20,
         choices=[(n.value, n.value) for n in NivelRisco],
         editable=False,
-        default=NivelRisco.MEDIO.value,
+        blank=True,
+        default="",
     )
 
     # Campos de inferencia (quando fonte_sugestao=HELENA_INFERENCIA)
@@ -213,8 +216,14 @@ class RiscoIdentificado(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        self.score_risco = calcular_score(self.probabilidade, self.impacto)
-        self.nivel_risco = calcular_nivel(self.score_risco)
+        # Calcula score/nivel apenas se P e I estiverem definidos
+        # Caso contrario, deixa pendente (null/vazio)
+        if self.probabilidade is not None and self.impacto is not None:
+            self.score_risco = calcular_score(self.probabilidade, self.impacto)
+            self.nivel_risco = calcular_nivel(self.score_risco)
+        else:
+            self.score_risco = None
+            self.nivel_risco = ""
         if not self.orgao_id:
             self.orgao_id = self.analise.orgao_id
         super().save(*args, **kwargs)

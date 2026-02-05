@@ -17,7 +17,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from django.http import HttpResponse
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from processos.models_analise_riscos import AnaliseRiscos
@@ -25,11 +26,22 @@ from processos.infra.rate_limiting import rate_limit_user
 from processos.api.export_helpers import (
     get_snapshot_para_export,
     verificar_desatualizacao,
+    build_snapshot_payload,
     labelize,
     format_value,
     build_bloco_renderizado,
+    build_bloco_b_renderizado,
+    is_respondido,
+    dedup_acoes,
+    fmt_text,
+    fmt_dash,
     NOTA_CONDICIONAIS,
     LABELS,
+)
+from processos.domain.helena_analise_riscos.leitura_mgi import (
+    gerar_leitura_mgi,
+    gerar_leitura_mgi_lista,
+    gerar_resumo_mgi,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,7 +65,9 @@ SECTIONS = [
     {"id": "evidencias", "title": "2. Contexto e Evidencias"},
     {"id": "diagnostico", "title": "3. Diagnostico por Dimensao"},
     {"id": "riscos", "title": "4. Riscos Identificados"},
-    {"id": "metadados", "title": "5. Metadados e Rastreabilidade"},
+    {"id": "tratamento", "title": "5. Tratamento dos Riscos"},
+    {"id": "leitura_mgi", "title": "6. Leitura segundo o Guia de Gestao de Riscos do MGI"},
+    {"id": "metadados", "title": "7. Metadados e Rastreabilidade"},
 ]
 
 
@@ -84,7 +98,7 @@ def build_resumo(data: Dict[str, Any]) -> Dict[str, Any]:
             predominante = nivel.rstrip("s").upper()  # "criticos" -> "CRITICO"
 
     # Top 3 riscos por score
-    top_riscos = sorted(riscos, key=lambda r: r.get("score_risco", 0), reverse=True)[:3]
+    top_riscos = sorted(riscos, key=lambda r: r.get("score_risco") or 0, reverse=True)[:3]
 
     return {
         "total": resumo.get("total", 0),
@@ -96,8 +110,8 @@ def build_resumo(data: Dict[str, Any]) -> Dict[str, Any]:
         "top_riscos": [
             {
                 "titulo": r.get("titulo", ""),
-                "nivel": r.get("nivel_risco", ""),
-                "score": r.get("score_risco", 0),
+                "nivel": fmt_text(r.get("nivel_risco"), "Pendente"),
+                "score": fmt_dash(r.get("score_risco")),
             }
             for r in top_riscos
         ],
@@ -108,9 +122,12 @@ def build_evidencias(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Constroi conteudo da secao Contexto e Evidencias.
 
+    RETROCOMPATIVEL: Usa helper que faz fallback entre campos novos (v2) e antigos.
+
     Retorna:
         - bloco_a: campos de identificacao
-        - bloco_b: campos de contexto operacional
+        - bloco_b: campos de contexto operacional (com fallback)
+        - bloco_b_detalhado: estrutura detalhada do Bloco B (v2)
         - nota_condicionais: texto da nota
     """
     contexto = data.get("contexto_estruturado", {})
@@ -125,30 +142,19 @@ def build_evidencias(data: Dict[str, Any]) -> Dict[str, Any]:
         {"label": "Descricao do escopo", "valor": format_value(bloco_a.get("descricao_escopo"), required=False)},
     ]
 
-    # Bloco B - 7 perguntas
-    labels_b = {
-        "recursos_necessarios": "Quais recursos sao necessarios?",
-        "areas_atores_envolvidos": "Quais areas/atores estao envolvidos?",
-        "frequencia_execucao": "Com que frequencia ocorre?",
-        "prazos_slas": "Existem prazos legais ou SLAs?",
-        "dependencias_externas": "Ha dependencia de terceiros/sistemas externos?",
-        "historico_problemas": "Houve problemas ou incidentes anteriores?",
-        "impacto_se_falhar": "O que acontece se falhar?",
-    }
+    # Bloco B - usa helper com fallback (v2)
+    bloco_b_detalhado = build_bloco_b_renderizado(bloco_b)
 
-    evidencias_b = []
-    for campo, label in labels_b.items():
-        valor_raw = bloco_b.get(campo)
-        # Frequencia e enum
-        if campo == "frequencia_execucao":
-            valor = labelize(valor_raw) if valor_raw else format_value(None, required=True)
-        else:
-            valor = format_value(valor_raw, required=True)
-        evidencias_b.append({"label": label, "valor": valor})
+    # Converte para formato legado (para compatibilidade com templates existentes)
+    evidencias_b = [
+        {"label": campo["label"], "valor": campo["valor"]}
+        for campo in bloco_b_detalhado.get("campos", [])
+    ]
 
     return {
         "bloco_a": evidencias_a,
         "bloco_b": evidencias_b,
+        "bloco_b_detalhado": bloco_b_detalhado,  # Estrutura nova (v2)
         "nota_condicionais": NOTA_CONDICIONAIS,
     }
 
@@ -183,45 +189,38 @@ def build_riscos(data: Dict[str, Any]) -> Dict[str, Any]:
     riscos = data.get("riscos", [])
 
     # Tabela resumo (titulo + nivel + score)
+    # Usa fmt_dash para evitar None no relatorio
     tabela_resumo = [
         {
             "titulo": r.get("titulo", ""),
             "categoria": labelize(r.get("categoria", "")),
-            "nivel": r.get("nivel_risco", ""),
-            "score": r.get("score_risco", 0),
+            "nivel": fmt_text(r.get("nivel_risco"), "Pendente"),
+            "score": fmt_dash(r.get("score_risco")),
         }
         for r in riscos
     ]
 
     # Detalhes por risco
+    # Usa fmt_dash/fmt_text para renderizacao defensiva (nunca None no relatorio)
     detalhes = []
     for risco in riscos:
         detalhe = {
             "titulo": risco.get("titulo", ""),
             "descricao": format_value(risco.get("descricao"), required=False),
             "categoria": labelize(risco.get("categoria", "")),
-            "probabilidade": risco.get("probabilidade", 0),
-            "impacto": risco.get("impacto", 0),
-            "score": risco.get("score_risco", 0),
-            "nivel": risco.get("nivel_risco", ""),
-            "fonte": labelize(risco.get("fonte_sugestao", "")),
+            "probabilidade": fmt_dash(risco.get("probabilidade")),
+            "impacto": fmt_dash(risco.get("impacto")),
+            "score": fmt_dash(risco.get("score_risco")),
+            "nivel": fmt_text(risco.get("nivel_risco"), "Pendente"),
+            "fonte": labelize(risco.get("fonte_sugestao", "")) or "—",
             "bloco_origem": risco.get("bloco_origem", ""),
             "justificativa": format_value(risco.get("justificativa"), required=False),
-            "grau_confianca": labelize(risco.get("grau_confianca", "")) if risco.get("grau_confianca") else None,
-            "regra_aplicada": risco.get("regra_aplicada", "") or None,
+            "grau_confianca": labelize(risco.get("grau_confianca", "")) if risco.get("grau_confianca") else "",
+            "regra_aplicada": risco.get("regra_aplicada", "") or "",
             "perguntas_acionadoras": risco.get("perguntas_acionadoras", []),
-            # RespostaRisco (plano de tratamento)
-            "respostas": [],
+            # NOTA: Plano de resposta REMOVIDO da Secao 4 (Sprint 4)
+            # As estrategias e acoes estao descritas na Secao 5
         }
-
-        for resp in risco.get("respostas", []):
-            detalhe["respostas"].append({
-                "estrategia": labelize(resp.get("estrategia", "")),
-                "acao": resp.get("descricao_acao", ""),
-                "responsavel": resp.get("responsavel_nome", ""),
-                "area": resp.get("responsavel_area", ""),
-                "prazo": resp.get("prazo", ""),
-            })
 
         detalhes.append(detalhe)
 
@@ -232,18 +231,181 @@ def build_riscos(data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def build_tratamento(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Constroi conteudo da secao Tratamento dos Riscos.
+
+    Apresenta o plano de resposta por risco, agrupando por estrategia
+    conforme Guia MGI (EVITAR, MITIGAR, COMPARTILHAR, ACEITAR).
+
+    Retorna:
+        - riscos_com_resposta: lista de riscos com tratamento definido
+        - riscos_sem_resposta: lista de riscos sem tratamento definido
+        - totais_por_estrategia: contagem por estrategia
+        - total_com_tratamento: quantidade de riscos com tratamento definido
+        - total_sem_tratamento: quantidade de riscos sem tratamento definido
+    """
+    riscos = data.get("riscos", [])
+
+    riscos_com_resposta = []
+    riscos_sem_resposta = []
+
+    # Contadores por estrategia (4 do Guia MGI)
+    totais_por_estrategia = {
+        "EVITAR": 0,
+        "MITIGAR": 0,
+        "COMPARTILHAR": 0,
+        "ACEITAR": 0,
+    }
+
+    for risco in riscos:
+        respostas = risco.get("respostas", [])
+        # Usa funcao canonica para determinar status (REGRA UNICA)
+        if is_respondido(risco):
+            # Risco com tratamento definido
+            # Deduplica acoes para evitar repeticao no relatorio
+            respostas_unicas = dedup_acoes(respostas)
+            tratamentos = []
+            for resp in respostas_unicas:
+                estrategia = resp.get("estrategia", "")
+                if estrategia in totais_por_estrategia:
+                    totais_por_estrategia[estrategia] += 1
+
+                tratamentos.append({
+                    "estrategia": labelize(estrategia),
+                    "estrategia_raw": estrategia,
+                    "acao": resp.get("descricao_acao", ""),
+                    "responsavel": resp.get("responsavel_nome", ""),
+                    "area": resp.get("responsavel_area", ""),
+                    "prazo": resp.get("prazo", ""),
+                })
+
+            riscos_com_resposta.append({
+                "titulo": risco.get("titulo", ""),
+                "nivel": fmt_text(risco.get("nivel_risco"), "Pendente"),
+                "score": fmt_dash(risco.get("score_risco")),
+                "categoria": labelize(risco.get("categoria", "")),
+                "tratamentos": tratamentos,
+            })
+        else:
+            # Risco sem tratamento
+            riscos_sem_resposta.append({
+                "titulo": risco.get("titulo", ""),
+                "nivel": fmt_text(risco.get("nivel_risco"), "Pendente"),
+                "score": fmt_dash(risco.get("score_risco")),
+                "categoria": labelize(risco.get("categoria", "")),
+            })
+
+    return {
+        "riscos_com_resposta": riscos_com_resposta,
+        "riscos_sem_resposta": riscos_sem_resposta,
+        "totais_por_estrategia": totais_por_estrategia,
+        "total_com_tratamento": len(riscos_com_resposta),
+        "total_sem_tratamento": len(riscos_sem_resposta),
+        "nota_tratamento": (
+            "O tratamento dos riscos segue as 4 estrategias do Guia de Gestao de Riscos do MGI: "
+            "Evitar (eliminar a causa), Mitigar (reduzir probabilidade/impacto), "
+            "Compartilhar (transferir a terceiros) e Aceitar (assumir sem acao)."
+        ),
+        "nota_tratamento_definido": (
+            "Tratamento definido NAO significa risco eliminado. "
+            "O nivel do risco permanece inalterado ate que as acoes sejam implementadas e avaliadas."
+        ),
+    }
+
+
+def build_leitura_mgi(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Constroi conteudo da secao Leitura MGI.
+
+    Esta secao apresenta a leitura institucional dos riscos conforme
+    o Guia de Gestao de Riscos do MGI, sem alterar a classificacao original.
+
+    Retorna:
+        - resumo: totais por categoria/nivel MGI
+        - riscos_fora_apetite: lista de riscos fora do apetite
+        - riscos_integridade: lista de riscos de integridade
+        - riscos_com_leitura: lista completa com leitura MGI
+    """
+    riscos = data.get("riscos", [])
+    tipo_origem = data.get("tipo_origem", "")
+
+    # Gerar leitura MGI para cada risco
+    riscos_com_leitura = gerar_leitura_mgi_lista(riscos, tipo_origem)
+
+    # Gerar resumo
+    resumo = gerar_resumo_mgi(riscos_com_leitura)
+
+    # Identificar riscos fora do apetite SEM resposta definida
+    # Usa funcao canonica is_respondido() para consistencia com Secao 5
+    riscos_sem_resposta = [
+        r for r in riscos_com_leitura
+        if (r.get("leitura_mgi") or {}).get("fora_do_apetite", False)
+        and not is_respondido(r)
+    ]
+
+    return {
+        "resumo": resumo,
+        "riscos_com_leitura": riscos_com_leitura,
+        "riscos_sem_resposta": riscos_sem_resposta,
+        "qtd_sem_resposta": len(riscos_sem_resposta),
+        "nota_explicativa": (
+            "Esta secao apresenta uma camada de leitura institucional dos riscos "
+            "conforme o Guia de Gestao de Riscos do MGI. "
+            "As classificacoes abaixo NAO substituem a analise original do sistema. "
+            "Servem para priorizacao gerencial e reporte institucional."
+        ),
+        "nota_revisabilidade": (
+            "A classificacao MGI, incluindo o status de integridade, reflete a situacao "
+            "no momento da analise e pode ser revista caso as causas do risco sejam "
+            "tratadas ou eliminadas."
+        ),
+        "nota_consolidacao": (
+            "Alguns riscos apresentam causas ou efeitos comuns e podem ser tratados "
+            "de forma integrada, a criterio da gestao."
+        ),
+        "frase_integridade": (
+            "Apetite institucional ZERO. Requerem definicao obrigatoria de resposta."
+        ),
+        "frase_outros_fora_apetite": (
+            "Nivel ALTO ou CRITICO. Prioridade para deliberacao gerencial."
+        ),
+        "frase_sem_resposta": (
+            "Os riscos listados a seguir encontram-se fora do apetite institucional "
+            "e ainda nao possuem resposta formal definida."
+        ),
+    }
+
+
 def build_metadados(data: Dict[str, Any], snap, desatualizado: bool) -> Dict[str, Any]:
     """
     Constroi conteudo da secao Metadados e Rastreabilidade.
+
+    Se snap=None, indica export stateless (modo teste, sem persistencia).
     """
+    # Modo stateless (anônimo) - sem snapshot
+    if snap is None:
+        return {
+            "analise_id": data.get("analise_id", ""),
+            "versao_sistema": data.get("versao_sistema", ""),
+            "schema_version": data.get("schema_version", ""),
+            "fonte_estado_em": data.get("fonte_estado_em", ""),
+            "snapshot_versao": "-",
+            "snapshot_motivo": "STATELESS (teste)",
+            "snapshot_criado_em": None,
+            "export_gerado_em": datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "desatualizado": False,
+            "aviso_desatualizacao": "Export gerado sem snapshot (modo teste publico - sem persistencia).",
+        }
+
     return {
         "analise_id": data.get("analise_id", ""),
         "versao_sistema": data.get("versao_sistema", ""),
         "schema_version": data.get("schema_version", ""),
         "fonte_estado_em": data.get("fonte_estado_em", ""),
-        "snapshot_versao": snap.versao if snap else None,
-        "snapshot_motivo": snap.motivo_snapshot if snap else None,
-        "snapshot_criado_em": snap.criado_em.strftime("%d/%m/%Y %H:%M") if snap and snap.criado_em else None,
+        "snapshot_versao": snap.versao,
+        "snapshot_motivo": snap.motivo_snapshot,
+        "snapshot_criado_em": snap.criado_em.strftime("%d/%m/%Y %H:%M") if snap.criado_em else None,
         "export_gerado_em": datetime.now().strftime("%d/%m/%Y %H:%M"),
         "desatualizado": desatualizado,
         "aviso_desatualizacao": "Ha alteracoes apos o snapshot; este export pode estar desatualizado." if desatualizado else None,
@@ -254,8 +416,10 @@ def build_metadados(data: Dict[str, Any], snap, desatualizado: bool) -> Dict[str
 # RENDERER PDF (reportlab) - DS Gov "good enough"
 # =============================================================================
 
-# Cores DS Gov
-COR_AZUL_GOV = None  # Inicializado no render
+from processos.export.styles import CORES, CORES_NIVEL, CORES_NIVEL_FUNDO, TIPO, ESPACO
+
+# Cores DS Gov (lazy load para evitar import circular)
+COR_AZUL_GOV = None
 COR_AZUL_ESCURO = None
 COR_CINZA = None
 COR_CINZA_CLARO = None
@@ -264,20 +428,18 @@ CORES_NIVEL_PDF = None
 
 
 def _init_pdf_colors():
-    """Inicializa cores do PDF (lazy load)."""
+    """Inicializa cores do PDF (lazy load a partir de styles)."""
     global COR_AZUL_GOV, COR_AZUL_ESCURO, COR_CINZA, COR_CINZA_CLARO, CORES_NIVEL_PDF
     from reportlab.lib import colors
 
-    COR_AZUL_GOV = colors.HexColor('#1351B4')
-    COR_AZUL_ESCURO = colors.HexColor('#071D41')
-    COR_CINZA = colors.HexColor('#636363')
-    COR_CINZA_CLARO = colors.HexColor('#E8E8E8')
+    COR_AZUL_GOV = colors.HexColor(CORES["azul_primario"])
+    COR_AZUL_ESCURO = colors.HexColor(CORES["azul_escuro"])
+    COR_CINZA = colors.HexColor(CORES["cinza_texto"])
+    COR_CINZA_CLARO = colors.HexColor(CORES["cinza_linha"])
 
     CORES_NIVEL_PDF = {
-        'CRITICO': colors.HexColor('#dc2626'),
-        'ALTO': colors.HexColor('#f97316'),
-        'MEDIO': colors.HexColor('#eab308'),
-        'BAIXO': colors.HexColor('#22c55e'),
+        nivel: colors.HexColor(hex_cor)
+        for nivel, hex_cor in CORES_NIVEL.items()
     }
 
 
@@ -437,12 +599,12 @@ def render_pdf(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
     styles.add(ParagraphStyle(
         name='Warning',
         parent=styles['Normal'],
-        fontSize=9,
-        textColor=colors.HexColor('#E52207'),
-        backColor=colors.HexColor('#FFF4F2'),
-        borderPadding=8,
-        spaceBefore=8,
-        spaceAfter=8,
+        fontSize=TIPO["texto"],
+        textColor=colors.HexColor(CORES["vermelho_alerta"]),
+        backColor=colors.HexColor(CORES["vermelho_fundo"]),
+        borderPadding=ESPACO["sm"],
+        spaceBefore=ESPACO["sm"],
+        spaceAfter=ESPACO["sm"],
     ))
 
     elements = []
@@ -489,10 +651,10 @@ def render_pdf(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 0.5, COR_CINZA_CLARO),
-        ('BACKGROUND', (1, 1), (1, 1), colors.HexColor('#FEE2E2')),  # Criticos
-        ('BACKGROUND', (2, 1), (2, 1), colors.HexColor('#FFEDD5')),  # Altos
-        ('BACKGROUND', (3, 1), (3, 1), colors.HexColor('#FEF9C3')),  # Medios
-        ('BACKGROUND', (4, 1), (4, 1), colors.HexColor('#DCFCE7')),  # Baixos
+        ('BACKGROUND', (1, 1), (1, 1), colors.HexColor(CORES_NIVEL_FUNDO["CRITICO"])),
+        ('BACKGROUND', (2, 1), (2, 1), colors.HexColor(CORES_NIVEL_FUNDO["ALTO"])),
+        ('BACKGROUND', (3, 1), (3, 1), colors.HexColor(CORES_NIVEL_FUNDO["MEDIO"])),
+        ('BACKGROUND', (4, 1), (4, 1), colors.HexColor(CORES_NIVEL_FUNDO["BAIXO"])),
         ('PADDING', (0, 0), (-1, -1), 8),
     ]))
     elements.append(dist_table)
@@ -571,7 +733,7 @@ def render_pdf(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
                 ('GRID', (0, 0), (-1, -1), 0.5, COR_CINZA_CLARO),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('PADDING', (0, 0), (-1, -1), 4),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor(CORES["cinza_fundo"])]),
             ]))
             elements.append(t)
             elements.append(Spacer(1, 16))
@@ -617,20 +779,13 @@ def render_pdf(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
                     meta += f" | Confianca: {detalhe['grau_confianca']}"
                 card_elements.append(Paragraph(meta, styles['SmallGray']))
 
-            # RespostaRisco (plano de tratamento)
-            if detalhe['respostas']:
-                card_elements.append(Spacer(1, 4))
-                card_elements.append(Paragraph("<b>Plano de Resposta:</b>", styles['GovBody']))
-                for resp in detalhe['respostas']:
-                    resp_text = f"  - {resp['estrategia']}: {resp['acao']}"
-                    if resp['responsavel']:
-                        resp_text += f" (Resp: {resp['responsavel']}"
-                        if resp['area']:
-                            resp_text += f" / {resp['area']}"
-                        resp_text += ")"
-                    if resp['prazo']:
-                        resp_text += f" - Prazo: {resp['prazo']}"
-                    card_elements.append(Paragraph(resp_text, styles['GovBody']))
+            # NOTA: Plano de Resposta REMOVIDO da Secao 4 (conforme Guia MGI)
+            # As estrategias e acoes de tratamento estao na Secao 5.
+            card_elements.append(Spacer(1, 2))
+            card_elements.append(Paragraph(
+                "<i>Veja estrategias e acoes de tratamento na Secao 5.</i>",
+                styles['SmallGray']
+            ))
 
             # Linha divisoria (visual de card)
             card_elements.append(Spacer(1, 8))
@@ -643,8 +798,240 @@ def render_pdf(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
 
     elements.append(Spacer(1, 16))
 
-    # === SECAO 5: METADADOS E RASTREABILIDADE ===
+    # === SECAO 5: TRATAMENTO DOS RISCOS ===
+    tratamento = build_tratamento(data)
     elements.append(Paragraph(SECTIONS[4]["title"], styles['SectionTitle']))
+
+    # Nota explicativa
+    elements.append(Paragraph(f"<i>{tratamento['nota_tratamento']}</i>", styles['SmallGray']))
+    elements.append(Spacer(1, 10))
+
+    # Tabela resumo por estrategia
+    if tratamento['total_com_tratamento'] > 0 or tratamento['total_sem_tratamento'] > 0:
+        elements.append(Paragraph('<b>Distribuicao por Estrategia</b>', styles['SubSectionTitle']))
+        est_data = [
+            ['Estrategia', 'Quantidade'],
+            ['Evitar', str(tratamento['totais_por_estrategia']['EVITAR'])],
+            ['Mitigar', str(tratamento['totais_por_estrategia']['MITIGAR'])],
+            ['Compartilhar', str(tratamento['totais_por_estrategia']['COMPARTILHAR'])],
+            ['Aceitar', str(tratamento['totais_por_estrategia']['ACEITAR'])],
+        ]
+        est_table = Table(est_data, colWidths=[6*cm, 3*cm])
+        est_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), COR_AZUL_GOV),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, COR_CINZA_CLARO),
+            ('PADDING', (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(est_table)
+        elements.append(Spacer(1, 12))
+
+        # Resumo geral (linguagem corrigida: "tratamento definido" != "risco resolvido")
+        elements.append(Paragraph(
+            f"<b>Riscos com tratamento definido:</b> {tratamento['total_com_tratamento']} | "
+            f"<b>Riscos sem tratamento definido:</b> {tratamento['total_sem_tratamento']}",
+            styles['GovBody']
+        ))
+        elements.append(Spacer(1, 4))
+        elements.append(Paragraph(
+            f"<i>{tratamento['nota_tratamento_definido']}</i>",
+            styles['SmallGray']
+        ))
+        elements.append(Spacer(1, 12))
+
+    # Cards de riscos com tratamento definido
+    if tratamento['riscos_com_resposta']:
+        elements.append(Paragraph('<b>Riscos com Tratamento Definido</b>', styles['SubSectionTitle']))
+        elements.append(Spacer(1, 6))
+
+        for risco in tratamento['riscos_com_resposta']:
+            card_elements = []
+            cor_nivel = CORES_NIVEL_PDF.get(risco['nivel'], colors.black)
+
+            # Titulo do risco
+            card_elements.append(Paragraph(
+                f"<b>{risco['titulo']}</b>",
+                styles['CardTitle']
+            ))
+
+            # Linha de situacao (AJUSTE 5: clareza institucional)
+            # Determina se esta fora do apetite (ALTO ou CRITICO)
+            nivel_upper = (risco['nivel'] or "").upper()
+            situacao_apetite = "fora do apetite institucional" if nivel_upper in ("ALTO", "CRITICO") else "dentro do apetite institucional"
+            card_elements.append(Paragraph(
+                f"Nivel do risco: <font color='{cor_nivel.hexval()}'><b>{risco['nivel']}</b></font> ({situacao_apetite}) | "
+                f"Situacao: <b>Tratamento definido</b>",
+                styles['SmallGray']
+            ))
+
+            # Tratamentos
+            for trat in risco['tratamentos']:
+                trat_text = f"<b>{trat['estrategia']}:</b> {trat['acao']}"
+                if trat['responsavel']:
+                    trat_text += f" | Resp: {trat['responsavel']}"
+                    if trat['area']:
+                        trat_text += f" ({trat['area']})"
+                if trat['prazo']:
+                    trat_text += f" | Prazo: {trat['prazo']}"
+                card_elements.append(Paragraph(trat_text, styles['GovBody']))
+
+            card_elements.append(Spacer(1, 6))
+            elements.append(KeepTogether(card_elements))
+
+        elements.append(Spacer(1, 10))
+
+    # Lista de riscos sem tratamento definido (AJUSTE 6: linguagem clara)
+    if tratamento['riscos_sem_resposta']:
+        elements.append(Paragraph('<b>Riscos sem Tratamento Definido</b>', styles['SubSectionTitle']))
+        elements.append(Paragraph(
+            "<i>Os riscos abaixo ainda nao possuem plano de resposta definido.</i>",
+            styles['SmallGray']
+        ))
+        elements.append(Spacer(1, 4))
+
+        for risco in tratamento['riscos_sem_resposta']:
+            cor_nivel = CORES_NIVEL_PDF.get(risco['nivel'], colors.black)
+            # Determina texto do nivel (pode ser "Pendente de classificacao")
+            nivel_texto = risco['nivel']
+            if nivel_texto == "Pendente":
+                nivel_texto = "Pendente de classificacao"
+            elements.append(Paragraph(
+                f"- {risco['titulo']} | Nivel: <font color='{cor_nivel.hexval()}'>{nivel_texto}</font> | Situacao: Tratamento nao definido",
+                styles['GovBody']
+            ))
+
+    elements.append(Spacer(1, 16))
+
+    # === SECAO 6: LEITURA SEGUNDO O GUIA DE GR DO MGI ===
+    leitura_mgi = build_leitura_mgi(data)
+    elements.append(Paragraph(SECTIONS[5]["title"], styles['SectionTitle']))
+
+    # Nota explicativa
+    elements.append(Paragraph(f"<i>{leitura_mgi['nota_explicativa']}</i>", styles['SmallGray']))
+    elements.append(Spacer(1, 10))
+
+    resumo_mgi = leitura_mgi['resumo']
+
+    # Tabela de distribuicao por categoria MGI
+    elements.append(Paragraph('<b>Distribuicao por Categoria MGI</b>', styles['SubSectionTitle']))
+    cat_mgi_data = [
+        ['Categoria', 'Quantidade'],
+        ['Estrategico', str(resumo_mgi['por_categoria_mgi'].get('ESTRATEGICO', 0))],
+        ['Operacional', str(resumo_mgi['por_categoria_mgi'].get('OPERACIONAL', 0))],
+        ['Integridade', str(resumo_mgi['por_categoria_mgi'].get('INTEGRIDADE', 0))],
+    ]
+    cat_table = Table(cat_mgi_data, colWidths=[6*cm, 3*cm])
+    cat_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), COR_AZUL_GOV),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.5, COR_CINZA_CLARO),
+        ('PADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(cat_table)
+    elements.append(Spacer(1, 10))
+
+    # Tabela de distribuicao por nivel MGI
+    elements.append(Paragraph('<b>Distribuicao por Nivel MGI</b>', styles['SubSectionTitle']))
+    nivel_mgi_data = [
+        ['Nivel', 'Quantidade', 'Situacao'],
+        ['Pequeno', str(resumo_mgi['por_nivel_mgi'].get('PEQUENO', 0)), 'Dentro do apetite'],
+        ['Moderado', str(resumo_mgi['por_nivel_mgi'].get('MODERADO', 0)), 'Apetite institucional'],
+        ['Alto', str(resumo_mgi['por_nivel_mgi'].get('ALTO', 0)), 'FORA do apetite'],
+        ['Critico', str(resumo_mgi['por_nivel_mgi'].get('CRITICO', 0)), 'FORA do apetite'],
+    ]
+    nivel_table = Table(nivel_mgi_data, colWidths=[4*cm, 3*cm, 5*cm])
+    nivel_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), COR_AZUL_GOV),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.5, COR_CINZA_CLARO),
+        ('PADDING', (0, 0), (-1, -1), 6),
+        # Destacar linhas fora do apetite
+        ('BACKGROUND', (2, 3), (2, 3), colors.HexColor('#fef3c7')),  # Alto
+        ('BACKGROUND', (2, 4), (2, 4), colors.HexColor('#fee2e2')),  # Critico
+    ]))
+    elements.append(nivel_table)
+    elements.append(Spacer(1, 12))
+
+    # Resumo de riscos fora do apetite
+    qtd_fora = resumo_mgi['qtd_fora_apetite']
+    qtd_integ = resumo_mgi['qtd_integridade']
+
+    if qtd_fora > 0 or qtd_integ > 0:
+        elements.append(Paragraph('<b>Atencao: Riscos que Requerem Decisao Gerencial</b>', styles['SubSectionTitle']))
+
+        if qtd_integ > 0:
+            elements.append(Paragraph(
+                f"<font color='red'><b>Riscos de Integridade ({qtd_integ}):</b></font> {leitura_mgi['frase_integridade']}",
+                styles['GovBody']
+            ))
+            for ri in resumo_mgi['riscos_integridade']:
+                gatilhos = ri.get('gatilhos', [])
+                gatilhos_str = f" [gatilhos: {', '.join(gatilhos)}]" if gatilhos else ""
+                elements.append(Paragraph(f"  - {ri['titulo']} (score: {ri['score']}){gatilhos_str}", styles['SmallGray']))
+
+        if qtd_fora > qtd_integ:  # Ha outros fora do apetite alem dos de integridade
+            qtd_outros = qtd_fora - qtd_integ
+            elements.append(Spacer(1, 6))
+            elements.append(Paragraph(
+                f"<font color='#f97316'><b>Outros riscos fora do apetite ({qtd_outros}):</b></font> {leitura_mgi['frase_outros_fora_apetite']}",
+                styles['GovBody']
+            ))
+            # Usa riscos_com_leitura para ter acesso ao risco completo e verificar tratamento
+            for r in leitura_mgi['riscos_com_leitura']:
+                lm = r.get('leitura_mgi') or {}
+                if lm.get('fora_do_apetite') and not lm.get('is_integridade'):
+                    # Verifica situacao do tratamento usando funcao canonica
+                    situacao_trat = "Tratamento definido" if is_respondido(r) else "Tratamento nao definido"
+                    elements.append(Paragraph(
+                        f"  - {r.get('titulo')} ({fmt_text(lm.get('categoria_mgi'), '—')}, {fmt_text(lm.get('nivel_mgi'), '—')}) | <b>{situacao_trat}</b>",
+                        styles['SmallGray']
+                    ))
+
+    elements.append(Spacer(1, 12))
+
+    # Bloco de riscos sem resposta definida
+    if leitura_mgi['qtd_sem_resposta'] > 0:
+        elements.append(Paragraph('<b>Riscos Pendentes de Deliberacao</b>', styles['SubSectionTitle']))
+        elements.append(Paragraph(f"<i>{leitura_mgi['frase_sem_resposta']}</i>", styles['SmallGray']))
+        elements.append(Spacer(1, 4))
+        for rs in leitura_mgi['riscos_sem_resposta']:
+            lm = rs.get('leitura_mgi', {})
+            elements.append(Paragraph(
+                f"  - {rs.get('titulo')} ({fmt_text(lm.get('categoria_mgi'), '—')}, {fmt_text(lm.get('nivel_mgi'), '—')}, score: {fmt_dash(rs.get('score_risco'))})",
+                styles['SmallGray']
+            ))
+        elements.append(Spacer(1, 12))
+
+    # Notas institucionais
+    elements.append(Paragraph('<b>Notas</b>', styles['SubSectionTitle']))
+    elements.append(Paragraph(f"<i>{leitura_mgi['nota_revisabilidade']}</i>", styles['SmallGray']))
+    elements.append(Spacer(1, 4))
+    elements.append(Paragraph(f"<i>{leitura_mgi['nota_consolidacao']}</i>", styles['SmallGray']))
+
+    elements.append(Spacer(1, 16))
+
+    # === ENCAMINHAMENTO AO GESTOR (AJUSTE 7) ===
+    # Texto recomendatorio, sem verbo imperativo, sem obrigacao
+    elements.append(Paragraph('<b>Encaminhamento ao gestor do objeto</b>', styles['SubSectionTitle']))
+    elements.append(Paragraph(
+        "Recomenda-se que a presente analise de riscos seja considerada no plano de acao do objeto, "
+        "de modo a subsidiar a definicao e a priorizacao das acoes a serem implementadas.",
+        styles['GovBody']
+    ))
+
+    elements.append(Spacer(1, 16))
+
+    # === SECAO 7: METADADOS E RASTREABILIDADE ===
+    elements.append(Paragraph(SECTIONS[6]["title"], styles['SectionTitle']))
 
     # Metadados em tabela compacta
     meta_data = [
@@ -678,6 +1065,13 @@ def render_pdf(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
 # RENDERER DOCX (python-docx)
 # =============================================================================
 
+def _hex_to_rgb(hex_color: str):
+    """Converte hex (#RRGGBB) para RGBColor do python-docx."""
+    from docx.shared import RGBColor
+    hex_color = hex_color.lstrip('#')
+    return RGBColor(int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16))
+
+
 def render_docx(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
     """Renderiza DOCX usando SECTIONS e builders - editavel e limpo."""
     from docx import Document
@@ -686,6 +1080,17 @@ def render_docx(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
     from docx.enum.style import WD_STYLE_TYPE
 
     doc = Document()
+
+    # Cores do styles.py convertidas para RGBColor
+    COR_AZUL_GOV = _hex_to_rgb(CORES["azul_primario"])
+    COR_AZUL_ESCURO = _hex_to_rgb(CORES["azul_escuro"])
+    COR_CINZA = _hex_to_rgb(CORES["cinza_texto"])
+    COR_VERMELHO = _hex_to_rgb(CORES["vermelho_alerta"])
+
+    CORES_NIVEL_DOCX = {
+        nivel: _hex_to_rgb(hex_cor)
+        for nivel, hex_cor in CORES_NIVEL.items()
+    }
 
     # === CONFIGURAR ESTILOS GLOBAIS ===
     # Normal
@@ -699,7 +1104,7 @@ def render_docx(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
     style_h1.font.name = 'Calibri'
     style_h1.font.size = Pt(14)
     style_h1.font.bold = True
-    style_h1.font.color.rgb = RGBColor(0x13, 0x51, 0xB4)  # Azul Gov
+    style_h1.font.color.rgb = COR_AZUL_GOV
     style_h1.paragraph_format.space_before = Pt(18)
     style_h1.paragraph_format.space_after = Pt(10)
 
@@ -708,22 +1113,9 @@ def render_docx(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
     style_h2.font.name = 'Calibri'
     style_h2.font.size = Pt(12)
     style_h2.font.bold = True
-    style_h2.font.color.rgb = RGBColor(0x07, 0x1D, 0x41)  # Azul escuro
+    style_h2.font.color.rgb = COR_AZUL_ESCURO
     style_h2.paragraph_format.space_before = Pt(14)
     style_h2.paragraph_format.space_after = Pt(8)
-
-    # Cores
-    COR_AZUL_GOV = RGBColor(0x13, 0x51, 0xB4)
-    COR_AZUL_ESCURO = RGBColor(0x07, 0x1D, 0x41)
-    COR_CINZA = RGBColor(0x63, 0x63, 0x63)
-    COR_VERMELHO = RGBColor(0xE5, 0x22, 0x07)
-
-    CORES_NIVEL = {
-        'CRITICO': RGBColor(220, 38, 38),
-        'ALTO': RGBColor(249, 115, 22),
-        'MEDIO': RGBColor(234, 179, 8),
-        'BAIXO': RGBColor(34, 197, 94),
-    }
 
     # === CABECALHO DO DOCUMENTO ===
     header = doc.add_paragraph()
@@ -789,7 +1181,7 @@ def render_docx(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
             p3 = doc.add_paragraph(style='List Bullet')
             p3.add_run(f'{r["titulo"]} - ')
             run_nivel = p3.add_run(r['nivel'])
-            run_nivel.font.color.rgb = CORES_NIVEL.get(r['nivel'], COR_CINZA)
+            run_nivel.font.color.rgb = CORES_NIVEL_DOCX.get(r['nivel'], COR_CINZA)
             run_nivel.bold = True
             p3.add_run(f' (score: {r["score"]})')
 
@@ -886,7 +1278,7 @@ def render_docx(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
             p_meta = doc.add_paragraph()
             run_nivel = p_meta.add_run(f'{detalhe["nivel"]}')
             run_nivel.bold = True
-            run_nivel.font.color.rgb = CORES_NIVEL.get(detalhe['nivel'], COR_CINZA)
+            run_nivel.font.color.rgb = CORES_NIVEL_DOCX.get(detalhe['nivel'], COR_CINZA)
             run_rest = p_meta.add_run(f' | Score: {detalhe["score"]} | {detalhe["categoria"]} | P:{detalhe["probabilidade"]} I:{detalhe["impacto"]}')
             run_rest.font.size = Pt(9)
             run_rest.font.color.rgb = COR_CINZA
@@ -921,28 +1313,278 @@ def render_docx(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
                 run_origem.font.size = Pt(9)
                 run_origem.font.color.rgb = COR_CINZA
 
-            # RespostaRisco (plano de tratamento)
-            if detalhe['respostas']:
-                p_plano = doc.add_paragraph()
-                p_plano.add_run('Plano de Resposta:').bold = True
-
-                for resp in detalhe['respostas']:
-                    p_resp = doc.add_paragraph(style='List Bullet')
-                    p_resp.add_run(f"{resp['estrategia']}: ").bold = True
-                    p_resp.add_run(resp['acao'])
-                    if resp['responsavel']:
-                        p_resp.add_run(f" (Resp: {resp['responsavel']}")
-                        if resp['area']:
-                            p_resp.add_run(f" / {resp['area']}")
-                        p_resp.add_run(")")
-                    if resp['prazo']:
-                        p_resp.add_run(f" - Prazo: {resp['prazo']}")
+            # NOTA: Plano de Resposta REMOVIDO da Secao 4 (conforme Guia MGI)
+            # As estrategias e acoes de tratamento estao na Secao 5.
+            p_nota_secao5 = doc.add_paragraph()
+            run_nota = p_nota_secao5.add_run('Veja estrategias e acoes de tratamento na Secao 5.')
+            run_nota.italic = True
+            run_nota.font.size = Pt(8)
+            run_nota.font.color.rgb = COR_CINZA
 
             # Separador visual entre riscos
             doc.add_paragraph()
 
-    # === SECAO 5: METADADOS E RASTREABILIDADE ===
+    # === SECAO 5: TRATAMENTO DOS RISCOS ===
+    tratamento = build_tratamento(data)
     doc.add_heading(SECTIONS[4]["title"], level=1)
+
+    # Nota explicativa
+    p_nota_trat = doc.add_paragraph()
+    run_nota_trat = p_nota_trat.add_run(tratamento['nota_tratamento'])
+    run_nota_trat.italic = True
+    run_nota_trat.font.size = Pt(9)
+    run_nota_trat.font.color.rgb = COR_CINZA
+
+    doc.add_paragraph()
+
+    # Tabela resumo por estrategia
+    if tratamento['total_com_tratamento'] > 0 or tratamento['total_sem_tratamento'] > 0:
+        doc.add_heading('Distribuicao por Estrategia', level=2)
+        table_est = doc.add_table(rows=5, cols=2)
+        table_est.style = 'Table Grid'
+
+        # Header
+        table_est.rows[0].cells[0].text = 'Estrategia'
+        table_est.rows[0].cells[1].text = 'Quantidade'
+        for cell in table_est.rows[0].cells:
+            cell.paragraphs[0].runs[0].bold = True
+
+        # Dados
+        est_data = [
+            ('Evitar', tratamento['totais_por_estrategia']['EVITAR']),
+            ('Mitigar', tratamento['totais_por_estrategia']['MITIGAR']),
+            ('Compartilhar', tratamento['totais_por_estrategia']['COMPARTILHAR']),
+            ('Aceitar', tratamento['totais_por_estrategia']['ACEITAR']),
+        ]
+        for i, (est, qtd) in enumerate(est_data, 1):
+            table_est.rows[i].cells[0].text = est
+            table_est.rows[i].cells[1].text = str(qtd)
+
+        doc.add_paragraph()
+
+        # Resumo geral (linguagem corrigida: "tratamento definido" != "risco resolvido")
+        p_resumo_trat = doc.add_paragraph()
+        p_resumo_trat.add_run(f"Riscos com tratamento definido: ").bold = True
+        p_resumo_trat.add_run(f"{tratamento['total_com_tratamento']} | ")
+        p_resumo_trat.add_run(f"Riscos sem tratamento definido: ").bold = True
+        p_resumo_trat.add_run(str(tratamento['total_sem_tratamento']))
+
+        # Nota explicativa
+        p_nota_def = doc.add_paragraph()
+        run_nota_def = p_nota_def.add_run(tratamento['nota_tratamento_definido'])
+        run_nota_def.italic = True
+        run_nota_def.font.size = Pt(8)
+        run_nota_def.font.color.rgb = COR_CINZA
+
+        doc.add_paragraph()
+
+    # Riscos com tratamento definido (AJUSTE 5)
+    if tratamento['riscos_com_resposta']:
+        doc.add_heading('Riscos com Tratamento Definido', level=2)
+
+        for risco in tratamento['riscos_com_resposta']:
+            # Titulo do risco
+            p_titulo_risco = doc.add_paragraph()
+            p_titulo_risco.add_run(f"{risco['titulo']}").bold = True
+
+            # Linha de situacao (AJUSTE 5: clareza institucional)
+            p_situacao = doc.add_paragraph()
+            nivel_upper = (risco['nivel'] or "").upper()
+            situacao_apetite = "fora do apetite institucional" if nivel_upper in ("ALTO", "CRITICO") else "dentro do apetite institucional"
+            p_situacao.add_run(f"Nivel do risco: ")
+            run_nivel = p_situacao.add_run(risco['nivel'])
+            run_nivel.font.color.rgb = CORES_NIVEL_DOCX.get(risco['nivel'], COR_CINZA)
+            run_nivel.bold = True
+            p_situacao.add_run(f" ({situacao_apetite}) | Situacao: ")
+            p_situacao.add_run("Tratamento definido").bold = True
+
+            # Tratamentos
+            for trat in risco['tratamentos']:
+                p_trat = doc.add_paragraph(style='List Bullet')
+                p_trat.add_run(f"{trat['estrategia']}: ").bold = True
+                p_trat.add_run(trat['acao'])
+                if trat['responsavel']:
+                    p_trat.add_run(f" | Resp: {trat['responsavel']}")
+                    if trat['area']:
+                        p_trat.add_run(f" ({trat['area']})")
+                if trat['prazo']:
+                    p_trat.add_run(f" | Prazo: {trat['prazo']}")
+
+            doc.add_paragraph()
+
+    # Riscos sem tratamento definido (AJUSTE 6)
+    if tratamento['riscos_sem_resposta']:
+        doc.add_heading('Riscos sem Tratamento Definido', level=2)
+        p_pend_nota = doc.add_paragraph()
+        run_pend_nota = p_pend_nota.add_run('Os riscos abaixo ainda nao possuem plano de resposta definido.')
+        run_pend_nota.italic = True
+        run_pend_nota.font.size = Pt(9)
+        run_pend_nota.font.color.rgb = COR_CINZA
+
+        for risco in tratamento['riscos_sem_resposta']:
+            p_pend = doc.add_paragraph(style='List Bullet')
+            p_pend.add_run(f"{risco['titulo']} | Nivel: ")
+            # Determina texto do nivel
+            nivel_texto = risco['nivel']
+            if nivel_texto == "Pendente":
+                nivel_texto = "Pendente de classificacao"
+            run_nivel_pend = p_pend.add_run(nivel_texto)
+            run_nivel_pend.font.color.rgb = CORES_NIVEL_DOCX.get(risco['nivel'], COR_CINZA)
+            run_nivel_pend.bold = True
+            p_pend.add_run(f" | Situacao: Tratamento nao definido")
+
+    doc.add_paragraph()
+
+    # === SECAO 6: LEITURA SEGUNDO O GUIA DE GR DO MGI ===
+    leitura_mgi = build_leitura_mgi(data)
+    doc.add_heading(SECTIONS[5]["title"], level=1)
+
+    # Nota explicativa
+    p_nota = doc.add_paragraph()
+    run_nota = p_nota.add_run(leitura_mgi['nota_explicativa'])
+    run_nota.italic = True
+    run_nota.font.size = Pt(9)
+    run_nota.font.color.rgb = COR_CINZA
+
+    doc.add_paragraph()
+    resumo_mgi = leitura_mgi['resumo']
+
+    # Tabela de distribuicao por categoria MGI
+    doc.add_heading('Distribuicao por Categoria MGI', level=2)
+    table_cat = doc.add_table(rows=4, cols=2)
+    table_cat.style = 'Table Grid'
+
+    # Header
+    table_cat.rows[0].cells[0].text = 'Categoria'
+    table_cat.rows[0].cells[1].text = 'Quantidade'
+    for cell in table_cat.rows[0].cells:
+        cell.paragraphs[0].runs[0].bold = True
+
+    # Dados
+    cat_data = [
+        ('Estrategico', resumo_mgi['por_categoria_mgi'].get('ESTRATEGICO', 0)),
+        ('Operacional', resumo_mgi['por_categoria_mgi'].get('OPERACIONAL', 0)),
+        ('Integridade', resumo_mgi['por_categoria_mgi'].get('INTEGRIDADE', 0)),
+    ]
+    for i, (cat, qtd) in enumerate(cat_data, 1):
+        table_cat.rows[i].cells[0].text = cat
+        table_cat.rows[i].cells[1].text = str(qtd)
+
+    doc.add_paragraph()
+
+    # Tabela de distribuicao por nivel MGI
+    doc.add_heading('Distribuicao por Nivel MGI', level=2)
+    table_nivel = doc.add_table(rows=5, cols=3)
+    table_nivel.style = 'Table Grid'
+
+    # Header
+    table_nivel.rows[0].cells[0].text = 'Nivel'
+    table_nivel.rows[0].cells[1].text = 'Quantidade'
+    table_nivel.rows[0].cells[2].text = 'Situacao'
+    for cell in table_nivel.rows[0].cells:
+        cell.paragraphs[0].runs[0].bold = True
+
+    # Dados
+    nivel_data = [
+        ('Pequeno', resumo_mgi['por_nivel_mgi'].get('PEQUENO', 0), 'Dentro do apetite'),
+        ('Moderado', resumo_mgi['por_nivel_mgi'].get('MODERADO', 0), 'Apetite institucional'),
+        ('Alto', resumo_mgi['por_nivel_mgi'].get('ALTO', 0), 'FORA do apetite'),
+        ('Critico', resumo_mgi['por_nivel_mgi'].get('CRITICO', 0), 'FORA do apetite'),
+    ]
+    for i, (nivel, qtd, sit) in enumerate(nivel_data, 1):
+        table_nivel.rows[i].cells[0].text = nivel
+        table_nivel.rows[i].cells[1].text = str(qtd)
+        table_nivel.rows[i].cells[2].text = sit
+
+    doc.add_paragraph()
+
+    # Riscos que requerem decisao gerencial
+    qtd_fora = resumo_mgi['qtd_fora_apetite']
+    qtd_integ = resumo_mgi['qtd_integridade']
+
+    if qtd_fora > 0 or qtd_integ > 0:
+        doc.add_heading('Atencao: Riscos que Requerem Decisao Gerencial', level=2)
+
+        if qtd_integ > 0:
+            p_integ = doc.add_paragraph()
+            run_integ = p_integ.add_run(f'Riscos de Integridade ({qtd_integ}): ')
+            run_integ.bold = True
+            run_integ.font.color.rgb = COR_VERMELHO
+            p_integ.add_run(leitura_mgi['frase_integridade'])
+
+            for ri in resumo_mgi['riscos_integridade']:
+                p_ri = doc.add_paragraph(style='List Bullet')
+                gatilhos = ri.get('gatilhos', [])
+                gatilhos_str = f" [gatilhos: {', '.join(gatilhos)}]" if gatilhos else ""
+                p_ri.add_run(f"{ri['titulo']} (score: {ri['score']}){gatilhos_str}")
+
+        if qtd_fora > qtd_integ:
+            qtd_outros = qtd_fora - qtd_integ
+            doc.add_paragraph()
+            p_outros = doc.add_paragraph()
+            run_outros = p_outros.add_run(f'Outros riscos fora do apetite ({qtd_outros}): ')
+            run_outros.bold = True
+            run_outros.font.color.rgb = CORES_NIVEL_DOCX["ALTO"]  # Laranja
+            p_outros.add_run(leitura_mgi['frase_outros_fora_apetite'])
+
+            # Usa riscos_com_leitura para ter acesso ao risco completo e verificar tratamento
+            for r in leitura_mgi['riscos_com_leitura']:
+                lm = r.get('leitura_mgi') or {}
+                if lm.get('fora_do_apetite') and not lm.get('is_integridade'):
+                    p_rf = doc.add_paragraph(style='List Bullet')
+                    # Verifica situacao do tratamento usando funcao canonica
+                    situacao_trat = "Tratamento definido" if is_respondido(r) else "Tratamento nao definido"
+                    p_rf.add_run(f"{r.get('titulo')} ({fmt_text(lm.get('categoria_mgi'), '—')}, {fmt_text(lm.get('nivel_mgi'), '—')}) | ")
+                    run_sit = p_rf.add_run(situacao_trat)
+                    run_sit.bold = True
+
+    doc.add_paragraph()
+
+    # Bloco de riscos sem resposta definida
+    if leitura_mgi['qtd_sem_resposta'] > 0:
+        doc.add_heading('Riscos Pendentes de Deliberacao', level=2)
+        p_sem_resp = doc.add_paragraph()
+        run_frase = p_sem_resp.add_run(leitura_mgi['frase_sem_resposta'])
+        run_frase.italic = True
+        run_frase.font.size = Pt(9)
+        run_frase.font.color.rgb = COR_CINZA
+
+        for rs in leitura_mgi['riscos_sem_resposta']:
+            lm = rs.get('leitura_mgi', {})
+            p_rs = doc.add_paragraph(style='List Bullet')
+            p_rs.add_run(f"{rs.get('titulo')} ({fmt_text(lm.get('categoria_mgi'), '—')}, {fmt_text(lm.get('nivel_mgi'), '—')}, score: {fmt_dash(rs.get('score_risco'))})")
+
+    doc.add_paragraph()
+
+    # Notas institucionais
+    doc.add_heading('Notas', level=2)
+    p_nota1 = doc.add_paragraph()
+    run_nota1 = p_nota1.add_run(leitura_mgi['nota_revisabilidade'])
+    run_nota1.italic = True
+    run_nota1.font.size = Pt(9)
+    run_nota1.font.color.rgb = COR_CINZA
+
+    p_nota2 = doc.add_paragraph()
+    run_nota2 = p_nota2.add_run(leitura_mgi['nota_consolidacao'])
+    run_nota2.italic = True
+    run_nota2.font.size = Pt(9)
+    run_nota2.font.color.rgb = COR_CINZA
+
+    doc.add_paragraph()
+
+    # === ENCAMINHAMENTO AO GESTOR (AJUSTE 7) ===
+    # Texto recomendatorio, sem verbo imperativo, sem obrigacao
+    doc.add_heading('Encaminhamento ao gestor do objeto', level=2)
+    p_encaminhamento = doc.add_paragraph()
+    p_encaminhamento.add_run(
+        "Recomenda-se que a presente analise de riscos seja considerada no plano de acao do objeto, "
+        "de modo a subsidiar a definicao e a priorizacao das acoes a serem implementadas."
+    )
+
+    doc.add_paragraph()
+
+    # === SECAO 7: METADADOS E RASTREABILIDADE ===
+    doc.add_heading(SECTIONS[6]["title"], level=1)
 
     # Metadados em tabela compacta
     table_meta = doc.add_table(rows=6, cols=2)
@@ -1001,12 +1643,16 @@ def gerar_pdf(analise: AnaliseRiscos) -> io.BytesIO:
 # =============================================================================
 
 @api_view(["GET"])
+@permission_classes([AllowAny])  # PROVISORIO: liberado para teste
 @rate_limit_user(limit=10, window=60)
 def exportar_analise(request, analise_id):
     """
     GET /api/analise-riscos/<id>/exportar/?formato=pdf|docx
 
-    Exporta analise usando snapshot como fonte unica.
+    Exporta analise.
+
+    - Autenticado: usa snapshot (persiste se necessario)
+    - Anonimo: stateless (zero writes, gera em memoria)
     """
     try:
         orgao_id = get_orgao_id(request)
@@ -1020,10 +1666,17 @@ def exportar_analise(request, analise_id):
 
         formato = request.GET.get('formato', 'pdf').lower()
 
-        # === NOVO: Snapshot como fonte unica ===
-        snap = get_snapshot_para_export(analise, request.user)
-        data = snap.dados_completos
-        desatualizado = verificar_desatualizacao(analise, snap)
+        # === STATELESS para anonimo (ZERO WRITES) ===
+        if not getattr(request.user, "is_authenticated", False):
+            # Gera payload em memoria - NAO cria snapshot
+            data = build_snapshot_payload(analise)
+            snap = None
+            desatualizado = False
+        else:
+            # Fluxo normal: usa/cria snapshot
+            snap = get_snapshot_para_export(analise, request.user)
+            data = snap.dados_completos
+            desatualizado = verificar_desatualizacao(analise, snap)
 
         if formato == 'docx':
             buffer = render_docx(data, snap, desatualizado)

@@ -76,31 +76,78 @@ def chat_api_view(request):
             return JsonResponse({'resposta': resposta, 'success': True})
         
         # P1: Gerador de POP (RENOVADO - API v2.0 com POPStateMachine)
+        # ✅ ROTEADOR POP <-> ETAPAS (transição invisível)
         if contexto in ['gerador_pop', 'mapeamento_natural']:
+            # Constantes de modo
+            MODO_POP = 'pop'
+            MODO_ETAPAS = 'etapas'
+
             # OTIMIZACAO: Import lazy - so carrega quando necessario
             from .domain.helena_mapeamento.helena_pop import HelenaPOP, POPStateMachine
+            from .domain.helena_mapeamento.helena_etapas import HelenaEtapas
 
             # FIX: Usar session_id do frontend para criar chave unica
             session_key = f'helena_pop_state_{session_id}'
+            sid_tail = str(session_id)[-6:]
 
             # Obter ou criar session_data (dicionário serializado)
             if session_key not in request.session or not request.session.get(session_key):
                 # Primeira mensagem - criar novo state machine vazio
                 session_data = POPStateMachine().to_dict()
-
                 logger.debug(f"[SESSAO] Nova sessão criada: {session_key}")
             else:
                 # Mensagens seguintes - usar estado existente
                 session_data = request.session[session_key]
-
                 logger.debug(f"[SESSAO] Restaurada: estado={session_data.get('estado')}")
 
-            # Instanciar Helena e processar mensagem
-            helena = HelenaPOP()
-            resultado = helena.processar(user_message, session_data)
+            # ✅ ROTEADOR: Verificar modo atual (pop ou etapas)
+            modo_inicial = session_data.get('_helena_modo', MODO_POP)
 
-            # Salvar novo estado na sessão (resultado retorna 'novo_estado')
-            novo_session_data = resultado.get('novo_estado', session_data)
+            if modo_inicial == MODO_ETAPAS:
+                helena = HelenaEtapas()
+                resultado = helena.processar(user_message, session_data)
+            else:
+                helena = HelenaPOP()
+                resultado = helena.processar(user_message, session_data)
+
+            meta = (resultado or {}).get('metadados', {})
+
+            # ✅ TRANSIÇÃO: pop -> etapas (imediata na mesma request)
+            if modo_inicial != MODO_ETAPAS and meta.get('mudar_contexto') == MODO_ETAPAS:
+                logger.info(f"[HELENA] transicao=pop->etapas sid=...{sid_tail}")
+                session_data['_helena_modo'] = MODO_ETAPAS
+                session_data['_helena_bootstrap'] = meta.get('dados_herdados') or {}
+                try:
+                    helena_etapas = HelenaEtapas()
+                    resultado = helena_etapas.processar(user_message, session_data)
+                    meta = (resultado or {}).get('metadados', {})
+                except Exception as e:
+                    logger.exception(f"[HELENA] erro transicao etapas sid=...{sid_tail}")
+                    session_data['_helena_modo'] = MODO_POP
+                    # mantém resultado do POP
+
+            # ✅ TRANSIÇÃO: etapas -> pop
+            if meta.get('retornar_para') == MODO_POP:
+                logger.info(f"[HELENA] transicao=etapas->pop sid=...{sid_tail}")
+                session_data['_helena_modo'] = MODO_POP
+                session_data.pop('_helena_bootstrap', None)
+                session_data.pop('helena_etapas', None)
+
+            modo_final = session_data.get('_helena_modo', MODO_POP)
+            logger.debug(f"[HELENA] modo={modo_inicial} -> {modo_final}")
+
+            # Salvar novo estado na sessão
+            # ✅ SIMPLIFICADO: Em modo etapas, session_data já foi modificado in-place
+            # Em modo POP, resultado['novo_estado'] contém o POPStateMachine atualizado
+            if modo_final == MODO_ETAPAS:
+                # helena_etapas modifica session_data['helena_etapas'] in-place
+                novo_session_data = session_data
+            else:
+                # helena_pop retorna novo_estado com o POPStateMachine
+                novo_session_data = resultado.get('novo_estado', session_data)
+                # Mesclar campos do roteador (caso tenha vindo de transição etapas->pop)
+                novo_session_data['_helena_modo'] = MODO_POP
+
             request.session[session_key] = novo_session_data
 
             # Forcar Django a salvar a sessao modificada

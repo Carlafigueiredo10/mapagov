@@ -562,7 +562,18 @@ class HelenaEtapas(BaseHelena):
         Returns:
             dict: Resposta com novo estado via criar_resposta()
         """
-        estado = session_data
+        # ✅ Consumir bootstrap (dados herdados do POP) apenas uma vez
+        bootstrap = session_data.pop('_helena_bootstrap', None)
+
+        # ✅ Usar namespace dedicado para evitar colisão de chaves
+        session_data.setdefault('helena_etapas', {})
+        estado = session_data['helena_etapas']
+
+        # ✅ Inicializar apenas na primeira vez
+        if bootstrap and not estado.get('_iniciado'):
+            estado.update(self.inicializar_estado(bootstrap))
+            estado['_iniciado'] = True
+            logger.info(f"[HELENA ETAPAS] Inicializado com bootstrap: {bootstrap.get('nome_usuario', 'N/A')}")
 
         # Comandos globais
         msg_lower = mensagem.lower().strip()

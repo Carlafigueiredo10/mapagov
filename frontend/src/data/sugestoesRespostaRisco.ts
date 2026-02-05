@@ -14,6 +14,7 @@ import type { CategoriaRisco, EstrategiaResposta } from '../types/analiseRiscos.
 // SUGESTOES GENERICAS POR ESTRATEGIA (sempre aparecem)
 // =============================================================================
 
+// 4 estrategias oficiais do Guia MGI
 export const SUGESTOES_POR_ESTRATEGIA: Record<EstrategiaResposta, string[]> = {
   MITIGAR: [
     'Criar plano de contingencia',
@@ -35,8 +36,7 @@ export const SUGESTOES_POR_ESTRATEGIA: Record<EstrategiaResposta, string[]> = {
     'Documentar decisao de aceite formal',
     'Registrar justificativa tecnica',
     'Informar stakeholders sobre o risco aceito',
-  ],
-  RESGUARDAR: [
+    // Incorporado de RESGUARDAR (documentacao e boa pratica ao aceitar)
     'Documentar evidencias para compliance',
     'Registrar em ata de reuniao',
     'Arquivar documentacao comprobatoria',
@@ -77,7 +77,7 @@ export const SUGESTOES_POR_CATEGORIA_ESTRATEGIA: Partial<Record<ChaveCategoria, 
     'Suspender atividade ate parecer juridico',
     'Alterar procedimento para atender legislacao',
   ],
-  LEGAL_RESGUARDAR: [
+  LEGAL_ACEITAR: [
     'Obter parecer juridico formal',
     'Documentar base legal da decisao',
     'Arquivar evidencias de due diligence',
@@ -109,7 +109,7 @@ export const SUGESTOES_POR_CATEGORIA_ESTRATEGIA: Partial<Record<ChaveCategoria, 
     'Revisar processo antes de divulgacao',
     'Suspender comunicacao ate alinhamento',
   ],
-  REPUTACIONAL_RESGUARDAR: [
+  REPUTACIONAL_ACEITAR: [
     'Documentar posicionamento institucional',
     'Registrar comunicados oficiais',
   ],
@@ -140,7 +140,7 @@ export const SUGESTOES_POR_CATEGORIA_ESTRATEGIA: Partial<Record<ChaveCategoria, 
     'Redesenhar processo com perspectiva de equidade',
     'Incluir representantes de grupos afetados na decisao',
   ],
-  IMPACTO_DESIGUAL_RESGUARDAR: [
+  IMPACTO_DESIGUAL_ACEITAR: [
     'Documentar analise de impacto distributivo',
     'Registrar medidas de inclusao adotadas',
   ],

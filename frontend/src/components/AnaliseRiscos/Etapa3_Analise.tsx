@@ -15,15 +15,15 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
 
   // Estado para edicao inline
   const [editando, setEditando] = useState<string | null>(null);
-  const [probTemp, setProbTemp] = useState(3);
-  const [impactoTemp, setImpactoTemp] = useState(3);
+  const [probTemp, setProbTemp] = useState<number | undefined>(undefined);
+  const [impactoTemp, setImpactoTemp] = useState<number | undefined>(undefined);
 
   const riscos = currentAnalise?.riscos || [];
 
   const handleIniciarEdicao = (
     riscoId: string,
-    prob: number,
-    impacto: number
+    prob: number | undefined,
+    impacto: number | undefined
   ) => {
     setEditando(riscoId);
     setProbTemp(prob);
@@ -31,6 +31,10 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
   };
 
   const handleSalvarEdicao = async (riscoId: string) => {
+    if (probTemp === undefined || impactoTemp === undefined) {
+      alert('Selecione probabilidade e impacto antes de salvar');
+      return;
+    }
     await analisarRisco(riscoId, probTemp, impactoTemp);
     setEditando(null);
   };
@@ -99,12 +103,12 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
                     style={{
                       padding: '4px 12px',
                       borderRadius: '4px',
-                      background: getCorNivel(risco.nivel_risco),
+                      background: risco.nivel_risco ? getCorNivel(risco.nivel_risco) : '#9ca3af',
                       color: 'white',
                       fontWeight: 'bold',
                     }}
                   >
-                    {risco.nivel_risco} ({risco.score_risco})
+                    {risco.nivel_risco ? `${risco.nivel_risco} (${risco.score_risco})` : 'Pendente'}
                   </span>
                 </div>
 
@@ -116,50 +120,34 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
                     >
                       <div style={{ flex: 1 }}>
                         <label style={{ display: 'block', marginBottom: '5px' }}>
-                          Probabilidade (1-5):
+                          Probabilidade (1-5): *
                         </label>
                         <select
-                          value={probTemp}
-                          onChange={(e) => setProbTemp(Number(e.target.value))}
+                          value={probTemp ?? ''}
+                          onChange={(e) => setProbTemp(e.target.value ? Number(e.target.value) : undefined)}
                           style={{ width: '100%', padding: '8px' }}
                         >
+                          <option value="">-- Selecione --</option>
                           {[1, 2, 3, 4, 5].map((n) => (
                             <option key={n} value={n}>
-                              {n} -{' '}
-                              {n === 1
-                                ? 'Muito Baixo'
-                                : n === 2
-                                ? 'Baixo'
-                                : n === 3
-                                ? 'Medio'
-                                : n === 4
-                                ? 'Alto'
-                                : 'Muito Alto'}
+                              {n} - {n === 1 ? 'Muito Baixa' : n === 2 ? 'Baixa' : n === 3 ? 'Media' : n === 4 ? 'Alta' : 'Muito Alta'}
                             </option>
                           ))}
                         </select>
                       </div>
                       <div style={{ flex: 1 }}>
                         <label style={{ display: 'block', marginBottom: '5px' }}>
-                          Impacto (1-5):
+                          Impacto (1-5): *
                         </label>
                         <select
-                          value={impactoTemp}
-                          onChange={(e) => setImpactoTemp(Number(e.target.value))}
+                          value={impactoTemp ?? ''}
+                          onChange={(e) => setImpactoTemp(e.target.value ? Number(e.target.value) : undefined)}
                           style={{ width: '100%', padding: '8px' }}
                         >
+                          <option value="">-- Selecione --</option>
                           {[1, 2, 3, 4, 5].map((n) => (
                             <option key={n} value={n}>
-                              {n} -{' '}
-                              {n === 1
-                                ? 'Muito Baixo'
-                                : n === 2
-                                ? 'Baixo'
-                                : n === 3
-                                ? 'Medio'
-                                : n === 4
-                                ? 'Alto'
-                                : 'Muito Alto'}
+                              {n} - {n === 1 ? 'Muito Baixo' : n === 2 ? 'Baixo' : n === 3 ? 'Medio' : n === 4 ? 'Alto' : 'Muito Alto'}
                             </option>
                           ))}
                         </select>
@@ -198,10 +186,10 @@ const Etapa3Analise: React.FC<Props> = ({ onAvancar, onVoltar }) => {
                   // Modo visualizacao
                   <div style={{ marginTop: '15px' }}>
                     <span style={{ marginRight: '20px' }}>
-                      <strong>P:</strong> {risco.probabilidade}
+                      <strong>P:</strong> {risco.probabilidade ?? '--'}
                     </span>
                     <span style={{ marginRight: '20px' }}>
-                      <strong>I:</strong> {risco.impacto}
+                      <strong>I:</strong> {risco.impacto ?? '--'}
                     </span>
                     <button
                       onClick={() =>

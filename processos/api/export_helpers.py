@@ -16,6 +16,9 @@ Funcoes principais:
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from django.contrib.auth import get_user_model
+from django.conf import settings
+
 from processos.models_analise_riscos import (
     AnaliseRiscos,
     AnaliseSnapshot,
@@ -180,6 +183,23 @@ LABELS = {
     "PONTUAL": "Pontual (evento unico)",
     "SOB_DEMANDA": "Sob demanda",
 
+    # --- Bloco B Estruturado (v2) ---
+    # Recursos
+    "PESSOAS": "Pessoas/Equipe",
+    "TI": "Sistemas/TI",
+    "ORCAMENTO": "Orcamento/Verba",
+    "EQUIPAMENTOS": "Equipamentos",
+    "INFRAESTRUTURA": "Infraestrutura",
+    "MATERIAIS": "Materiais",
+    # SLA
+    "SIM": "Sim",
+    # NAO ja esta definido acima
+    "NAO_SEI": "Nao sei/Nao tenho certeza",
+    # Dependencia
+    "SISTEMAS": "Sistemas externos",
+    "TERCEIROS": "Terceiros/Fornecedores",
+    "AMBOS": "Sistemas e terceiros",
+
     # --- Categorias de Risco ---
     "OPERACIONAL": "Operacional",
     "FINANCEIRO": "Financeiro",
@@ -199,17 +219,131 @@ LABELS = {
 
     # --- Grau Confianca ---
 
-    # --- Estrategia Resposta ---
+    # --- Estrategia Resposta (4 oficiais do Guia MGI) ---
     "EVITAR": "Evitar",
     "MITIGAR": "Mitigar",
+    "COMPARTILHAR": "Compartilhar",
     "ACEITAR": "Aceitar",
-    "RESGUARDAR": "Resguardar",
 }
+
+
+# =============================================================================
+# FUNCAO CANONICA DE STATUS
+# =============================================================================
+
+def is_respondido(risco: Dict[str, Any]) -> bool:
+    """
+    Funcao canonica para determinar se um risco tem resposta definida.
+
+    REGRA UNICA (fonte da verdade para Secoes 5 e 6):
+    - Risco respondido = tem pelo menos uma RespostaRisco com estrategia E acao
+
+    IMPORTANTE: Esta funcao DEVE ser usada em:
+    - build_tratamento() para classificar tratados x pendentes
+    - build_leitura_mgi() para identificar riscos sem deliberacao
+
+    NAO usar logica local em nenhum lugar do export.
+    """
+    respostas = risco.get("respostas", [])
+    if not respostas:
+        return False
+
+    # Verifica se tem pelo menos uma resposta valida (estrategia + acao)
+    for resp in respostas:
+        estrategia = (resp.get("estrategia") or "").strip()
+        acao = (resp.get("descricao_acao") or resp.get("acao") or "").strip()
+        if estrategia and acao:
+            return True
+
+    return False
+
+
+def dedup_acoes(acoes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Remove acoes duplicadas por chave (estrategia, texto).
+
+    Preserva ordem de insercao. Ignora acoes vazias ou incompletas.
+
+    Args:
+        acoes: Lista de dicts com 'estrategia' e 'descricao_acao'/'acao'/'texto'
+
+    Returns:
+        Lista sem duplicatas
+    """
+    vistos = set()
+    saida = []
+
+    for a in (acoes or []):
+        if not isinstance(a, dict):
+            continue
+
+        estrategia = (a.get("estrategia") or "").strip()
+        # Suporta varios nomes de campo para texto da acao
+        texto = (
+            a.get("descricao_acao") or
+            a.get("acao") or
+            a.get("texto") or
+            ""
+        ).strip()
+
+        # Ignora acoes incompletas
+        if not estrategia or not texto:
+            continue
+
+        chave = (estrategia.upper(), texto.lower())
+        if chave in vistos:
+            continue
+
+        vistos.add(chave)
+        saida.append(a)
+
+    return saida
 
 
 # =============================================================================
 # FUNCOES AUXILIARES
 # =============================================================================
+
+# =============================================================================
+# RENDERIZACAO DEFENSIVA (evitar None, vazios no relatorio)
+# =============================================================================
+
+def fmt_text(value: Any, pendente: str = "Pendente") -> str:
+    """
+    Formata texto para exibicao, substituindo None/vazio por texto padrao.
+
+    Args:
+        value: Valor a formatar
+        pendente: Texto a exibir se valor for None/vazio
+
+    Returns:
+        Texto formatado (nunca None)
+    """
+    if value is None:
+        return pendente
+    if isinstance(value, str) and not value.strip():
+        return pendente
+    return str(value)
+
+
+def fmt_dash(value: Any) -> str:
+    """
+    Formata valor numerico/metrica para exibicao, substituindo None por dash.
+
+    Uso: Score, Probabilidade, Impacto, etc.
+
+    Args:
+        value: Valor a formatar
+
+    Returns:
+        Valor formatado ou "—" se None/vazio
+    """
+    if value is None:
+        return "—"
+    if isinstance(value, str) and not value.strip():
+        return "—"
+    return str(value)
+
 
 def labelize(value: Any, enum_map: Optional[Dict[str, str]] = None) -> str:
     """
@@ -371,6 +505,38 @@ def build_snapshot_payload(analise: AnaliseRiscos) -> Dict[str, Any]:
 # GESTAO DE SNAPSHOTS
 # =============================================================================
 
+_SYSTEM_USER_CACHE = None
+
+
+def get_system_user():
+    """
+    Retorna usuario do sistema para operacoes automaticas (ex: export sem auth).
+
+    Cria o usuario se nao existir. Usado como fallback quando request.user
+    e AnonymousUser mas precisamos criar snapshot.
+
+    Usa cache em memoria para evitar hit no banco a cada export.
+    """
+    global _SYSTEM_USER_CACHE
+    if _SYSTEM_USER_CACHE is not None:
+        return _SYSTEM_USER_CACHE
+
+    User = get_user_model()
+    username = getattr(settings, "EXPORT_SYSTEM_USERNAME", "system_export")
+
+    user = User.objects.filter(username=username).first()
+    if not user:
+        user = User.objects.create(
+            username=username,
+            is_active=True,  # Ativo para evitar filtros de "limpar inativos"
+            first_name="Sistema",
+            last_name="Export",
+        )
+
+    _SYSTEM_USER_CACHE = user
+    return user
+
+
 def criar_snapshot(
     analise: AnaliseRiscos,
     user,
@@ -382,19 +548,28 @@ def criar_snapshot(
 
     Args:
         analise: Instancia de AnaliseRiscos
-        user: Usuario que esta criando
+        user: Usuario que esta criando (pode ser None ou AnonymousUser)
         motivo: MotivoSnapshot (MANUAL, FINALIZACAO, etc)
         correlation_id: ID de correlacao opcional
 
     Returns:
         AnaliseSnapshot criado
     """
+    # Guard-rail: se user nao autenticado, usa system user
+    criado_por_tipo = "USER"
+    if not getattr(user, "is_authenticated", False):
+        user = get_system_user()
+        criado_por_tipo = "SYSTEM"
+
     # Calcula proxima versao
-    ultimo = analise.snapshots.order_by("-versao").first()
+    ultimo = analise.snapshots.order_by("-versao", "-criado_em").first()
     proxima_versao = (ultimo.versao + 1) if ultimo else 1
 
     # Monta payload
     dados = build_snapshot_payload(analise)
+
+    # Marca no payload se foi criado por sistema (auditoria)
+    dados["criado_por_tipo"] = criado_por_tipo
 
     # Cria snapshot
     snapshot = AnaliseSnapshot.objects.create(
@@ -409,13 +584,55 @@ def criar_snapshot(
     return snapshot
 
 
+def _snapshot_invalido(snapshot: AnaliseSnapshot, analise: AnaliseRiscos) -> bool:
+    """
+    Verifica se snapshot esta invalido/incompleto para export.
+
+    Criterios:
+    - dados_completos nao existe ou nao e dict
+    - nao tem schema_version (snapshot antigo/ruim)
+    - nao tem riscos
+    - riscos vazio mas analise tem riscos no model
+
+    Args:
+        snapshot: Snapshot a verificar
+        analise: Analise para comparar estado atual
+
+    Returns:
+        True se snapshot invalido, False se OK
+    """
+    data = snapshot.dados_completos or {}
+
+    if not isinstance(data, dict) or not data:
+        return True
+
+    # Sem schema_version = snapshot antigo/ruim
+    if not data.get("schema_version"):
+        return True
+
+    riscos = data.get("riscos")
+    if riscos is None:
+        return True
+
+    # Snapshot diz 0 riscos, mas model tem riscos = incompleto
+    try:
+        if isinstance(riscos, list) and len(riscos) == 0 and analise.riscos.filter(ativo=True).exists():
+            return True
+    except Exception:
+        # Se der erro no exists, nao bloqueia export
+        pass
+
+    return False
+
+
 def get_snapshot_para_export(analise: AnaliseRiscos, user) -> AnaliseSnapshot:
     """
     Obtem snapshot para export.
 
     Regra:
-    - Se existe snapshot, retorna o mais recente
-    - Se nao existe, cria um snapshot MANUAL
+    - Se existe snapshot valido, retorna o mais recente
+    - Se snapshot invalido/vazio, cria novo MANUAL
+    - Se nao existe snapshot, cria um snapshot MANUAL
 
     Args:
         analise: Instancia de AnaliseRiscos
@@ -426,11 +643,14 @@ def get_snapshot_para_export(analise: AnaliseRiscos, user) -> AnaliseSnapshot:
     """
     ultimo = analise.snapshots.order_by("-versao", "-criado_em").first()
 
-    if ultimo:
-        return ultimo
+    if not ultimo:
+        return criar_snapshot(analise, user, motivo=MotivoSnapshot.MANUAL)
 
-    # Nao existe snapshot -> cria MANUAL
-    return criar_snapshot(analise, user, motivo=MotivoSnapshot.MANUAL)
+    # Fallback: snapshot invalido -> cria novo MANUAL
+    if _snapshot_invalido(ultimo, analise):
+        return criar_snapshot(analise, user, motivo=MotivoSnapshot.MANUAL)
+
+    return ultimo
 
 
 def verificar_desatualizacao(analise: AnaliseRiscos, snapshot: AnaliseSnapshot) -> bool:
@@ -543,3 +763,178 @@ def build_bloco_renderizado(bloco: str, respostas: Dict[str, Any]) -> Dict[str, 
         })
 
     return resultado
+
+
+# =============================================================================
+# BLOCO B - RENDERIZACAO COM FALLBACK (v2)
+# =============================================================================
+
+def build_bloco_b_renderizado(bloco_b: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Monta estrutura renderizada do Bloco B com fallback entre campos novos e antigos.
+
+    Regra:
+    - Se campo estruturado novo existe -> usa ele
+    - Se nao existe -> fallback para campo antigo (texto)
+    - Layout nao quebra em analises antigas
+
+    Args:
+        bloco_b: Dict com campos do Bloco B (estruturados e/ou texto)
+
+    Returns:
+        Dict com campos renderizados para exibicao no documento
+    """
+    resultado = {
+        "titulo": "Contexto Operacional",
+        "tem_campos_estruturados": _tem_campos_estruturados(bloco_b),
+        "campos": [],
+    }
+
+    # 1. RECURSOS
+    if "recursos" in bloco_b:
+        recursos = bloco_b.get("recursos", [])
+        recursos_outros = bloco_b.get("recursos_outros", "")
+        valor = labelize(recursos) if recursos else "Nenhum selecionado"
+        if recursos_outros:
+            valor += f" (Outros: {recursos_outros})"
+        resultado["campos"].append({
+            "id": "recursos",
+            "label": "Recursos necessarios",
+            "valor": valor,
+            "tipo": "estruturado",
+        })
+    else:
+        # Fallback para texto antigo
+        texto = bloco_b.get("recursos_necessarios", "")
+        if texto:
+            resultado["campos"].append({
+                "id": "recursos_necessarios",
+                "label": "Recursos necessarios",
+                "valor": texto,
+                "tipo": "texto",
+            })
+
+    # 2. ATORES ENVOLVIDOS
+    texto_atores = bloco_b.get("atores_envolvidos_texto") or bloco_b.get("areas_atores_envolvidos", "")
+    if texto_atores:
+        resultado["campos"].append({
+            "id": "atores",
+            "label": "Areas e atores envolvidos",
+            "valor": texto_atores,
+            "tipo": "texto",
+        })
+
+    # 3. FREQUENCIA
+    if "frequencia" in bloco_b:
+        freq = bloco_b.get("frequencia", "")
+        resultado["campos"].append({
+            "id": "frequencia",
+            "label": "Frequencia de execucao",
+            "valor": labelize(freq),
+            "tipo": "estruturado",
+        })
+    else:
+        # Fallback para campo antigo
+        freq = bloco_b.get("frequencia_execucao", "")
+        if freq:
+            resultado["campos"].append({
+                "id": "frequencia_execucao",
+                "label": "Frequencia de execucao",
+                "valor": labelize(freq),
+                "tipo": "selecao",
+            })
+
+    # 4. SLA / PRAZOS
+    if "sla" in bloco_b:
+        sla = bloco_b.get("sla", "")
+        sla_detalhe = bloco_b.get("sla_detalhe", "")
+        valor = labelize(sla)
+        if sla_detalhe:
+            valor += f" - {sla_detalhe}"
+        resultado["campos"].append({
+            "id": "sla",
+            "label": "Prazos legais ou SLAs",
+            "valor": valor,
+            "tipo": "estruturado",
+        })
+    else:
+        # Fallback para texto antigo
+        texto = bloco_b.get("prazos_slas", "")
+        if texto:
+            resultado["campos"].append({
+                "id": "prazos_slas",
+                "label": "Prazos legais ou SLAs",
+                "valor": texto,
+                "tipo": "texto",
+            })
+
+    # 5. DEPENDENCIA EXTERNA
+    if "dependencia" in bloco_b:
+        dep = bloco_b.get("dependencia", "")
+        dep_detalhe = bloco_b.get("dependencia_detalhe", "")
+        valor = labelize(dep)
+        if dep_detalhe:
+            valor += f" - {dep_detalhe}"
+        resultado["campos"].append({
+            "id": "dependencia",
+            "label": "Dependencias externas",
+            "valor": valor,
+            "tipo": "estruturado",
+        })
+    else:
+        # Fallback para texto antigo
+        texto = bloco_b.get("dependencias_externas", "")
+        if texto:
+            resultado["campos"].append({
+                "id": "dependencias_externas",
+                "label": "Dependencias externas",
+                "valor": texto,
+                "tipo": "texto",
+            })
+
+    # 6. INCIDENTES / HISTORICO
+    if "incidentes" in bloco_b:
+        inc = bloco_b.get("incidentes", "")
+        inc_detalhe = bloco_b.get("incidentes_detalhe", "")
+        valor = labelize(inc)
+        if inc_detalhe:
+            valor += f" - {inc_detalhe}"
+        resultado["campos"].append({
+            "id": "incidentes",
+            "label": "Historico de problemas/incidentes",
+            "valor": valor,
+            "tipo": "estruturado",
+        })
+    else:
+        # Fallback para texto antigo
+        texto = bloco_b.get("historico_problemas", "")
+        if texto:
+            resultado["campos"].append({
+                "id": "historico_problemas",
+                "label": "Historico de problemas/incidentes",
+                "valor": texto,
+                "tipo": "texto",
+            })
+
+    # 7. IMPACTO / CONSEQUENCIA
+    texto_impacto = bloco_b.get("consequencia_texto") or bloco_b.get("impacto_se_falhar", "")
+    if texto_impacto:
+        resultado["campos"].append({
+            "id": "impacto",
+            "label": "Consequencias se falhar",
+            "valor": texto_impacto,
+            "tipo": "texto",
+            "ancora": True,  # Marcador especial
+        })
+
+    return resultado
+
+
+def _tem_campos_estruturados(bloco_b: Dict[str, Any]) -> bool:
+    """
+    Verifica se o Bloco B tem campos estruturados (v2).
+
+    Usado para determinar se deve mostrar indicador no documento.
+    """
+    campos_v2 = {"recursos", "frequencia", "sla", "dependencia", "incidentes"}
+    return any(campo in bloco_b for campo in campos_v2)

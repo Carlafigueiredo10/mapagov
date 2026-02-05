@@ -271,8 +271,9 @@ export interface CriarAnaliseV2Request {
 export interface SalvarContextoRequest {
   contexto_estruturado: {
     bloco_a: Record<string, string>;
-    bloco_b: Record<string, string>;
+    bloco_b: Record<string, unknown>;  // Suporta campos estruturados v2
   };
+  validar?: boolean;  // Se true, backend valida contexto minimo
 }
 
 export interface SalvarBlocosRequest {

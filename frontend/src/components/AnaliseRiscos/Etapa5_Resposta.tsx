@@ -17,7 +17,8 @@ interface Props {
   onFinalizar: () => void;
 }
 
-const ESTRATEGIAS: EstrategiaResposta[] = ['MITIGAR', 'EVITAR', 'COMPARTILHAR', 'ACEITAR', 'RESGUARDAR'];
+// 4 estrategias oficiais do Guia MGI
+const ESTRATEGIAS: EstrategiaResposta[] = ['MITIGAR', 'EVITAR', 'COMPARTILHAR', 'ACEITAR'];
 
 const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
   const { currentAnalise, adicionarResposta, finalizarAnalise, loading } = useAnaliseRiscosStore();
@@ -29,6 +30,19 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
     Record<string, { estrategia: EstrategiaResposta; acao: string; responsavel: string }>
   >({});
   const [riscoExpandido, setRiscoExpandido] = useState<string | null>(null);
+  const [errosValidacao, setErrosValidacao] = useState<Record<string, string>>({});
+
+  // Verifica se ACEITAR em ALTO/CRITICO precisa de justificativa
+  const precisaJustificativa = (riscoId: string): boolean => {
+    const risco = riscos.find((r) => r.id === riscoId);
+    const resp = respostasLocal[riscoId];
+    if (!risco || !resp) return false;
+    return (
+      resp.estrategia === 'ACEITAR' &&
+      ['ALTO', 'CRITICO'].includes(risco.nivel_risco) &&
+      !resp.acao?.trim()
+    );
+  };
 
   const handleSetResposta = (riscoId: string, campo: string, valor: string) => {
     setRespostasLocal((prev) => ({
@@ -43,9 +57,25 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
   const handleSalvarResposta = async (riscoId: string) => {
     const resp = respostasLocal[riscoId];
     if (!resp?.estrategia) {
-      alert('Selecione uma estrategia');
+      setErrosValidacao((prev) => ({ ...prev, [riscoId]: 'Selecione uma estrategia' }));
       return;
     }
+
+    // Friccao: ACEITAR em ALTO/CRITICO exige justificativa
+    if (precisaJustificativa(riscoId)) {
+      setErrosValidacao((prev) => ({
+        ...prev,
+        [riscoId]: 'Para ACEITAR risco ALTO/CRITICO, e obrigatorio registrar justificativa na acao planejada.',
+      }));
+      return;
+    }
+
+    // Limpa erro se passou
+    setErrosValidacao((prev) => {
+      const novo = { ...prev };
+      delete novo[riscoId];
+      return novo;
+    });
 
     await adicionarResposta(
       riscoId,
@@ -59,13 +89,21 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
     setRiscoExpandido(null);
   };
 
+  // Funcao unica para verificar se risco tem resposta (servidor ou local)
+  const temResposta = (r: typeof riscos[0]) =>
+    Boolean(
+      r.estrategia ||                    // servidor
+      r.resposta_definida === true ||    // servidor (flag)
+      respostasLocal[r.id]?.estrategia   // edicao local
+    );
+
   const handleFinalizar = async () => {
     // Verificar se todos os riscos CRITICOS e ALTOS tem resposta definida
     const riscosAltos = riscos.filter(
       (r) => r.nivel_risco === 'CRITICO' || r.nivel_risco === 'ALTO'
     );
 
-    const semResposta = riscosAltos.filter((r) => !respostasLocal[r.id]?.estrategia);
+    const semResposta = riscosAltos.filter((r) => !temResposta(r));
 
     if (semResposta.length > 0) {
       const confirmar = window.confirm(
@@ -162,17 +200,18 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {respLocal.estrategia && (
+                  {/* Mostra estrategia do servidor ou do estado local (edicao em andamento) */}
+                  {(risco.estrategia || respLocal.estrategia) && (
                     <span
                       style={{
                         padding: '4px 8px',
-                        background: '#dbeafe',
+                        background: risco.estrategia ? '#dcfce7' : '#dbeafe', // verde se salvo, azul se editando
                         borderRadius: '4px',
                         fontSize: '12px',
                         fontWeight: 'bold',
                       }}
                     >
-                      {respLocal.estrategia}
+                      {risco.estrategia || respLocal.estrategia}
                     </span>
                   )}
                   <span
@@ -221,14 +260,55 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
                   <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
                       Acao Planejada
+                      {respLocal.estrategia === 'ACEITAR' &&
+                        ['ALTO', 'CRITICO'].includes(risco.nivel_risco) && (
+                          <span style={{ color: '#dc2626', fontWeight: 'normal', marginLeft: '8px' }}>
+                            * Obrigatoria para ACEITAR risco {risco.nivel_risco}
+                          </span>
+                        )}
                     </label>
                     <textarea
                       value={respLocal.acao || ''}
-                      onChange={(e) => handleSetResposta(risco.id, 'acao', e.target.value)}
-                      placeholder="Descreva a acao a ser tomada..."
+                      onChange={(e) => {
+                        handleSetResposta(risco.id, 'acao', e.target.value);
+                        // Limpa erro ao digitar
+                        if (errosValidacao[risco.id]) {
+                          setErrosValidacao((prev) => {
+                            const novo = { ...prev };
+                            delete novo[risco.id];
+                            return novo;
+                          });
+                        }
+                      }}
+                      placeholder={
+                        respLocal.estrategia === 'ACEITAR' &&
+                        ['ALTO', 'CRITICO'].includes(risco.nivel_risco)
+                          ? 'Justifique a decisao de aceitar este risco ALTO/CRITICO...'
+                          : 'Descreva a acao a ser tomada...'
+                      }
                       rows={2}
-                      style={{ width: '100%', padding: '8px' }}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderColor: errosValidacao[risco.id] ? '#dc2626' : undefined,
+                      }}
                     />
+                    {/* Erro de validacao inline */}
+                    {errosValidacao[risco.id] && (
+                      <div
+                        style={{
+                          color: '#dc2626',
+                          fontSize: '13px',
+                          marginTop: '4px',
+                          padding: '6px 10px',
+                          background: '#fef2f2',
+                          borderRadius: '4px',
+                          border: '1px solid #fecaca',
+                        }}
+                      >
+                        {errosValidacao[risco.id]}
+                      </div>
+                    )}
 
                     {/* Sugestoes de acao */}
                     {respLocal.estrategia && (
@@ -315,7 +395,7 @@ const Etapa5Resposta: React.FC<Props> = ({ onVoltar, onFinalizar }) => {
         <p>
           Com resposta definida:{' '}
           <strong>
-            {Object.values(respostasLocal).filter((r) => r.estrategia).length}
+            {riscos.filter(temResposta).length}
           </strong>
         </p>
       </div>

@@ -9,6 +9,46 @@ export type StatusAnalise = 'RASCUNHO' | 'EM_ANALISE' | 'FINALIZADA';
 
 export type ModoEntrada = 'QUESTIONARIO' | 'PDF' | 'ID';
 
+// =============================================================================
+// CAMADA DE LEITURA INSTITUCIONAL - GUIA DE GR DO MGI
+// =============================================================================
+// Esta camada NAO substitui a classificacao original do sistema.
+// Serve para leitura gerencial e reporte institucional conforme MGI.
+
+export type CategoriaMGI = 'ESTRATEGICO' | 'OPERACIONAL' | 'INTEGRIDADE';
+
+export type NivelMGI = 'PEQUENO' | 'MODERADO' | 'ALTO' | 'CRITICO';
+
+export interface LeituraMGI {
+  categoria_mgi: CategoriaMGI;
+  nivel_mgi: NivelMGI;
+  is_integridade: boolean;
+  fora_do_apetite: boolean;
+  justificativa_categoria: string;
+  justificativa_apetite: string;
+  // Rastreabilidade de integridade (quando is_integridade=true)
+  integridade_motivo: string;
+  integridade_gatilhos: string[];
+}
+
+// Descricoes das categorias MGI
+export const DESCRICOES_CATEGORIA_MGI: Record<CategoriaMGI, string> = {
+  ESTRATEGICO: 'Riscos que afetam objetivos de longo prazo e imagem institucional',
+  OPERACIONAL: 'Riscos relacionados a processos, recursos e operacoes do dia-a-dia',
+  INTEGRIDADE: 'Riscos de fraude, corrupcao, conflito de interesses (apetite ZERO)',
+};
+
+// Cores para visualizacao dos niveis MGI
+export const CORES_NIVEL_MGI: Record<NivelMGI, string> = {
+  PEQUENO: '#22c55e',   // verde
+  MODERADO: '#3b82f6',  // azul (apetite institucional)
+  ALTO: '#f97316',      // laranja
+  CRITICO: '#ef4444',   // vermelho
+};
+
+// Apetite institucional padrao conforme MGI
+export const APETITE_INSTITUCIONAL_MGI: NivelMGI = 'MODERADO';
+
 export type TipoOrigem = 'PROJETO' | 'PROCESSO' | 'POP' | 'POLITICA' | 'NORMA' | 'PLANO';
 
 export type CategoriaRisco =
@@ -21,12 +61,15 @@ export type CategoriaRisco =
 
 export type NivelRisco = 'BAIXO' | 'MEDIO' | 'ALTO' | 'CRITICO';
 
+// 4 estrategias oficiais do Guia de Gestao de Riscos do MGI
 export type EstrategiaResposta =
   | 'MITIGAR'
   | 'EVITAR'
   | 'COMPARTILHAR'
-  | 'ACEITAR'
-  | 'RESGUARDAR';
+  | 'ACEITAR';
+
+// Status de tratamento do risco (derivado, nao persistido)
+export type StatusTratamento = 'PENDENTE_DE_DELIBERACAO' | 'RESPONDIDO';
 
 // Estruturas de dados
 export interface RiscoIdentificado {
@@ -34,13 +77,18 @@ export interface RiscoIdentificado {
   titulo: string;
   descricao?: string;
   categoria: CategoriaRisco;
-  probabilidade: number; // 1-5
-  impacto: number; // 1-5
-  score_risco: number; // 1-25
-  nivel_risco: NivelRisco;
+  probabilidade?: number; // 1-5, undefined = pendente de avaliacao
+  impacto?: number; // 1-5, undefined = pendente de avaliacao
+  score_risco?: number; // 1-25, undefined = pendente de avaliacao
+  nivel_risco?: NivelRisco | ''; // vazio = pendente de avaliacao
   estrategia?: EstrategiaResposta;
   acao_resposta?: string;
   ativo: boolean;
+  // Status de tratamento (derivado, transparencia gerencial)
+  status_tratamento?: StatusTratamento;
+  resposta_definida?: boolean;
+  // Camada de leitura institucional MGI (derivada, nao substitui dados originais)
+  leitura_mgi?: LeituraMGI;
 }
 
 export interface RespostaRisco {
@@ -69,7 +117,101 @@ export interface AnaliseRiscos {
   atualizado_em: string;
 }
 
+// =============================================================================
+// BLOCO B - CAMPOS ESTRUTURADOS (ADITIVOS v2)
+// =============================================================================
+// Estes tipos sao ADITIVOS - coexistem com os campos de texto antigos
+// Chave ausente = nao respondeu (diferente de [] ou NAO_SEI)
+
+export type BlocoBRecurso =
+  | 'PESSOAS'
+  | 'TI'
+  | 'ORCAMENTO'
+  | 'EQUIPAMENTOS'
+  | 'INFRAESTRUTURA'
+  | 'MATERIAIS';
+
+export type BlocoBFrequencia =
+  | 'CONTINUO'
+  | 'PERIODICO'
+  | 'PONTUAL'
+  | 'SOB_DEMANDA';
+
+// NAO_SEI e valor valido - indica incerteza do usuario
+export type BlocoBSLA = 'SIM' | 'NAO' | 'NAO_SEI';
+
+export type BlocoBDependencia =
+  | 'NAO'
+  | 'SISTEMAS'
+  | 'TERCEIROS'
+  | 'AMBOS'
+  | 'NAO_SEI';
+
+export type BlocoBIncidentes = 'SIM' | 'NAO' | 'NAO_SEI';
+
+// Interface para campos estruturados do Bloco B
+export interface BlocoBEstruturado {
+  // Checklist de recursos ([] = nenhum/nao se aplica)
+  recursos?: BlocoBRecurso[];
+  recursos_outros?: string;
+
+  // Texto livre para atores
+  atores_envolvidos_texto?: string;
+
+  // Frequencia estruturada
+  frequencia?: BlocoBFrequencia;
+
+  // SLA com opcao NAO_SEI
+  sla?: BlocoBSLA;
+  sla_detalhe?: string;
+
+  // Dependencia com opcao NAO_SEI
+  dependencia?: BlocoBDependencia;
+  dependencia_detalhe?: string;
+
+  // Incidentes com opcao NAO_SEI
+  incidentes?: BlocoBIncidentes;
+  incidentes_detalhe?: string;
+
+  // Texto livre para consequencias
+  consequencia_texto?: string;
+}
+
+// Labels para recursos
+export const BLOCO_B_RECURSOS: Array<{ valor: BlocoBRecurso; label: string }> = [
+  { valor: 'PESSOAS', label: 'Pessoas/Equipe' },
+  { valor: 'TI', label: 'Sistemas/TI' },
+  { valor: 'ORCAMENTO', label: 'Orcamento/Verba' },
+  { valor: 'EQUIPAMENTOS', label: 'Equipamentos' },
+  { valor: 'INFRAESTRUTURA', label: 'Infraestrutura' },
+  { valor: 'MATERIAIS', label: 'Materiais' },
+];
+
+// Labels para dependencia
+export const BLOCO_B_DEPENDENCIAS: Array<{ valor: BlocoBDependencia; label: string }> = [
+  { valor: 'NAO', label: 'Nao ha dependencia externa' },
+  { valor: 'SISTEMAS', label: 'Apenas sistemas externos' },
+  { valor: 'TERCEIROS', label: 'Apenas terceiros/fornecedores' },
+  { valor: 'AMBOS', label: 'Sistemas e terceiros' },
+  { valor: 'NAO_SEI', label: 'Nao sei/Nao tenho certeza' },
+];
+
+// Labels para SLA
+export const BLOCO_B_SLA: Array<{ valor: BlocoBSLA; label: string }> = [
+  { valor: 'SIM', label: 'Sim, existem prazos' },
+  { valor: 'NAO', label: 'Nao existem prazos' },
+  { valor: 'NAO_SEI', label: 'Nao sei/Nao tenho certeza' },
+];
+
+// Labels para incidentes
+export const BLOCO_B_INCIDENTES: Array<{ valor: BlocoBIncidentes; label: string }> = [
+  { valor: 'SIM', label: 'Sim, houve incidentes' },
+  { valor: 'NAO', label: 'Nao houve incidentes' },
+  { valor: 'NAO_SEI', label: 'Nao sei/Nao tenho certeza' },
+];
+
 // Contexto estruturado (Etapa 1)
+// Interface RETROCOMPATIVEL - campos antigos + novos estruturados
 export interface ContextoEstruturado {
   bloco_a: {
     nome_objeto?: string;
@@ -78,6 +220,7 @@ export interface ContextoEstruturado {
     descricao_escopo?: string;
   };
   bloco_b: {
+    // Campos antigos (texto) - mantidos para retrocompat
     recursos_necessarios?: string;
     areas_atores_envolvidos?: string;
     frequencia_execucao?: string;
@@ -85,7 +228,7 @@ export interface ContextoEstruturado {
     dependencias_externas?: string;
     historico_problemas?: string;
     impacto_se_falhar?: string;
-  };
+  } & Partial<BlocoBEstruturado>;  // Campos novos estruturados (aditivos)
 }
 
 // Estruturas auxiliares
@@ -118,13 +261,12 @@ export const DESCRICOES_CATEGORIA: Record<CategoriaRisco, string> = {
   IMPACTO_DESIGUAL: 'Impacto desigual por ausencia de analise distributiva',
 };
 
-// Descricoes das estrategias
+// Descricoes das estrategias (4 oficiais do Guia MGI)
 export const DESCRICOES_ESTRATEGIA: Record<EstrategiaResposta, string> = {
   MITIGAR: 'Reduzir probabilidade ou impacto',
   EVITAR: 'Eliminar a causa do risco',
   COMPARTILHAR: 'Compartilhar/transferir parte do risco',
-  ACEITAR: 'Reconhecer sem acao',
-  RESGUARDAR: 'Documentar para compliance',
+  ACEITAR: 'Reconhecer sem acao (requer justificativa para ALTO/CRITICO)',
 };
 
 // Areas DECIPEX disponiveis (do CSV areas_organizacionais.csv)

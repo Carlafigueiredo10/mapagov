@@ -29,8 +29,8 @@ const Etapa2Identificacao: React.FC<Props> = ({ onAvancar, onVoltar }) => {
   // Estado do form
   const [titulo, setTitulo] = useState('');
   const [categoria, setCategoria] = useState<CategoriaRisco>('OPERACIONAL');
-  const [probabilidade, setProbabilidade] = useState(3);
-  const [impacto, setImpacto] = useState(3);
+  const [probabilidade, setProbabilidade] = useState<number | undefined>(undefined);
+  const [impacto, setImpacto] = useState<number | undefined>(undefined);
 
   const riscos = currentAnalise?.riscos || [];
 
@@ -39,12 +39,16 @@ const Etapa2Identificacao: React.FC<Props> = ({ onAvancar, onVoltar }) => {
       alert('Informe o titulo do risco');
       return;
     }
+    if (probabilidade === undefined || impacto === undefined) {
+      alert('Selecione probabilidade e impacto antes de adicionar');
+      return;
+    }
     await adicionarRisco(titulo, undefined, categoria, probabilidade, impacto);
     // Limpar form
     setTitulo('');
     setCategoria('OPERACIONAL');
-    setProbabilidade(3);
-    setImpacto(3);
+    setProbabilidade(undefined);
+    setImpacto(undefined);
   };
 
   const handleRemoverRisco = async (riscoId: string) => {
@@ -101,16 +105,17 @@ const Etapa2Identificacao: React.FC<Props> = ({ onAvancar, onVoltar }) => {
         <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>
-              Probabilidade (1-5):
+              Probabilidade (1-5): *
             </label>
             <select
-              value={probabilidade}
-              onChange={(e) => setProbabilidade(Number(e.target.value))}
+              value={probabilidade ?? ''}
+              onChange={(e) => setProbabilidade(e.target.value ? Number(e.target.value) : undefined)}
               style={{ width: '100%', padding: '8px' }}
             >
+              <option value="">-- Selecione --</option>
               {[1, 2, 3, 4, 5].map((n) => (
                 <option key={n} value={n}>
-                  {n}
+                  {n} - {n === 1 ? 'Muito Baixa' : n === 2 ? 'Baixa' : n === 3 ? 'Media' : n === 4 ? 'Alta' : 'Muito Alta'}
                 </option>
               ))}
             </select>
@@ -118,16 +123,17 @@ const Etapa2Identificacao: React.FC<Props> = ({ onAvancar, onVoltar }) => {
 
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>
-              Impacto (1-5):
+              Impacto (1-5): *
             </label>
             <select
-              value={impacto}
-              onChange={(e) => setImpacto(Number(e.target.value))}
+              value={impacto ?? ''}
+              onChange={(e) => setImpacto(e.target.value ? Number(e.target.value) : undefined)}
               style={{ width: '100%', padding: '8px' }}
             >
+              <option value="">-- Selecione --</option>
               {[1, 2, 3, 4, 5].map((n) => (
                 <option key={n} value={n}>
-                  {n}
+                  {n} - {n === 1 ? 'Muito Baixo' : n === 2 ? 'Baixo' : n === 3 ? 'Medio' : n === 4 ? 'Alto' : 'Muito Alto'}
                 </option>
               ))}
             </select>

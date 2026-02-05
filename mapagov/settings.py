@@ -17,6 +17,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-ol5&1dnbx!nzm!4hl6!yk1aah8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
+# MVP sem autenticação - API pública para desenvolvimento/demo
+# Em produção, defina PUBLIC_MVP_MODE=0 para ativar autenticação
+PUBLIC_MVP_MODE = os.getenv("PUBLIC_MVP_MODE", "1") == "1"
+
 # --- ALLOWED HOSTS: Render + Google Cloud ---
 ALLOWED_HOSTS = [
     'mapagov.onrender.com',
@@ -239,6 +243,14 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.FormParser',
         'rest_framework.parsers.MultiPartParser',
+    ],
+    # MVP: API pública (PUBLIC_MVP_MODE=1) ou com auth (PUBLIC_MVP_MODE=0)
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny' if PUBLIC_MVP_MODE
+        else 'rest_framework.permissions.IsAuthenticated'
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [] if PUBLIC_MVP_MODE else [
+        'rest_framework.authentication.SessionAuthentication',
     ],
 }
 

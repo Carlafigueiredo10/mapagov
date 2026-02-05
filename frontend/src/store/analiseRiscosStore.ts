@@ -71,7 +71,7 @@ interface AnaliseRiscosState {
 
   // Actions v2
   criarAnaliseV2: (modoEntrada: ModoEntrada, tipoOrigem: TipoOrigem, origemId?: string) => Promise<string | null>;
-  salvarContexto: (contexto: ContextoEstruturado) => Promise<boolean>;
+  salvarContexto: (contexto: ContextoEstruturado, validar?: boolean) => Promise<boolean>;
   salvarBlocos: (blocos: Record<string, Record<string, string | string[]>>) => Promise<boolean>;
   inferirRiscos: () => Promise<number>;
 }
@@ -362,14 +362,17 @@ export const useAnaliseRiscosStore = create<AnaliseRiscosState>()(
         }
       },
 
-      // Salvar contexto
-      salvarContexto: async (contexto) => {
+      // Salvar contexto (validar=true para exigir contexto minimo)
+      salvarContexto: async (contexto, validar = true) => {
         const { currentAnaliseId } = get();
         if (!currentAnaliseId) return false;
 
         set({ loading: true, error: null });
         try {
-          await api.salvarContexto(currentAnaliseId, { contexto_estruturado: contexto });
+          await api.salvarContexto(currentAnaliseId, {
+            contexto_estruturado: contexto,
+            validar,  // Backend so valida se true
+          });
           await get().carregarAnalise(currentAnaliseId);
           return true;
         } catch (err: unknown) {

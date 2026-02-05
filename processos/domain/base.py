@@ -127,7 +127,9 @@ class BaseHelena(ABC):
         tipo_interface: Optional[str] = None,
         dados_interface: Optional[dict] = None,
         formulario_pop: Optional[dict] = None,  # ✅ FASE 2: Novo nome
-        dados_extraidos: Optional[dict] = None  # ✅ FIX: Compatibilidade com frontend OLD
+        dados_extraidos: Optional[dict] = None,  # ✅ FIX: Compatibilidade com frontend OLD
+        retornar_para: Optional[str] = None,  # ✅ Transição entre módulos (etapas -> pop)
+        dados: Optional[dict] = None  # ✅ Dados consolidados para retorno
     ) -> dict:
         """
         Helper para criar resposta padronizada.
@@ -188,6 +190,14 @@ class BaseHelena(ABC):
 
         if dados_extraidos:
             resultado['dados_extraidos'] = dados_extraidos
+
+        # ✅ Suporte a transição entre módulos
+        if retornar_para:
+            if 'metadados' not in resultado or resultado['metadados'] is None:
+                resultado['metadados'] = {}
+            resultado['metadados']['retornar_para'] = retornar_para
+            if dados:
+                resultado['metadados']['dados_retorno'] = dados
 
         # 🔒 HOTFIX: Normalizar dados_interface ANTES de logar (à prova de None)
         tipo_interface_final = resultado.get('tipo_interface')
