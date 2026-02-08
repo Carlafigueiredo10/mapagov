@@ -28,6 +28,7 @@ import InterfaceFluxosSaida from './InterfaceFluxosSaida';
 import InterfaceRevisao from './InterfaceRevisao';
 import InterfaceSelecaoEdicao from './InterfaceSelecaoEdicao';
 import InterfaceEditarEtapas from './InterfaceEditarEtapas';
+import InterfaceDocumentosEtapa from './InterfaceDocumentosEtapa';
 import InterfaceConfirmacaoArquitetura from './InterfaceConfirmacaoArquitetura';
 import InterfaceCaixinhaReconhecimento from './InterfaceCaixinhaReconhecimento';
 import InterfaceFinal from './InterfaceFinal';
@@ -576,6 +577,10 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
 
     case 'editar_etapas':
       return <InterfaceEditarEtapas dados={dados || undefined} onConfirm={handleConfirm} />;
+
+    case 'docs_requeridos_etapa':
+    case 'docs_gerados_etapa':
+      return <InterfaceDocumentosEtapa dados={dados || undefined} onConfirm={handleConfirm} />;
 
     case 'final':
       return <InterfaceFinal dados={dados || undefined} onConfirm={handleConfirm} />;

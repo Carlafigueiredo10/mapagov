@@ -15,8 +15,30 @@ export interface POPData {
   fluxos_saida?: string | string[];
 }
 
-export interface Etapa {
+// Schema completo de etapas (inline collection)
+
+export interface Subetapa {
+  numero: string;
   descricao: string;
+}
+
+export interface Cenario {
+  numero: string;
+  descricao: string;
+  subetapas: Subetapa[];
+}
+
+export interface Etapa {
+  numero: string;
+  descricao: string;
+  operador_nome: string;  // TODO: futuro {id, nome}
+  sistemas: string[];
+  docs_requeridos: string[];
+  docs_gerados: string[];
+  tempo_estimado?: string;
+  tipo?: 'condicional';
+  tipo_condicional?: 'binario' | 'multiplos';
+  antes_decisao?: { numero: string; descricao: string };
+  cenarios?: Cenario[];
   detalhes?: string[];
-  operador?: string;
 }

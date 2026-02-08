@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { HelenaMessage } from '../types/simples';
+import type { Etapa } from '../types/pop.types';
 
 // Helper para gerar UUID v4 válido
 function generateUUID(): string {
@@ -28,7 +29,7 @@ export interface DadosPOP {
   dispositivos_normativos?: string;
   sistemas?: string[];
   operadores?: string[];  // ✅ Agora é lista igual sistemas
-  etapas?: Array<{ descricao: string; responsavel: string }>;
+  etapas?: Etapa[];
   documentos_utilizados?: string;
   pontos_atencao?: string;
   fluxos_entrada?: string[];

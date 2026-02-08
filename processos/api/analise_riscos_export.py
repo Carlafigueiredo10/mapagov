@@ -66,7 +66,7 @@ SECTIONS = [
     {"id": "diagnostico", "title": "3. Diagnostico por Dimensao"},
     {"id": "riscos", "title": "4. Riscos Identificados"},
     {"id": "tratamento", "title": "5. Tratamento dos Riscos"},
-    {"id": "leitura_mgi", "title": "6. Leitura segundo o Guia de Gestao de Riscos do MGI"},
+    {"id": "leitura_mgi", "title": "6. Enquadramento Institucional e Prioridades Gerenciais (MGI)"},
     {"id": "metadados", "title": "7. Metadados e Rastreabilidade"},
 ]
 

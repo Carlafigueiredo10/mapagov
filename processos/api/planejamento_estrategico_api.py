@@ -28,6 +28,7 @@ from processos.domain.helena_planejamento_estrategico import (
     PERGUNTAS_DIAGNOSTICO
 )
 from processos.models_new import PlanejamentoEstrategico
+from processos.infra.internal_api_guard import require_internal_key
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +176,7 @@ def processar_mensagem(request):
 
 @csrf_exempt
 @api_view(['POST'])
+@require_internal_key
 def salvar_planejamento(request):
     """
     Salva planejamento no banco de dados
@@ -229,6 +231,7 @@ def salvar_planejamento(request):
 
 
 @api_view(['GET'])
+@require_internal_key
 def listar_planejamentos(request):
     """
     Lista planejamentos do usuário
@@ -280,6 +283,7 @@ def listar_planejamentos(request):
 
 
 @api_view(['GET'])
+@require_internal_key
 def obter_planejamento(request, planejamento_id):
     """
     Obtém planejamento por ID
@@ -339,6 +343,7 @@ def obter_planejamento(request, planejamento_id):
 
 @csrf_exempt
 @api_view(['POST'])
+@require_internal_key
 def aprovar_planejamento(request, planejamento_id):
     """
     Aprova planejamento
@@ -390,6 +395,7 @@ def aprovar_planejamento(request, planejamento_id):
 
 @csrf_exempt
 @api_view(['POST'])
+@require_internal_key
 def criar_revisao(request, planejamento_id):
     """
     Cria nova versão do planejamento
@@ -442,6 +448,7 @@ def criar_revisao(request, planejamento_id):
 
 
 @api_view(['GET'])
+@require_internal_key
 def exportar_planejamento(request, planejamento_id):
     """
     Exporta planejamento em JSON ou PDF
@@ -501,6 +508,7 @@ def exportar_planejamento(request, planejamento_id):
 # ============================================================================
 
 @api_view(['GET'])
+@require_internal_key
 def obter_modelos(request):
     """
     Lista todos os modelos disponíveis
@@ -534,6 +542,7 @@ def obter_modelos(request):
 
 
 @api_view(['GET'])
+@require_internal_key
 def obter_diagnostico(request):
     """
     Retorna perguntas do diagnóstico
@@ -685,6 +694,7 @@ def confirmar_modelo(request):
 
 @csrf_exempt
 @api_view(['POST'])
+@require_internal_key
 def calcular_recomendacao(request):
     """
     Calcula recomendação de modelo baseado em respostas

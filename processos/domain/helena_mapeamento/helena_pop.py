@@ -38,6 +38,8 @@ from processos.infra.loaders import (
     carregar_canais_atendimento,
     ArquiteturaDecipex,
     carregar_arquitetura_csv,
+    carregar_tipos_documentos_requeridos,
+    carregar_tipos_documentos_gerados,
 )
 
 # Tentativa de importar BaseLegalSuggestorDECIPEx (opcional)
@@ -50,6 +52,16 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 logger.info("helena_pop.py carregado (v2.0)")
+
+# Feature flag: quando True, etapas são coletadas inline dentro do POP
+# Quando False, mantém fluxo antigo com mudar_contexto para HelenaEtapas
+import os
+ETAPAS_INLINE = os.environ.get('ETAPAS_INLINE', 'true').lower() == 'true'
+
+# EtapaStateMachine reutilizada como módulo (não como agente separado)
+from processos.domain.helena_mapeamento.helena_etapas import (
+    EtapaStateMachine, EstadoEtapa
+)
 
 
 # ============================================================================
@@ -110,6 +122,21 @@ class EstadoPOP(str, Enum):
     TRANSICAO_EPICA = "transicao_epica"  # 🎯 Transição motivacional antes das etapas
     SELECAO_EDICAO = "selecao_edicao"  # 🎯 Menu de edição granular
     DELEGACAO_ETAPAS = "delegacao_etapas"
+    # Coleta inline de etapas (ETAPAS_INLINE=True)
+    ETAPA_DESCRICAO = "etapa_descricao"
+    ETAPA_OPERADOR = "etapa_operador"
+    ETAPA_SISTEMAS = "etapa_sistemas"
+    ETAPA_DOCS_REQUERIDOS = "etapa_docs_requeridos"
+    ETAPA_DOCS_GERADOS = "etapa_docs_gerados"
+    ETAPA_TEMPO = "etapa_tempo"
+    ETAPA_CONDICIONAL = "etapa_condicional"
+    ETAPA_TIPO_CONDICIONAL = "etapa_tipo_condicional"
+    ETAPA_ANTES_DECISAO = "etapa_antes_decisao"
+    ETAPA_CENARIOS = "etapa_cenarios"
+    ETAPA_SUBETAPAS_CENARIO = "etapa_subetapas_cenario"
+    ETAPA_DETALHES = "etapa_detalhes"
+    ETAPA_MAIS = "etapa_mais"
+    ETAPA_REVISAO = "etapa_revisao"
     FINALIZADO = "finalizado"
 
 
@@ -161,6 +188,9 @@ class POPStateMachine:
         # ✅ FIX: Persistir interface entre requests (resolve bug de 3 cliques)
         self.tipo_interface = None
         self.dados_interface = {}
+        # Coleta inline de etapas
+        self.etapas_coletadas: List[Dict[str, Any]] = []
+        self._etapa_sm = None  # EtapaStateMachine serializada (dict ou None)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serializa o state machine para JSON"""
@@ -183,6 +213,9 @@ class POPStateMachine:
             # ✅ FIX: Persistir interface entre requests (resolve bug de 3 cliques)
             'tipo_interface': self.tipo_interface,
             'dados_interface': self.dados_interface,
+            # Coleta inline de etapas
+            'etapas_coletadas': self.etapas_coletadas,
+            '_etapa_sm': self._etapa_sm,
         }
 
     @classmethod
@@ -207,6 +240,9 @@ class POPStateMachine:
         # ✅ FIX: Recuperar interface entre requests (resolve bug de 3 cliques)
         sm.tipo_interface = data.get('tipo_interface')
         sm.dados_interface = data.get('dados_interface', {})
+        # Coleta inline de etapas (defaults seguros para sessões antigas)
+        sm.etapas_coletadas = data.get('etapas_coletadas', [])
+        sm._etapa_sm = data.get('_etapa_sm')
         return sm
 
 
@@ -505,6 +541,9 @@ class HelenaPOP(BaseHelena):
         elif sm.estado == EstadoPOP.DELEGACAO_ETAPAS:
             resposta, novo_sm = self._processar_delegacao_etapas(mensagem, sm)
 
+        elif sm.estado.value.startswith('etapa_'):
+            resposta, novo_sm = self._processar_etapa_inline(mensagem, sm)
+
         else:
             resposta = "Estado desconhecido. Vamos recomeçar?"
             novo_sm = POPStateMachine()
@@ -515,8 +554,10 @@ class HelenaPOP(BaseHelena):
 
         # Verificar se deve sugerir mudança de contexto
         sugerir_contexto = None
-        if novo_sm.estado == EstadoPOP.DELEGACAO_ETAPAS or novo_sm.concluido:
-            sugerir_contexto = 'etapas'
+        if not ETAPAS_INLINE:
+            # Fluxo legado: delegar para agente HelenaEtapas
+            if novo_sm.estado == EstadoPOP.DELEGACAO_ETAPAS or novo_sm.concluido:
+                sugerir_contexto = 'etapas'
 
         # 🎯 Inicializar variáveis de interface (serão preenchidas abaixo)
         tipo_interface = None
@@ -528,8 +569,8 @@ class HelenaPOP(BaseHelena):
 
         metadados_extra['progresso_detalhado'] = progresso_detalhado
 
-        # Transição automática para HelenaEtapas quando POP finalizado
-        if novo_sm.concluido:
+        # Transição automática para HelenaEtapas (somente fluxo legado)
+        if not ETAPAS_INLINE and novo_sm.concluido:
             metadados_extra['mudar_contexto'] = 'etapas'
             metadados_extra['dados_herdados'] = {
                 'nome_usuario': novo_sm.nome_usuario,
@@ -686,7 +727,7 @@ class HelenaPOP(BaseHelena):
             }
 
         elif novo_sm.estado == EstadoPOP.DELEGACAO_ETAPAS:
-            # Interface de transição com troféu e auto-redirect
+            # Interface de transição com troféu e auto-redirect (fluxo legado)
             tipo_interface = 'transicao'
             dados_interface = {
                 'proximo_modulo': 'etapas',
@@ -695,6 +736,12 @@ class HelenaPOP(BaseHelena):
                 'auto_redirect': True,
                 'delay_ms': 2000
             }
+
+        # Estados de etapa inline: interface já definida em _processar_etapa_inline
+        elif not tipo_interface and novo_sm.estado.value.startswith('etapa_'):
+            if hasattr(novo_sm, 'tipo_interface') and novo_sm.tipo_interface:
+                tipo_interface = novo_sm.tipo_interface
+                dados_interface = getattr(novo_sm, 'dados_interface', {})
 
         elif not tipo_interface and novo_sm.estado == EstadoPOP.CONFIRMACAO_ARQUITETURA:
             # Interface com 2 botões: Concordo / Editar manualmente
@@ -800,7 +847,7 @@ class HelenaPOP(BaseHelena):
         logger.info(f"[PROCESSAR] resposta = {_short(resposta)}")
         logger.info(f"[PROCESSAR] ===============================")
 
-        return self.criar_resposta(
+        resultado = self.criar_resposta(
             resposta=resposta,
             novo_estado=novo_sm.to_dict(),
             progresso=progresso,
@@ -811,6 +858,12 @@ class HelenaPOP(BaseHelena):
             formulario_pop=formulario_pop,  # ✅ FASE 2: Novo nome
             dados_extraidos=dados_extraidos  # ✅ FIX: Compatibilidade com frontend OLD
         )
+
+        # Flag para frontend: conversa completa → disparar geração de PDF
+        if novo_sm.concluido:
+            resultado['conversa_completa'] = True
+
+        return resultado
 
     # ========================================================================
     # HELPERS
@@ -2574,15 +2627,32 @@ class HelenaPOP(BaseHelena):
             return resposta, sm
 
         elif self._detectar_intencao(msg_lower, 'confirmacao'):
-            # Usuário confirmou - avançar para delegação com troféu
-            sm.estado = EstadoPOP.DELEGACAO_ETAPAS
+            if ETAPAS_INLINE:
+                # Coleta inline: iniciar EtapaStateMachine dentro do POP
+                sm.estado = EstadoPOP.ETAPA_DESCRICAO
+                etapa_sm = EtapaStateMachine(
+                    numero_etapa=1,
+                    operadores_disponiveis=sm.dados_coletados.get('operadores', [])
+                )
+                sm._etapa_sm = etapa_sm.to_dict()
 
-            resposta = (
-                f"🏆 **PRIMEIRA FASE CONCLUÍDA!** 🏆\n\n"
-                f"{nome}, você está indo muito bem!\n\n"
-                f"Agora a Helena especializada em etapas vai te guiar no detalhamento operacional.\n\n"
-                f"**Iniciando mapeamento de etapas...** 🎯"
-            )
+                resposta = (
+                    f"🏆 **PRIMEIRA FASE CONCLUÍDA!** 🏆\n\n"
+                    f"{nome}, você está indo muito bem!\n\n"
+                    f"Agora vamos detalhar **cada etapa** da sua atividade.\n\n"
+                    f"📝 **ETAPA 1:**\n\n"
+                    f"**Descreva o que é feito nesta etapa.**\n\n"
+                    f"_Seja breve e objetivo. Exemplo: \"Recebo documento pelo SEI e analiso\"_"
+                )
+            else:
+                # Fluxo legado: delegar para agente HelenaEtapas
+                sm.estado = EstadoPOP.DELEGACAO_ETAPAS
+                resposta = (
+                    f"🏆 **PRIMEIRA FASE CONCLUÍDA!** 🏆\n\n"
+                    f"{nome}, você está indo muito bem!\n\n"
+                    f"Agora a Helena especializada em etapas vai te guiar no detalhamento operacional.\n\n"
+                    f"**Iniciando mapeamento de etapas...** 🎯"
+                )
 
             return resposta, sm
 
@@ -2708,6 +2778,452 @@ class HelenaPOP(BaseHelena):
             )
 
         return resposta, sm
+
+    # ========================================================================
+    # COLETA INLINE DE ETAPAS (ETAPAS_INLINE=True)
+    # ========================================================================
+
+    # Mapa de EstadoEtapa → EstadoPOP correspondente
+    _ETAPA_SM_TO_POP = {
+        EstadoEtapa.DESCRICAO: EstadoPOP.ETAPA_DESCRICAO,
+        EstadoEtapa.OPERADOR: EstadoPOP.ETAPA_OPERADOR,
+        EstadoEtapa.SISTEMAS: EstadoPOP.ETAPA_SISTEMAS,
+        EstadoEtapa.DOCS_REQUERIDOS: EstadoPOP.ETAPA_DOCS_REQUERIDOS,
+        EstadoEtapa.DOCS_GERADOS: EstadoPOP.ETAPA_DOCS_GERADOS,
+        EstadoEtapa.TEMPO_ESTIMADO: EstadoPOP.ETAPA_TEMPO,
+        EstadoEtapa.PERGUNTA_CONDICIONAL: EstadoPOP.ETAPA_CONDICIONAL,
+        EstadoEtapa.TIPO_CONDICIONAL: EstadoPOP.ETAPA_TIPO_CONDICIONAL,
+        EstadoEtapa.ANTES_DECISAO: EstadoPOP.ETAPA_ANTES_DECISAO,
+        EstadoEtapa.CENARIOS: EstadoPOP.ETAPA_CENARIOS,
+        EstadoEtapa.SUBETAPAS_CENARIO: EstadoPOP.ETAPA_SUBETAPAS_CENARIO,
+        EstadoEtapa.DETALHES: EstadoPOP.ETAPA_DETALHES,
+        EstadoEtapa.FINALIZADA: EstadoPOP.ETAPA_MAIS,
+    }
+
+    def _processar_etapa_inline(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
+        """
+        Dispatcher para coleta inline de etapas dentro do POP.
+
+        Usa EtapaStateMachine como módulo: processa a mensagem, sincroniza
+        o estado de volta ao EstadoPOP e define tipo_interface/dados_interface
+        para cada pergunta.
+        """
+        # -- Comandos especiais: interceptar ANTES de qualquer estado --
+        # (botões de confirmacao_dupla podem ficar visíveis após mudança de estado)
+        msg_lower = mensagem.lower().strip()
+        if msg_lower == '__finalizar_etapas__':
+            if not sm.etapas_coletadas:
+                return "⚠️ Nenhuma etapa foi mapeada ainda. Descreva a primeira etapa.", sm
+            sm.estado = EstadoPOP.ETAPA_REVISAO
+            sm.tipo_interface = 'editar_etapas'
+            sm.dados_interface = {
+                'etapas': self._formatar_etapas_para_frontend(sm.etapas_coletadas)
+            }
+            total = len(sm.etapas_coletadas)
+            resposta = (
+                f"📋 **{total} {'etapa mapeada' if total == 1 else 'etapas mapeadas'}!**\n\n"
+                f"Revise as etapas abaixo. Você pode editar, deletar ou adicionar.\n"
+                f"Quando estiver satisfeito, clique em **Salvar Alterações**."
+            )
+            return resposta, sm
+
+        if msg_lower == '__proxima_etapa__':
+            numero = len(sm.etapas_coletadas) + 1
+            etapa_sm = EtapaStateMachine(
+                numero_etapa=numero,
+                operadores_disponiveis=sm.dados_coletados.get('operadores', [])
+            )
+            sm._etapa_sm = etapa_sm.to_dict()
+            sm.estado = EstadoPOP.ETAPA_DESCRICAO
+            sm.tipo_interface = None
+            sm.dados_interface = {}
+            resposta = (
+                f"📝 **ETAPA {numero}:**\n\n"
+                f"**Descreva o que é feito nesta etapa.**\n\n"
+                f"_Seja breve e objetivo. Exemplo: \"Verifico documentação e encaminho\"_"
+            )
+            return resposta, sm
+
+        # -- ETAPA_MAIS: Perguntar se há mais etapas --
+        if sm.estado == EstadoPOP.ETAPA_MAIS:
+            return self._processar_etapa_mais(mensagem, sm)
+
+        # -- ETAPA_REVISAO: Revisar/editar todas as etapas --
+        if sm.estado == EstadoPOP.ETAPA_REVISAO:
+            return self._processar_etapa_revisao(mensagem, sm)
+
+        # -- Coleta normal via EtapaStateMachine --
+        if not sm._etapa_sm:
+            # Sessão corrompida, reiniciar coleta
+            logger.warning("[ETAPA INLINE] _etapa_sm ausente, reiniciando")
+            numero = len(sm.etapas_coletadas) + 1
+            etapa_sm = EtapaStateMachine(
+                numero_etapa=numero,
+                operadores_disponiveis=sm.dados_coletados.get('operadores', [])
+            )
+            sm._etapa_sm = etapa_sm.to_dict()
+
+        # Deserializar, processar, serializar
+        etapa_sm = EtapaStateMachine.from_dict(sm._etapa_sm)
+        resultado = etapa_sm.processar(mensagem)
+        sm._etapa_sm = etapa_sm.to_dict()
+
+        # Erro da SM → repetir pergunta
+        if 'erro' in resultado:
+            resposta = f"⚠️ {resultado['erro']}"
+            return resposta, sm
+
+        # Etapa finalizada → salvar e ir para ETAPA_MAIS
+        if etapa_sm.completa():
+            etapa_dict = etapa_sm.obter_dict()
+
+            # Ajuste (B): operador como operador_nome (string)
+            # TODO: quando operadores tiverem id, salvar {id, nome}
+            op = etapa_dict.get('operador', '')
+            etapa_dict['operador_nome'] = op
+
+            sm.etapas_coletadas.append(etapa_dict)
+            sm._etapa_sm = None
+            sm.estado = EstadoPOP.ETAPA_MAIS
+
+            total = len(sm.etapas_coletadas)
+            resposta = (
+                f"\n✅ **Etapa {total} completa!**\n\n"
+                f"📊 **Resumo:**\n"
+                f"- **Etapa:** {etapa_dict['descricao']}\n"
+                f"- **Responsável:** {op}\n"
+                f"- **Sistemas:** {', '.join(etapa_dict.get('sistemas', [])) or 'Nenhum'}\n"
+                f"- **Tipo:** {'🔀 Condicional' if etapa_dict.get('tipo') == 'condicional' else '➡️ Linear'}\n"
+            )
+
+            sm.tipo_interface = 'confirmacao_dupla'
+            sm.dados_interface = {
+                'botao_confirmar': f'Adicionar Etapa {total + 1}',
+                'botao_editar': 'Finalizar etapas',
+                'valor_confirmar': '__proxima_etapa__',
+                'valor_editar': '__finalizar_etapas__'
+            }
+
+            return resposta, sm
+
+        # Sincronizar estado da SM → EstadoPOP
+        novo_estado_pop = self._ETAPA_SM_TO_POP.get(etapa_sm.estado)
+        if novo_estado_pop:
+            sm.estado = novo_estado_pop
+
+        # Definir interface e resposta para o próximo estado
+        resposta, sm = self._definir_interface_etapa(etapa_sm, sm)
+        return resposta, sm
+
+    def _processar_etapa_mais(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
+        """Processa decisão: mais etapas ou finalizar"""
+        msg_lower = mensagem.lower().strip()
+
+        if msg_lower == '__proxima_etapa__' or self._detectar_intencao(msg_lower, 'confirmacao'):
+            # Criar nova SM para próxima etapa
+            numero = len(sm.etapas_coletadas) + 1
+            etapa_sm = EtapaStateMachine(
+                numero_etapa=numero,
+                operadores_disponiveis=sm.dados_coletados.get('operadores', [])
+            )
+            sm._etapa_sm = etapa_sm.to_dict()
+            sm.estado = EstadoPOP.ETAPA_DESCRICAO
+            sm.tipo_interface = None
+            sm.dados_interface = {}
+
+            resposta = (
+                f"📝 **ETAPA {numero}:**\n\n"
+                f"**Descreva o que é feito nesta etapa.**\n\n"
+                f"_Seja breve e objetivo. Exemplo: \"Verifico documentação e encaminho\"_"
+            )
+            return resposta, sm
+
+        elif msg_lower == '__finalizar_etapas__' or self._detectar_intencao(msg_lower, 'negacao'):
+            if not sm.etapas_coletadas:
+                resposta = "⚠️ Nenhuma etapa foi mapeada. Descreva pelo menos uma etapa."
+                return resposta, sm
+
+            # Ir para revisão
+            sm.estado = EstadoPOP.ETAPA_REVISAO
+            sm.tipo_interface = 'editar_etapas'
+            sm.dados_interface = {
+                'etapas': self._formatar_etapas_para_frontend(sm.etapas_coletadas)
+            }
+
+            total = len(sm.etapas_coletadas)
+            resposta = (
+                f"📋 **{total} {'etapa mapeada' if total == 1 else 'etapas mapeadas'}!**\n\n"
+                f"Revise as etapas abaixo. Você pode editar, deletar ou adicionar.\n"
+                f"Quando estiver satisfeito, clique em **Salvar Alterações**."
+            )
+            return resposta, sm
+
+        else:
+            resposta = "Deseja adicionar mais uma etapa ou finalizar?"
+            sm.tipo_interface = 'confirmacao_dupla'
+            total = len(sm.etapas_coletadas)
+            sm.dados_interface = {
+                'botao_confirmar': f'Adicionar Etapa {total + 1}',
+                'botao_editar': 'Finalizar etapas',
+                'valor_confirmar': '__proxima_etapa__',
+                'valor_editar': '__finalizar_etapas__'
+            }
+            return resposta, sm
+
+    def _processar_etapa_revisao(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
+        """
+        Processa ETAPA_REVISAO: aceita confirmar, editar, deletar.
+        InterfaceEditarEtapas envia JSON com {acao, ...}.
+        """
+        msg_lower = mensagem.lower().strip()
+
+        # Tentar parsear JSON da InterfaceEditarEtapas
+        try:
+            data = json.loads(mensagem)
+            acao = data.get('acao', '')
+
+            if acao == 'salvar_etapas':
+                # Frontend envia etapas em formato simplificado (sem operador, tempo, etc.)
+                # Aplicar apenas DELEÇÕES - manter dados ricos do backend
+                etapas_editadas = data.get('etapas', [])
+                if etapas_editadas:
+                    # Detectar quais numeros sobreviveram na edição
+                    numeros_sobreviventes = {e.get('numero') for e in etapas_editadas}
+                    # Filtrar etapas originais mantendo dados ricos
+                    sm.etapas_coletadas = [
+                        e for e in sm.etapas_coletadas
+                        if int(e.get('numero', 0)) in numeros_sobreviventes
+                    ]
+                    # Renumerar
+                    for i, e in enumerate(sm.etapas_coletadas, 1):
+                        e['numero'] = str(i)
+                return self._finalizar_etapas(sm)
+
+            elif acao == 'deletar_etapa':
+                # Deletar etapa por número
+                numero = data.get('numero_etapa')
+                if numero and numero <= len(sm.etapas_coletadas):
+                    sm.etapas_coletadas.pop(numero - 1)
+                    # Renumerar
+                    for i, e in enumerate(sm.etapas_coletadas, 1):
+                        e['numero'] = str(i)
+
+                # Reexibir interface de edição
+                sm.tipo_interface = 'editar_etapas'
+                sm.dados_interface = {
+                    'etapas': self._formatar_etapas_para_frontend(sm.etapas_coletadas)
+                }
+                resposta = f"Etapa removida. {len(sm.etapas_coletadas)} etapas restantes."
+                return resposta, sm
+
+            elif acao == 'editar_etapa':
+                # TODO: edição granular de etapa individual
+                # Por ora, reexibir interface
+                sm.tipo_interface = 'editar_etapas'
+                sm.dados_interface = {
+                    'etapas': self._formatar_etapas_para_frontend(sm.etapas_coletadas)
+                }
+                resposta = "Funcionalidade de edição individual em desenvolvimento. Clique em **Salvar Alterações** para continuar."
+                return resposta, sm
+
+            elif acao == 'adicionar_etapa':
+                # Iniciar nova etapa
+                numero = len(sm.etapas_coletadas) + 1
+                etapa_sm = EtapaStateMachine(
+                    numero_etapa=numero,
+                    operadores_disponiveis=sm.dados_coletados.get('operadores', [])
+                )
+                sm._etapa_sm = etapa_sm.to_dict()
+                sm.estado = EstadoPOP.ETAPA_DESCRICAO
+                sm.tipo_interface = None
+                sm.dados_interface = {}
+                resposta = (
+                    f"📝 **ETAPA {numero}:**\n\n"
+                    f"**Descreva o que é feito nesta etapa.**"
+                )
+                return resposta, sm
+
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            pass
+
+        # Fallback: texto simples
+        if msg_lower == 'cancelar':
+            # Voltar para ETAPA_MAIS
+            sm.estado = EstadoPOP.ETAPA_MAIS
+            sm.tipo_interface = None
+            sm.dados_interface = {}
+            return "Ok, voltando.", sm
+
+        # Qualquer outra coisa = confirmar
+        return self._finalizar_etapas(sm)
+
+    def _finalizar_etapas(self, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
+        """Salva etapas em dados_coletados e finaliza o POP."""
+        sm.dados_coletados['etapas'] = sm.etapas_coletadas
+        sm.estado = EstadoPOP.FINALIZADO
+        sm.concluido = True
+        sm.tipo_interface = 'final'
+        sm.dados_interface = {
+            'codigo': sm.codigo_cap or 'POP',
+            'nome_processo': sm.dados_coletados.get('nome_processo', ''),
+            'total_etapas': len(sm.etapas_coletadas)
+        }
+
+        total = len(sm.etapas_coletadas)
+        nome = sm.nome_usuario or 'você'
+        resposta = (
+            f"🎉 **Mapeamento concluído, {nome}!**\n\n"
+            f"📊 **{total} etapas** mapeadas com sucesso!\n\n"
+            f"Gerando seu POP..."
+        )
+        return resposta, sm
+
+    def _definir_interface_etapa(self, etapa_sm: EtapaStateMachine, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
+        """
+        Define tipo_interface e dados_interface para cada estado
+        da EtapaStateMachine, conectando aos componentes React existentes.
+        """
+        numero = etapa_sm.numero
+
+        # Limpar interface anterior
+        sm.tipo_interface = None
+        sm.dados_interface = {}
+
+        if etapa_sm.estado == EstadoEtapa.OPERADOR:
+            # Interface rica com lista de operadores já coletados
+            operadores = sm.dados_coletados.get('operadores', [])
+            if operadores:
+                sm.tipo_interface = 'operadores_etapa'
+                sm.dados_interface = {
+                    'numero_etapa': numero,
+                    'opcoes': operadores
+                }
+                resposta = None  # Interface substitui texto
+            else:
+                resposta = (
+                    f"👤 **Etapa {numero} — Quem EXECUTA esta etapa?**\n\n"
+                    f"_Informe o cargo, função ou pessoa responsável._"
+                )
+
+        elif etapa_sm.estado == EstadoEtapa.SISTEMAS:
+            # (A) Texto livre, sem interface 'sistemas'
+            resposta = (
+                f"💻 **Etapa {numero} — Quais SISTEMAS são utilizados?**\n\n"
+                f"_Digite separados por vírgula, ou 'nenhum'_\n\n"
+                f"**Exemplos:** SEI, SIAFI, SIGA, Sigepe"
+            )
+
+        elif etapa_sm.estado == EstadoEtapa.DOCS_REQUERIDOS:
+            tipos_docs = carregar_tipos_documentos_requeridos()
+            sm.tipo_interface = 'docs_requeridos_etapa'
+            sm.dados_interface = {
+                'numero_etapa': numero,
+                'modo': 'requeridos',
+                'tipos_documentos': tipos_docs,
+            }
+            resposta = None
+
+        elif etapa_sm.estado == EstadoEtapa.DOCS_GERADOS:
+            tipos_docs = carregar_tipos_documentos_gerados()
+            sm.tipo_interface = 'docs_gerados_etapa'
+            sm.dados_interface = {
+                'numero_etapa': numero,
+                'modo': 'gerados',
+                'tipos_documentos': tipos_docs,
+            }
+            resposta = None
+
+        elif etapa_sm.estado == EstadoEtapa.TEMPO_ESTIMADO:
+            resposta = (
+                f"⏱️ **Etapa {numero} — Qual o TEMPO ESTIMADO?**\n\n"
+                f"_Exemplos: 15 minutos, 2 horas, 1 dia útil, ou 'pular'_"
+            )
+
+        elif etapa_sm.estado == EstadoEtapa.PERGUNTA_CONDICIONAL:
+            sm.tipo_interface = 'condicionais_etapa'
+            sm.dados_interface = {'numero_etapa': numero}
+            resposta = None
+
+        elif etapa_sm.estado == EstadoEtapa.TIPO_CONDICIONAL:
+            sm.tipo_interface = 'tipo_condicional'
+            sm.dados_interface = {'numero_etapa': numero}
+            resposta = None
+
+        elif etapa_sm.estado == EstadoEtapa.ANTES_DECISAO:
+            resposta = (
+                f"⚙️ **Etapa {numero} — O que é feito ANTES da decisão?**\n\n"
+                f"_Exemplo: Analisar conformidade documental_"
+            )
+
+        elif etapa_sm.estado == EstadoEtapa.CENARIOS:
+            antes = etapa_sm.antes_decisao or ''
+            if etapa_sm.tipo_condicional == 'binario':
+                sm.tipo_interface = 'cenarios_binario'
+                sm.dados_interface = {
+                    'numero_etapa': numero,
+                    'antes_decisao': antes
+                }
+            else:
+                sm.tipo_interface = 'cenarios_multiplos_quantidade'
+                sm.dados_interface = {
+                    'numero_etapa': numero,
+                    'antes_decisao': antes,
+                    'quantidade': 3
+                }
+            resposta = None
+
+        elif etapa_sm.estado == EstadoEtapa.SUBETAPAS_CENARIO:
+            idx = etapa_sm._cenario_index
+            if idx < len(etapa_sm.cenarios):
+                cenario_atual = etapa_sm.cenarios[idx]
+                sm.tipo_interface = 'subetapas_cenario'
+                sm.dados_interface = {
+                    'numero_cenario': cenario_atual.numero,
+                    'descricao_cenario': cenario_atual.descricao,
+                    'todos_cenarios': [
+                        {'numero': c.numero, 'descricao': c.descricao}
+                        for c in etapa_sm.cenarios
+                    ],
+                    'cenario_atual_index': idx
+                }
+                resposta = None
+            else:
+                resposta = "Processando cenários..."
+
+        elif etapa_sm.estado == EstadoEtapa.DETALHES:
+            resposta = (
+                f"📝 **Etapa {numero} — Quer adicionar DETALHES?**\n\n"
+                f"_Pequenas ações dentro da etapa. Digite um detalhe ou 'não'._"
+            )
+
+        else:
+            resposta = "Processando..."
+
+        return resposta, sm
+
+    def _formatar_etapas_para_frontend(self, etapas: list) -> list:
+        """Formata etapas para InterfaceEditarEtapas (frontend)."""
+        resultado = []
+        for i, etapa in enumerate(etapas, 1):
+            item = {
+                'numero': int(etapa.get('numero', i)),
+                'descricao': etapa.get('descricao', ''),
+                'sistemas': etapa.get('sistemas', []),
+                'documentos': etapa.get('docs_requeridos', []) + etapa.get('docs_gerados', []),
+            }
+            if etapa.get('tipo') == 'condicional':
+                item['tem_decisoes'] = True
+                item['tipo_decisao'] = etapa.get('tipo_condicional', '')
+                item['cenarios'] = [
+                    {'descricao': c.get('descricao', ''), 'resultado': ''}
+                    for c in etapa.get('cenarios', [])
+                ]
+            if etapa.get('detalhes'):
+                item['subetapas'] = [
+                    {'descricao': d} for d in etapa['detalhes']
+                ]
+            resultado.append(item)
+        return resultado
 
     # ========================================================================
     # HELPERS
@@ -2849,7 +3365,10 @@ class HelenaPOP(BaseHelena):
             d.get('fluxos_entrada') or d.get('fluxos_saida'),
         ]
         preenchidos = sum(1 for c in campos if c)
-        return f"{preenchidos}/{len(campos)}"
+        # Incluir etapas no progresso se existirem
+        if sm.etapas_coletadas:
+            return f"{preenchidos + 1}/{len(campos) + 1}"
+        return f"{preenchidos}/{len(campos) + 1}"
 
     def obter_progresso(self, sm: POPStateMachine) -> dict:
         """Retorna detalhes completos do progresso atual."""
@@ -2868,11 +3387,18 @@ class HelenaPOP(BaseHelena):
             ('Sistemas', d.get('sistemas')),
             ('Documentos', d.get('documentos_entrada') or d.get('documentos_saida')),
             ('Fluxos', d.get('fluxos_entrada') or d.get('fluxos_saida')),
+            ('Etapas', sm.etapas_coletadas if sm.etapas_coletadas else None),
         ]
         preenchidos = sum(1 for _, v in campos if v)
         faltantes = [nome for nome, v in campos if not v]
         total = len(campos)
         percentual = int((preenchidos / total) * 100)
+
+        # Detalhe de etapas em andamento
+        etapa_info = ""
+        if sm.estado.value.startswith('etapa_'):
+            n_etapas = len(sm.etapas_coletadas)
+            etapa_info = f" (coletando etapa {n_etapas + 1})"
 
         return {
             "campos_preenchidos": preenchidos,
@@ -2880,7 +3406,8 @@ class HelenaPOP(BaseHelena):
             "percentual": percentual,
             "estado_atual": sm.estado.value,
             "campos_faltantes": faltantes,
-            "completo": sm.estado == EstadoPOP.DELEGACAO_ETAPAS or percentual == 100
+            "etapa_info": etapa_info,
+            "completo": sm.estado in (EstadoPOP.DELEGACAO_ETAPAS, EstadoPOP.FINALIZADO) or percentual == 100
         }
 
     def _preparar_dados_formulario(self, sm: POPStateMachine) -> dict:
@@ -2928,6 +3455,9 @@ class HelenaPOP(BaseHelena):
             "fluxos_saida": dados.get("fluxos_saida", []),
             "pontos_atencao": dados.get("pontos_atencao", ""),
 
+            # Etapas inline (schema completo)
+            "etapas": sm.etapas_coletadas if sm.etapas_coletadas else [],
+
             # Metadados
             "nome_usuario": sm.nome_usuario or "",
             "versao": "1.0",
@@ -2952,6 +3482,9 @@ class HelenaPOP(BaseHelena):
             EstadoPOP.FLUXOS: "fluxos",
             EstadoPOP.PONTOS_ATENCAO: "pontos_atencao",
         }
+        # Estados de etapa inline → campo "etapas"
+        if estado.value.startswith('etapa_'):
+            return "etapas"
         return mapa_campos.get(estado, "")
 
     def _gerar_resumo_pop(self, sm: POPStateMachine) -> str:

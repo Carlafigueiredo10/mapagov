@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useChatStore } from '../../store/chatStore';
 import { FileText, CheckCircle, AlertCircle, Download, Eye } from 'lucide-react';
+import type { Etapa, Cenario } from '../../types/pop.types';
 import './FormularioPOP.css';
 
 const FormularioPOP: React.FC = () => {
@@ -242,63 +243,100 @@ const FormularioPOP: React.FC = () => {
           <label>Etapas do Processo</label>
           <div className="etapas-display">
             {Array.isArray(formData.etapas) && formData.etapas.length > 0 ? (
-              formData.etapas.map((etapa: any, index: number) => (
-                <div key={index} className="etapa-item">
-                  <div className="etapa-numero">📌 Etapa {etapa.numero || index + 1}</div>
-                  <div className="etapa-descricao">
-                    <strong>
-                      {typeof etapa === 'string'
-                        ? etapa
-                        : etapa.descricao || JSON.stringify(etapa)}
-                    </strong>
-                    {etapa.operador && typeof etapa.operador === 'string' && (
-                      <div className="etapa-operador">👤 {etapa.operador}</div>
-                    )}
-                    {etapa.tipo && typeof etapa.tipo === 'string' && (
-                      <div className="etapa-tipo">📋 Tipo: {etapa.tipo}</div>
-                    )}
-                    {etapa.detalhes && Array.isArray(etapa.detalhes) && etapa.detalhes.length > 0 && (
-                      <div className="etapa-detalhes">
-                        {etapa.detalhes.map((detalhe: string, idx: number) => (
-                          <div key={idx} className="detalhe-item">• {detalhe}</div>
-                        ))}
-                      </div>
-                    )}
-                    {etapa.condicionais && (
-                      <div className="etapa-condicionais">
-                        <div className="condicional-titulo">🔀 Condições:</div>
-                        {etapa.tipo_condicional && typeof etapa.tipo_condicional === 'string' && (
-                          <div>Tipo: {etapa.tipo_condicional}</div>
-                        )}
-                        {etapa.antes_decisao && typeof etapa.antes_decisao === 'string' && (
-                          <div>Antes da decisão: {etapa.antes_decisao}</div>
-                        )}
-                        {etapa.cenarios && Array.isArray(etapa.cenarios) && (
-                          <div className="cenarios-lista">
-                            {etapa.cenarios.map((cenario: any, idx: number) => (
-                              <div key={idx} className="cenario-item">
-                                <strong>Cenário {idx + 1}:</strong>{' '}
-                                {typeof cenario.descricao === 'string'
-                                  ? cenario.descricao
-                                  : JSON.stringify(cenario.descricao || cenario)}
-                                <br />
-                                <span className="proximo-passo">
-                                  → {typeof cenario.proximo_passo === 'string'
-                                    ? cenario.proximo_passo
-                                    : JSON.stringify(cenario.proximo_passo || '')}
-                                </span>
-                                {cenario.proxima_etapa_descricao && typeof cenario.proxima_etapa_descricao === 'string' && (
-                                  <span className="proxima-etapa"> ({cenario.proxima_etapa_descricao})</span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+              formData.etapas.map((etapa: any, index: number) => {
+                const isCondicional = etapa.tipo === 'condicional';
+                return (
+                  <div key={index} className={`etapa-item ${isCondicional ? 'etapa-condicional' : ''}`}>
+                    <div className="etapa-numero">
+                      📌 Etapa {etapa.numero || index + 1}
+                      {isCondicional && <span className="etapa-badge-condicional">🔀 Condicional</span>}
+                    </div>
+                    <div className="etapa-descricao">
+                      <strong>
+                        {typeof etapa === 'string'
+                          ? etapa
+                          : etapa.descricao || JSON.stringify(etapa)}
+                      </strong>
+
+                      {/* Operador */}
+                      {(etapa.operador_nome || etapa.operador) && (
+                        <div className="etapa-operador">
+                          👤 {etapa.operador_nome || etapa.operador}
+                        </div>
+                      )}
+
+                      {/* Sistemas */}
+                      {etapa.sistemas && Array.isArray(etapa.sistemas) && etapa.sistemas.length > 0 && (
+                        <div className="etapa-sistemas">
+                          🖥️ Sistemas: {etapa.sistemas.join(', ')}
+                        </div>
+                      )}
+
+                      {/* Docs requeridos */}
+                      {etapa.docs_requeridos && Array.isArray(etapa.docs_requeridos) && etapa.docs_requeridos.length > 0 && (
+                        <div className="etapa-docs">
+                          📥 Docs requeridos: {etapa.docs_requeridos.join(', ')}
+                        </div>
+                      )}
+
+                      {/* Docs gerados */}
+                      {etapa.docs_gerados && Array.isArray(etapa.docs_gerados) && etapa.docs_gerados.length > 0 && (
+                        <div className="etapa-docs">
+                          📤 Docs gerados: {etapa.docs_gerados.join(', ')}
+                        </div>
+                      )}
+
+                      {/* Tempo estimado */}
+                      {etapa.tempo_estimado && (
+                        <div className="etapa-tempo">
+                          ⏱️ Tempo estimado: {etapa.tempo_estimado}
+                        </div>
+                      )}
+
+                      {/* Detalhes (etapas lineares) */}
+                      {etapa.detalhes && Array.isArray(etapa.detalhes) && etapa.detalhes.length > 0 && (
+                        <div className="etapa-detalhes">
+                          {etapa.detalhes.map((detalhe: string, idx: number) => (
+                            <div key={idx} className="detalhe-item">• {detalhe}</div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Cenários (etapas condicionais) */}
+                      {isCondicional && etapa.antes_decisao && (
+                        <div className="etapa-antes-decisao">
+                          ⚡ Antes da decisão: {
+                            typeof etapa.antes_decisao === 'object'
+                              ? etapa.antes_decisao.descricao
+                              : etapa.antes_decisao
+                          }
+                        </div>
+                      )}
+
+                      {isCondicional && etapa.cenarios && Array.isArray(etapa.cenarios) && (
+                        <div className="cenarios-lista">
+                          <div className="condicional-titulo">🔀 Cenários:</div>
+                          {etapa.cenarios.map((cenario: Cenario, idx: number) => (
+                            <div key={idx} className="cenario-item">
+                              <strong>Cenário {cenario.numero || idx + 1}:</strong>{' '}
+                              {cenario.descricao}
+                              {cenario.subetapas && Array.isArray(cenario.subetapas) && cenario.subetapas.length > 0 && (
+                                <div className="subetapas-lista">
+                                  {cenario.subetapas.map((sub, subIdx: number) => (
+                                    <div key={subIdx} className="subetapa-item">
+                                      {sub.numero} {sub.descricao}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="etapas-placeholder">
                 As etapas serão listadas aqui conforme a conversa...

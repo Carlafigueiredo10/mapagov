@@ -38,4 +38,4 @@ export interface SessionData {
   diagnostico?: any;
 }
 
-export type EstadoFluxo = 'inicial' | 'diagnostico' | 'modelos' | 'chat';
+export type EstadoFluxo = 'inicial' | 'painel' | 'diagnostico' | 'modelos' | 'chat';

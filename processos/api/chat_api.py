@@ -37,6 +37,9 @@ def get_helena_core() -> HelenaCore:
 
     if _helena_core_instance is None:
         # Registrar produtos Helena
+        # NOTA: HelenaEtapas mantida no registry para compatibilidade com sessões
+        # antigas que usam contexto 'etapas'. Com ETAPAS_INLINE=true (default),
+        # novas sessões coletam etapas direto dentro do HelenaPOP.
         registry = {
             'pop': HelenaPOP(),
             'etapas': HelenaEtapas(),

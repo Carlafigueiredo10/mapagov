@@ -1,0 +1,13 @@
+tipo,ordem,ativo,descricao,hint_detalhamento
+Nota Técnica,1,true,"Documento técnico que fundamenta decisões ou análises","Descreva o assunto principal da nota"
+Nota Informativa,2,true,"Documento informativo para ciência ou conhecimento","Descreva o conteúdo informado"
+Despacho,3,true,"Decisão ou encaminhamento formal em processo administrativo","Descreva o tipo de decisão ou encaminhamento"
+Formulário,4,true,"Documento estruturado para coleta de informações","Descreva os principais campos coletados"
+Registro em sistema,5,true,"Cadastro ou atualização de dados em sistema informatizado","Descreva o sistema e os dados registrados (ex: cadastro de dados funcionais no SIAPE)"
+Ficha / Relatório,6,true,"Ficha, relatório ou extrato gerado a partir de dados","Descreva o tipo (ex: ficha financeira, relatório de conferência)"
+Memória de cálculo,7,true,"Planilha ou folha de cálculo com valores apurados","Descreva o cálculo realizado (ex: folha de cálculo de reposição ao erário)"
+Termo,8,true,"Termo formal de encerramento, aceite ou compromisso","Descreva o tipo de termo (ex: termo de encerramento, termo de ciência)"
+Ofício,9,true,"Comunicação formal externa ou entre órgãos","Descreva o assunto do ofício"
+Tela de sistema,10,true,"Interface ou tela de sistema informatizado","Coloque a transação no detalhamento (ex: ME21N, PA30)"
+Documentos,11,true,"Conjunto de documentos relacionados a um processo","Descreva os documentos que fazem parte deste processo"
+Outro,12,true,"Outro tipo de documento não listado","Especifique qual tipo de documento"

@@ -13,29 +13,42 @@ interface AnaliseRiscosLandingProps {
 
 const ETAPAS = [
   {
-    titulo: 'Definição do objeto da análise',
-    descricao: 'Identificação do projeto, processo, norma ou plano a ser avaliado.',
+    titulo: 'Definir o objeto da análise',
+    descricao: 'Indicar se a análise está associada a um projeto, processo, plano ou outro instrumento institucional.',
   },
   {
-    titulo: 'Contextualização',
-    descricao: 'Registro de informações relevantes para compreensão do ambiente e do escopo.',
+    titulo: 'Contextualizar o cenário',
+    descricao: 'Registrar informações relevantes sobre o ambiente, o escopo e as condições institucionais.',
   },
   {
-    titulo: 'Identificação dos riscos',
-    descricao: 'Levantamento dos eventos que podem impactar o alcance dos objetivos institucionais.',
+    titulo: 'Identificar riscos',
+    descricao: 'Descrever eventos que possam impactar o alcance dos objetivos institucionais.',
   },
   {
-    titulo: 'Análise e classificação',
-    descricao: 'Avaliação de probabilidade e impacto, conforme critérios definidos.',
+    titulo: 'Avaliar riscos',
+    descricao: 'Classificar os riscos com base em critérios de impacto e probabilidade definidos.',
   },
   {
-    titulo: 'Matriz de riscos',
-    descricao: 'Consolidação visual dos riscos identificados e classificados.',
+    titulo: 'Consolidar a matriz de riscos',
+    descricao: 'Visualizar e organizar os riscos identificados e classificados.',
   },
   {
-    titulo: 'Resposta aos riscos',
-    descricao: 'Definição de estratégias e ações para o tratamento dos riscos.',
+    titulo: 'Definir respostas aos riscos',
+    descricao: 'Registrar estratégias e ações para tratamento, mitigação ou monitoramento.',
   },
+];
+
+const HELENA_CAPABILITIES = [
+  'esclarecer termos e conceitos;',
+  'orientar o uso das etapas da análise;',
+  'apoiar a compreensão do método adotado.',
+];
+
+const USE_CASES = [
+  'projetos em planejamento ou execução;',
+  'processos de trabalho;',
+  'normas, políticas ou procedimentos;',
+  'planos institucionais (PPA, PEI, PDTI, entre outros).',
 ];
 
 const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }) => {
@@ -50,9 +63,13 @@ const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }
       {/* Texto institucional */}
       <section className={styles.institutionalText}>
         <p>
-          A Análise de Riscos do MapaGov é um instrumento institucional de apoio à identificação,
-          avaliação e tratamento de riscos associados às atividades da administração pública,
-          com foco na tomada de decisão administrativa e no fortalecimento da governança.
+          Identifique, avalie e trate riscos associados a projetos, processos, planos
+          ou instrumentos institucionais, apoiando a tomada de decisão administrativa
+          e o fortalecimento da governança.
+        </p>
+        <p>
+          A análise é realizada por meio de um processo estruturado, com registro
+          e rastreabilidade das informações.
         </p>
       </section>
 
@@ -68,12 +85,21 @@ const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }
           <div className={styles.helenaContent}>
             <h2 className={styles.helenaTitle}>Helena — Orientação institucional</h2>
             <p className={styles.helenaText}>
-              Este instrumento organiza a análise de riscos em etapas estruturadas,
-              permitindo avaliar impactos, probabilidades e respostas associadas
-              a atividades institucionais.
+              Helena atua como apoio conceitual durante a Análise de Riscos.
+              Ela auxilia na compreensão dos conceitos, das etapas e dos critérios
+              utilizados, orientando o correto preenchimento das informações.
             </p>
+            <p className={styles.helenaLabel}>A Helena pode:</p>
+            <ul className={styles.helenaList}>
+              {HELENA_CAPABILITIES.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
             <p className={styles.helenaDisclaimer}>
-              As informações geradas não substituem a avaliação do responsável institucional.
+              As informações registradas e as decisões tomadas são de responsabilidade
+              do usuário e das instâncias institucionais competentes.
+              A Helena não realiza avaliações automáticas nem substitui decisões
+              formais de governança.
             </p>
           </div>
         </div>
@@ -82,20 +108,26 @@ const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }
       {/* Quando utilizar */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Quando utilizar a Análise de Riscos</h2>
+        <p className={styles.sectionIntro}>
+          Utilize esta ferramenta quando precisar avaliar riscos relacionados a:
+        </p>
         <ul className={styles.useCaseList}>
-          <li>Avaliar riscos relacionados a um projeto</li>
-          <li>Avaliar riscos em um processo de trabalho</li>
-          <li>Avaliar riscos associados a uma norma, política ou procedimento</li>
-          <li>Apoiar decisões vinculadas a um plano institucional</li>
+          {USE_CASES.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
         </ul>
         <p className={styles.useCaseNote}>
-          A análise pode ser realizada tanto na criação quanto na revisão desses objetos.
+          A análise pode ser criada no início, durante a execução ou revisada
+          sempre que houver mudanças relevantes no contexto institucional.
         </p>
       </section>
 
       {/* Como funciona */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Como funciona a análise</h2>
+        <p className={styles.sectionIntro}>
+          Ao iniciar uma nova Análise de Riscos, você será orientado a seguir as etapas abaixo:
+        </p>
         <ol className={styles.stepsList}>
           {ETAPAS.map((etapa, index) => (
             <li key={index} className={styles.stepItem}>
@@ -111,6 +143,10 @@ const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }
 
       {/* CTA */}
       <section className={styles.ctaSection}>
+        <p className={styles.ctaText}>
+          Inicie uma nova Análise de Riscos quando estiver pronto para registrar
+          e avaliar os riscos do seu contexto institucional.
+        </p>
         <button
           type="button"
           className={styles.ctaButton}

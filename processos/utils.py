@@ -699,9 +699,96 @@ class PDFGenerator:
                 elementos.append(Paragraph("[Nenhum item informado]", self.estilos['texto_normal']))
         
         elementos.append(Spacer(1, 0.5*cm))
-        
+
         return elementos
-    
+
+    def _gerar_secao_etapas(self, etapas: list) -> List:
+        """Gera seção 5. TAREFAS com formatação rica (operador, sistemas, cenários)."""
+        elementos = []
+        elementos.append(Paragraph("5. TAREFAS REALIZADAS NA ATIVIDADE", self.estilos['titulo_secao']))
+        elementos.append(Spacer(1, 0.3*cm))
+
+        if not etapas:
+            elementos.append(Paragraph("[Nenhuma etapa mapeada]", self.estilos['texto_normal']))
+            elementos.append(Spacer(1, 0.5*cm))
+            return elementos
+
+        for etapa in etapas:
+            if not isinstance(etapa, dict):
+                elementos.append(Paragraph(f"• {str(etapa)}", self.estilos['lista_item']))
+                continue
+
+            numero = etapa.get('numero', '')
+            descricao = etapa.get('descricao', '[Sem descrição]')
+            is_condicional = etapa.get('tipo') == 'condicional'
+
+            # Título da etapa
+            titulo_etapa = f"<b>Etapa {numero}:</b> {descricao}"
+            if is_condicional:
+                titulo_etapa += " <i>[CONDICIONAL]</i>"
+            elementos.append(Paragraph(titulo_etapa, self.estilos['lista_item']))
+
+            # Operador
+            operador = etapa.get('operador_nome', '')
+            if operador:
+                elementos.append(Paragraph(f"    Operador: {operador}", self.estilos['texto_normal']))
+
+            # Sistemas
+            sistemas = etapa.get('sistemas', [])
+            if sistemas:
+                elementos.append(Paragraph(f"    Sistemas: {', '.join(sistemas)}", self.estilos['texto_normal']))
+
+            # Docs requeridos
+            docs_req = etapa.get('docs_requeridos', [])
+            if docs_req:
+                elementos.append(Paragraph(f"    Docs requeridos: {', '.join(docs_req)}", self.estilos['texto_normal']))
+
+            # Docs gerados
+            docs_ger = etapa.get('docs_gerados', [])
+            if docs_ger:
+                elementos.append(Paragraph(f"    Docs gerados: {', '.join(docs_ger)}", self.estilos['texto_normal']))
+
+            # Tempo estimado
+            tempo = etapa.get('tempo_estimado')
+            if tempo:
+                elementos.append(Paragraph(f"    Tempo estimado: {tempo}", self.estilos['texto_normal']))
+
+            if is_condicional:
+                # Antes da decisão
+                antes = etapa.get('antes_decisao')
+                if antes:
+                    desc_antes = antes.get('descricao', '') if isinstance(antes, dict) else str(antes)
+                    if desc_antes:
+                        elementos.append(Paragraph(f"    Antes da decisão: {desc_antes}", self.estilos['texto_normal']))
+
+                # Cenários
+                cenarios = etapa.get('cenarios', [])
+                for cenario in cenarios:
+                    if not isinstance(cenario, dict):
+                        continue
+                    c_num = cenario.get('numero', '')
+                    c_desc = cenario.get('descricao', '')
+                    elementos.append(Paragraph(
+                        f"    <b>Cenário {c_num} - {c_desc}:</b>",
+                        self.estilos['texto_normal']
+                    ))
+                    for sub in cenario.get('subetapas', []):
+                        if isinstance(sub, dict):
+                            elementos.append(Paragraph(
+                                f"        {sub.get('numero', '')} {sub.get('descricao', '')}",
+                                self.estilos['texto_normal']
+                            ))
+            else:
+                # Detalhes (etapa linear)
+                detalhes = etapa.get('detalhes', [])
+                for det in detalhes:
+                    elementos.append(Paragraph(f"    • {det}", self.estilos['texto_normal']))
+
+            elementos.append(Spacer(1, 0.2*cm))
+
+        elementos.append(Spacer(1, 0.3*cm))
+        return elementos
+
     def _gerar_controle_revisoes(self, dados: Dict[str, Any]) -> List:
         """Gera tabela de controle de revisões"""
         elementos = []
@@ -838,15 +925,7 @@ class PDFGenerator:
             ))
             
             etapas = dados.get('etapas', [])
-            if not etapas:
-                etapas_processadas = "[Nenhuma etapa mapeada]"
-            else:
-                etapas_processadas = etapas
-            
-            elementos.extend(self._gerar_secao_conteudo(
-                "5. TAREFAS REALIZADAS NA ATIVIDADE",
-                etapas_processadas
-            ))
+            elementos.extend(self._gerar_secao_etapas(etapas))
             
             documentos = dados.get('documentos_utilizados', '[Não informado]')
             elementos.extend(self._gerar_secao_conteudo(
@@ -1662,23 +1741,61 @@ def preparar_dados_para_pdf(dados: Dict[str, Any]) -> Dict[str, Any]:
     else:
         dados_limpos['operadores'] = []
 
-    # Processar etapas
+    # Processar etapas (schema completo: operador, sistemas, docs, cenários)
+    limpar = FormatadorUtils.limpar_texto_sistema
     if 'etapas' in dados:
         etapas = dados['etapas']
         if isinstance(etapas, list):
             dados_limpos['etapas'] = []
             for i, etapa in enumerate(etapas, 1):
                 if isinstance(etapa, dict):
-                    dados_limpos['etapas'].append({
+                    etapa_limpa = {
                         'numero': etapa.get('numero', i),
-                        'descricao': FormatadorUtils.limpar_texto_sistema(
-                            etapa.get('descricao', '[Sem descrição]')
-                        )
-                    })
+                        'descricao': limpar(etapa.get('descricao', '[Sem descrição]')),
+                        'operador_nome': limpar(etapa.get('operador_nome', '')),
+                        'sistemas': [limpar(str(s)) for s in etapa.get('sistemas', []) if s],
+                        'docs_requeridos': [limpar(str(d)) for d in etapa.get('docs_requeridos', []) if d],
+                        'docs_gerados': [limpar(str(d)) for d in etapa.get('docs_gerados', []) if d],
+                        'tempo_estimado': limpar(etapa.get('tempo_estimado', '')) if etapa.get('tempo_estimado') else None,
+                    }
+                    # Campos condicionais
+                    if etapa.get('tipo') == 'condicional':
+                        etapa_limpa['tipo'] = 'condicional'
+                        etapa_limpa['tipo_condicional'] = etapa.get('tipo_condicional')
+                        antes = etapa.get('antes_decisao')
+                        if isinstance(antes, dict):
+                            etapa_limpa['antes_decisao'] = {
+                                'numero': antes.get('numero', ''),
+                                'descricao': limpar(antes.get('descricao', ''))
+                            }
+                        elif isinstance(antes, str):
+                            etapa_limpa['antes_decisao'] = {'numero': '', 'descricao': limpar(antes)}
+                        cenarios_raw = etapa.get('cenarios', [])
+                        cenarios_limpos = []
+                        for c in cenarios_raw:
+                            if isinstance(c, dict):
+                                cenario_limpo = {
+                                    'numero': c.get('numero', ''),
+                                    'descricao': limpar(c.get('descricao', '')),
+                                    'subetapas': []
+                                }
+                                for sub in c.get('subetapas', []):
+                                    if isinstance(sub, dict):
+                                        cenario_limpo['subetapas'].append({
+                                            'numero': sub.get('numero', ''),
+                                            'descricao': limpar(sub.get('descricao', ''))
+                                        })
+                                cenarios_limpos.append(cenario_limpo)
+                        etapa_limpa['cenarios'] = cenarios_limpos
+                    else:
+                        # Etapa linear: detalhes
+                        etapa_limpa['detalhes'] = [limpar(str(d)) for d in etapa.get('detalhes', []) if d]
+                    dados_limpos['etapas'].append(etapa_limpa)
                 else:
+                    # Fallback: etapa como string (schema antigo)
                     dados_limpos['etapas'].append({
                         'numero': i,
-                        'descricao': FormatadorUtils.limpar_texto_sistema(str(etapa))
+                        'descricao': limpar(str(etapa))
                     })
         else:
             dados_limpos['etapas'] = []
