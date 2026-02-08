@@ -431,7 +431,9 @@ def classificar_e_gerar_cap(descricao_usuario, area_codigo, contexto=None, autor
 
 def _gerar_cap_oficial(linha_csv, area_codigo):
     """
-    Retorna CAP oficial da linha do CSV
+    Retorna CAP oficial da linha do CSV, com prefixo da área.
+
+    Formato: PREFIXO_AREA.NUMERO_CSV  (ex: 3.7.1.1.1 para COATE)
 
     REGRA: Camadas 1-3 SEMPRE retornam CAP do CSV oficial.
     CAP é obrigatório - se não existir, lança exceção.
@@ -442,16 +444,30 @@ def _gerar_cap_oficial(linha_csv, area_codigo):
     if 'Numero' not in linha_csv.index:
         raise ValueError("Campo 'Numero' não encontrado no CSV oficial.")
 
-    cap = linha_csv['Numero']
+    numero_csv = linha_csv['Numero']
 
     # Validar que CAP não é vazio/None
-    if pd.isna(cap) or not str(cap).strip():
+    if pd.isna(numero_csv) or not str(numero_csv).strip():
         raise ValueError(
             f"Atividade '{linha_csv.get('Atividade', 'N/A')}' não possui CAP registrado no CSV oficial. "
             f"Todas as atividades nas Camadas 1-3 devem ter CAP obrigatório."
         )
 
-    return str(cap).strip()
+    numero = str(numero_csv).strip()
+
+    # Adicionar prefixo da área (ex: COATE -> "3", CGRIS -> "6")
+    if area_codigo:
+        from processos.infra.loaders import carregar_areas_organizacionais
+        areas = carregar_areas_organizacionais()
+        prefixo = None
+        for info in areas.values():
+            if info.get('codigo') == area_codigo:
+                prefixo = info.get('prefixo')
+                break
+        if prefixo:
+            return f"{prefixo}.{numero}"
+
+    return numero
 
 
 # FUNÇÃO _gerar_cap_provisorio() REMOVIDA
