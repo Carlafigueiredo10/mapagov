@@ -31,7 +31,7 @@ const ARTEFATOS: Artefato[] = [
   {
     nome: 'Plano 5W2H',
     descricao: 'Para que usar: Planejar ações de forma estruturada. Como usar: Responda O quê? Quem? Quando? Onde? Por quê? Como? Quanto?',
-    url: '/chat',
+    url: '/pop',
     dominio: 1
   },
   {

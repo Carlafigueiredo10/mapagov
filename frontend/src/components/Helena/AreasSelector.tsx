@@ -73,7 +73,7 @@ const AreasSelector: React.FC<AreasSelectorProps> = ({ data, onConfirm }) => {
 
   return (
     <div className="interface-container fade-in areas-selector-horizontal">
-      <div className="interface-title">Me conta: em qual área da DECIPEX você executa sua atividade?</div>
+      <div className="interface-title">Vamos começar pela identificação da área responsável. Informe a área da DECIPEX onde a atividade é executada.</div>
 
       <div className="areas-grid">
         {areasDisponiveis.map(([id, area]) => (

@@ -16,7 +16,7 @@ export const products: Product[] = [
     status: 'disponivel',
     statusLabel: '✅ Disponível',
     description: 'Crie Procedimentos Operacionais Padrão através de conversa natural com Helena. Sistema inteligente que estrutura processos em formato profissional DECIPEX.',
-    route: '/chat',
+    route: '/pop',
   },
   {
     code: 'fluxograma',

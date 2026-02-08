@@ -2,7 +2,7 @@
  * MapeamentoProcessosLanding - Página inicial institucional de Mapeamento de Atividades (POP)
  *
  * Tela de enquadramento exibida antes do chat de mapeamento.
- * A Helena é um elemento visual institucional estático, não interativo.
+ * A Helena não realiza avaliações automáticas nem substitui decisões administrativas.
  */
 import React from 'react';
 import styles from './MapeamentoProcessosLanding.module.css';
@@ -20,9 +20,9 @@ const HELENA_CAPABILITIES = [
 ];
 
 const CONVERSA_ITEMS = [
-  'o POP será preenchido automaticamente em uma barra lateral;',
-  'você poderá acompanhar, em tempo real, como o documento está sendo construído;',
-  'ao final, você terá um POP completo, pronto para revisão, validação e uso.',
+  'o POP será construído progressivamente em uma barra lateral, conforme suas respostas;',
+  'você poderá acompanhar a construção do documento ao longo da conversa;',
+  'ao final, você terá um POP estruturado, pronto para revisão, validação e uso.',
 ];
 
 const PREREQUISITOS = [
@@ -45,11 +45,10 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
       {/* Cabeçalho */}
       <header className={styles.header}>
         <h1 className={styles.title}>Mapeamento de Atividades</h1>
-        <p className={styles.subtitle}>Criação de Procedimento Operacional Padrão (POP)</p>
       </header>
 
       {/* Texto institucional */}
-      <section className={styles.institutionalText}>
+      <section className={styles.contextCard}>
         <p>
           Registre, organize e documente uma atividade de trabalho por meio de um
           Procedimento Operacional Padrão (POP), garantindo clareza, padronização
@@ -134,6 +133,16 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
             <li key={i}>{item}</li>
           ))}
         </ul>
+      </section>
+
+      {/* Bloco de decisão */}
+      <section className={styles.decisionBlock}>
+        <h2 className={styles.sectionTitle}>Quando faz sentido iniciar agora</h2>
+        <p className={styles.decisionText}>
+          É indicado iniciar o mapeamento quando houver uma atividade de trabalho
+          conhecida que precise ser documentada — seja para padronização, capacitação
+          ou registro institucional do processo.
+        </p>
       </section>
 
       {/* CTA */}

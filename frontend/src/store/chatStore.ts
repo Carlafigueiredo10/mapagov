@@ -30,7 +30,13 @@ export interface DadosPOP {
   sistemas?: string[];
   operadores?: string[];  // ✅ Agora é lista igual sistemas
   etapas?: Etapa[];
-  documentos_utilizados?: string;
+  documentos_utilizados?: Array<{
+    tipo_documento: string;
+    descricao: string;
+    tipo_uso: string;
+    obrigatorio: boolean;
+    sistema: string;
+  }>;
   pontos_atencao?: string;
   fluxos_entrada?: string[];
   fluxos_saida?: string[];
@@ -89,7 +95,7 @@ export const useChatStore = create<ChatState>()(
       messages: [],
       sessionId: generateUUID(), // Gera UUID v4 válido
       isProcessing: false,
-      progresso: { atual: 0, total: 10, texto: '0/10 - Vamos começar!' },
+      progresso: { atual: 0, total: 10, texto: 'Etapa 0 de 10 · Início do mapeamento' },
       dadosPOP: {},
       historicoCompleto: [],
       modoRevisao: false,
@@ -116,7 +122,7 @@ export const useChatStore = create<ChatState>()(
         set({
           messages: [],
           sessionId: generateUUID(), // Gera novo UUID v4 válido
-          progresso: { atual: 0, total: 10, texto: '0/10 - Vamos começar!' },
+          progresso: { atual: 0, total: 10, texto: 'Etapa 0 de 10 · Início do mapeamento' },
           dadosPOP: {},
           historicoCompleto: [],
           modoRevisao: false,

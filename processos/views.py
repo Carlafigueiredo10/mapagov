@@ -479,8 +479,9 @@ def gerar_pdf_pop(request):
                 'success': False
             }, status=400)
         
-        # Preparar dados para PDF
-        dados_limpos = preparar_dados_para_pdf(dados_pop)
+        # Preparar dados para PDF (adapter normaliza schema novo + legado)
+        from processos.export.pop_adapter import preparar_pop_para_pdf
+        dados_limpos = preparar_pop_para_pdf(dados_pop)
         
         # Validar estrutura completa
         campos_obrigatorios = ['nome_processo', 'area', 'entrega_esperada']
@@ -533,10 +534,9 @@ def gerar_pdf_pop(request):
         })
         
     except Exception as e:
-        print(f"[ERROR] Erro ao gerar PDF: {e}")
         import traceback
-        traceback.print_exc()
-        
+        logger.error(f"[gerar_pdf_pop] Erro ao gerar PDF: {e}\n{traceback.format_exc()}")
+
         return JsonResponse({
             'error': f'Erro ao gerar PDF: {str(e)}',
             'success': False

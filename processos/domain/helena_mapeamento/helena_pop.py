@@ -123,6 +123,7 @@ class EstadoPOP(str, Enum):
     SELECAO_EDICAO = "selecao_edicao"  # 🎯 Menu de edição granular
     DELEGACAO_ETAPAS = "delegacao_etapas"
     # Coleta inline de etapas (ETAPAS_INLINE=True)
+    ETAPA_FORM = "etapa_form"  # Form unico por etapa (campos lineares)
     ETAPA_DESCRICAO = "etapa_descricao"
     ETAPA_OPERADOR = "etapa_operador"
     ETAPA_SISTEMAS = "etapa_sistemas"
@@ -283,7 +284,6 @@ class HelenaPOP(BaseHelena):
         # Memória anti-repetição de sugestões
         self._atividades_sugeridas = []
         self._codigos_sugeridos = set()
-        self._normas_sugeridas = set()
 
         # Lazy loading do pipeline de busca
         self._pipeline_instance = None
@@ -541,6 +541,9 @@ class HelenaPOP(BaseHelena):
         elif sm.estado == EstadoPOP.DELEGACAO_ETAPAS:
             resposta, novo_sm = self._processar_delegacao_etapas(mensagem, sm)
 
+        elif sm.estado == EstadoPOP.ETAPA_FORM:
+            resposta, novo_sm = self._processar_etapa_form(mensagem, sm)
+
         elif sm.estado.value.startswith('etapa_'):
             resposta, novo_sm = self._processar_etapa_inline(mensagem, sm)
 
@@ -755,8 +758,6 @@ class HelenaPOP(BaseHelena):
             }
 
         elif novo_sm.estado == EstadoPOP.DISPOSITIVOS_NORMATIVOS:
-            # Interface rica de normas com IA
-            sugestoes = self._sugerir_base_legal_contextual(novo_sm)
             grupos_normas = {}
             if self.suggestor_base_legal:
                 try:
@@ -766,16 +767,15 @@ class HelenaPOP(BaseHelena):
 
             tipo_interface = 'normas'
             dados_interface = {
-                'sugestoes': sugestoes,
                 'grupos': grupos_normas,
                 'campo_livre': True,
                 'multipla_selecao': True,
                 'texto_introducao': (
-                    f"**1️⃣** Primeiro, pelo que eu entendi da sua atividade eu **sugeri normas pelo grau de aderência**. (Você concordar ou não, ok?)\n\n"
-                    f"**2️⃣** Se vir que ainda faltam normas **você pode expandir e explorar a biblioteca completa de todas as normas** organizadas por categoria\n\n"
-                    f"**3️⃣** Aqui minha forte recomendação: **Conversar com minha parceira do Sigepe Legis IA** (link abaixo). "
-                    f"Ela pode te ajudar a buscar outras normas que talvez você nem saiba que existem, e aí é só copiar o trecho e colar aqui.\n\n"
-                    f"**4️⃣** E lembrando que **você sempre pode adicionar norma manualmente** caso lembre de alguma norma que nem eu, nem a Legis encontramos."
+                    "• Utilize a lista disponível para localizar normas já cadastradas.\n\n"
+                    "• Caso necessário, é possível adicionar normas manualmente.\n\n"
+                    "• Para apoio na pesquisa de normas, está disponível o acesso à **IA do Sigepe Legis**, "
+                    "ferramenta mantida pelo setor de legislação, que auxilia na localização de referências normativas.\n\n"
+                    "O registro das normas é de responsabilidade de quem conduz o mapeamento."
                 )
             }
 
@@ -1190,13 +1190,10 @@ class HelenaPOP(BaseHelena):
             sm.estado = EstadoPOP.PEDIDO_COMPROMISSO
 
             resposta = (
-                f"Mas olha, {sm.nome_usuario}\n\n"
-                f"Antes da gente seguir, quero te tranquilizar e te fazer um pedido rápido.\n\n"
-                f"1️⃣ é totalmente normal ter dúvidas! No fim desse processo você vai poder revisar e ajustar tudo, "
-                f"e ainda pode pedir pra alguém da equipe dar uma olhada junto.\n\n"
-                f"2️⃣ eu sei que esse trabalho exige paciência. Então vai com calma, sem pressa: quanto mais detalhe "
-                f"você deixar registrado agora, menos retrabalho vai ter lá na frente.\n\n"
-                f"Posso contar contigo pra fazer isso com carinho? 💛"
+                f"{sm.nome_usuario}, antes de continuar, é importante esclarecer alguns pontos.\n\n"
+                f"• É comum surgirem dúvidas durante o mapeamento. Ao final do processo, será possível revisar e ajustar todas as informações registradas, inclusive com apoio de outras pessoas da equipe.\n\n"
+                f"• O registro cuidadoso das atividades contribui para reduzir retrabalho nas etapas seguintes.\n\n"
+                f"Quando estiver pronto, podemos prosseguir."
             )
             return resposta, sm
 
@@ -1243,13 +1240,10 @@ class HelenaPOP(BaseHelena):
             sm.estado = EstadoPOP.PEDIDO_COMPROMISSO
 
             resposta = (
-                f"Mas olha, {sm.nome_usuario}\n\n"
-                f"Antes da gente seguir, quero te tranquilizar e te fazer um pedido rápido.\n\n"
-                f"1️⃣ é totalmente normal ter dúvidas! No fim desse processo você vai poder revisar e ajustar tudo, "
-                f"e ainda pode pedir pra alguém da equipe dar uma olhada junto.\n\n"
-                f"2️⃣ eu sei que esse trabalho exige paciência. Então vai com calma, sem pressa: quanto mais detalhe "
-                f"você deixar registrado agora, menos retrabalho vai ter lá na frente.\n\n"
-                f"Posso contar contigo pra fazer isso com carinho? 💛"
+                f"{sm.nome_usuario}, antes de continuar, é importante esclarecer alguns pontos.\n\n"
+                f"• É comum surgirem dúvidas durante o mapeamento. Ao final do processo, será possível revisar e ajustar todas as informações registradas, inclusive com apoio de outras pessoas da equipe.\n\n"
+                f"• O registro cuidadoso das atividades contribui para reduzir retrabalho nas etapas seguintes.\n\n"
+                f"Quando estiver pronto, podemos prosseguir."
             )
 
             sm.tipo_interface = 'confirmacao_dupla'
@@ -1315,13 +1309,10 @@ class HelenaPOP(BaseHelena):
             sm.estado = EstadoPOP.PEDIDO_COMPROMISSO
 
             resposta = (
-                f"Mas olha, {sm.nome_usuario}\n\n"
-                f"Antes da gente seguir, quero te tranquilizar e te fazer um pedido rápido.\n\n"
-                f"1️⃣ é totalmente normal ter dúvidas! No fim desse processo você vai poder revisar e ajustar tudo, "
-                f"e ainda pode pedir pra alguém da equipe dar uma olhada junto.\n\n"
-                f"2️⃣ eu sei que esse trabalho exige paciência. Então vai com calma, sem pressa: quanto mais detalhe "
-                f"você deixar registrado agora, menos retrabalho vai ter lá na frente.\n\n"
-                f"Posso contar contigo pra fazer isso com carinho? 💛"
+                f"{sm.nome_usuario}, antes de continuar, é importante esclarecer alguns pontos.\n\n"
+                f"• É comum surgirem dúvidas durante o mapeamento. Ao final do processo, será possível revisar e ajustar todas as informações registradas, inclusive com apoio de outras pessoas da equipe.\n\n"
+                f"• O registro cuidadoso das atividades contribui para reduzir retrabalho nas etapas seguintes.\n\n"
+                f"Quando estiver pronto, podemos prosseguir."
             )
         # Se escolheu "Não, quero mais detalhes" - vai para EXPLICACAO_LONGA
         elif 'detalhes' in msg_lower or 'detalhe' in msg_lower or ('não' in msg_lower or 'nao' in msg_lower):
@@ -1358,19 +1349,16 @@ class HelenaPOP(BaseHelena):
             sm.estado = EstadoPOP.AREA_DECIPEX
 
             resposta = (
-                f"Uau! 🌟\n"
-                f"**PARCERIA CONFIRMADA!** Tô super animada 😄\n\n"
-                f"E agora oficialmente começamos nossa jornada de mapeamento.\n\n"
-                f"Sei que dá trabalho, mas cada detalhe que você registrar hoje vai poupar horas (ou até dias!) "
-                f"de dúvida no futuro. Pra você e pra sua equipe.\n\n"
-                f"Esse é o tipo de esforço que vira legado dentro da DECIPEX. 🚀"
+                f"{sm.nome_usuario}, o registro do processo foi iniciado.\n\n"
+                f"A partir deste ponto, o mapeamento da atividade será conduzido de forma estruturada.\n\n"
+                f"O detalhamento das informações ao longo do processo contribui para reduzir dúvidas futuras e retrabalho, beneficiando a equipe e a gestão."
             )
             return resposta, sm
         else:
             # Se não entendeu, repete a pergunta
             resposta = (
                 f"Desculpe, não entendi.\n\n"
-                f"Posso contar contigo pra fazer isso com carinho? 💛"
+                f"Quando estiver pronto, podemos prosseguir."
             )
             return resposta, sm
 
@@ -2154,13 +2142,9 @@ class HelenaPOP(BaseHelena):
         """Processa clique na caixinha de reconhecimento e avança para normas"""
         sm.estado = EstadoPOP.DISPOSITIVOS_NORMATIVOS
 
-        # Buscar sugestões de normas
-        sugestoes = self._sugerir_base_legal_contextual(sm)
-
         resposta = (
-            f"Agora, quais são as principais normas que regulam esta atividade?\n\n"
-            f"Como são muitas normas, eu achei melhor criar quatro formas de adicionar:\n\n"
-            f"💡 **Seleção inteligente disponível abaixo!**"
+            f"Agora vamos registrar as normas legais, normativos e guias que orientam esta atividade.\n\n"
+            f"Abaixo, selecione ou informe as normas aplicáveis ao procedimento que está sendo mapeado."
         )
 
         return resposta, sm
@@ -2300,8 +2284,6 @@ class HelenaPOP(BaseHelena):
         sm.dados_coletados['sistemas'] = sistemas
         sm.estado = EstadoPOP.DISPOSITIVOS_NORMATIVOS
 
-        # Buscar sugestões de normas
-        sugestoes = self._sugerir_base_legal_contextual(sm)
         grupos_normas = {}
         if self.suggestor_base_legal:
             try:
@@ -2312,20 +2294,21 @@ class HelenaPOP(BaseHelena):
         # Interface de normas
         sm.tipo_interface = 'normas'
         sm.dados_interface = {
-            'sugestoes': sugestoes,
             'grupos': grupos_normas,
             'campo_livre': True,
             'multipla_selecao': True,
             'texto_introducao': (
-                f"Registrei {len(sistemas)} sistema(s).\n\n"
-                f"Agora vamos falar sobre as normas legais e guias que orientam essa atividade."
+                "• Utilize a lista disponível para localizar normas já cadastradas.\n\n"
+                "• Caso necessário, é possível adicionar normas manualmente.\n\n"
+                "• Para apoio na pesquisa de normas, está disponível o acesso à **IA do Sigepe Legis**, "
+                "ferramenta mantida pelo setor de legislação, que auxilia na localização de referências normativas.\n\n"
+                "O registro das normas é de responsabilidade de quem conduz o mapeamento."
             )
         }
 
-        nome = sm.nome_usuario or "você"
         resposta = (
-            f"Agora vamos falar sobre as normas legais, normativos e guias que orientam essa atividade. ⚖️\n\n"
-            f"Aqui abaixo, eu já separei as principais normas que levantei."
+            f"Agora vamos registrar as normas legais, normativos e guias que orientam esta atividade.\n\n"
+            f"Abaixo, selecione ou informe as normas aplicáveis ao procedimento que está sendo mapeado."
         )
 
         return resposta, sm
@@ -2442,8 +2425,19 @@ class HelenaPOP(BaseHelena):
 
             # Ir para PONTOS_ATENCAO (fluxo completo: PONTOS → REVISAO → TRANSICAO_EPICA)
             sm.estado = EstadoPOP.PONTOS_ATENCAO
-            sm.tipo_interface = None
-            sm.dados_interface = {}
+            sm.tipo_interface = 'confirmacao_dupla'
+            sm.dados_interface = {
+                'botao_confirmar': 'Nenhum ponto de atenção',
+                'valor_confirmar': 'nenhum',
+                'botao_editar': 'Ver exemplos comuns',
+                'valor_editar': (
+                    'Verificar se há legado da centralização; '
+                    'Se judicial, verificar se há multa; '
+                    'Verificar se exigências devem ser feitas todas de uma vez; '
+                    'Verificar se não há outro processo com o mesmo tema; '
+                    'Em acerto de contas, sempre fazer batimento de devido x recebido'
+                ),
+            }
 
             nome = sm.nome_usuario or "você"
 
@@ -2454,7 +2448,7 @@ class HelenaPOP(BaseHelena):
                 f"• Prazo crítico que não pode atrasar\n"
                 f"• Documentos que devem ter atenção redobrada\n"
                 f"• Etapas que costumam gerar dúvidas\n\n"
-                f"Digite os pontos de atenção ou escreva **'nenhum'** se não houver."
+                f"Digite os pontos de atenção ou use os botões abaixo."
             )
 
         return resposta, sm
@@ -2628,21 +2622,18 @@ class HelenaPOP(BaseHelena):
 
         elif self._detectar_intencao(msg_lower, 'confirmacao'):
             if ETAPAS_INLINE:
-                # Coleta inline: iniciar EtapaStateMachine dentro do POP
-                sm.estado = EstadoPOP.ETAPA_DESCRICAO
-                etapa_sm = EtapaStateMachine(
-                    numero_etapa=1,
-                    operadores_disponiveis=sm.dados_coletados.get('operadores', [])
-                )
-                sm._etapa_sm = etapa_sm.to_dict()
+                # Coleta via form: 1 tela por etapa
+                sm.estado = EstadoPOP.ETAPA_FORM
+                sm._etapa_sm = None  # Sem SM no caminho linear
+
+                # Montar dados_interface com listas para o form
+                sm.tipo_interface = 'etapa_form'
+                sm.dados_interface = self._montar_dados_etapa_form(sm, 1)
 
                 resposta = (
-                    f"🏆 **PRIMEIRA FASE CONCLUÍDA!** 🏆\n\n"
-                    f"{nome}, você está indo muito bem!\n\n"
-                    f"Agora vamos detalhar **cada etapa** da sua atividade.\n\n"
-                    f"📝 **ETAPA 1:**\n\n"
-                    f"**Descreva o que é feito nesta etapa.**\n\n"
-                    f"_Seja breve e objetivo. Exemplo: \"Recebo documento pelo SEI e analiso\"_"
+                    f"**PRIMEIRA FASE CONCLUIDA!**\n\n"
+                    f"{nome}, agora vamos detalhar **cada etapa** da sua atividade.\n\n"
+                    f"Preencha o formulario abaixo com os dados da **Etapa 1**."
                 )
             else:
                 # Fluxo legado: delegar para agente HelenaEtapas
@@ -2829,19 +2820,11 @@ class HelenaPOP(BaseHelena):
 
         if msg_lower == '__proxima_etapa__':
             numero = len(sm.etapas_coletadas) + 1
-            etapa_sm = EtapaStateMachine(
-                numero_etapa=numero,
-                operadores_disponiveis=sm.dados_coletados.get('operadores', [])
-            )
-            sm._etapa_sm = etapa_sm.to_dict()
-            sm.estado = EstadoPOP.ETAPA_DESCRICAO
-            sm.tipo_interface = None
-            sm.dados_interface = {}
-            resposta = (
-                f"📝 **ETAPA {numero}:**\n\n"
-                f"**Descreva o que é feito nesta etapa.**\n\n"
-                f"_Seja breve e objetivo. Exemplo: \"Verifico documentação e encaminho\"_"
-            )
+            sm.estado = EstadoPOP.ETAPA_FORM
+            sm._etapa_sm = None
+            sm.tipo_interface = 'etapa_form'
+            sm.dados_interface = self._montar_dados_etapa_form(sm, numero)
+            resposta = f"Preencha o formulario da **Etapa {numero}**."
             return resposta, sm
 
         # -- ETAPA_MAIS: Perguntar se há mais etapas --
@@ -2875,26 +2858,53 @@ class HelenaPOP(BaseHelena):
 
         # Etapa finalizada → salvar e ir para ETAPA_MAIS
         if etapa_sm.completa():
-            etapa_dict = etapa_sm.obter_dict()
+            idx = etapa_sm.etapa_index
 
-            # Ajuste (B): operador como operador_nome (string)
-            # TODO: quando operadores tiverem id, salvar {id, nome}
-            op = etapa_dict.get('operador', '')
-            etapa_dict['operador_nome'] = op
+            if idx is not None:
+                # --- MERGE: condicional via form ---
+                # Safety check: validar bounds
+                if not (0 <= idx < len(sm.etapas_coletadas)):
+                    logger.error(f"[MERGE] etapa_index={idx} fora de bounds (len={len(sm.etapas_coletadas)}). Ignorando merge.")
+                    sm._etapa_sm = None
+                    sm.estado = EstadoPOP.ETAPA_MAIS
+                    sm.tipo_interface = 'confirmacao_dupla'
+                    total = len(sm.etapas_coletadas)
+                    sm.dados_interface = {
+                        'botao_confirmar': f'Adicionar Etapa {total + 1}',
+                        'botao_editar': 'Finalizar etapas',
+                        'valor_confirmar': '__proxima_etapa__',
+                        'valor_editar': '__finalizar_etapas__'
+                    }
+                    return "Erro interno ao salvar condicionais. Voce pode continuar ou finalizar.", sm
 
-            sm.etapas_coletadas.append(etapa_dict)
+                # Merge condicional data into existing etapa
+                sm.etapas_coletadas[idx].update({
+                    'tipo': 'condicional',
+                    'tipo_condicional': etapa_sm.tipo_condicional,
+                    'antes_decisao': {
+                        'numero': f"{etapa_sm.numero}.1",
+                        'descricao': etapa_sm.antes_decisao or ''
+                    },
+                    'cenarios': [c.to_dict() for c in etapa_sm.cenarios],
+                })
+                # Remover detalhes (condicionais usam cenarios)
+                sm.etapas_coletadas[idx].pop('detalhes', None)
+                self._consolidar_documentos(sm)
+
+                etapa_dict = sm.etapas_coletadas[idx]
+                op = etapa_dict.get('operador_nome', '')
+            else:
+                # --- APPEND: fluxo conversacional legado ---
+                etapa_dict = etapa_sm.obter_dict()
+                op = etapa_dict.get('operador', '')
+                etapa_dict['operador_nome'] = op
+                sm.etapas_coletadas.append(etapa_dict)
+
             sm._etapa_sm = None
             sm.estado = EstadoPOP.ETAPA_MAIS
 
             total = len(sm.etapas_coletadas)
-            resposta = (
-                f"\n✅ **Etapa {total} completa!**\n\n"
-                f"📊 **Resumo:**\n"
-                f"- **Etapa:** {etapa_dict['descricao']}\n"
-                f"- **Responsável:** {op}\n"
-                f"- **Sistemas:** {', '.join(etapa_dict.get('sistemas', [])) or 'Nenhum'}\n"
-                f"- **Tipo:** {'🔀 Condicional' if etapa_dict.get('tipo') == 'condicional' else '➡️ Linear'}\n"
-            )
+            resposta = self._formatar_resumo_etapa(etapa_dict)
 
             sm.tipo_interface = 'confirmacao_dupla'
             sm.dados_interface = {
@@ -2920,22 +2930,14 @@ class HelenaPOP(BaseHelena):
         msg_lower = mensagem.lower().strip()
 
         if msg_lower == '__proxima_etapa__' or self._detectar_intencao(msg_lower, 'confirmacao'):
-            # Criar nova SM para próxima etapa
+            # Próxima etapa via form
             numero = len(sm.etapas_coletadas) + 1
-            etapa_sm = EtapaStateMachine(
-                numero_etapa=numero,
-                operadores_disponiveis=sm.dados_coletados.get('operadores', [])
-            )
-            sm._etapa_sm = etapa_sm.to_dict()
-            sm.estado = EstadoPOP.ETAPA_DESCRICAO
-            sm.tipo_interface = None
-            sm.dados_interface = {}
+            sm.estado = EstadoPOP.ETAPA_FORM
+            sm._etapa_sm = None
+            sm.tipo_interface = 'etapa_form'
+            sm.dados_interface = self._montar_dados_etapa_form(sm, numero)
 
-            resposta = (
-                f"📝 **ETAPA {numero}:**\n\n"
-                f"**Descreva o que é feito nesta etapa.**\n\n"
-                f"_Seja breve e objetivo. Exemplo: \"Verifico documentação e encaminho\"_"
-            )
+            resposta = f"Preencha o formulario da **Etapa {numero}**."
             return resposta, sm
 
         elif msg_lower == '__finalizar_etapas__' or self._detectar_intencao(msg_lower, 'negacao'):
@@ -3027,20 +3029,13 @@ class HelenaPOP(BaseHelena):
                 return resposta, sm
 
             elif acao == 'adicionar_etapa':
-                # Iniciar nova etapa
+                # Iniciar nova etapa via form
                 numero = len(sm.etapas_coletadas) + 1
-                etapa_sm = EtapaStateMachine(
-                    numero_etapa=numero,
-                    operadores_disponiveis=sm.dados_coletados.get('operadores', [])
-                )
-                sm._etapa_sm = etapa_sm.to_dict()
-                sm.estado = EstadoPOP.ETAPA_DESCRICAO
-                sm.tipo_interface = None
-                sm.dados_interface = {}
-                resposta = (
-                    f"📝 **ETAPA {numero}:**\n\n"
-                    f"**Descreva o que é feito nesta etapa.**"
-                )
+                sm.estado = EstadoPOP.ETAPA_FORM
+                sm._etapa_sm = None
+                sm.tipo_interface = 'etapa_form'
+                sm.dados_interface = self._montar_dados_etapa_form(sm, numero)
+                resposta = f"Preencha o formulario da **Etapa {numero}**."
                 return resposta, sm
 
         except (json.JSONDecodeError, TypeError, AttributeError):
@@ -3076,6 +3071,212 @@ class HelenaPOP(BaseHelena):
             f"📊 **{total} etapas** mapeadas com sucesso!\n\n"
             f"Gerando seu POP..."
         )
+        return resposta, sm
+
+    # ====================================================================
+    # ETAPA FORM — 1 tela por etapa (campos lineares)
+    # ====================================================================
+
+    @staticmethod
+    def _formatar_resumo_etapa(etapa: dict) -> str:
+        """Formata resumo rico de uma etapa com TODOS os dados vinculados."""
+        numero = etapa.get('numero', '?')
+        descricao = etapa.get('descricao', '')
+        op = etapa.get('operador_nome', '') or etapa.get('operador', '')
+        sistemas = etapa.get('sistemas', [])
+        docs_req = etapa.get('docs_requeridos', [])
+        docs_ger = etapa.get('docs_gerados', [])
+        detalhes = etapa.get('detalhes', [])
+        tempo = etapa.get('tempo_estimado', None)
+        is_condicional = etapa.get('tipo') == 'condicional'
+
+        linhas = [
+            f"\nEtapa {numero} completa!\n",
+            f"**Resumo:**",
+            f"- **Descricao:** {descricao}",
+            f"- **Responsavel:** {op or 'Nao especificado'}",
+            f"- **Sistemas:** {', '.join(sistemas) if sistemas else 'Nenhum'}",
+        ]
+
+        if docs_req:
+            linhas.append(f"- **Docs analisados/requeridos:** {', '.join(docs_req)}")
+        if docs_ger:
+            linhas.append(f"- **Docs produzidos/gerados:** {', '.join(docs_ger)}")
+        if tempo:
+            linhas.append(f"- **Tempo estimado:** {tempo}")
+
+        if is_condicional:
+            linhas.append(f"- **Tipo:** Condicional")
+            antes = etapa.get('antes_decisao')
+            if antes and antes.get('descricao'):
+                linhas.append(f"- **Antes da decisao:** {antes['descricao']}")
+            cenarios = etapa.get('cenarios', [])
+            for c in cenarios:
+                c_num = c.get('numero', '?')
+                c_desc = c.get('descricao', '')
+                linhas.append(f"  - **Cenario {c_num}:** {c_desc}")
+                subs = c.get('subetapas', [])
+                for sub in subs:
+                    s_num = sub.get('numero', '?')
+                    s_desc = sub.get('descricao', '')
+                    linhas.append(f"    - {s_num} {s_desc}")
+        else:
+            linhas.append(f"- **Tipo:** Linear")
+            if detalhes:
+                linhas.append(f"- **Sub-acoes:**")
+                for d in detalhes:
+                    linhas.append(f"  - {d}")
+
+        return '\n'.join(linhas) + '\n'
+
+    @staticmethod
+    def _consolidar_documentos(sm: POPStateMachine) -> None:
+        """
+        Consolida docs de todas as etapas em sm.dados_coletados['documentos_utilizados'].
+        Deduplicado por (nome_doc, tipo_uso), mantendo ordem de aparição.
+        Formato de saída: lista de {tipo_documento, descricao, tipo_uso, obrigatorio, sistema}.
+        """
+        vistos: set = set()
+        consolidados: list = []
+
+        for etapa in sm.etapas_coletadas:
+            for doc_str in etapa.get('docs_requeridos', []):
+                chave = (doc_str, 'Utilizado')
+                if chave not in vistos:
+                    vistos.add(chave)
+                    if ': ' in doc_str:
+                        tipo, descricao = doc_str.split(': ', 1)
+                    else:
+                        tipo, descricao = doc_str, ''
+                    consolidados.append({
+                        'tipo_documento': tipo,
+                        'descricao': descricao,
+                        'tipo_uso': 'Utilizado',
+                        'obrigatorio': True,
+                        'sistema': '',
+                    })
+
+            for doc_str in etapa.get('docs_gerados', []):
+                chave = (doc_str, 'Gerado')
+                if chave not in vistos:
+                    vistos.add(chave)
+                    if ': ' in doc_str:
+                        tipo, descricao = doc_str.split(': ', 1)
+                    else:
+                        tipo, descricao = doc_str, ''
+                    consolidados.append({
+                        'tipo_documento': tipo,
+                        'descricao': descricao,
+                        'tipo_uso': 'Gerado',
+                        'obrigatorio': True,
+                        'sistema': '',
+                    })
+
+        sm.dados_coletados['documentos_utilizados'] = consolidados
+
+    def _montar_dados_etapa_form(self, sm: POPStateMachine, numero: int) -> dict:
+        """Monta dados_interface para o form de etapa."""
+        return {
+            'numero_etapa': numero,
+            'operadores': sm.dados_coletados.get('operadores', []),
+            'sistemas': carregar_sistemas(),
+            'tipos_documentos_requeridos': carregar_tipos_documentos_requeridos(),
+            'tipos_documentos_gerados': carregar_tipos_documentos_gerados(),
+        }
+
+    def _processar_etapa_form(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
+        """
+        Handler do submit do ETAPA_FORM.
+        Recebe JSON {"etapa": {...}} e persiste em etapas[].
+        Se is_condicional: inicia SM no TIPO_CONDICIONAL.
+        Senao: vai para ETAPA_MAIS.
+        """
+        # Interceptar comandos especiais (botões residuais)
+        msg_lower = mensagem.lower().strip()
+        if msg_lower == '__finalizar_etapas__':
+            if not sm.etapas_coletadas:
+                return "Nenhuma etapa foi mapeada ainda. Preencha o formulario.", sm
+            sm.estado = EstadoPOP.ETAPA_REVISAO
+            sm.tipo_interface = 'editar_etapas'
+            sm.dados_interface = {
+                'etapas': self._formatar_etapas_para_frontend(sm.etapas_coletadas)
+            }
+            total = len(sm.etapas_coletadas)
+            return f"{total} {'etapa mapeada' if total == 1 else 'etapas mapeadas'}. Revise abaixo.", sm
+
+        # Parse JSON do form
+        try:
+            data = json.loads(mensagem)
+            etapa_data = data.get('etapa', {})
+        except (json.JSONDecodeError, TypeError):
+            return "Erro ao processar dados. Preencha o formulario e confirme.", sm
+
+        # Validar descricao
+        descricao = (etapa_data.get('descricao') or '').strip()
+        if not descricao:
+            return "A descricao da etapa e obrigatoria.", sm
+
+        # Normalizar detalhes
+        detalhes_raw = etapa_data.get('detalhes', [])
+        if isinstance(detalhes_raw, str):
+            detalhes = [l.strip() for l in detalhes_raw.split('\n') if l.strip()]
+        else:
+            detalhes = [str(d).strip() for d in detalhes_raw if str(d).strip()]
+
+        # Montar etapa base
+        numero = len(sm.etapas_coletadas) + 1
+        etapa_obj = {
+            'numero': str(numero),
+            'descricao': descricao,
+            'operador_nome': (etapa_data.get('operador_nome') or 'Nao especificado').strip(),
+            'sistemas': etapa_data.get('sistemas', []),
+            'docs_requeridos': etapa_data.get('docs_requeridos', []),
+            'docs_gerados': etapa_data.get('docs_gerados', []),
+            'tempo_estimado': (etapa_data.get('tempo_estimado') or '').strip() or None,
+            'detalhes': detalhes,
+        }
+
+        # Append ao array
+        sm.etapas_coletadas.append(etapa_obj)
+        self._consolidar_documentos(sm)
+        etapa_index = len(sm.etapas_coletadas) - 1
+
+        is_condicional = etapa_data.get('is_condicional', False)
+
+        if is_condicional:
+            # Iniciar SM no TIPO_CONDICIONAL
+            etapa_sm = EtapaStateMachine.start_condicional(
+                numero_etapa=numero,
+                etapa_index=etapa_index,
+                operadores_disponiveis=sm.dados_coletados.get('operadores', [])
+            )
+            sm._etapa_sm = etapa_sm.to_dict()
+            sm.estado = EstadoPOP.ETAPA_TIPO_CONDICIONAL
+
+            # Interface para tipo condicional
+            sm.tipo_interface = 'tipo_condicional'
+            sm.dados_interface = {'numero_etapa': numero}
+
+            resposta = (
+                f"Etapa {numero} registrada!\n\n"
+                f"Agora vamos detalhar a **decisao condicional**.\n\n"
+                f"Qual o tipo de condicional?"
+            )
+        else:
+            # Caminho linear: ir para ETAPA_MAIS
+            sm._etapa_sm = None
+            sm.estado = EstadoPOP.ETAPA_MAIS
+
+            resposta = self._formatar_resumo_etapa(etapa_obj)
+
+            sm.tipo_interface = 'confirmacao_dupla'
+            sm.dados_interface = {
+                'botao_confirmar': f'Adicionar Etapa {numero + 1}',
+                'botao_editar': 'Finalizar etapas',
+                'valor_confirmar': '__proxima_etapa__',
+                'valor_editar': '__finalizar_etapas__'
+            }
+
         return resposta, sm
 
     def _definir_interface_etapa(self, etapa_sm: EtapaStateMachine, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
@@ -3229,43 +3430,6 @@ class HelenaPOP(BaseHelena):
     # HELPERS
     # ========================================================================
 
-    def _sugerir_base_legal_contextual(self, sm: POPStateMachine) -> list:
-        """Sugere base legal baseada no contexto coletado (IA completa)"""
-        try:
-            if not self.suggestor_base_legal:
-                return []
-
-            # Montar contexto rico
-            area_info = sm.area_selecionada or {}
-            contexto = {
-                "nome_processo": sm.dados_coletados.get("nome_processo", ""),
-                "area_codigo": area_info.get("codigo", ""),
-                "area_nome": area_info.get("nome", ""),
-                "sistemas": sm.dados_coletados.get("sistemas", []),
-                "objetivo": sm.dados_coletados.get("entrega_esperada", ""),
-                "macroprocesso": sm.macro_selecionado or "",
-                "processo": sm.processo_selecionado or "",
-                "subprocesso": sm.subprocesso_selecionado or "",
-                "atividade": sm.atividade_selecionada or ""
-            }
-
-            # Chamar BaseLegalSuggestorDECIPEx com contexto completo
-            sugestoes = self.suggestor_base_legal.sugerir_base_legal(contexto)
-
-            # Filtrar sugestões já usadas (anti-repetição)
-            sugestoes_novas = []
-            for sug in sugestoes:
-                norma_id = sug.get('norma', '') if isinstance(sug, dict) else str(sug)
-                if norma_id not in self._normas_sugeridas:
-                    sugestoes_novas.append(sug)
-                    self._normas_sugeridas.add(norma_id)
-
-            # Retornar top 5 sugestões novas
-            return sugestoes_novas[:5] if sugestoes_novas else []
-
-        except Exception as e:
-            logger.error(f"Erro ao sugerir base legal contextual: {e}")
-            return []
 
     def _buscar_linha_arquitetura(self, sm: POPStateMachine):
         """Busca linha no CSV da arquitetura pelo filtro hierárquico."""
@@ -3450,7 +3614,7 @@ class HelenaPOP(BaseHelena):
             # ✅ FIX: Manter operadores como LISTA (igual sistemas)
             "operadores": dados.get("operadores", []),
             "sistemas": dados.get("sistemas", []),
-            "documentos": dados.get("documentos", []),
+            "documentos_utilizados": dados.get("documentos_utilizados", []),
             "fluxos_entrada": dados.get("fluxos_entrada", []),
             "fluxos_saida": dados.get("fluxos_saida", []),
             "pontos_atencao": dados.get("pontos_atencao", ""),

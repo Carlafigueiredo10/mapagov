@@ -234,7 +234,8 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
       if (snap.progresso) {
         const [atual, total] = snap.progresso.split('/').map(Number);
         const porcentagem = (atual / total) * 100;
-        updateProgresso(porcentagem, snap.progresso);
+        const textoProgresso = `Etapa ${atual} de ${total}`;
+        updateProgresso(porcentagem, textoProgresso);
       }
 
       // 💾 Auto-save após processar resposta

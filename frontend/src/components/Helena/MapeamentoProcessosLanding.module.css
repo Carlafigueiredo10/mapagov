@@ -14,38 +14,36 @@
 
 /* ===== CABEÇALHO ===== */
 .header {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
+  text-align: center;
 }
 
 .title {
-  font-size: 32px;
-  font-weight: 600;
-  color: #1351B4;
-  margin: 0 0 8px 0;
-  line-height: 1.25;
-}
-
-.subtitle {
-  font-size: 16px;
-  font-weight: 400;
-  color: #636363;
+  font-size: 36px;
+  font-weight: 800;
+  color: #1B4F72;
   margin: 0;
+  line-height: 1.2;
 }
 
-/* ===== TEXTO INSTITUCIONAL ===== */
-.institutionalText {
+/* ===== CONTEXTO INSTITUCIONAL (card destacado) ===== */
+.contextCard {
   font-size: 15px;
   font-weight: 400;
   color: #333333;
-  line-height: 1.6;
-  margin-bottom: 24px;
+  line-height: 1.7;
+  margin-bottom: 32px;
+  padding: 28px 32px;
+  background: #FFFFFF;
+  border: 1px solid #CCCCCC;
+  border-radius: 8px;
 }
 
-.institutionalText p {
+.contextCard p {
   margin: 0 0 12px 0;
 }
 
-.institutionalText p:last-child {
+.contextCard p:last-child {
   margin-bottom: 0;
 }
 
@@ -54,6 +52,7 @@
   margin-bottom: 32px;
   background: #FFFFFF;
   border: 1px solid #CCCCCC;
+  border-left: 4px solid #1351B4;
   border-radius: 8px;
   padding: 32px;
 }
@@ -81,9 +80,9 @@
 }
 
 .helenaTitle {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333333;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1B4F72;
   margin: 0 0 12px 0;
 }
 
@@ -178,12 +177,31 @@
   font-weight: bold;
 }
 
+/* ===== BLOCO DE DECISÃO ===== */
+.decisionBlock {
+  margin-top: 40px;
+  margin-bottom: 0;
+  padding: 28px 32px;
+  background: #F8F8F8;
+  border: 1px solid #CCCCCC;
+  border-radius: 8px 8px 0 0;
+}
+
+.decisionText {
+  font-size: 15px;
+  color: #333333;
+  line-height: 1.7;
+  margin: 0;
+}
+
 /* ===== CTA ===== */
 .ctaSection {
-  margin-top: 40px;
-  padding-top: 32px;
-  border-top: 1px solid #CCCCCC;
+  padding: 32px;
+  border: 1px solid #CCCCCC;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
   text-align: center;
+  background: #FFFFFF;
 }
 
 .ctaText {
@@ -225,5 +243,17 @@
 
   .container {
     padding: 24px 16px;
+  }
+
+  .contextCard {
+    padding: 20px;
+  }
+
+  .decisionBlock {
+    padding: 20px;
+  }
+
+  .ctaSection {
+    padding: 24px 20px;
   }
 }

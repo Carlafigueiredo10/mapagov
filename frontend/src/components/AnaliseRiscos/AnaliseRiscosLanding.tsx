@@ -2,7 +2,7 @@
  * AnaliseRiscosLanding - Página inicial institucional de Análise de Riscos
  *
  * Tela de enquadramento exibida antes do wizard.
- * A Helena é um elemento visual institucional estático, não interativo.
+ * A Helena não realiza avaliações automáticas nem substitui decisões administrativas.
  */
 import React from 'react';
 import styles from './AnaliseRiscosLanding.module.css';
@@ -57,11 +57,10 @@ const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }
       {/* Cabeçalho */}
       <header className={styles.header}>
         <h1 className={styles.title}>Análise de Riscos</h1>
-        <p className={styles.subtitle}>Ferramenta de apoio à governança pública</p>
       </header>
 
       {/* Texto institucional */}
-      <section className={styles.institutionalText}>
+      <section className={styles.contextCard}>
         <p>
           Identifique, avalie e trate riscos associados a projetos, processos, planos
           ou instrumentos institucionais, apoiando a tomada de decisão administrativa
@@ -69,7 +68,7 @@ const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }
         </p>
         <p>
           A análise é realizada por meio de um processo estruturado, com registro
-          e rastreabilidade das informações.
+          organizado das informações.
         </p>
       </section>
 
@@ -83,7 +82,7 @@ const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }
             />
           </div>
           <div className={styles.helenaContent}>
-            <h2 className={styles.helenaTitle}>Helena — Orientação institucional</h2>
+            <h2 className={styles.helenaTitle}>Helena — Orientação institucional para Análise de Riscos</h2>
             <p className={styles.helenaText}>
               Helena atua como apoio conceitual durante a Análise de Riscos.
               Ela auxilia na compreensão dos conceitos, das etapas e dos critérios
@@ -139,6 +138,16 @@ const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }
             </li>
           ))}
         </ol>
+      </section>
+
+      {/* Bloco de decisão */}
+      <section className={styles.decisionBlock}>
+        <h2 className={styles.sectionTitle}>Quando faz sentido iniciar agora</h2>
+        <p className={styles.decisionText}>
+          É indicado iniciar uma Análise de Riscos quando houver um objeto institucional
+          definido — como um projeto, processo ou plano — e a necessidade de registrar,
+          de forma estruturada, os riscos associados ao seu contexto.
+        </p>
       </section>
 
       {/* CTA */}

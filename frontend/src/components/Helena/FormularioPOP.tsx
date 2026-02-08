@@ -1,17 +1,41 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useChatStore } from '../../store/chatStore';
-import { FileText, CheckCircle, AlertCircle, Download, Eye } from 'lucide-react';
+import { FileText, CheckCircle, AlertCircle, Download, Eye, Loader2 } from 'lucide-react';
+import { gerarPDF } from '../../services/helenaApi';
 import type { Etapa, Cenario } from '../../types/pop.types';
 import './FormularioPOP.css';
 
 const FormularioPOP: React.FC = () => {
-  const { dadosPOP, modoRevisao, updateDadosPOP, resetChat } = useChatStore();
-  
+  const { dadosPOP, modoRevisao, updateDadosPOP, resetChat, sessionId } = useChatStore();
+
   // Estado local para campos editáveis
   const [formData, setFormData] = useState(dadosPOP);
   const [validacoes, setValidacoes] = useState<Record<string, 'valido' | 'invalido' | ''>>({});
   const [camposPreenchidos, setCamposPreenchidos] = useState(0);
   const [ultimoCampoPreenchido, setUltimoCampoPreenchido] = useState<string | null>(null);
+  const [gerandoPDF, setGerandoPDF] = useState(false);
+  const [erroPDF, setErroPDF] = useState<string | null>(null);
+
+  const handleGerarPDF = async () => {
+    setGerandoPDF(true);
+    setErroPDF(null);
+    try {
+      const resp = await gerarPDF({
+        dados_pop: formData as Record<string, unknown>,
+        session_id: sessionId,
+      });
+      if (resp.success && resp.pdf_url) {
+        window.open(resp.pdf_url, '_blank');
+      } else {
+        setErroPDF(resp.error || 'Erro ao gerar PDF.');
+      }
+    } catch (err: any) {
+      console.error('[FormularioPOP] Erro ao gerar PDF:', err);
+      setErroPDF(err?.response?.data?.error || err?.message || 'Erro inesperado ao gerar PDF.');
+    } finally {
+      setGerandoPDF(false);
+    }
+  };
 
   // Lista de todos os campos do formulário
   const todosCampos = useMemo(() => [
@@ -434,15 +458,22 @@ const FormularioPOP: React.FC = () => {
           Ver Preview
         </button>
         
-        <button 
-          type="button" 
+        <button
+          type="button"
           className={`btn-form gerar-pdf ${modoRevisao ? 'ativo' : ''}`}
-          disabled={camposPreenchidos < 8}
+          disabled={camposPreenchidos < 5 || gerandoPDF}
+          data-qa="btn-gerar-pdf"
+          onClick={handleGerarPDF}
         >
-          <Download size={16} />
-          Gerar PDF
+          {gerandoPDF ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
+          {gerandoPDF ? 'Gerando...' : 'Gerar PDF'}
         </button>
       </div>
+      {erroPDF && (
+        <div style={{ padding: '0.5rem 1rem', background: '#f8d7da', color: '#721c24', borderRadius: '6px', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+          {erroPDF}
+        </div>
+      )}
     </div>
   );
 };

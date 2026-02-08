@@ -148,7 +148,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
                   <span>Checklist de Governança</span>
                   <span className="artefato-arrow">→</span>
                 </li>
-                <li onClick={() => navegar('/chat')}>
+                <li onClick={() => navegar('/pop')}>
                   <span className="artefato-icone">📊</span>
                   <span>Matriz 5W2H (Helena)</span>
                   <span className="artefato-arrow">→</span>

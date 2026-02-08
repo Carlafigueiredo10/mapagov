@@ -40,12 +40,14 @@ const InterfaceConfirmacaoDupla: React.FC<InterfaceConfirmacaoDuplaProps> = ({ d
   return (
     <div className="confirmacao-dupla-container">
       <div className="botoes-confirmacao">
-        <button
-          className="btn-confirmacao btn-editar"
-          onClick={handleEditar}
-        >
-          {botao_editar}
-        </button>
+        {dados.botao_editar && (
+          <button
+            className="btn-confirmacao btn-editar"
+            onClick={handleEditar}
+          >
+            {botao_editar}
+          </button>
+        )}
         <button
           className="btn-confirmacao btn-confirmar"
           onClick={handleConfirmar}

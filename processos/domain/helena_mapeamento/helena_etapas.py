@@ -176,6 +176,29 @@ class EtapaStateMachine:
 
         # Controle interno
         self._cenario_index = 0
+        # Indice da etapa em etapas_coletadas (para merge de condicionais via form)
+        self.etapa_index: Optional[int] = None
+
+    @classmethod
+    def start_condicional(
+        cls,
+        numero_etapa: int,
+        etapa_index: int,
+        operadores_disponiveis: List[str] = None
+    ) -> 'EtapaStateMachine':
+        """
+        Cria SM ja no estado TIPO_CONDICIONAL para coletar apenas
+        a parte condicional (cenarios/subetapas).
+        Os campos lineares ja foram coletados pelo form.
+        """
+        sm = cls(
+            numero_etapa=numero_etapa,
+            operadores_disponiveis=operadores_disponiveis,
+        )
+        sm.estado = EstadoEtapa.TIPO_CONDICIONAL
+        sm.tem_condicionais = True
+        sm.etapa_index = etapa_index
+        return sm
 
     def processar(self, mensagem: str) -> Dict[str, Any]:
         """
@@ -264,6 +287,7 @@ class EtapaStateMachine:
             'cenarios': [c.to_dict() for c in self.cenarios],
             'detalhes': self.detalhes,
             '_cenario_index': self._cenario_index,
+            'etapa_index': self.etapa_index,
             'sistemas_disponiveis': self.sistemas_disponiveis,
             'operadores_disponiveis': self.operadores_disponiveis
         }
@@ -288,6 +312,7 @@ class EtapaStateMachine:
         sm.antes_decisao = data.get('antes_decisao')
         sm.detalhes = data.get('detalhes', [])
         sm._cenario_index = data.get('_cenario_index', 0)
+        sm.etapa_index = data.get('etapa_index')
 
         # Reconstruir cenários
         cenarios_data = data.get('cenarios', [])

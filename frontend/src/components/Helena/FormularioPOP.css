@@ -413,6 +413,15 @@
   box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
 }
 
+.btn-form .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Modo Revisão */
 .form-section.modo-revisao .form-header {
   background: linear-gradient(135deg, #28a745, #20c997);

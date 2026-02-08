@@ -14,7 +14,10 @@ REGRA: Nenhum hardcode de cor nos renderers - tudo vem daqui.
 CORES = {
     "azul_primario": "#1351B4",
     "azul_escuro": "#071D41",
+    "azul_claro": "#F0F4FF",
+    "azul_capa_detalhe": "#1E5FBF",
     "cinza_texto": "#636363",
+    "cinza_escuro": "#333333",
     "cinza_linha": "#E8E8E8",
     "cinza_fundo": "#F9FAFB",
     "branco": "#FFFFFF",
@@ -58,8 +61,12 @@ ESPACO = {
 # =============================================================================
 
 TIPO = {
+    "titulo_capa": 32,
     "titulo": 18,
-    "secao": 13,
+    "secao": 14,
+    "secao_pdf": 13,
+    "texto_medio": 12,
+    "texto_base": 11,
     "subsecao": 10,
     "texto": 9,
     "small": 8,

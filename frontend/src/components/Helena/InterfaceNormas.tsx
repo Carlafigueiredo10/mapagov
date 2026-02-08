@@ -6,9 +6,6 @@ interface Norma {
   nome_curto: string;
   nome_completo: string;
   artigos: string;
-  confianca?: number;
-  grupo?: string;
-  label?: string;
 }
 
 interface InterfaceNormasProps {
@@ -19,34 +16,20 @@ interface InterfaceNormasProps {
 const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) => {
   const [normasSelecionadas, setNormasSelecionadas] = useState<string[]>([]);
   const [categoriaAberta, setCategoriaAberta] = useState<string | null>(null);
-  const [mostrarTodas, setMostrarTodas] = useState(false);
   const [mostrarNormasManuais, setMostrarNormasManuais] = useState(false);
   const [normasManuais, setNormasManuais] = useState<string[]>([]);
   const [normaManualInput, setNormaManualInput] = useState<string>('');
   const [termoBusca, setTermoBusca] = useState<string>('');
 
-
-  // Extrair sugestões do backend (top 3)
-  const sugestoes = useMemo(() => {
-    const sugestoesDados = (dados as { sugestoes?: Norma[] })?.sugestoes;
-    if (sugestoesDados && Array.isArray(sugestoesDados)) {
-      return sugestoesDados;
-    }
-    return [];
-  }, [dados]);
-
-  // Extrair grupos de normas do backend (DECIPEX v2.2)
+  // Extrair grupos de normas do backend
   const categorias = useMemo(() => {
     const gruposDados = (dados as { grupos?: Record<string, { label: string; itens: Norma[] }> })?.grupos;
 
-    // Se não vier do backend, retornar vazio (não usar mais fallback hardcoded)
     if (!gruposDados || typeof gruposDados !== 'object') {
       return {};
     }
 
-    // Converter estrutura do backend para formato do frontend
     const categoriasFormatadas: Record<string, Norma[]> = {};
-
     Object.entries(gruposDados).forEach(([grupoKey, grupoData]) => {
       const label = grupoData.label || grupoKey;
       categoriasFormatadas[label] = grupoData.itens || [];
@@ -65,11 +48,6 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
 
   const toggleCategoria = (categoria: string) => {
     setCategoriaAberta(prev => (prev === categoria ? null : categoria));
-  };
-
-  const selecionarTodasSugestoes = () => {
-    const nomesSugestoes = sugestoes.map(s => s.nome_completo);
-    setNormasSelecionadas(nomesSugestoes);
   };
 
   const limparSelecao = () => {
@@ -123,24 +101,19 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
   }, [categorias, termoBusca]);
 
   const handleConfirm = () => {
-    // Combinar normas selecionadas + normas manuais
     const todasNormas = [...normasSelecionadas, ...normasManuais];
-
     const resposta = todasNormas.length > 0
       ? todasNormas.join(" | ")
       : "nenhuma";
     onConfirm(resposta);
   };
 
-  // Total de normas (selecionadas + manuais)
   const totalNormas = normasSelecionadas.length + normasManuais.length;
-
-  // Extrair texto de introdução (se houver)
   const textoIntroducao = (dados as { texto_introducao?: string })?.texto_introducao;
 
   return (
     <div className="interface-container fade-in">
-      {/* Texto de Introdução (vem do backend) */}
+      {/* Texto de Introdução */}
       {textoIntroducao && (
         <div className="interface-intro" style={{
           marginBottom: '20px',
@@ -150,23 +123,21 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           borderLeft: '4px solid #1351B4',
           lineHeight: '1.8'
         }}>
-          <div style={{
-            lineHeight: '1.8'
-          }}>
+          <div style={{ lineHeight: '1.8' }}>
             <ReactMarkdown>{textoIntroducao}</ReactMarkdown>
           </div>
         </div>
       )}
 
-      {/* Cabeçalho Unificado */}
-      <div className="interface-title">📚 Normas e Dispositivos Legais</div>
+      {/* Cabeçalho */}
+      <div className="interface-title">Normas e Dispositivos Legais</div>
 
-      {/* Contador de Seleção - Chips Removíveis */}
+      {/* Chips de normas selecionadas */}
       {totalNormas > 0 && (
         <div className="chips-container">
           <div className="chips-header">
             <span className="chips-count">
-              {totalNormas} norma(s) selecionada(s) ({normasSelecionadas.length} selecionadas + {normasManuais.length} digitadas) ✅
+              {totalNormas} norma(s) selecionada(s)
             </span>
             <button className="btn-limpar-chips" onClick={limparSelecao} type="button">
               Limpar selecionadas
@@ -182,7 +153,20 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
                   type="button"
                   aria-label="Remover norma"
                 >
-                  ✕
+                  x
+                </button>
+              </div>
+            ))}
+            {normasManuais.map((norma, idx) => (
+              <div key={`manual-${idx}`} className="chip chip-manual">
+                <span className="chip-text">{norma}</span>
+                <button
+                  className="chip-remove"
+                  onClick={() => removerNormaManual(norma)}
+                  type="button"
+                  aria-label="Remover norma"
+                >
+                  x
                 </button>
               </div>
             ))}
@@ -190,72 +174,21 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
         </div>
       )}
 
-      {/* Layout Vertical Progressivo */}
       <div className="vertical-progressive-layout">
 
-        {/* 1️⃣ SEÇÃO: SUGESTÕES AUTOMÁTICAS (HELENA) */}
-        <div className="section-card section-sugestoes">
-          <div className="section-header">
-            <h3>💡 Minhas Sugestões</h3>
-            {sugestoes.length > 0 && (
-              <button
-                className="btn-inline-action"
-                onClick={selecionarTodasSugestoes}
-                type="button"
-              >
-                Selecionar todas
-              </button>
-            )}
-          </div>
-
-          {sugestoes.length > 0 ? (
-            <div className="normas-list">
-              {sugestoes.map((norma, idx) => (
-                <div
-                  key={idx}
-                  className={`norma-card ${normasSelecionadas.includes(norma.nome_completo) ? 'selected' : ''}`}
-                  onClick={() => toggleNorma(norma.nome_completo)}
-                >
-                  <input
-                    type="checkbox"
-                    readOnly
-                    checked={normasSelecionadas.includes(norma.nome_completo)}
-                  />
-                  <div className="norma-info">
-                    {norma.label && (
-                      <div className="norma-grupo-label">{norma.label}</div>
-                    )}
-                    <strong>{norma.nome_curto}</strong>
-                    <p>{norma.nome_completo}</p>
-                    <small>Artigos: {norma.artigos}</small>
-                    {norma.confianca && (
-                      <span className="confianca">Relevância: {norma.confianca}%</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <p>Desculpa, li aqui e não consegui identificar a norma da sua atividade.</p>
-            </div>
-          )}
-        </div>
-
-        {/* 2️⃣ SEÇÃO: EXPLORAR BIBLIOTECA COMPLETA */}
+        {/* 1. LISTA DE NORMAS CADASTRADAS */}
         <div className="section-card section-biblioteca">
           <div className="section-header">
-            <h3>📚 Explorar Biblioteca Completa</h3>
-            <p className="section-desc">Quer ver todas as normas da nossa biblioteca? Busque por tema ou nome.</p>
+            <h3>Lista de normas cadastradas</h3>
+            <p className="section-desc">Busque por tema ou nome da norma.</p>
           </div>
 
-          {/* Campo de Busca Instantânea */}
           <div className="search-container">
             <Search size={18} className="search-icon" />
             <input
               type="text"
               className="search-input"
-              placeholder="🔎 Buscar por nome, número ou artigo da norma..."
+              placeholder="Buscar por nome, numero ou artigo da norma..."
               value={termoBusca}
               onChange={(e) => setTermoBusca(e.target.value)}
             />
@@ -265,12 +198,11 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
                 onClick={() => setTermoBusca('')}
                 type="button"
               >
-                ✕
+                x
               </button>
             )}
           </div>
 
-          {/* Acordeão de Categorias */}
           {Object.keys(categoriasFiltradas).length > 0 ? (
             <div className="categorias-acordeao">
               {Object.entries(categoriasFiltradas).map(([categoria, normas]) => (
@@ -315,90 +247,35 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           )}
         </div>
 
-        {/* Mostrar normas digitadas manualmente */}
-        {normasManuais.length > 0 && (
-          <div className="normas-digitadas">
-            <div className="normas-digitadas-label">
-              📝 Normas adicionadas manualmente:
-            </div>
-            <div className="normas-digitadas-lista">
-              {normasManuais.map((norma, idx) => (
-                <div key={idx} className="norma-digitada-card">
-                  <span className="norma-digitada-nome">{norma}</span>
-                  <button
-                    className="btn-remover-norma-digitada"
-                    onClick={() => removerNormaManual(norma)}
-                    title="Remover"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 3️⃣ SEÇÃO: BUSCAR / ADICIONAR - Ações Finais */}
-        <div className="section-card section-actions">
+        {/* 2. ADICIONAR MANUALMENTE */}
+        <div className="section-card section-manual">
           <div className="section-header">
-            <h3>🔍 Não encontrou?</h3>
-            <p className="section-desc">Você pode tentar a busca inteligente ou adicionar manualmente.</p>
+            <h3>Adicionar norma manualmente</h3>
+            <p className="section-desc">Informe normas que nao constam na lista acima.</p>
           </div>
 
-          <div className="actions-row">
-            {/* Botão IA Legis */}
-            <div className="action-group">
-              <button
-                className="btn-ia-legis"
-                onClick={abrirIALegis}
-                type="button"
-                title="A IA do Legis vai procurar outras normas relacionadas ao seu processo"
-              >
-                🔍 Consultar IA do Sigepe Legis
-              </button>
-              <small className="action-hint">A IA do Legis procura outras normas relacionadas</small>
-            </div>
-
-            {/* Botão Adicionar Manualmente */}
-            <div className="action-group">
-              {!mostrarNormasManuais ? (
-                <button
-                  className="btn-adicionar-manual"
-                  onClick={() => setMostrarNormasManuais(true)}
-                  type="button"
-                >
-                  ➕ Adicionar norma manualmente
-                </button>
-              ) : (
-                <button
-                  className="btn-cancelar-manual"
-                  onClick={() => setMostrarNormasManuais(false)}
-                  type="button"
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Campo Manual (estilo sistemas) */}
-          {mostrarNormasManuais && (
+          {!mostrarNormasManuais ? (
+            <button
+              className="btn-adicionar-manual"
+              onClick={() => setMostrarNormasManuais(true)}
+              type="button"
+            >
+              + Adicionar norma manualmente
+            </button>
+          ) : (
             <div className="campo-manual">
-              <div className="campo-manual-label">
-                Não achou alguma norma? ✍️ Digite manualmente no campo abaixo.
-              </div>
               <div className="campo-manual-input-group">
                 <input
                   type="text"
                   className="campo-manual-input"
-                  placeholder="Ex: Art. 34 da IN SGP nº 97/2022"
+                  placeholder="Ex: Art. 34 da IN SGP n. 97/2022"
                   value={normaManualInput}
                   onChange={(e) => setNormaManualInput(e.target.value)}
-                  onKeyPress={handleKeyPressNormaManual}
+                  onKeyDown={handleKeyPressNormaManual}
                   maxLength={300}
                 />
                 <button
-                  className="btn-adicionar-manual"
+                  className="btn-add"
                   onClick={adicionarNormaManual}
                   disabled={!normaManualInput.trim()}
                   type="button"
@@ -406,15 +283,38 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
                   + Adicionar
                 </button>
               </div>
+              <button
+                className="btn-cancelar-manual"
+                onClick={() => setMostrarNormasManuais(false)}
+                type="button"
+              >
+                Fechar
+              </button>
             </div>
           )}
         </div>
+
+        {/* 3. SIGEPE LEGIS IA */}
+        <div className="section-card section-legis">
+          <div className="section-header">
+            <h3>IA do Sigepe Legis</h3>
+            <p className="section-desc">Ferramenta mantida pelo setor de legislacao para apoio na pesquisa de normas.</p>
+          </div>
+
+          <button
+            className="btn-ia-legis"
+            onClick={abrirIALegis}
+            type="button"
+          >
+            Consultar IA do Sigepe Legis
+          </button>
+        </div>
       </div>
 
-      {/* Rodapé - Ações de Confirmação */}
+      {/* Rodape */}
       <div className="footer-actions">
         <button className="btn-interface btn-secondary" onClick={() => onConfirm('nao sei')}>
-          Não Sei
+          Nao Sei
         </button>
         <button
           className="btn-interface btn-primary"
@@ -426,7 +326,6 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
       </div>
 
       <style>{`
-        /* ========== CABEÇALHO ========== */
         .interface-title {
           font-size: 1.5rem;
           font-weight: 700;
@@ -435,27 +334,13 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           text-align: center;
         }
 
-        .interface-subtitle {
-          font-size: 0.9rem;
-          color: #6c757d;
-          text-align: center;
-          margin-bottom: 1.5rem;
-          line-height: 1.5;
-        }
-
-        /* ========== CHIPS CONTAINER (Normas Selecionadas) ========== */
+        /* ========== CHIPS ========== */
         .chips-container {
           margin-bottom: 1.5rem;
           padding: 1rem;
-          background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+          background: #e8f5e9;
           border: 2px solid #66bb6a;
           border-radius: 12px;
-          animation: fadeIn 0.3s ease-in;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
         }
 
         .chips-header {
@@ -504,11 +389,10 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           border-radius: 20px;
           font-size: 0.85rem;
           max-width: 100%;
-          transition: all 0.2s;
         }
 
-        .chip:hover {
-          box-shadow: 0 2px 8px rgba(102, 187, 106, 0.3);
+        .chip-manual {
+          border-color: #ffc107;
         }
 
         .chip-text {
@@ -542,7 +426,7 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           color: white;
         }
 
-        /* ========== LAYOUT VERTICAL PROGRESSIVO ========== */
+        /* ========== LAYOUT ========== */
         .vertical-progressive-layout {
           display: flex;
           flex-direction: column;
@@ -550,34 +434,26 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           margin-bottom: 1.5rem;
         }
 
-        /* ========== SEÇÃO CARD (Comum) ========== */
         .section-card {
           background: white;
           border-radius: 12px;
           padding: 1.5rem;
           border: 2px solid #e0e6ed;
-          transition: all 0.3s;
-        }
-
-        .section-card:hover {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-
-        .section-sugestoes {
-          border-left: 4px solid #1351B4;
         }
 
         .section-biblioteca {
-          border-left: 4px solid #6c757d;
+          border-left: 4px solid #1351B4;
         }
 
-        .section-actions {
+        .section-manual {
           border-left: 4px solid #28a745;
-          background: #f8f9fa;
+        }
+
+        .section-legis {
+          border-left: 4px solid #667eea;
         }
 
         .section-header {
-          position: relative;
           margin-bottom: 1.25rem;
         }
 
@@ -589,41 +465,13 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
         }
 
         .section-desc {
-          margin: 0 0 0.75rem 0;
+          margin: 0;
           font-size: 0.85rem;
           color: #6c757d;
           line-height: 1.5;
         }
 
-        .btn-inline-action {
-          position: absolute;
-          top: 0;
-          right: 0;
-          padding: 0.4rem 0.9rem;
-          background: #1351B4;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 0.8rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-inline-action:hover {
-          background: #0d3a85;
-          transform: translateY(-1px);
-        }
-
-        /* ========== EMPTY STATE ========== */
-        .empty-state {
-          text-align: center;
-          padding: 2rem;
-          color: #6c757d;
-          font-size: 0.9rem;
-        }
-
-        /* ========== BUSCA INSTANTÂNEA ========== */
+        /* ========== BUSCA ========== */
         .search-container {
           position: relative;
           margin-bottom: 1rem;
@@ -668,353 +516,9 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           justify-content: center;
           cursor: pointer;
           font-size: 0.9rem;
-          transition: all 0.2s;
         }
 
-        .clear-search:hover {
-          background: #c82333;
-        }
-
-        /* ========== AÇÕES ROW (IA Legis + Adicionar Manual) ========== */
-        .actions-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1rem;
-          margin-top: 1rem;
-        }
-
-        @media (max-width: 768px) {
-          .actions-row {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        .action-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .action-hint {
-          color: #6c757d;
-          font-size: 0.75rem;
-          text-align: center;
-        }
-
-        .btn-ia-legis {
-          width: 100%;
-          padding: 0.9rem;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-ia-legis:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-adicionar-manual {
-          width: 100%;
-          padding: 0.9rem;
-          background: white;
-          color: #28a745;
-          border: 2px dashed #28a745;
-          border-radius: 8px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-adicionar-manual:hover {
-          background: #28a745;
-          color: white;
-          border-style: solid;
-        }
-
-        .btn-cancelar-manual {
-          width: 100%;
-          padding: 0.9rem;
-          background: #6c757d;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-cancelar-manual:hover {
-          background: #5a6268;
-        }
-
-        /* ========== NORMAS DIGITADAS MANUALMENTE ========== */
-        .normas-digitadas {
-          margin: 20px 0;
-          padding: 16px;
-          background: #e8f5e9;
-          border-radius: 8px;
-          border: 2px solid #4caf50;
-        }
-
-        .normas-digitadas-label {
-          margin-bottom: 12px;
-          font-size: 14px;
-          color: #2e7d32;
-          font-weight: 600;
-        }
-
-        .normas-digitadas-lista {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .norma-digitada-card {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          background: white;
-          border: 2px solid #4caf50;
-          border-radius: 20px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #2e7d32;
-        }
-
-        .norma-digitada-nome {
-          flex: 1;
-        }
-
-        .btn-remover-norma-digitada {
-          width: 20px;
-          height: 20px;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #f44336;
-          color: white;
-          border: none;
-          border-radius: 50%;
-          cursor: pointer;
-          font-size: 12px;
-          line-height: 1;
-          transition: all 0.2s;
-        }
-
-        .btn-remover-norma-digitada:hover {
-          background: #d32f2f;
-          transform: scale(1.1);
-        }
-
-        /* ========== CAMPO MANUAL (estilo sistemas) ========== */
-        .campo-manual {
-          margin: 24px 0;
-          padding: 20px;
-          background: #fff9e6;
-          border-radius: 8px;
-          border: 2px dashed #ffc107;
-        }
-
-        .campo-manual-label {
-          margin-bottom: 12px;
-          font-size: 14px;
-          color: #856404;
-          font-weight: 500;
-        }
-
-        .campo-manual-input-group {
-          display: flex;
-          gap: 8px;
-        }
-
-        .campo-manual-input {
-          flex: 1;
-          padding: 10px 14px;
-          border: 2px solid #ddd;
-          border-radius: 6px;
-          font-size: 14px;
-          transition: all 0.2s;
-        }
-
-        .campo-manual-input:focus {
-          outline: none;
-          border-color: #1351B4;
-          background: #f8f9fa;
-        }
-
-        .btn-adicionar-manual {
-          padding: 10px 20px;
-          background: #28a745;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 500;
-          transition: all 0.2s;
-          white-space: nowrap;
-        }
-
-        .btn-adicionar-manual:hover:not(:disabled) {
-          background: #218838;
-        }
-
-        .btn-adicionar-manual:disabled {
-          background: #6c757d;
-          cursor: not-allowed;
-          opacity: 0.5;
-        }
-
-        /* ========== FOOTER ACTIONS ========== */
-        .footer-actions {
-          margin-top: 2rem;
-          padding-top: 1.5rem;
-          border-top: 3px solid #1351B4;
-          display: flex;
-          gap: 1rem;
-          justify-content: flex-end;
-        }
-
-        /* ========== CARDS DE NORMAS ========== */
-        .normas-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .norma-card {
-          display: flex;
-          gap: 1rem;
-          padding: 1rem;
-          background: white;
-          border: 2px solid #dee2e6;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .norma-card:hover {
-          border-color: #1351B4;
-          box-shadow: 0 2px 8px rgba(19, 81, 180, 0.15);
-          transform: translateX(4px);
-        }
-
-        .norma-card.selected {
-          border-color: #28a745;
-          background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
-          animation: selectedPulse 0.3s ease-in;
-        }
-
-        @keyframes selectedPulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.02); }
-          100% { transform: scale(1); }
-        }
-
-        .norma-card input[type="checkbox"] {
-          margin-top: 0.25rem;
-          cursor: pointer;
-        }
-
-        .norma-info {
-          flex: 1;
-        }
-
-        .norma-grupo-label {
-          display: inline-block;
-          margin-bottom: 0.5rem;
-          padding: 0.25rem 0.75rem;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border-radius: 12px;
-          font-size: 0.75rem;
-          font-weight: 600;
-          letter-spacing: 0.3px;
-        }
-
-        .norma-info strong {
-          color: #1351B4;
-          font-size: 1rem;
-        }
-
-        .norma-info p {
-          margin: 0.25rem 0;
-          font-size: 0.9rem;
-          color: #495057;
-        }
-
-        .norma-info small {
-          color: #6c757d;
-          font-size: 0.85rem;
-        }
-
-        .confianca {
-          display: inline-block;
-          margin-left: 1rem;
-          padding: 0.25rem 0.5rem;
-          background: #28a745;
-          color: white;
-          border-radius: 4px;
-          font-size: 0.75rem;
-          font-weight: bold;
-        }
-
-        .visualizar-mais-section {
-          margin: 1.5rem 0;
-          text-align: center;
-        }
-
-        .btn-visualizar-mais {
-          padding: 0.75rem 1.5rem;
-          background: #6c757d;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 0.9rem;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-
-        .btn-visualizar-mais:hover {
-          background: #5a6268;
-        }
-
-        .nao-encontrei-section {
-          margin: 1.5rem 0;
-          text-align: center;
-        }
-
-        .btn-nao-encontrei {
-          padding: 1rem 2rem;
-          background: #ffc107;
-          color: #856404;
-          border: 2px solid #ffc107;
-          border-radius: 8px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s;
-          box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
-        }
-
-        .btn-nao-encontrei:hover {
-          background: #ffca2c;
-          border-color: #ffca2c;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(255, 193, 7, 0.3);
-        }
-
+        /* ========== ACORDEAO ========== */
         .categorias-acordeao {
           margin-top: 1rem;
           border: 1px solid #dee2e6;
@@ -1078,13 +582,11 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
         .norma-card-small:hover {
           border-color: #1351B4;
           background: #f0f4ff;
-          transform: translateX(4px);
         }
 
         .norma-card-small.selected {
           border-color: #28a745;
-          background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
-          animation: selectedPulse 0.3s ease-in;
+          background: #e8f5e9;
         }
 
         .norma-info-small {
@@ -1103,43 +605,124 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           margin-top: 0.25rem;
         }
 
-        .contador-e-limpar {
+        /* ========== CAMPO MANUAL ========== */
+        .btn-adicionar-manual {
+          width: 100%;
+          padding: 0.9rem;
+          background: white;
+          color: #28a745;
+          border: 2px dashed #28a745;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-adicionar-manual:hover {
+          background: #28a745;
+          color: white;
+          border-style: solid;
+        }
+
+        .campo-manual {
           display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 1rem;
-          margin: 1rem 0;
-          padding: 0.75rem;
-          background: #f8f9fa;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .campo-manual-input-group {
+          display: flex;
+          gap: 8px;
+        }
+
+        .campo-manual-input {
+          flex: 1;
+          padding: 10px 14px;
+          border: 2px solid #ddd;
           border-radius: 6px;
+          font-size: 14px;
+          transition: all 0.2s;
         }
 
-        .contador-normas {
-          font-weight: 500;
-          color: #495057;
+        .campo-manual-input:focus {
+          outline: none;
+          border-color: #1351B4;
+          background: #f8f9fa;
         }
 
-        .btn-limpar-selecao {
-          padding: 0.5rem 1rem;
-          background: #dc3545;
+        .btn-add {
+          padding: 10px 20px;
+          background: #28a745;
           color: white;
           border: none;
-          border-radius: 4px;
-          font-size: 0.85rem;
-          font-weight: 500;
+          border-radius: 6px;
           cursor: pointer;
-          transition: background 0.2s;
+          font-size: 14px;
+          font-weight: 500;
           white-space: nowrap;
         }
 
-        .btn-limpar-selecao:hover {
-          background: #c82333;
+        .btn-add:hover:not(:disabled) {
+          background: #218838;
         }
 
-        .action-buttons {
+        .btn-add:disabled {
+          background: #6c757d;
+          cursor: not-allowed;
+          opacity: 0.5;
+        }
+
+        .btn-cancelar-manual {
+          padding: 0.5rem;
+          background: transparent;
+          color: #6c757d;
+          border: 1px solid #dee2e6;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          cursor: pointer;
+        }
+
+        .btn-cancelar-manual:hover {
+          background: #f8f9fa;
+        }
+
+        /* ========== LEGIS ========== */
+        .btn-ia-legis {
+          width: 100%;
+          padding: 0.9rem;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-ia-legis:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* ========== EMPTY STATE ========== */
+        .empty-state {
+          text-align: center;
+          padding: 2rem;
+          color: #6c757d;
+          font-size: 0.9rem;
+        }
+
+        /* ========== FOOTER ========== */
+        .footer-actions {
+          margin-top: 2rem;
+          padding-top: 1.5rem;
+          border-top: 3px solid #1351B4;
           display: flex;
           gap: 1rem;
-          margin-top: 1.5rem;
+          justify-content: flex-end;
         }
 
         .btn-interface {
@@ -1170,8 +753,7 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           background: #0056b3;
         }
 
-
-        /* ========== MARKDOWN FORMATTING ========== */
+        /* ========== MARKDOWN ========== */
         .interface-intro p {
           margin: 0 0 12px 0;
           line-height: 1.8;

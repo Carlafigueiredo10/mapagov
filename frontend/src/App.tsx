@@ -56,7 +56,7 @@ function App() {
         <Route path="/portal" element={<Portal />} />
 
         {/* Rota: Mapeamento de Atividades (POP) */}
-        <Route path="/chat" element={<MapeamentoProcessosPage />} />
+        <Route path="/pop" element={<MapeamentoProcessosPage />} />
 
         {/* Rota: Análise de Riscos */}
         <Route path="/riscos" element={<AnaliseRiscosPage />} />

@@ -25,7 +25,7 @@ export default function Footer() {
               <li><Link to="/portal">Portal</Link></li>
               <li><a href="#funcionalidades">Funcionalidades</a></li>
               <li><a href="#roadmap">Roadmap</a></li>
-              <li><Link to="/chat">Helena IA</Link></li>
+              <li><Link to="/pop">Helena IA</Link></li>
               <li><a href="#base-legal">Base Legal</a></li>
             </ul>
           </div>
@@ -33,7 +33,7 @@ export default function Footer() {
           <div>
             <h5>Recursos</h5>
             <ul>
-              <li><Link to="/chat">Assistente IA</Link></li>
+              <li><Link to="/pop">Assistente IA</Link></li>
               <li><Link to="/fluxograma">Fluxogramas</Link></li>
               <li><Link to="/riscos">Análise de Riscos</Link></li>
               <li><a href="#roadmap">Próximos Lançamentos</a></li>
@@ -45,7 +45,7 @@ export default function Footer() {
             <h5>Contato</h5>
             <ul>
               <li><Link to="/portal">Demonstração</Link></li>
-              <li><Link to="/chat">Começar Agora</Link></li>
+              <li><Link to="/pop">Começar Agora</Link></li>
               <li><a href="#funcionalidades">Recursos</a></li>
               <li><Link to="/portal">Suporte</Link></li>
             </ul>

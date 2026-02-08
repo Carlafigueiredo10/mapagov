@@ -22,7 +22,7 @@ export default function Landing() {
               </p>
 
               <div className={styles.heroButtons}>
-                <Link to="/chat" className={styles.btn}>
+                <Link to="/pop" className={styles.btn}>
                   Começar Mapeamento
                 </Link>
                 <Link to="/riscos" className={`${styles.btn} ${styles.btnOutline}`}>
@@ -88,7 +88,7 @@ export default function Landing() {
           </p>
 
           <div className={styles.featuresGrid}>
-            <Link to="/chat" className={styles.featureCard}>
+            <Link to="/pop" className={styles.featureCard}>
               <span className={styles.featureIcon}>🗺️</span>
               <h3>Mapeamento de Processos</h3>
               <p>

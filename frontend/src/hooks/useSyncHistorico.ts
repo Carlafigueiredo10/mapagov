@@ -2,18 +2,17 @@ import { useEffect, useRef } from 'react';
 import { useChatStore } from '../store/chatStore';
 import { buscarMensagensV2 } from '../services/helenaApi';
 
-// Mensagem de boas-vindas hardcoded (mesmo tom da Helena)
-const MENSAGEM_BOAS_VINDAS = `👋 Oi!
+// Mensagem de boas-vindas institucional
+const MENSAGEM_BOAS_VINDAS = `Boas-vindas à etapa de mapeamento do MapaGov.
 
-Se é a sua primeira vez por aqui, sinta-se em casa 🏠
-Eu sou a Helena, sua parceira de jornada no MapaGov uma plataforma da DECIPEX criada pra transformar o que você faz no dia a dia em processos claros, seguros e vivos.
+Sou a Helena, assistente do sistema, e vou apoiar o registro deste Procedimento Operacional Padrão (POP).
 
-E se você já me conhece... que bom te ver de novo! 💛
-Hoje, vamos começar uma das partes mais legais: mapear a sua atividade.
+Este ambiente permite transformar atividades reais em processos documentados, claros e rastreáveis.
 
-Mas antes de tudo, quero te conhecer melhor
-**como posso te chamar por aqui?**
-(só o primeiro nome já tá ótimo 😉)`;
+Para iniciar o mapeamento, preciso identificar quem está conduzindo este registro.
+
+**Como posso te chamar?**
+(Pode ser apenas o primeiro nome.)`;
 
 /**
  * Hook para sincronizar histórico de mensagens com backend
@@ -48,7 +47,7 @@ export const useSyncHistorico = () => {
 
           // Adicionar boas-vindas no início se ainda não tiver
           const jaTemBoasVindas = messages.some(
-            m => m.tipo === 'helena' && m.mensagem.includes('Eu sou a Helena, sua parceira de jornada')
+            m => m.tipo === 'helena' && m.mensagem.includes('Bem-vindo(a) ao MapaGov')
           );
 
           if (!jaTemBoasVindas) {

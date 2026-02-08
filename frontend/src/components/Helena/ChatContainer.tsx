@@ -3,7 +3,7 @@ import { Send, Save } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import ErrorMessage from './ErrorMessage';
 import SaveIndicator from './SaveIndicator';
-import PainelDesenvolvedor from './PainelDesenvolvedor';
+
 import { useChat } from '../../hooks/useChat';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { useSyncHistorico } from '../../hooks/useSyncHistorico';
@@ -19,7 +19,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
   const [saveStatus, setSaveStatus] = useState<'salvando' | 'salvo' | 'erro' | 'idle'>('idle');
   const [ultimoSalvamento, setUltimoSalvamento] = useState<Date | undefined>(undefined);
   const [mostrarSeta, setMostrarSeta] = useState(false);
-  const [painelDesenvolvedorAberto, setPainelDesenvolvedorAberto] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -137,13 +137,6 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
     }
   };
 
-  const iniciarMapeamento = async () => {
-    try {
-      await enviarMensagem('Iniciar novo mapeamento de POP');
-    } catch (error) {
-      console.error('Erro ao iniciar mapeamento:', error);
-    }
-  };
 
   const handleSalvarManual = async () => {
     setSaveStatus('salvando');
@@ -160,12 +153,6 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
 
   return (
     <div className={`chat-container ${className}`}>
-      {/* Painel de Desenvolvedor */}
-      <PainelDesenvolvedor
-        isOpen={painelDesenvolvedorAberto}
-        onClose={() => setPainelDesenvolvedorAberto(false)}
-      />
-
       {/* Header */}
       <div className="chat-header-pop">
         {/* Linha superior com botões de ação */}
@@ -180,16 +167,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
               🚀 Novo POP
             </button>
 
-            <button
-              className="header-btn dev-btn"
-              onClick={() => setPainelDesenvolvedorAberto(true)}
-              title="Abrir Painel de Desenvolvedor - Visualizar todas as funcionalidades"
-              style={{
-                background: 'linear-gradient(135deg, #8B00FF 0%, #5E00CC 100%)'
-              }}
-            >
-              🔧 Dev Panel
-            </button>
+
           </div>
 
           {/* Área de salvamento - só mostra se houver mensagens */}
@@ -223,8 +201,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
         </div>
 
         <div className="header-content">
-          <h2>Helena - Assistente DECIPEX</h2>
-          <p>Mapeamento conversacional de POPs</p>
+          <h2>POP — Mapeamento de Procedimento Operacional</h2>
+          <p>DECIPEX · Ministério da Gestão e da Inovação</p>
         </div>
 
         {/* Barra de Progresso */}

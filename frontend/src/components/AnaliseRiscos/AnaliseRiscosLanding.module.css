@@ -29,38 +29,36 @@
 
 /* ===== CABEÇALHO ===== */
 .header {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
+  text-align: center;
 }
 
 .title {
-  font-size: 32px;
-  font-weight: 600;
-  color: var(--govbr-blue-warm-vivid-70);
-  margin: 0 0 8px 0;
-  line-height: 1.25;
-}
-
-.subtitle {
-  font-size: 16px;
-  font-weight: 400;
-  color: var(--govbr-gray-60);
+  font-size: 36px;
+  font-weight: 800;
+  color: #1B4F72;
   margin: 0;
+  line-height: 1.2;
 }
 
-/* ===== TEXTO INSTITUCIONAL ===== */
-.institutionalText {
+/* ===== CONTEXTO INSTITUCIONAL (card destacado) ===== */
+.contextCard {
   font-size: 15px;
   font-weight: 400;
   color: var(--govbr-gray-80);
-  line-height: 1.6;
-  margin-bottom: 24px;
+  line-height: 1.7;
+  margin-bottom: 32px;
+  padding: 28px 32px;
+  background: var(--govbr-pure-0);
+  border: 1px solid var(--govbr-gray-20);
+  border-radius: 8px;
 }
 
-.institutionalText p {
+.contextCard p {
   margin: 0 0 12px 0;
 }
 
-.institutionalText p:last-child {
+.contextCard p:last-child {
   margin-bottom: 0;
 }
 
@@ -69,6 +67,7 @@
   margin-bottom: 32px;
   background: var(--govbr-pure-0);
   border: 1px solid var(--govbr-gray-20);
+  border-left: 4px solid var(--govbr-blue-warm-vivid-70);
   border-radius: 8px;
   padding: 32px;
 }
@@ -96,9 +95,9 @@
 }
 
 .helenaTitle {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--govbr-gray-80);
+  font-size: 24px;
+  font-weight: 700;
+  color: #1B4F72;
   margin: 0 0 12px 0;
 }
 
@@ -178,7 +177,7 @@
 }
 
 .useCaseList li::before {
-  content: "•";
+  content: "\2022";
   position: absolute;
   left: 8px;
   color: var(--govbr-blue-warm-vivid-70);
@@ -241,12 +240,31 @@
   line-height: 1.4;
 }
 
+/* ===== BLOCO DE DECISÃO ===== */
+.decisionBlock {
+  margin-top: 40px;
+  margin-bottom: 0;
+  padding: 28px 32px;
+  background: var(--govbr-gray-2);
+  border: 1px solid var(--govbr-gray-20);
+  border-radius: 8px 8px 0 0;
+}
+
+.decisionText {
+  font-size: 15px;
+  color: var(--govbr-gray-80);
+  line-height: 1.7;
+  margin: 0;
+}
+
 /* ===== CTA ===== */
 .ctaSection {
-  margin-top: 40px;
-  padding-top: 32px;
-  border-top: 1px solid var(--govbr-gray-20);
+  padding: 32px;
+  border: 1px solid var(--govbr-gray-20);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
   text-align: center;
+  background: var(--govbr-pure-0);
 }
 
 .ctaText {
@@ -292,5 +310,17 @@
 
   .container {
     padding: 24px 16px;
+  }
+
+  .contextCard {
+    padding: 20px;
+  }
+
+  .decisionBlock {
+    padding: 20px;
+  }
+
+  .ctaSection {
+    padding: 24px 20px;
   }
 }

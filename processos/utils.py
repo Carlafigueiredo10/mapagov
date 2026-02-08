@@ -18,14 +18,17 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, PageBreak, 
-    Table, TableStyle, Image, KeepTogether
+    SimpleDocTemplate, Paragraph, Spacer, PageBreak,
+    Table, TableStyle, Image, KeepTogether,
+    ListFlowable, ListItem
 )
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.lib import colors
 from reportlab.pdfgen import canvas as reportlab_canvas
 import qrcode
 from io import BytesIO
+
+from processos.export.styles import CORES, TIPO
 
 
 class ValidadorUtils:
@@ -395,9 +398,9 @@ class PDFGenerator:
     Versão 2.1 - Com paginação corrigida, metadados e QR Code funcional
     """
     
-    COR_AZUL_GOVBR = colors.HexColor('#1351B4')
-    COR_AZUL_CLARO = colors.HexColor('#F0F4FF')
-    COR_CINZA_CLARO = colors.HexColor('#F8F8F8')
+    COR_AZUL_GOVBR = colors.HexColor(CORES['azul_primario'])
+    COR_AZUL_CLARO = colors.HexColor(CORES['azul_claro'])
+    COR_CINZA_CLARO = colors.HexColor(CORES['cinza_fundo'])
     
     def __init__(self):
         """Inicializa gerador com configurações padrão"""
@@ -412,7 +415,7 @@ class PDFGenerator:
             'titulo_capa': ParagraphStyle(
                 'titulo_capa',
                 parent=estilos_base['Heading1'],
-                fontSize=32,
+                fontSize=TIPO['titulo_capa'],
                 textColor=colors.white,
                 alignment=TA_CENTER,
                 spaceAfter=20,
@@ -422,7 +425,7 @@ class PDFGenerator:
             'subtitulo_capa': ParagraphStyle(
                 'subtitulo_capa',
                 parent=estilos_base['Normal'],
-                fontSize=18,
+                fontSize=TIPO['titulo'],
                 textColor=colors.white,
                 alignment=TA_CENTER,
                 spaceAfter=10,
@@ -432,7 +435,7 @@ class PDFGenerator:
             'titulo_secao': ParagraphStyle(
                 'titulo_secao',
                 parent=estilos_base['Heading2'],
-                fontSize=14,
+                fontSize=TIPO['secao'],
                 textColor=self.COR_AZUL_GOVBR,
                 spaceAfter=12,
                 spaceBefore=20,
@@ -444,7 +447,7 @@ class PDFGenerator:
             'texto_normal': ParagraphStyle(
                 'texto_normal',
                 parent=estilos_base['Normal'],
-                fontSize=11,
+                fontSize=TIPO['texto_base'],
                 alignment=TA_JUSTIFY,
                 spaceAfter=10,
                 fontName='Helvetica',
@@ -453,7 +456,7 @@ class PDFGenerator:
             'texto_identificacao': ParagraphStyle(
                 'texto_identificacao',
                 parent=estilos_base['Normal'],
-                fontSize=10,
+                fontSize=TIPO['subsecao'],
                 alignment=TA_LEFT,
                 spaceAfter=6,
                 fontName='Helvetica',
@@ -462,7 +465,7 @@ class PDFGenerator:
             'lista_item': ParagraphStyle(
                 'lista_item',
                 parent=estilos_base['Normal'],
-                fontSize=11,
+                fontSize=TIPO['texto_base'],
                 alignment=TA_LEFT,
                 spaceAfter=8,
                 leftIndent=20,
@@ -581,13 +584,13 @@ class PDFGenerator:
             ParagraphStyle(
                 'texto_qr',
                 parent=self.estilos['subtitulo_capa'],
-                fontSize=12,
+                fontSize=TIPO['texto_medio'],
                 alignment=TA_CENTER
             )
         )
         elementos.append(texto_qr)
         elementos.append(Spacer(1, 0.5*cm))
-        
+
         # QR Code com URL funcional
         codigo_processo = dados.get('codigo_processo', 'xxxx')
         if url_base:
@@ -595,11 +598,11 @@ class PDFGenerator:
         else:
             # URL padrão caso não seja fornecida
             url_processo = f"https://mapagov.app/pop/{codigo_processo}"
-        
+
         qr_img = self._gerar_qr_code(url_processo)
         if qr_img:
             elementos.append(qr_img)
-        
+
         # Data de geração (novo)
         elementos.append(Spacer(1, 0.5*cm))
         data_geracao = datetime.now().strftime("%d/%m/%Y às %H:%M")
@@ -608,7 +611,7 @@ class PDFGenerator:
             ParagraphStyle(
                 'texto_data_capa',
                 parent=self.estilos['subtitulo_capa'],
-                fontSize=10,
+                fontSize=TIPO['subsecao'],
                 alignment=TA_CENTER
             )
         )
@@ -703,7 +706,7 @@ class PDFGenerator:
         return elementos
 
     def _gerar_secao_etapas(self, etapas: list) -> List:
-        """Gera seção 5. TAREFAS com formatação rica (operador, sistemas, cenários)."""
+        """Gera seção 5. TAREFAS com KeepTogether e ListFlowable."""
         elementos = []
         elementos.append(Paragraph("5. TAREFAS REALIZADAS NA ATIVIDADE", self.estilos['titulo_secao']))
         elementos.append(Spacer(1, 0.3*cm))
@@ -713,80 +716,252 @@ class PDFGenerator:
             elementos.append(Spacer(1, 0.5*cm))
             return elementos
 
+        # Estilo para metadados de etapa (indentado)
+        estilo_meta = ParagraphStyle(
+            'EtapaMeta', parent=self.estilos['texto_normal'],
+            leftIndent=20, fontSize=TIPO['texto'], textColor=colors.HexColor(CORES['cinza_texto']),
+            spaceAfter=2,
+        )
+        # Estilo para titulo de cenario
+        estilo_cenario = ParagraphStyle(
+            'CenarioTitulo', parent=self.estilos['texto_normal'],
+            leftIndent=20, fontSize=TIPO['texto'], textColor=self.COR_AZUL_GOVBR,
+            spaceBefore=4, spaceAfter=2,
+        )
+        # Estilo para subetapa
+        estilo_sub = ParagraphStyle(
+            'SubetapaItem', parent=self.estilos['texto_normal'],
+            leftIndent=40, fontSize=TIPO['small'], spaceAfter=1,
+        )
+
         for etapa in etapas:
             if not isinstance(etapa, dict):
                 elementos.append(Paragraph(f"• {str(etapa)}", self.estilos['lista_item']))
                 continue
 
             numero = etapa.get('numero', '')
-            descricao = etapa.get('descricao', '[Sem descrição]')
+            descricao = etapa.get('descricao', '[Sem descricao]')
             is_condicional = etapa.get('tipo') == 'condicional'
 
-            # Título da etapa
+            # --- Cabecalho da etapa (KeepTogether: titulo + metadados) ---
+            header_items = []
+
             titulo_etapa = f"<b>Etapa {numero}:</b> {descricao}"
             if is_condicional:
-                titulo_etapa += " <i>[CONDICIONAL]</i>"
-            elementos.append(Paragraph(titulo_etapa, self.estilos['lista_item']))
+                titulo_etapa += "  <i>[CONDICIONAL]</i>"
+            header_items.append(Paragraph(titulo_etapa, self.estilos['lista_item']))
 
-            # Operador
             operador = etapa.get('operador_nome', '')
             if operador:
-                elementos.append(Paragraph(f"    Operador: {operador}", self.estilos['texto_normal']))
+                header_items.append(Paragraph(f"<b>Operador:</b> {operador}", estilo_meta))
 
-            # Sistemas
             sistemas = etapa.get('sistemas', [])
-            if sistemas:
-                elementos.append(Paragraph(f"    Sistemas: {', '.join(sistemas)}", self.estilos['texto_normal']))
+            if isinstance(sistemas, list) and sistemas:
+                header_items.append(Paragraph(f"<b>Sistemas:</b> {', '.join(str(s) for s in sistemas)}", estilo_meta))
 
-            # Docs requeridos
             docs_req = etapa.get('docs_requeridos', [])
-            if docs_req:
-                elementos.append(Paragraph(f"    Docs requeridos: {', '.join(docs_req)}", self.estilos['texto_normal']))
+            if isinstance(docs_req, list) and docs_req:
+                header_items.append(Paragraph(f"<b>Docs requeridos:</b> {', '.join(str(d) for d in docs_req)}", estilo_meta))
 
-            # Docs gerados
             docs_ger = etapa.get('docs_gerados', [])
-            if docs_ger:
-                elementos.append(Paragraph(f"    Docs gerados: {', '.join(docs_ger)}", self.estilos['texto_normal']))
+            if isinstance(docs_ger, list) and docs_ger:
+                header_items.append(Paragraph(f"<b>Docs gerados:</b> {', '.join(str(d) for d in docs_ger)}", estilo_meta))
 
-            # Tempo estimado
             tempo = etapa.get('tempo_estimado')
             if tempo:
-                elementos.append(Paragraph(f"    Tempo estimado: {tempo}", self.estilos['texto_normal']))
+                header_items.append(Paragraph(f"<b>Tempo estimado:</b> {tempo}", estilo_meta))
+
+            # KeepTogether para titulo + metadados (nunca separa)
+            elementos.append(KeepTogether(header_items))
 
             if is_condicional:
-                # Antes da decisão
+                # --- Bloco DECISAO (KeepTogether: antes_decisao + 1o cenario) ---
+                decisao_items = []
+
                 antes = etapa.get('antes_decisao')
                 if antes:
                     desc_antes = antes.get('descricao', '') if isinstance(antes, dict) else str(antes)
                     if desc_antes:
-                        elementos.append(Paragraph(f"    Antes da decisão: {desc_antes}", self.estilos['texto_normal']))
+                        decisao_items.append(Paragraph(
+                            f"<b>Antes da decisao:</b> {desc_antes}", estilo_meta))
 
-                # Cenários
                 cenarios = etapa.get('cenarios', [])
-                for cenario in cenarios:
+                for idx_c, cenario in enumerate(cenarios):
                     if not isinstance(cenario, dict):
                         continue
                     c_num = cenario.get('numero', '')
                     c_desc = cenario.get('descricao', '')
-                    elementos.append(Paragraph(
-                        f"    <b>Cenário {c_num} - {c_desc}:</b>",
-                        self.estilos['texto_normal']
-                    ))
-                    for sub in cenario.get('subetapas', []):
-                        if isinstance(sub, dict):
-                            elementos.append(Paragraph(
-                                f"        {sub.get('numero', '')} {sub.get('descricao', '')}",
-                                self.estilos['texto_normal']
-                            ))
-            else:
-                # Detalhes (etapa linear)
-                detalhes = etapa.get('detalhes', [])
-                for det in detalhes:
-                    elementos.append(Paragraph(f"    • {det}", self.estilos['texto_normal']))
+                    decisao_items.append(Paragraph(
+                        f"<b>Cenario {c_num} — {c_desc}:</b>", estilo_cenario))
 
-            elementos.append(Spacer(1, 0.2*cm))
+                    subs = cenario.get('subetapas', [])
+                    if subs:
+                        sub_items = []
+                        for sub in subs:
+                            if isinstance(sub, dict):
+                                sub_items.append(ListItem(
+                                    Paragraph(
+                                        f"{sub.get('numero', '')} {sub.get('descricao', '')}",
+                                        estilo_sub),
+                                    bulletColor=self.COR_AZUL_GOVBR,
+                                ))
+                        if sub_items:
+                            decisao_items.append(ListFlowable(
+                                sub_items,
+                                bulletType='bullet',
+                                bulletFontSize=6,
+                                leftIndent=40,
+                                spaceBefore=0,
+                                spaceAfter=2,
+                            ))
+
+                    # KeepTogether: antes_decisao + primeiro cenario
+                    if idx_c == 0 and decisao_items:
+                        elementos.append(KeepTogether(decisao_items))
+                        decisao_items = []
+
+                # Cenarios restantes (sem KeepTogether forçado)
+                if decisao_items:
+                    elementos.extend(decisao_items)
+            else:
+                # --- Detalhes (etapa linear) como ListFlowable ---
+                detalhes = etapa.get('detalhes', [])
+                if isinstance(detalhes, list) and detalhes:
+                    det_items = [
+                        ListItem(
+                            Paragraph(str(det), estilo_sub),
+                            bulletColor=colors.HexColor(CORES['cinza_escuro']),
+                        )
+                        for det in detalhes if det
+                    ]
+                    if det_items:
+                        elementos.append(ListFlowable(
+                            det_items,
+                            bulletType='bullet',
+                            bulletFontSize=5,
+                            leftIndent=30,
+                            spaceBefore=2,
+                            spaceAfter=2,
+                        ))
+
+            elementos.append(Spacer(1, 0.25*cm))
 
         elementos.append(Spacer(1, 0.3*cm))
+        return elementos
+
+    def _gerar_secao_documentos(self, titulo: str, documentos: Any) -> List:
+        """
+        Gera seção de documentos como tabela estruturada.
+
+        Aceita:
+          - list[dict] (novo schema): renderiza tabela com colunas Tipo | Descrição | Uso
+          - str (legado/fallback): renderiza como texto simples
+          - list[str]: renderiza como lista com bullets
+        """
+        elementos = []
+        elementos.append(Paragraph(titulo, self.estilos['titulo_secao']))
+        elementos.append(Spacer(1, 0.3*cm))
+
+        # Fallback: string (legado ou vindo do adapter antigo)
+        if isinstance(documentos, str):
+            texto = documentos.strip() if documentos.strip() else '[Não informado]'
+            elementos.append(Paragraph(texto, self.estilos['texto_normal']))
+            elementos.append(Spacer(1, 0.5*cm))
+            return elementos
+
+        # Fallback: lista vazia ou None
+        if not documentos:
+            elementos.append(Paragraph('[Nenhum documento informado]', self.estilos['texto_normal']))
+            elementos.append(Spacer(1, 0.5*cm))
+            return elementos
+
+        # Fallback: lista de strings
+        if isinstance(documentos, list) and documentos and isinstance(documentos[0], str):
+            for doc in documentos:
+                if doc and doc.strip():
+                    elementos.append(Paragraph(f"• {doc.strip()}", self.estilos['lista_item']))
+            elementos.append(Spacer(1, 0.5*cm))
+            return elementos
+
+        # Novo schema: lista de dicts -> tabela
+        if isinstance(documentos, list) and documentos and isinstance(documentos[0], dict):
+            estilo_celula = ParagraphStyle(
+                'DocCelula', parent=self.estilos['texto_normal'],
+                fontSize=TIPO['small'], leading=11,
+            )
+            estilo_header = ParagraphStyle(
+                'DocHeader', parent=self.estilos['texto_normal'],
+                fontSize=TIPO['texto'], leading=11, textColor=colors.white,
+                fontName='Helvetica-Bold',
+            )
+
+            # Cabeçalho (5 colunas)
+            header = [
+                Paragraph('Tipo', estilo_header),
+                Paragraph('Descrição', estilo_header),
+                Paragraph('Uso', estilo_header),
+                Paragraph('Obrigatório', estilo_header),
+                Paragraph('Sistema', estilo_header),
+            ]
+            linhas = [header]
+
+            for doc in documentos:
+                if not isinstance(doc, dict):
+                    continue
+                tipo = doc.get('tipo_documento', 'Documento')
+                descricao = doc.get('descricao', '')
+                uso = doc.get('tipo_uso', '')
+                obrigatorio = 'Sim' if doc.get('obrigatorio') else 'Não'
+                sistema = doc.get('sistema', '')
+                linhas.append([
+                    Paragraph(str(tipo), estilo_celula),
+                    Paragraph(str(descricao), estilo_celula),
+                    Paragraph(str(uso), estilo_celula),
+                    Paragraph(obrigatorio, estilo_celula),
+                    Paragraph(str(sistema), estilo_celula),
+                ])
+
+            if len(linhas) <= 1:
+                elementos.append(Paragraph('[Nenhum documento informado]', self.estilos['texto_normal']))
+                elementos.append(Spacer(1, 0.5*cm))
+                return elementos
+
+            tabela = Table(linhas, colWidths=[3.5*cm, 6*cm, 2.5*cm, 2.5*cm, 3.5*cm], repeatRows=1)
+            tabela.setStyle(TableStyle([
+                # Header
+                ('BACKGROUND', (0, 0), (-1, 0), self.COR_AZUL_GOVBR),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), TIPO['texto']),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+                # Body
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), TIPO['small']),
+                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 1), (-1, -1), 'TOP'),
+                # Zebra striping
+                *[('BACKGROUND', (0, i), (-1, i), colors.HexColor(CORES['cinza_fundo']))
+                  for i in range(2, len(linhas), 2)],
+                # Grid
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor(CORES['cinza_linha'])),
+                ('BOX', (0, 0), (-1, -1), 1, self.COR_AZUL_GOVBR),
+                # Padding
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ]))
+
+            elementos.append(tabela)
+            elementos.append(Spacer(1, 0.5*cm))
+            return elementos
+
+        # Fallback final
+        elementos.append(Paragraph('[Não informado]', self.estilos['texto_normal']))
+        elementos.append(Spacer(1, 0.5*cm))
         return elementos
 
     def _gerar_controle_revisoes(self, dados: Dict[str, Any]) -> List:
@@ -816,18 +991,18 @@ class PDFGenerator:
             ['1.0', data_criacao, 'Criação inicial', nome_usuario]
         ]
         
-        tabela = Table(dados_tabela, colWidths=[3*cm, 3*cm, 7*cm, 5*cm])
+        tabela = Table(dados_tabela, colWidths=[3*cm, 3*cm, 7*cm, 5*cm], repeatRows=1)
         tabela.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), self.COR_AZUL_GOVBR),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 0), (-1, 0), TIPO['subsecao']),
             ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
             ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
             ('BACKGROUND', (0, 1), (-1, -1), colors.white),
             ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('FONTSIZE', (0, 1), (-1, -1), TIPO['texto']),
             ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 1), (-1, -1), 'TOP'),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
@@ -928,7 +1103,7 @@ class PDFGenerator:
             elementos.extend(self._gerar_secao_etapas(etapas))
             
             documentos = dados.get('documentos_utilizados', '[Não informado]')
-            elementos.extend(self._gerar_secao_conteudo(
+            elementos.extend(self._gerar_secao_documentos(
                 "6. DOCUMENTOS, FORMULÁRIOS E MODELOS UTILIZADOS",
                 documentos
             ))
@@ -949,8 +1124,8 @@ class PDFGenerator:
                     canvas.setFillColor(self.COR_AZUL_GOVBR)
                     canvas.rect(0, 0, self.largura_pagina, self.altura_pagina, fill=1, stroke=0)
                     
-                    canvas.setFillColor(colors.HexColor('#1E5FBF'))
-                    canvas.setStrokeColor(colors.HexColor('#1E5FBF'))
+                    canvas.setFillColor(colors.HexColor(CORES['azul_capa_detalhe']))
+                    canvas.setStrokeColor(colors.HexColor(CORES['azul_capa_detalhe']))
                     canvas.setLineWidth(1)
                     
                     for i in range(0, int(self.largura_pagina), 50):
