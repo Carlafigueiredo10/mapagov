@@ -11,6 +11,9 @@ from django.views.decorators.http import require_http_methods
 from django.conf import settings
 import pypdf
 from datetime import datetime
+from django.utils import timezone
+
+from .models import POP
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -813,17 +816,21 @@ def fluxograma_from_pdf(request):
             data = json.loads(request.body)
             user_message = data.get('message', '')
             pop_data = request.session.get('pop_data_fluxograma', {})
-            
-            if not pop_data:
-                return JsonResponse({
-                    'error': 'Nenhum PDF foi analisado ainda. Faça upload primeiro.',
-                    'resposta': 'Por favor, faça upload de um PDF de POP primeiro.'
-                }, status=400)
-            
+
             from .domain.helena_fluxograma.flowchart_orchestrator import HelenaFluxogramaOrchestrator as HelenaFluxograma
-            helena = HelenaFluxograma(dados_pdf=pop_data)
-            resultado = helena.processar_mensagem(user_message)
-            
+
+            # Restaurar estado conversacional da sessão Django
+            session_key = 'helena_fluxograma_state'
+            session_data = request.session.get(session_key, {})
+
+            # pop_data pode ser {} (modo manual sem PDF) — agent trata gracefully
+            helena = HelenaFluxograma(dados_pdf=pop_data or None)
+            resultado = helena.processar(user_message, session_data)
+
+            # Salvar estado atualizado (session_data mutado in-place pelo agente)
+            request.session[session_key] = session_data
+            request.session.modified = True
+
             return JsonResponse(resultado)
         
     except Exception as e:
@@ -1047,19 +1054,23 @@ def autosave_pop(request):
     """
     API de auto-save para o FormularioPOP.tsx
 
-    Recebe dados parciais do POP e salva incrementalmente.
-    Usado pelo frontend para sincronizar o formulário em tempo real.
+    Recebe dados do POP e salva incrementalmente no PostgreSQL.
+    Cria POP na primeira chamada, atualiza nas subsequentes.
+    Snapshot automatico a cada 5 saves.
 
     POST /api/pop-autosave/
     Body: {
+        "id": int | null,
+        "uuid": str | null,
         "session_id": "uuid",
-        "dados_pop": { ... dados parciais do formulário ... }
+        "nome_processo": "...",
+        "raw_payload": "{...}",
+        ...campos do formulario
     }
     """
     try:
         data = json.loads(request.body)
         session_id = data.get('session_id')
-        dados_pop = data.get('dados_pop', {})
 
         if not session_id:
             return JsonResponse({
@@ -1067,20 +1078,147 @@ def autosave_pop(request):
                 'error': 'session_id obrigatório'
             }, status=400)
 
-        # LOG: Receber dados do auto-save
         logger.info(f"[AUTO-SAVE] Sessao: {session_id}")
-        logger.debug(f"[AUTO-SAVE] Dados recebidos: {list(dados_pop.keys())}")
 
-        # TODO FASE 2: Salvar em cache Redis ou PostgreSQL
-        # Por enquanto, apenas aceitar e confirmar recebimento
-        # Futuramente: salvar em ChatSession.metadados ou criar modelo POPSnapshot
+        # Lookup: id → uuid → session_id (mais recente nao-deletado)
+        pop = None
+        pop_id = data.get('id')
+        pop_uuid = data.get('uuid')
+
+        if pop_id:
+            pop = POP.objects.filter(pk=pop_id, is_deleted=False).first()
+
+        if not pop and pop_uuid:
+            pop = POP.objects.filter(uuid=pop_uuid, is_deleted=False).first()
+
+        if not pop:
+            pop = POP.objects.filter(
+                session_id=session_id, is_deleted=False
+            ).order_by('-updated_at').first()
+
+        # Controle de concorrência: rejeitar se hash divergiu (409 Conflict)
+        client_hash = data.get('integrity_hash')
+        if client_hash and pop and pop.pk and pop.integrity_hash and client_hash != pop.integrity_hash:
+            return JsonResponse({
+                'success': False,
+                'error': 'CONFLICT',
+                'conflict': {
+                    'server_hash': pop.integrity_hash,
+                    'server_sequence': pop.autosave_sequence,
+                    'server_updated_at': pop.updated_at.isoformat() if pop.updated_at else None,
+                }
+            }, status=409)
+
+        # Criar se nao existe
+        if not pop:
+            pop = POP(
+                session_id=session_id,
+                status='draft',
+                created_by=request.user if request.user.is_authenticated else None,
+            )
+            logger.info(f"[AUTO-SAVE] Criando novo POP para sessao {session_id}")
+
+        # Mapear campos frontend → modelo
+        area = data.get('area')
+        if isinstance(area, dict):
+            pop.area_codigo = area.get('codigo', '')
+            pop.area_nome = area.get('nome', '')
+
+        campos_diretos = {
+            'macroprocesso': 'macroprocesso',
+            'codigo_processo': 'codigo_processo',
+            'nome_processo': 'nome_processo',
+            'processo_especifico': 'processo_especifico',
+            'entrega_esperada': 'entrega_esperada',
+            'dispositivos_normativos': 'dispositivos_normativos',
+            'pontos_atencao': 'pontos_atencao',
+        }
+        for frontend_key, model_field in campos_diretos.items():
+            val = data.get(frontend_key)
+            if val is not None:
+                setattr(pop, model_field, val)
+
+        # Campos JSON
+        campos_json = {
+            'sistemas': 'sistemas_utilizados',
+            'etapas': 'etapas',
+            'documentos_utilizados': 'documentos_utilizados',
+            'fluxos_entrada': 'fluxos_entrada',
+            'fluxos_saida': 'fluxos_saida',
+        }
+        for frontend_key, model_field in campos_json.items():
+            val = data.get(frontend_key)
+            if val is not None:
+                setattr(pop, model_field, val)
+
+        # Operadores: frontend envia list, modelo aceita TextField
+        operadores = data.get('operadores')
+        if operadores is not None:
+            if isinstance(operadores, list):
+                pop.operadores = ', '.join(operadores)
+            else:
+                pop.operadores = str(operadores)
+
+        # Raw payload para reconstrucao/debug
+        raw = data.get('raw_payload')
+        if raw:
+            pop.raw_payload = json.loads(raw) if isinstance(raw, str) else raw
+
+        # Incrementar sequencia e timestamps
+        pop.autosave_sequence = (pop.autosave_sequence or 0) + 1
+        pop.last_autosave_at = timezone.now()
+        pop.status = pop.status or 'draft'
+
+        # Computar integrity_hash antes de salvar
+        pop.integrity_hash = pop.compute_integrity_hash()
+
+        # Save com retry em caso de colisão de codigo_processo (UniqueConstraint)
+        from django.db import IntegrityError, transaction
+        max_tentativas = 3
+        for tentativa in range(max_tentativas):
+            try:
+                with transaction.atomic():
+                    pop.save()
+                break
+            except IntegrityError as e:
+                if 'unique_cap_ativo' in str(e) and pop.codigo_processo and tentativa < max_tentativas - 1:
+                    cap = pop.codigo_processo
+                    partes = cap.rsplit('.', 1)
+                    if len(partes) == 2:
+                        try:
+                            novo_num = int(partes[1]) + 1
+                            pop.codigo_processo = f"{partes[0]}.{novo_num}"
+                        except ValueError:
+                            pop.codigo_processo = f"{cap}-{tentativa + 2}"
+                    else:
+                        pop.codigo_processo = f"{cap}-{tentativa + 2}"
+                    pop.integrity_hash = pop.compute_integrity_hash()
+                    logger.warning(f"[AUTO-SAVE] Colisão CAP, tentativa {tentativa + 2}: {pop.codigo_processo}")
+                else:
+                    raise
+
+        # Snapshot a cada 5 saves
+        snapshot_created = False
+        if pop.autosave_sequence % 5 == 0:
+            try:
+                pop.create_snapshot(autosave=True)
+                snapshot_created = True
+                logger.info(f"[AUTO-SAVE] Snapshot criado (seq={pop.autosave_sequence})")
+            except Exception as snap_err:
+                logger.warning(f"[AUTO-SAVE] Falha ao criar snapshot: {snap_err}")
+
+        logger.info(f"[AUTO-SAVE] POP {pop.pk} salvo (seq={pop.autosave_sequence})")
 
         return JsonResponse({
             'success': True,
-            'message': 'Auto-save recebido com sucesso',
-            'session_id': session_id,
-            'campos_salvos': len(dados_pop)
-        }, status=200)
+            'pop': {
+                'id': pop.pk,
+                'uuid': str(pop.uuid),
+                'autosave_sequence': pop.autosave_sequence,
+            },
+            'integrity_hash': pop.integrity_hash,
+            'snapshot_created': snapshot_created,
+        })
 
     except json.JSONDecodeError:
         return JsonResponse({
@@ -1089,7 +1227,63 @@ def autosave_pop(request):
         }, status=400)
 
     except Exception as e:
-        logger.exception(f"❌ [AUTO-SAVE] Erro: {e}")
+        logger.exception(f"[AUTO-SAVE] Erro: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_pop(request, identifier):
+    """
+    Carrega POP salvo do backend.
+
+    GET /api/pop/<identifier>/
+    identifier pode ser UUID ou session_id.
+
+    Retorna dados completos do POP para o frontend reconstruir o formulario.
+    """
+    try:
+        pop = None
+
+        # Tentar UUID primeiro
+        try:
+            import uuid as uuid_mod
+            uuid_mod.UUID(identifier)
+            pop = POP.objects.filter(uuid=identifier, is_deleted=False).first()
+        except (ValueError, AttributeError):
+            pass
+
+        # Fallback: session_id
+        if not pop:
+            pop = POP.objects.filter(
+                session_id=identifier, is_deleted=False
+            ).order_by('-updated_at').first()
+
+        if not pop:
+            return JsonResponse({
+                'success': False,
+                'error': 'POP não encontrado'
+            }, status=404)
+
+        return JsonResponse({
+            'success': True,
+            'pop': {
+                'id': pop.pk,
+                'uuid': str(pop.uuid),
+                'session_id': pop.session_id,
+                'integrity_hash': pop.integrity_hash,
+                'autosave_sequence': pop.autosave_sequence,
+                'status': pop.status,
+                'dados': pop.get_dados_completos(),
+                'updated_at': pop.updated_at.isoformat() if pop.updated_at else None,
+            }
+        })
+
+    except Exception as e:
+        logger.exception(f"[GET-POP] Erro: {e}")
         return JsonResponse({
             'success': False,
             'error': str(e)

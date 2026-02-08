@@ -1006,34 +1006,52 @@ class BuscaAtividadePipeline:
             logger.info(f"[PIPELINE] Estrutura processo: {estrutura_processo} (Macro={macro}, Proc={processo}, Sub={subprocesso})")
             logger.info(f"[PIPELINE] CAP base do CSV (sem área): {ultimo_cap}")
 
-            # Buscar o maior índice final no subprocesso
-            # IMPORTANTE: O CAP no CSV tem 4 partes: Macro.Processo.Subprocesso.Atividade
-            # A última posição é sempre a atividade
-            indices_finais = []
+            # --- MAX do CSV ---
+            max_csv = 0
             for cap in caps_existentes:
                 partes_cap = str(cap).split('.')
-                if len(partes_cap) >= 4:  # Macro + Processo + Sub + Atividade
+                if len(partes_cap) >= 4:
                     try:
-                        indice_final = int(partes_cap[-1])  # ✅ Última posição sempre é a atividade
-                        indices_finais.append(indice_final)
-                        logger.debug(f"[PIPELINE] CAP {cap} → índice atividade: {indice_final}")
+                        max_csv = max(max_csv, int(partes_cap[-1]))
                     except ValueError:
-                        logger.warning(f"[PIPELINE] Não consegui extrair índice de: {cap}")
                         continue
 
-            if not indices_finais:
-                # Se não conseguir parsear nenhum, começar do 1
-                logger.warning(f"[PIPELINE] Nenhum índice válido encontrado, iniciando do 1")
-                novo_indice = 1
-            else:
-                novo_indice = max(indices_finais) + 1
-                logger.info(f"[PIPELINE] Maior índice encontrado: {max(indices_finais)}, novo será: {novo_indice}")
+            # --- MAX do banco (POPs já salvos com mesmo prefixo) ---
+            max_db = 0
+            try:
+                from processos.models import POP
+                prefixo_busca = f"{prefixo}."
+                caps_banco = POP.objects.filter(
+                    codigo_processo__startswith=prefixo_busca,
+                    is_deleted=False,
+                ).values_list('codigo_processo', flat=True)
+                for cap_db in caps_banco:
+                    try:
+                        max_db = max(max_db, int(str(cap_db).split('.')[-1]))
+                    except (ValueError, IndexError):
+                        continue
+                logger.info(f"[PIPELINE] Max atividade no banco para '{prefixo}': {max_db} ({caps_banco.count()} POPs)")
+            except Exception as e:
+                logger.warning(f"[PIPELINE] Falha ao consultar banco: {e}")
 
-            cap_novo = f"{prefixo}.{novo_indice}"
+            # --- Candidato = max(csv, db) + 1, validar disponibilidade ---
+            candidato = max(max_csv, max_db) + 1
+            logger.info(f"[PIPELINE] max_csv={max_csv}, max_db={max_db}, candidato={candidato}")
 
-            logger.info(f"[PIPELINE] ✅ CAP sequencial gerado: {cap_novo}")
-            logger.info(f"[PIPELINE] ✅ Composição: [{prefixo_area}] + [{macro}.{processo}.{subprocesso}] + [{novo_indice}]")
-            logger.info(f"[PIPELINE] ✅ Total de atividades existentes no subprocesso: {len(caps_existentes)}")
+            try:
+                from processos.models import POP
+                for _ in range(50):
+                    cap_candidato = f"{prefixo}.{candidato}"
+                    if not POP.objects.filter(codigo_processo=cap_candidato, is_deleted=False).exists():
+                        break
+                    candidato += 1
+            except Exception:
+                pass  # Se banco indisponível, usa o candidato calculado
+
+            cap_novo = f"{prefixo}.{candidato}"
+
+            logger.info(f"[PIPELINE] CAP sequencial gerado: {cap_novo}")
+            logger.info(f"[PIPELINE] Composicao: [{prefixo_area}] + [{macro}.{processo}.{subprocesso}] + [{candidato}]")
 
             return cap_novo
 

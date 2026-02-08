@@ -104,6 +104,13 @@ class POP(models.Model):
         verbose_name = "Procedimento Operacional Padrão"
         verbose_name_plural = "Procedimentos Operacionais Padrão"
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['codigo_processo'],
+                condition=models.Q(is_deleted=False) & ~models.Q(codigo_processo=None) & ~models.Q(codigo_processo=''),
+                name='unique_cap_ativo',
+            ),
+        ]
 
     def __str__(self):
         nome = self.nome_processo or "POP em Andamento"
