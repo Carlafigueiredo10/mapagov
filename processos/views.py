@@ -1018,7 +1018,11 @@ def chat_recepcao_api(request):
 
         return JsonResponse({
             'resposta': resposta,
-            'success': True
+            'success': True,
+            'tipo_interface': resultado.get('tipo_interface'),
+            'dados_interface': resultado.get('dados_interface'),
+            'route': resultado.get('route'),
+            'acao': resultado.get('acao'),
         }, json_dumps_params={'ensure_ascii': False})
 
     except Exception as e:

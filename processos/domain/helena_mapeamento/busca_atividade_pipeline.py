@@ -892,15 +892,15 @@ class BuscaAtividadePipeline:
             else:
                 idx_macro = 99  # Provisório
 
-            # Gerar número sequencial provisório
+            # Gerar número sequencial provisório (1 dígito, coerente com CSV)
             import random
-            seq = random.randint(1000, 9999)
+            seq = random.randint(1, 9)
 
             return f"{prefixo_area}.{idx_macro}.XX.XX.{seq}"
 
         except Exception as e:
             logger.error(f"[PIPELINE] Erro ao gerar CAP provisório: {e}")
-            return f"{area_codigo}.99.XX.XX.9999"
+            return f"{area_codigo}.99.XX.XX.1"
 
     def _validar_hierarquia_existe(self, macroprocesso: str, processo: str, subprocesso: str) -> bool:
         """
@@ -1042,7 +1042,7 @@ class BuscaAtividadePipeline:
             import traceback
             traceback.print_exc()
             # Fallback: gerar CAP genérico com área 99
-            return "99.99.99.99.999"
+            return "99.99.99.99.1"
 
     def _gerar_rastreabilidade(
         self,

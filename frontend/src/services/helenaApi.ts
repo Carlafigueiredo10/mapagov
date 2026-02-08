@@ -154,8 +154,10 @@ export interface PortalChatRequest {
 export interface PortalChatResponse {
   resposta: string;
   produto_sugerido?: string;
-  acao?: 'redirecionar' | 'continuar';
+  acao?: string;
   route?: string;
+  tipo_interface?: string;
+  dados_interface?: Record<string, unknown>;
 }
 
 export const chatRecepcao = async (request: PortalChatRequest): Promise<PortalChatResponse> => {

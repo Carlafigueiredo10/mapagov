@@ -14,7 +14,8 @@ export type ProductCode =
   | 'governanca'
   | 'documentos'
   | 'conformidade'
-  | 'artefatos';
+  | 'artefatos'
+  | 'planejamento';
 
 export interface Product {
   code: ProductCode;
@@ -31,6 +32,8 @@ export interface PortalChatMessage {
   text: string;
   sender: 'user' | 'helena';
   timestamp: Date;
+  tipo_interface?: string;
+  dados_interface?: Record<string, unknown>;
 }
 
 export interface PortalChatRequest {
@@ -42,6 +45,8 @@ export interface PortalChatRequest {
 export interface PortalChatResponse {
   resposta: string;
   produto_sugerido?: ProductCode;
-  acao?: 'redirecionar' | 'continuar';
+  acao?: string;
   route?: string;
+  tipo_interface?: string;
+  dados_interface?: Record<string, unknown>;
 }

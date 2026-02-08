@@ -1077,7 +1077,11 @@ class PDFGenerator:
                 entrega
             ))
             
-            dispositivos = dados.get('dispositivos_normativos', '[Não informado]')
+            dispositivos_raw = dados.get('dispositivos_normativos', '[Não informado]')
+            if isinstance(dispositivos_raw, list):
+                dispositivos = dispositivos_raw if dispositivos_raw else 'Nenhuma norma registrada neste mapeamento.'
+            else:
+                dispositivos = dispositivos_raw or 'Nenhuma norma registrada neste mapeamento.'
             elementos.extend(self._gerar_secao_conteudo(
                 "2. DISPOSITIVOS NORMATIVOS APLICÁVEIS",
                 dispositivos

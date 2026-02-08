@@ -313,17 +313,21 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
 
       {/* Rodape */}
       <div className="footer-actions">
-        <button className="btn-interface btn-secondary" onClick={() => onConfirm('nao sei')}>
-          Nao Sei
+        <button className="btn-interface btn-secondary" onClick={() => onConfirm('nenhuma')}>
+          Registrar depois
         </button>
         <button
           className="btn-interface btn-primary"
           onClick={handleConfirm}
-          disabled={totalNormas === 0}
         >
-          Confirmar {totalNormas > 0 && `(${totalNormas})`}
+          {totalNormas > 0 ? `Confirmar (${totalNormas})` : 'Confirmar sem normas'}
         </button>
       </div>
+      {totalNormas === 0 && (
+        <p style={{ textAlign: 'center', color: '#6c757d', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+          É possível continuar sem registrar normas neste momento.
+        </p>
+      )}
 
       <style>{`
         .interface-title {

@@ -2149,31 +2149,40 @@ class HelenaPOP(BaseHelena):
 
         return resposta, sm
 
+    # Sentinels que indicam ausência de normas (não devem virar item de dados)
+    _SENTINEL_SEM_NORMAS = {
+        "nao sei", "não sei", "nenhuma", "nenhum",
+        "nao informado", "não informado",
+        "sem norma", "sem normas", "",
+    }
+
     def _processar_dispositivos_normativos(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """Processa coleta de dispositivos normativos e vai para reconhecimento"""
-        # Separar por vírgula ou quebra de linha (ou aceitar JSON de seleção)
-        dados = self._parse_json_seguro(mensagem)
-        if isinstance(dados, list):
-            normas = dados
+        raw = (mensagem or "").strip()
+        v = raw.lower()
+
+        if v in self._SENTINEL_SEM_NORMAS:
+            normas = []
         else:
-            normas = [n.strip() for n in mensagem.replace('\n', ',').split(',') if n.strip()]
+            dados = self._parse_json_seguro(mensagem)
+            if isinstance(dados, list):
+                normas = [n for n in dados if str(n).strip().lower() not in self._SENTINEL_SEM_NORMAS]
+            else:
+                normas = [n.strip() for n in raw.replace('\n', ',').split(',')
+                          if n.strip() and n.strip().lower() not in self._SENTINEL_SEM_NORMAS]
 
         sm.dados_coletados['dispositivos_normativos'] = normas
 
-        # 🎯 Mudar estado para TRANSICAO_ROADTRIP
         sm.estado = EstadoPOP.TRANSICAO_ROADTRIP
-
-        # 🔥 FIX: Limpar tipo_interface antigo (evita fallback para interface de normas)
         sm.tipo_interface = None
         sm.dados_interface = None
 
-        logger.info(f"🚗 [ROADTRIP] Estado mudado para TRANSICAO_ROADTRIP. Interface será mostrada junto com a mensagem.")
+        logger.info(f"[NORMAS] Normas registradas: {len(normas)}")
 
-        nome = sm.nome_usuario or "você"
-        resposta = (
-            f"👏 Perfeito, {nome}!\n\n"
-            f"As normas são como as placas da estrada: mostram a direção certa pra sua atividade seguir segura e consistente. 🚦"
-        )
+        if normas:
+            resposta = "Normas registradas. É possível complementar posteriormente, se necessário."
+        else:
+            resposta = "Nenhuma norma registrada neste momento. É possível complementar posteriormente."
 
         # ✅ Interface roadtrip será adicionada automaticamente no bloco de PROXIMA_INTERFACE
         # Não precisa de auto_continue!

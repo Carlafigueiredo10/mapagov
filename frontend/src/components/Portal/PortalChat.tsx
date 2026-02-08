@@ -1,67 +1,79 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ProductCode, PortalChatMessage } from '../../types/portal.types';
 import { chatRecepcao } from '../../services/helenaApi';
-import { productMessages } from '../../data/products';
+import InterfaceDecisaoProduto from './InterfaceDecisaoProduto';
 import styles from './PortalChat.module.css';
+
+// Dados dos produtos para o menu inicial (espelhado do backend)
+const PRODUTOS_MENU = [
+  {
+    key: 'pop',
+    nome: 'Mapear processo (POP)',
+    descricao_curta: 'Registro estruturado de atividades, responsáveis e documentos de um processo de trabalho.',
+  },
+  {
+    key: 'riscos',
+    nome: 'Analisar riscos',
+    descricao_curta: 'Identificação e avaliação de riscos associados a um processo, com base no Guia de Gestão de Riscos do MGI.',
+  },
+  {
+    key: 'planejamento',
+    nome: 'Planejar estrategicamente',
+    descricao_curta: 'Construção de planejamento estratégico institucional com modelos reconhecidos de gestão.',
+  },
+  {
+    key: 'fluxograma',
+    nome: 'Criar fluxograma',
+    descricao_curta: 'Representação visual do fluxo de um processo em notação BPMN.',
+  },
+];
 
 interface PortalChatProps {
   selectedProduct: ProductCode;
 }
 
 export default function PortalChat({ selectedProduct }: PortalChatProps) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<PortalChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [sessionId] = useState(() => {
     const stored = localStorage.getItem('helena_portal_session_id');
     if (stored) return stored;
-    const newId = `portal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newId = `portal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     localStorage.setItem('helena_portal_session_id', newId);
     return newId;
   });
 
   const messagesAreaRef = useRef<HTMLDivElement>(null);
 
-  // Mensagem inicial da Helena
+  // Derivar se o input esta desabilitado pelo estado da ultima mensagem
+  const inputDesabilitado = useMemo(() => {
+    const lastHelena = [...messages]
+      .reverse()
+      .find((m) => m.sender === 'helena' && m.dados_interface);
+    const estado = (lastHelena?.dados_interface as Record<string, unknown>)?.estado;
+    return estado === 'DECISAO_OBRIGATORIA';
+  }, [messages]);
+
+  // Mensagem inicial institucional com menu de produtos
   useEffect(() => {
     const welcomeMessage: PortalChatMessage = {
       id: 'welcome',
-      text: `Oi! 👋<br>
-      Eu sou a <strong>Helena</strong>, sua agente de Inteligência Artificial aqui no MapaGov.
-      <br><br>
-      Meu papel é te guiar dentro deste projeto — ajudando a organizar processos, criar fluxogramas, montar POPs, gerar dossiês ou apoiar em análises, tudo a partir desta plataforma.
-      <br><br>
-      Ali no lado esquerdo, você vai ver o <strong>catálogo de produtos do MapaGov</strong>.<br>
-      É por lá que você pode explorar as ferramentas disponíveis e acompanhar o que está sendo desenvolvido.
-      <br><br>
-      Antes de começarmos, me conta um pouco sobre você:<br>
-      <strong>em que área trabalha ou com que tipo de atividade lida no dia a dia?</strong>
-      <br><br>
-      Assim eu consigo entender melhor seu contexto e te mostrar os caminhos mais úteis pra sua rotina.
-      <br><br>
-      Pode falar livremente — eu estou aqui pra ouvir e te ajudar no que precisar. 🌿`,
+      text: 'Este sistema executa atividades de Governança, Riscos e Conformidade.<br><br>Para continuar, selecione o tipo de trabalho que você precisa realizar.',
       sender: 'helena',
       timestamp: new Date(),
+      tipo_interface: 'decisao_produto',
+      dados_interface: {
+        produtos: PRODUTOS_MENU,
+        permite_texto: true,
+        estado: 'INICIO',
+      },
     };
     setMessages([welcomeMessage]);
-
-    // Verificar mensagem inicial do localStorage (vinda da landing)
-    const initialMessage = localStorage.getItem('initialMessage');
-    if (initialMessage) {
-      localStorage.removeItem('initialMessage');
-      setInputMessage(initialMessage);
-      // Pequeno delay para garantir que o input foi renderizado
-      setTimeout(() => handleSendMessage(initialMessage), 100);
-    }
   }, []);
-
-  // Adicionar mensagem quando produto é selecionado
-  useEffect(() => {
-    if (messages.length > 1) { // Não adicionar na primeira renderização
-      const productMessage = productMessages[selectedProduct] || 'Produto selecionado!';
-      addMessage(productMessage, 'helena');
-    }
-  }, [selectedProduct]);
 
   const scrollToBottom = () => {
     if (messagesAreaRef.current) {
@@ -73,21 +85,25 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
     scrollToBottom();
   }, [messages]);
 
-  const addMessage = (text: string, sender: 'user' | 'helena') => {
-    const newMessage: PortalChatMessage = {
-      id: `${Date.now()}_${Math.random()}`,
-      text,
-      sender,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, newMessage]);
+  const addMessage = (msg: PortalChatMessage) => {
+    setMessages((prev) => [...prev, msg]);
   };
 
   const handleSendMessage = async (messageText?: string) => {
     const message = messageText || inputMessage.trim();
-    if (!message || isLoading) return;
+    if (!message || isLoading || isTransitioning) return;
 
-    addMessage(message, 'user');
+    // Adicionar mensagem do usuario (nao mostrar chaves de produto como texto)
+    const isProdutoKey = ['pop', 'riscos', 'planejamento', 'fluxograma', 'ainda_nao_sei'].includes(message);
+    if (!isProdutoKey) {
+      addMessage({
+        id: `${Date.now()}_user`,
+        text: message,
+        sender: 'user',
+        timestamp: new Date(),
+      });
+    }
+
     setInputMessage('');
     setIsLoading(true);
 
@@ -98,16 +114,49 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
         session_id: sessionId,
       });
 
-      addMessage(response.resposta, 'helena');
+      // Transicao para produto: mostrar mensagem e navegar
+      if (response.tipo_interface === 'transicao_produto' && response.route) {
+        setIsTransitioning(true);
+        addMessage({
+          id: `${Date.now()}_transicao`,
+          text: response.resposta,
+          sender: 'helena',
+          timestamp: new Date(),
+          tipo_interface: 'transicao_produto',
+        });
+        setTimeout(() => {
+          navigate(response.route!);
+        }, 1500);
+        return;
+      }
+
+      // Mensagem normal (possivelmente com interface de decisao)
+      addMessage({
+        id: `${Date.now()}_helena`,
+        text: response.resposta,
+        sender: 'helena',
+        timestamp: new Date(),
+        tipo_interface: response.tipo_interface,
+        dados_interface: response.dados_interface,
+      });
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
-      addMessage('Desculpe, ocorreu um erro. Tente novamente.', 'helena');
+      addMessage({
+        id: `${Date.now()}_erro`,
+        text: 'Desculpe, ocorreu um erro. Tente novamente.',
+        sender: 'helena',
+        timestamp: new Date(),
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleProductSelect = (produtoKey: string) => {
+    handleSendMessage(produtoKey);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -122,12 +171,12 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
           <img src="/helena_avatar.png" alt="Helena" />
         </div>
         <div className={styles.headerInfo}>
-          <h2>Helena - Assistente GRC</h2>
-          <p>Especialista em Governança, Riscos e Conformidade</p>
+          <h2>Helena - Recepção</h2>
+          <p>Governança, Riscos e Conformidade</p>
         </div>
       </div>
 
-      {/* Área de Mensagens */}
+      {/* Area de Mensagens */}
       <div className={styles.messagesArea} ref={messagesAreaRef}>
         {messages.map((message) => (
           <div
@@ -141,10 +190,28 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
                 'U'
               )}
             </div>
-            <div
-              className={styles.messageContent}
-              dangerouslySetInnerHTML={{ __html: message.text }}
-            />
+            <div className={styles.messageContent}>
+              {/* Texto da mensagem */}
+              {message.tipo_interface === 'transicao_produto' ? (
+                <div className={styles.transitionMessage}>
+                  {message.text}
+                </div>
+              ) : (
+                <div dangerouslySetInnerHTML={{ __html: message.text }} />
+              )}
+
+              {/* Interface de decisao de produto */}
+              {message.tipo_interface === 'decisao_produto' && message.dados_interface && (
+                <InterfaceDecisaoProduto
+                  dados={message.dados_interface as {
+                    produtos: Array<{ key: string; nome: string; descricao_curta: string }>;
+                    permite_texto: boolean;
+                    estado: string;
+                  }}
+                  onConfirm={handleProductSelect}
+                />
+              )}
+            </div>
           </div>
         ))}
 
@@ -164,25 +231,31 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
 
       {/* Input Area */}
       <div className={styles.inputArea}>
-        <div className={styles.inputWrapper}>
-          <input
-            type="text"
-            className={styles.messageInput}
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Digite sua mensagem..."
-            disabled={isLoading}
-          />
-          <button
-            className={styles.sendButton}
-            onClick={() => handleSendMessage()}
-            disabled={isLoading || !inputMessage.trim()}
-          >
-            <span>Enviar</span>
-            <span>→</span>
-          </button>
-        </div>
+        {inputDesabilitado || isTransitioning ? (
+          <div className={styles.inputDisabledMessage}>
+            Selecione uma das opções acima para continuar.
+          </div>
+        ) : (
+          <div className={styles.inputWrapper}>
+            <input
+              type="text"
+              className={styles.messageInput}
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Digite sua dúvida..."
+              disabled={isLoading}
+            />
+            <button
+              className={styles.sendButton}
+              onClick={() => handleSendMessage()}
+              disabled={isLoading || !inputMessage.trim()}
+            >
+              <span>Enviar</span>
+              <span>&rarr;</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -74,10 +74,13 @@ class HelenaRecepcaoOrchestrator:
             # Retorna resposta formatada
             return {
                 'resposta': resultado['proxima_pergunta'],
-                'produto_direcionado': resultado.get('valor'),  # Produto detectado
+                'produto_direcionado': resultado.get('valor'),
                 'validacao_ok': resultado.get('validacao_ok', True),
                 'acao': resultado.get('campo', 'neutro'),
-                'historico': session_data.get('historico', [])
+                'historico': session_data.get('historico', []),
+                'tipo_interface': resultado.get('tipo_interface'),
+                'dados_interface': resultado.get('dados_interface'),
+                'route': resultado.get('route'),
             }
 
         except Exception as e:

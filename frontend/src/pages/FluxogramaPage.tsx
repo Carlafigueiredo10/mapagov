@@ -1,5 +1,17 @@
+/**
+ * FluxogramaPage - Página dedicada para o Gerador de Fluxogramas
+ *
+ * Rota: /fluxograma
+ *
+ * Fluxo:
+ * 1. Exibe landing institucional (enquadramento)
+ * 2. Ao clicar em "Iniciar geração de fluxograma", exibe a ferramenta
+ */
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout/Layout';
+import LandingShell from '../components/ui/LandingShell';
+import FluxogramaLanding from '../components/Fluxograma/FluxogramaLanding';
 import FluxogramaUpload from '../components/Fluxograma/FluxogramaUpload';
 import FluxogramaChat from '../components/Fluxograma/FluxogramaChat';
 import FluxogramaPreview from '../components/Fluxograma/FluxogramaPreview';
@@ -15,6 +27,8 @@ interface POPInfo {
 }
 
 export default function FluxogramaPage() {
+  const navigate = useNavigate();
+  const [mostrarFerramenta, setMostrarFerramenta] = useState(false);
   const [pdfAnalyzed, setPdfAnalyzed] = useState(false);
   const [popInfo, setPopInfo] = useState<POPInfo | null>(null);
   const [fluxogramaCode, setFluxogramaCode] = useState<string>('');
@@ -30,12 +44,22 @@ export default function FluxogramaPage() {
     setConversaCompleta(true);
   };
 
+  // Landing institucional
+  if (!mostrarFerramenta) {
+    return (
+      <LandingShell onBack={() => navigate(-1)}>
+        <FluxogramaLanding onIniciar={() => setMostrarFerramenta(true)} />
+      </LandingShell>
+    );
+  }
+
+  // Ferramenta de geração
   return (
     <Layout>
       <div className="fluxograma-page">
         <div className="fluxograma-header">
-          <h1>📊 Gerador de Fluxogramas</h1>
-          <p>Upload de PDF do POP e geração automática de fluxograma visual</p>
+          <h1>Gerador de Fluxogramas</h1>
+          <p>Upload de PDF do POP e geração de fluxograma visual</p>
         </div>
 
         <div className="fluxograma-grid">

@@ -1,293 +1,318 @@
+"""
+Helena Reception Agent — funil de decisao institucional.
+
+Papel: porta de entrada do sistema. Nao conversa, classifica e direciona.
+- Apresenta os 4 produtos disponiveis desde a primeira interacao
+- Max 2 respostas livres antes de forcar escolha
+- Usa LLM apenas para explicacoes curtas (max 80 palavras, temp 0.3)
+"""
+
 import copy
 from typing import Dict, Any
 from langchain_openai import ChatOpenAI
-from processos.domain.helena_semantic_planner import HelenaSemanticPlanner
+
 
 class ReceptionAgent:
-    """
-    Helena Reception Agent – recepcionista virtual para direcionamento GRC.
-
-    Papel: RECEPCIONISTA, não executora
-    - Dar boas-vindas e entender necessidade
-    - Direcionar para produto correto
-    - Responder dúvidas gerais sobre GRC
-
-    Usa HelenaSemanticPlanner para interpretação semântica robusta.
-    """
 
     PRODUTOS = {
         "pop": {
-            "nome": "Gerador de POP",
-            "emoji": "🧩",
-            "codigo": "P1",
-            "descricao": "Mapear processos e gerar Procedimentos Operacionais Padrão",
-            "keywords": ["pop", "procedimento", "mapear", "processo", "documentar", "passo a passo"]
-        },
-        "fluxograma": {
-            "nome": "Gerador de Fluxograma",
-            "emoji": "🔄",
-            "codigo": "P2",
-            "descricao": "Criar fluxogramas visuais de processos",
-            "keywords": ["fluxograma", "diagrama", "fluxo", "visual", "mermaid", "etapas"]
+            "nome": "Mapear processo (POP)",
+            "descricao_curta": (
+                "Registro estruturado de atividades, responsáveis "
+                "e documentos de um processo de trabalho."
+            ),
+            "route": "/pop",
         },
         "riscos": {
-            "nome": "Análise de Riscos",
-            "emoji": "🧠",
-            "codigo": "P5",
-            "descricao": "Identificar e analisar riscos em processos (GRC)",
-            "keywords": ["risco", "análise", "grc", "controle", "conformidade", "auditoria"]
+            "nome": "Analisar riscos",
+            "descricao_curta": (
+                "Identificação e avaliação de riscos associados a um processo, "
+                "com base no Guia de Gestão de Riscos do MGI."
+            ),
+            "route": "/riscos",
         },
-        "dashboard": {
-            "nome": "Dashboard",
-            "emoji": "📊",
-            "codigo": "P3",
-            "descricao": "Visualizar indicadores e métricas",
-            "keywords": ["dashboard", "indicador", "métrica", "painel", "visualizar"],
-            "status": "em_desenvolvimento"
-        }
+        "planejamento": {
+            "nome": "Planejar estrategicamente",
+            "descricao_curta": (
+                "Construção de planejamento estratégico institucional "
+                "com modelos reconhecidos de gestão."
+            ),
+            "route": "/planejamento-estrategico",
+        },
+        "fluxograma": {
+            "nome": "Criar fluxograma",
+            "descricao_curta": (
+                "Representação visual do fluxo de um processo "
+                "em notação BPMN."
+            ),
+            "route": "/fluxograma",
+        },
     }
 
+    SYSTEM_PROMPT = (
+        "Você é Helena, recepcionista do MapaGov. "
+        "Seu papel é estritamente direcional.\n\n"
+        "Regras:\n"
+        "- Responda em no máximo 80 palavras.\n"
+        "- Seja institucional e direta.\n"
+        "- Não faça perguntas abertas.\n"
+        "- Sempre conclua orientando o usuário a escolher um dos produtos disponíveis.\n"
+        "- Não ofereça validação, diagnóstico ou julgamento.\n\n"
+        "Produtos disponíveis:\n"
+        "1. Mapear processo (POP) — registro estruturado de atividades e documentos\n"
+        "2. Analisar riscos — identificação e avaliação de riscos com base no Guia MGI\n"
+        "3. Planejar estrategicamente — planejamento institucional com modelos de gestão\n"
+        "4. Criar fluxograma — representação visual de processos em BPMN"
+    )
+
+    TEXTO_BOAS_VINDAS = (
+        "Este sistema executa atividades de Governança, Riscos e Conformidade.\n\n"
+        "Para continuar, selecione o tipo de trabalho que você precisa realizar."
+    )
+
+    TEXTO_COMPARACAO = (
+        "**Comparação rápida dos produtos disponíveis:**\n\n"
+        "- **Mapear processo (POP):** você tem um processo de trabalho e quer "
+        "documentar cada etapa, responsável e documento envolvido.\n\n"
+        "- **Analisar riscos:** você já tem um processo e quer identificar o que "
+        "pode dar errado e como tratar.\n\n"
+        "- **Planejar estrategicamente:** você precisa definir objetivos, metas "
+        "e indicadores para sua unidade.\n\n"
+        "- **Criar fluxograma:** você quer uma representação visual de um fluxo "
+        "de trabalho.\n\n"
+        "Selecione a opção que mais se aproxima da sua necessidade."
+    )
+
+    TEXTO_TRANSICAO = (
+        "Você está saindo da recepção e iniciando "
+        "o fluxo de trabalho selecionado."
+    )
+
     def __init__(self, llm: ChatOpenAI | None = None):
-        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
-        self.planner = HelenaSemanticPlanner()
+        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
 
     # =========================================================================
-    # SHIM DE COMPATIBILIDADE COM ORQUESTRADOR
+    # INTERFACE COM ORQUESTRADOR
     # =========================================================================
 
-    def processar_mensagem(self, mensagem: str, estrutura_atual: Dict[str, Any] | None) -> Dict[str, Any]:
-        """
-        Método de compatibilidade com o orquestrador.
-
-        Retorna: {'campo', 'valor', 'proxima_pergunta', 'completo', 'percentual', 'validacao_ok'}
-        """
+    def processar_mensagem(
+        self, mensagem: str, estrutura_atual: Dict[str, Any] | None
+    ) -> Dict[str, Any]:
         contexto = self._init_contexto(estrutura_atual)
         bruto = self.processar(mensagem, contexto)
+
+        # Sync estado de volta para session_data do orquestrador
+        if estrutura_atual is not None:
+            estrutura_atual["estado_recepcao"] = contexto.get(
+                "estado_recepcao", "INICIO"
+            )
+            estrutura_atual["interacoes"] = contexto.get("interacoes", 0)
+
         return self._to_orchestrator(bruto, contexto)
 
     # =========================================================================
-    # LÓGICA INTERNA (FORMATO SEMÂNTICO)
+    # MAQUINA DE ESTADOS
     # =========================================================================
 
     def processar(self, mensagem: str, contexto: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Processa mensagem do usuário de forma conversacional.
-
-        Returns formato interno:
-            {
-                'acao': str,
-                'texto': str,
-                'payload': dict
-            }
-        """
-        msg = mensagem.lower().strip()
-
-        # Inicializa estrutura
         contexto.setdefault("interacoes", 0)
         contexto["interacoes"] += 1
 
-        # 👋 Boas-vindas (primeira interação com saudação)
-        if contexto["interacoes"] == 1:
-            if any(p in msg for p in ["oi", "olá", "bom dia", "boa tarde", "começar", "iniciar", "start", "help"]):
-                return {
-                    "acao": "boas_vindas",
-                    "texto": (
-                        "Oi! 👋 Bem-vindo à Helena GRC!\n\n"
-                        "Sou a recepcionista virtual. Posso te ajudar a entender sobre GRC "
-                        "e te direcionar ao produto certo.\n\n"
-                        "**Produtos disponíveis:**\n"
-                        "🧩 **P1: Gerador de POP** - Mapear e documentar processos\n"
-                        "🔄 **P2: Fluxograma** - Criar diagramas visuais\n"
-                        "🧠 **P5: Análise de Riscos** - GRC e conformidade\n"
-                        "📊 **P3: Dashboard** (em breve) - Indicadores e métricas\n\n"
-                        "Me conta: o que você precisa fazer hoje? Pode perguntar qualquer coisa!"
-                    ),
-                    "payload": {}
-                }
+        estado = contexto.get("estado_recepcao", "INICIO")
 
-        # ❓ PRIMEIRO: Verificar se é uma PERGUNTA (antes de detectar produto)
-        eh_pergunta = self._eh_pergunta(msg)
+        # Em qualquer estado: se a mensagem e uma chave de produto, transiciona
+        produto = self._extrair_produto(mensagem)
+        if produto:
+            return self._transicao(produto, contexto)
 
-        if eh_pergunta:
-            # Usa LLM para responder de forma conversacional
-            return self._responder_pergunta(mensagem, contexto)
+        # --- INICIO ---
+        if estado == "INICIO":
+            if contexto["interacoes"] == 1:
+                # Primeira interacao: welcome + menu
+                return self._resposta_menu(
+                    self.TEXTO_BOAS_VINDAS, "INICIO", permite_texto=True, contexto=contexto
+                )
+            else:
+                # Usuario digitou texto em vez de selecionar
+                contexto["estado_recepcao"] = "EXPLICACAO_CURTA"
+                return self._resposta_com_llm(mensagem, "EXPLICACAO_CURTA", contexto)
 
-        # 🎯 SEGUNDO: Detecta intenção de USAR um produto
-        if self._quer_usar_produto(msg):
-            produto_detectado = self._detectar_produto(msg)
+        # --- EXPLICACAO_CURTA ---
+        if estado == "EXPLICACAO_CURTA":
+            if self._eh_ainda_nao_sei(mensagem):
+                return self._resposta_comparacao(contexto)
+            contexto["estado_recepcao"] = "DECISAO_OBRIGATORIA"
+            return self._resposta_com_llm(mensagem, "DECISAO_OBRIGATORIA", contexto)
 
-            if produto_detectado:
-                produto = self.PRODUTOS[produto_detectado]
+        # --- DECISAO_OBRIGATORIA ---
+        if estado == "DECISAO_OBRIGATORIA":
+            if self._eh_ainda_nao_sei(mensagem):
+                return self._resposta_comparacao(contexto)
+            # Qualquer texto nao reconhecido: reapresenta menu sem texto livre
+            return self._resposta_menu(
+                "Selecione uma das opções disponíveis para continuar.",
+                "DECISAO_OBRIGATORIA",
+                permite_texto=False,
+                contexto=contexto,
+            )
 
-                # Se produto em desenvolvimento
-                if produto.get("status") == "em_desenvolvimento":
-                    return {
-                        "acao": "produto_indisponivel",
-                        "texto": (
-                            f"{produto['emoji']} **{produto['nome']}** ({produto['codigo']}) está em desenvolvimento.\n\n"
-                            "Por enquanto, posso te ajudar com:\n"
-                            "🧩 Gerador de POP\n"
-                            "🔄 Fluxograma\n"
-                            "🧠 Análise de Riscos\n\n"
-                            "Qual desses te interessa?"
-                        ),
-                        "payload": {"produto_solicitado": produto_detectado}
-                    }
+        # Fallback
+        return self._resposta_menu(
+            self.TEXTO_BOAS_VINDAS, "INICIO", permite_texto=True, contexto=contexto
+        )
 
-                # Produto disponível - direciona
-                return {
-                    "acao": "direcionar_produto",
-                    "texto": (
-                        f"Perfeito! Para isso você precisa do **{produto['nome']}** {produto['emoji']}\n\n"
-                        f"**{produto['descricao']}**\n\n"
-                        f"👉 Clique no card **{produto['codigo']}** no menu para começar!\n\n"
-                        "Precisa de mais alguma coisa?"
-                    ),
-                    "payload": {
-                        "produto": produto_detectado,
-                        "produto_codigo": produto['codigo'],
-                        "produto_nome": produto['nome']
-                    }
-                }
+    # =========================================================================
+    # RESPOSTAS
+    # =========================================================================
 
-        # 🤖 TERCEIRO: Tenta responder com LLM para qualquer outra coisa
-        return self._responder_pergunta(mensagem, contexto)
+    def _resposta_menu(
+        self,
+        texto: str,
+        estado: str,
+        permite_texto: bool,
+        contexto: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        contexto["estado_recepcao"] = estado
+        return {
+            "acao": "menu_produtos",
+            "texto": texto,
+            "payload": {
+                "tipo_interface": "decisao_produto",
+                "dados_interface": {
+                    "produtos": self._lista_produtos(),
+                    "permite_texto": permite_texto,
+                    "estado": estado,
+                },
+            },
+        }
 
-    def _eh_pergunta(self, msg: str) -> bool:
-        """Detecta se a mensagem é uma pergunta."""
-        indicadores_pergunta = [
-            "o que é", "o que são", "o que significa",
-            "como funciona", "como faço", "como fazer",
-            "qual é", "qual a", "quais são", "quais os",
-            "por que", "porque", "pra que", "para que",
-            "quando", "onde", "quem",
-            "explica", "me explica", "pode explicar",
-            "me fala", "me conta", "me diz",
-            "o que", "?",
-            "significa", "conceito", "definição",
-            "diferença entre", "diferente de"
-        ]
-        return any(ind in msg for ind in indicadores_pergunta)
-
-    def _quer_usar_produto(self, msg: str) -> bool:
-        """Detecta se o usuário quer USAR um produto (não só perguntar sobre)."""
-        indicadores_uso = [
-            "quero", "preciso", "vou", "vamos",
-            "fazer", "criar", "gerar", "mapear",
-            "iniciar", "começar", "usar", "utilizar",
-            "me ajuda a", "ajuda a", "ajude-me",
-            "pode fazer", "faz um", "faz uma",
-            "elaborar", "desenvolver", "construir"
-        ]
-        return any(ind in msg for ind in indicadores_uso)
-
-    def _responder_pergunta(self, mensagem: str, contexto: Dict[str, Any]) -> Dict[str, Any]:
-        """Usa LLM para responder perguntas de forma conversacional."""
-
-        # Contexto sobre os produtos para a LLM
-        produtos_info = "\n".join([
-            f"- {p['emoji']} {p['nome']} ({p['codigo']}): {p['descricao']}"
-            for p in self.PRODUTOS.values()
-        ])
-
-        prompt = f"""Você é Helena, uma assistente virtual especializada em GRC (Governança, Riscos e Conformidade).
-
-Seu papel é CONVERSAR e EXPLICAR conceitos de forma clara e didática. Seja amigável e prestativa.
-
-**Produtos disponíveis na plataforma:**
-{produtos_info}
-
-**Instruções:**
-1. Responda a pergunta do usuário de forma clara e educativa
-2. Se a pergunta for sobre um tema relacionado a um produto, explique o conceito primeiro
-3. Ao final, sugira gentilmente o produto relacionado se fizer sentido (não force)
-4. Use linguagem simples e acessível
-5. Resposta deve ter no máximo 150 palavras
-6. Use markdown para formatação (negrito, listas)
-
-**Pergunta do usuário:** {mensagem}
-
-Responda de forma conversacional:"""
+    def _resposta_com_llm(
+        self, mensagem: str, proximo_estado: str, contexto: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        permite_texto = proximo_estado != "DECISAO_OBRIGATORIA"
 
         try:
-            resposta = self.llm.invoke(prompt)
-            texto_resposta = resposta.content if hasattr(resposta, 'content') else str(resposta)
+            resposta = self.llm.invoke(
+                [
+                    {"role": "system", "content": self.SYSTEM_PROMPT},
+                    {"role": "user", "content": mensagem},
+                ]
+            )
+            texto = resposta.content if hasattr(resposta, "content") else str(resposta)
+        except Exception:
+            texto = (
+                "Não foi possível processar sua pergunta no momento. "
+                "Selecione uma das opções abaixo para continuar."
+            )
 
-            return {
-                "acao": "conversa",
-                "texto": texto_resposta,
-                "payload": {}
-            }
-        except Exception as e:
-            # Fallback se LLM falhar
-            return {
-                "acao": "conversa",
-                "texto": (
-                    "Boa pergunta! Infelizmente tive um probleminha técnico.\n\n"
-                    "Posso te ajudar de outra forma:\n"
-                    "🧩 **Gerador de POP** - documentar processos\n"
-                    "🔄 **Fluxograma** - criar diagramas\n"
-                    "🧠 **Análise de Riscos** - GRC e conformidade\n\n"
-                    "Qual te interessa?"
-                ),
-                "payload": {"erro": str(e)}
-            }
+        contexto["estado_recepcao"] = proximo_estado
+        return {
+            "acao": "menu_produtos",
+            "texto": texto,
+            "payload": {
+                "tipo_interface": "decisao_produto",
+                "dados_interface": {
+                    "produtos": self._lista_produtos(),
+                    "permite_texto": permite_texto,
+                    "estado": proximo_estado,
+                },
+            },
+        }
 
-    def _detectar_produto(self, mensagem: str) -> str | None:
-        """Detecta qual produto o usuário precisa baseado em keywords"""
+    def _resposta_comparacao(self, contexto: Dict[str, Any]) -> Dict[str, Any]:
+        contexto["estado_recepcao"] = "DECISAO_OBRIGATORIA"
+        return {
+            "acao": "menu_produtos",
+            "texto": self.TEXTO_COMPARACAO,
+            "payload": {
+                "tipo_interface": "decisao_produto",
+                "dados_interface": {
+                    "produtos": self._lista_produtos(),
+                    "permite_texto": False,
+                    "estado": "DECISAO_OBRIGATORIA",
+                },
+            },
+        }
 
-        msg_lower = mensagem.lower()
+    def _transicao(
+        self, produto_key: str, contexto: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        produto = self.PRODUTOS[produto_key]
+        contexto["estado_recepcao"] = "TRANSICAO"
+        return {
+            "acao": "transicao_produto",
+            "texto": self.TEXTO_TRANSICAO,
+            "payload": {
+                "produto": produto_key,
+                "route": produto["route"],
+                "tipo_interface": "transicao_produto",
+                "dados_interface": {
+                    "produto_nome": produto["nome"],
+                    "route": produto["route"],
+                },
+            },
+        }
 
-        # Conta matches para cada produto
-        matches = {}
-        for produto_id, produto in self.PRODUTOS.items():
-            count = sum(1 for keyword in produto["keywords"] if keyword in msg_lower)
-            if count > 0:
-                matches[produto_id] = count
+    # =========================================================================
+    # HELPERS
+    # =========================================================================
 
-        # Retorna produto com mais matches
-        if matches:
-            return max(matches, key=matches.get)
-
+    def _extrair_produto(self, mensagem: str) -> str | None:
+        """Verifica se a mensagem e uma chave de produto (enviada pelo frontend)."""
+        chave = mensagem.strip().lower()
+        if chave in self.PRODUTOS:
+            return chave
         return None
 
-    # =========================================================================
-    # CONVERSORES DE FORMATO
-    # =========================================================================
+    def _eh_ainda_nao_sei(self, mensagem: str) -> bool:
+        msg = mensagem.strip().lower()
+        return msg in (
+            "ainda_nao_sei",
+            "ainda nao sei",
+            "ainda não sei",
+            "nao sei",
+            "não sei",
+        )
+
+    def _lista_produtos(self) -> list:
+        return [
+            {
+                "key": key,
+                "nome": p["nome"],
+                "descricao_curta": p["descricao_curta"],
+            }
+            for key, p in self.PRODUTOS.items()
+        ]
 
     def _init_contexto(self, estrutura_atual: Dict[str, Any] | None) -> Dict[str, Any]:
-        """Inicializa contexto a partir da estrutura do orquestrador."""
         ctx = copy.deepcopy(estrutura_atual or {})
         ctx.setdefault("interacoes", 0)
+        ctx.setdefault("estado_recepcao", "INICIO")
         return ctx
 
-    def _to_orchestrator(self, bruto: Dict[str, Any], contexto: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Converte formato interno {acao, texto, payload} para contrato do orquestrador.
-        """
-        acao = bruto.get("acao")
+    def _to_orchestrator(
+        self, bruto: Dict[str, Any], contexto: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        acao = bruto.get("acao", "")
         texto = bruto.get("texto", "")
         payload = bruto.get("payload", {})
 
-        # Mapeamento de ações → campo/valor
-        mapeamento = {
-            "boas_vindas": ("inicio", None, True),
-            "direcionar_produto": ("direcionar", payload.get("produto"), True),
-            "orientacao_grc": ("orientacao", None, True),
-            "produto_indisponivel": ("indisponivel", payload.get("produto_solicitado"), True),
-            "pedir_clarificacao": ("clarificacao", None, True),
-            "conversa": ("conversa", None, True),
+        campo_map = {
+            "menu_produtos": "menu",
+            "transicao_produto": "transicao",
         }
-
-        campo, valor, validacao_ok = mapeamento.get(acao, ("neutro", None, True))
+        campo = campo_map.get(acao, "neutro")
 
         return {
             "campo": campo,
-            "valor": valor,
+            "valor": payload.get("produto"),
             "proxima_pergunta": texto,
-            "completo": False,  # Recepção nunca "completa", é sempre contínua
-            "percentual": 100,  # Sempre 100% porque não tem fluxo linear
-            "validacao_ok": validacao_ok
+            "completo": acao == "transicao_produto",
+            "percentual": 100,
+            "validacao_ok": True,
+            "tipo_interface": payload.get("tipo_interface"),
+            "dados_interface": payload.get("dados_interface"),
+            "route": payload.get("route"),
         }
 
 
