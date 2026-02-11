@@ -1,7 +1,7 @@
 # processos/urls.py - URLs completas do sistema com APIs renovadas
 
 from django.urls import path
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import SimpleRouter
 from . import views
 from .views import helena_mapeamento_api
 from processos.api import chat_api  # FASE 1 - Nova API
@@ -16,7 +16,8 @@ from processos.api import auth_api, admin_api  # Auth & Access Control
 from processos.infra import metrics  # FASE 3 - Prometheus Metrics
 
 # DRF Router para CRUD de catalogo (Areas + POPs)
-router = DefaultRouter()
+# SimpleRouter (sem root view) para nao conflitar com o React SPA em /
+router = SimpleRouter()
 router.register(r'api/areas', AreaViewSet, basename='area')
 router.register(r'api/pops', POPViewSet, basename='pop-catalogo')
 
