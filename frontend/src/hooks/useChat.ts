@@ -29,11 +29,11 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
     sessionId,
     progresso,
     dadosPOP,
-    modoRevisao,
+    viewMode,
     setProcessing,
     updateProgresso,
     updateDadosPOP,
-    setModoRevisao,
+    setViewMode,
     adicionarMensagemRapida,
   } = useChatStore();
 
@@ -161,19 +161,16 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         message: texto,
         contexto,
         session_id: sessionId,
+        nome_usuario: useChatStore.getState().dadosPOP.nome_usuario,
       };
 
       const response: ChatResponse = contexto === 'gerador_pop'
         ? await chatHelena(request)
         : await chatAjuda(request);
 
-      // ✅ FIX: Usar snapshot para evitar "console por referência" mostrando estado errado
-      const snap = JSON.parse(JSON.stringify(response));
-      console.log(`🆔 [RES] ${requestId} | tipo_interface: ${snap.tipo_interface}`);
-      console.log('[useChat] 📦 SNAP response:', snap);
+      const snap = response;
 
-      // ✅ FIX: "Last write wins" - ignora respostas antigas (race condition)
-      // IMPORTANTE: Remover loading ANTES de retornar para não deixar preso
+      // "Last write wins" — ignora respostas antigas (race condition)
       const store = useChatStore.getState();
       if (requestId !== lastRequestId) {
         store.removeMessage(loadingId);
@@ -184,37 +181,21 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
       // Remover loading
       store.removeMessage(loadingId);
 
-      // ✅ VALIDAÇÃO usando snapshot (evita mutação acidental)
-      const temInterface = !!snap.tipo_interface;
+      const iface = (snap as any).interface as { tipo: string; dados: Record<string, unknown> } | null;
+      const temInterface = !!iface?.tipo;
       const temTexto = typeof snap.resposta === 'string' && snap.resposta.trim() !== '';
 
-      // 🔍 DEBUG: Log completo para diagnóstico se tipo_interface vier undefined
-      console.log('[useChat] 🔍 Validação:', {
-        temInterface,
-        temTexto,
-        tipo_interface: snap.tipo_interface,
-        interface_alias: (snap as any).interface,
-        dados_interface_keys: snap.dados_interface ? Object.keys(snap.dados_interface) : null,
-        dados_alias: (snap as any).dados ? Object.keys((snap as any).dados) : null,
-      });
-
-      // ✅ Verificar se backend sinalizou que está aguardando descrição inicial
+      // Verificar se backend sinalizou que está aguardando descrição inicial
       if (snap.metadados?.aguardando_descricao_inicial) {
-        console.log('🔔 Backend sinalizou: aguardando descrição inicial! Salvando flag...');
         sessionStorage.setItem(`aguardando_descricao_${sessionId}`, 'true');
       }
 
-      // 🎯 Adicionar mensagem/interface (usando snap para consistência)
+      // Adicionar mensagem/interface — interface já vem montada do helenaApi
       if (temInterface) {
-        console.log('[useChat] ✅ Adicionando interface:', snap.tipo_interface);
         adicionarMensagemRapida('helena', snap.resposta || '', {
-          interface: {
-            tipo: snap.tipo_interface,
-            dados: snap.dados_interface || {}
-          }
+          interface: iface,
         });
       } else if (temTexto) {
-        console.log('[useChat] ✅ Adicionando mensagem texto');
         adicionarMensagemRapida('helena', snap.resposta);
       } else {
         console.warn('⚠️ Ignorando resposta vazia ou sem interface:', snap);
@@ -249,10 +230,10 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
 
       // Verificar se conversa está completa
       if (snap.conversa_completa) {
-        setModoRevisao(true);
+        setViewMode('final_review');
 
         // Se é a interface final, disparar geração de PDF automaticamente
-        if (snap.tipo_interface === 'final') {
+        if (iface?.tipo === 'final') {
           try {
             console.log('🎯 Conversa completa! Gerando PDF...');
             const dadosCompletos = snap.dados_extraidos || dadosPOP;
@@ -323,7 +304,7 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         setProcessing(false);
       }
     }
-  }, [sessionId, isProcessing, dadosPOP, adicionarMensagemRapida, updateDadosPOP, updateProgresso, setModoRevisao, setProcessing]);
+  }, [sessionId, isProcessing, dadosPOP, adicionarMensagemRapida, updateDadosPOP, updateProgresso, setViewMode, setProcessing]);
 
   const responderInterface = useCallback(async (resposta: string) => {
     // ✅ Não mostrar mensagem do usuário para respostas de interface (botões, dropdowns, etc)
@@ -337,7 +318,7 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
     error,
     progresso,
     dadosPOP,
-    modoRevisao,
+    viewMode,
     sessionId,
     
     // Actions

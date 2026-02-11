@@ -4,6 +4,8 @@ Versão 2.2 - Focado em Gestão de Pessoas, Benefícios e Governança
 Sem normas de Licitações, Compras, TI ou Orçamento
 """
 
+import csv
+import os
 import re
 from functools import lru_cache
 from typing import Dict, List, Any
@@ -36,357 +38,34 @@ class BaseLegalSuggestorDECIPEx:
             "processos": "⚙️ Gestão Processual e Atendimento",
             "riscos": "🧾 Governança, Riscos e Controles Internos",
             "dados": "🔐 Proteção de Dados e Segurança da Informação",
-            "transparencia": "🔍 Transparência e Acesso à Informação"
+            "transparencia": "🔍 Transparência e Acesso à Informação",
+            "controle": "📋 Controle e Acumulação"
         }
 
     @lru_cache(maxsize=1)
     def _carregar_biblioteca(self) -> Dict[str, Any]:
-        """Carrega biblioteca estática de normas relevantes ao DECIPEX (cached)"""
-        return {
-            "normas": [
-                # ===== 1. BENEFÍCIOS E SAÚDE DO SERVIDOR =====
-                {
-                    "id": "norm_001",
-                    "nome_curto": "IN 97/2022",
-                    "nome_completo": "Instrução Normativa SGP/SEDGG/ME nº 97, de 26 de dezembro de 2022",
-                    "artigos": "Art. 34-42",
-                    "palavras_chave": ["ressarcimento", "plano saude", "auxilio saude", "assistencia suplementar", "aposentado"],
-                    "areas": ["CGBEN"],
-                    "hierarquia": 3,
-                    "grupo": "beneficios"
-                },
-                {
-                    "id": "norm_002",
-                    "nome_curto": "Lei 8112/90 - Benefícios",
-                    "nome_completo": "Lei nº 8.112, de 11 de dezembro de 1990",
-                    "artigos": "Art. 215-230",
-                    "palavras_chave": ["pensao", "auxilio funeral", "auxilio natalidade", "assistencia pre escolar", "servidor publico"],
-                    "areas": ["CGBEN", "todas"],
-                    "hierarquia": 1,
-                    "grupo": "beneficios"
-                },
-                {
-                    "id": "norm_003",
-                    "nome_curto": "Decreto 4978/2004",
-                    "nome_completo": "Decreto nº 4.978, de 3 de fevereiro de 2004",
-                    "artigos": "Todos",
-                    "palavras_chave": ["assistencia saude", "servidor", "dependente", "ressarcimento", "plano saude"],
-                    "areas": ["CGBEN"],
-                    "hierarquia": 2,
-                    "grupo": "beneficios"
-                },
-                {
-                    "id": "norm_004",
-                    "nome_curto": "Lei 11784/2008",
-                    "nome_completo": "Lei nº 11.784, de 22 de setembro de 2008",
-                    "artigos": "Art. 139-142",
-                    "palavras_chave": ["avaliacao desempenho", "progressao", "promocao", "merito"],
-                    "areas": ["DIGEP"],
-                    "hierarquia": 1,
-                    "grupo": "beneficios"
-                },
-                {
-                    "id": "norm_005",
-                    "nome_curto": "Portaria 1675/2018",
-                    "nome_completo": "Portaria GM/MS nº 1.675, de 7 de junho de 2018",
-                    "artigos": "Todos",
-                    "palavras_chave": ["pericia medica", "licenca saude", "atestado", "junta medica"],
-                    "areas": ["DIGEP"],
-                    "hierarquia": 3,
-                    "grupo": "beneficios"
-                },
-                {
-                    "id": "norm_006",
-                    "nome_curto": "IN 02/2018",
-                    "nome_completo": "Instrução Normativa SEGES/MPDG nº 2, de 30 de março de 2018",
-                    "artigos": "Todos",
-                    "palavras_chave": ["consignacao", "desconto", "folha pagamento", "margem consignavel"],
-                    "areas": ["CGPAG"],
-                    "hierarquia": 3,
-                    "grupo": "beneficios"
-                },
+        """Carrega normas do CSV em documentos_base/base_legal_decipex.csv (cached)"""
+        csv_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            'documentos_base',
+            'base_legal_decipex.csv'
+        )
 
-                # ===== 2. GESTÃO DE PESSOAS E CONDUTA FUNCIONAL =====
-                {
-                    "id": "norm_007",
-                    "nome_curto": "Decreto 9991/2019",
-                    "nome_completo": "Decreto nº 9.991, de 28 de agosto de 2019",
-                    "artigos": "Todos",
-                    "palavras_chave": ["capacitacao", "desenvolvimento", "gestao pessoas", "politica nacional", "treinamento"],
-                    "areas": ["DIGEP"],
-                    "hierarquia": 2,
-                    "grupo": "pessoas"
-                },
-                {
-                    "id": "norm_008",
-                    "nome_curto": "Portaria 424/2020",
-                    "nome_completo": "Portaria SGP/SEDGG/ME nº 424, de 27 de março de 2020",
-                    "artigos": "Todos",
-                    "palavras_chave": ["teletrabalho", "trabalho remoto", "home office"],
-                    "areas": ["DIGEP"],
-                    "hierarquia": 3,
-                    "grupo": "pessoas"
-                },
-                {
-                    "id": "norm_009",
-                    "nome_curto": "IN 05/2017",
-                    "nome_completo": "Instrução Normativa SGP/MP nº 5, de 26 de maio de 2017",
-                    "artigos": "Todos",
-                    "palavras_chave": ["horario flexivel", "jornada", "banco horas"],
-                    "areas": ["DIGEP"],
-                    "hierarquia": 3,
-                    "grupo": "pessoas"
-                },
-                {
-                    "id": "norm_010",
-                    "nome_curto": "Decreto 1171/94",
-                    "nome_completo": "Decreto nº 1.171, de 22 de junho de 1994",
-                    "artigos": "Todos",
-                    "palavras_chave": ["codigo etica", "conduta", "deveres", "servidor publico"],
-                    "areas": ["todas"],
-                    "hierarquia": 2,
-                    "grupo": "pessoas"
-                },
-                {
-                    "id": "norm_011",
-                    "nome_curto": "Lei Inclusão",
-                    "nome_completo": "Lei nº 13.146, de 6 de julho de 2015",
-                    "artigos": "Todos",
-                    "palavras_chave": ["inclusao", "pcd", "acessibilidade", "pessoa deficiencia"],
-                    "areas": ["DIGEP", "todas"],
-                    "hierarquia": 1,
-                    "grupo": "pessoas"
-                },
-                {
-                    "id": "norm_012",
-                    "nome_curto": "Lei 8112/90 - Férias",
-                    "nome_completo": "Lei nº 8.112, de 11 de dezembro de 1990",
-                    "artigos": "Art. 77-80",
-                    "palavras_chave": ["ferias", "recesso", "afastamento", "servidor"],
-                    "areas": ["DIGEP", "todas"],
-                    "hierarquia": 1,
-                    "grupo": "pessoas"
-                },
-                {
-                    "id": "norm_013",
-                    "nome_curto": "Lei 8112/90 - Licenças",
-                    "nome_completo": "Lei nº 8.112, de 11 de dezembro de 1990",
-                    "artigos": "Art. 81-116",
-                    "palavras_chave": ["licenca", "afastamento", "licenca capacitacao", "licenca saude", "maternidade"],
-                    "areas": ["DIGEP", "todas"],
-                    "hierarquia": 1,
-                    "grupo": "pessoas"
-                },
-                {
-                    "id": "norm_014",
-                    "nome_curto": "Lei 11091/2005",
-                    "nome_completo": "Lei nº 11.091, de 12 de janeiro de 2005",
-                    "artigos": "Todos",
-                    "palavras_chave": ["carreira tecnico administrativa", "universidade", "ifes"],
-                    "areas": ["DIGEP"],
-                    "hierarquia": 1,
-                    "grupo": "pessoas"
-                },
+        normas = []
+        with open(csv_path, newline='', encoding='utf-8') as f:
+            for row in csv.DictReader(f):
+                normas.append({
+                    'id': row['id'],
+                    'nome_curto': row['nome_curto'],
+                    'nome_completo': row['nome_completo'],
+                    'artigos': row['artigos'],
+                    'palavras_chave': row['palavras_chave'].split('|'),
+                    'areas': row['areas'].split('|'),
+                    'hierarquia': int(row['hierarquia']),
+                    'grupo': row['grupo'],
+                })
 
-                # ===== 3. GESTÃO PROCESSUAL E ATENDIMENTO =====
-                {
-                    "id": "norm_015",
-                    "nome_curto": "Lei 9784/99",
-                    "nome_completo": "Lei nº 9.784, de 29 de janeiro de 1999",
-                    "artigos": "Todos",
-                    "palavras_chave": ["processo administrativo", "prazo", "atendimento", "defesa", "devido processo"],
-                    "areas": ["COATE", "todas"],
-                    "hierarquia": 1,
-                    "grupo": "processos"
-                },
-                {
-                    "id": "norm_016",
-                    "nome_curto": "Decreto 9094/2017",
-                    "nome_completo": "Decreto nº 9.094, de 17 de julho de 2017",
-                    "artigos": "Todos",
-                    "palavras_chave": ["simplificacao", "usuario", "servico publico", "desburocratizacao"],
-                    "areas": ["COATE", "todas"],
-                    "hierarquia": 2,
-                    "grupo": "processos"
-                },
-                {
-                    "id": "norm_017",
-                    "nome_curto": "IN 65/2021",
-                    "nome_completo": "Instrução Normativa SEGES/ME nº 65, de 7 de julho de 2021",
-                    "artigos": "Todos",
-                    "palavras_chave": ["processo eletronico", "sei", "tramitacao", "documento digital"],
-                    "areas": ["todas"],
-                    "hierarquia": 3,
-                    "grupo": "processos"
-                },
-                {
-                    "id": "norm_018",
-                    "nome_curto": "Decreto 10139/2019",
-                    "nome_completo": "Decreto nº 10.139, de 28 de novembro de 2019",
-                    "artigos": "Todos",
-                    "palavras_chave": ["revisao atos", "desburocratizacao", "simplificacao"],
-                    "areas": ["todas"],
-                    "hierarquia": 2,
-                    "grupo": "processos"
-                },
-                {
-                    "id": "norm_019",
-                    "nome_curto": "Portaria 57/2019",
-                    "nome_completo": "Portaria ME nº 57, de 4 de fevereiro de 2019",
-                    "artigos": "Todos",
-                    "palavras_chave": ["gestao processos", "mapeamento", "bpm", "modelagem"],
-                    "areas": ["todas"],
-                    "hierarquia": 3,
-                    "grupo": "processos"
-                },
-
-                # ===== 4. GOVERNANÇA, RISCOS E CONTROLES INTERNOS =====
-                {
-                    "id": "norm_020",
-                    "nome_curto": "Decreto 9203/2017",
-                    "nome_completo": "Decreto nº 9.203, de 22 de novembro de 2017",
-                    "artigos": "Todos",
-                    "palavras_chave": ["governanca publica", "gestao riscos", "accountability", "controles"],
-                    "areas": ["CGRIS", "todas"],
-                    "hierarquia": 2,
-                    "grupo": "riscos"
-                },
-                {
-                    "id": "norm_021",
-                    "nome_curto": "IN Conjunta 01/2016",
-                    "nome_completo": "Instrução Normativa Conjunta CGU/MP nº 01, de 10 de maio de 2016",
-                    "artigos": "Todos",
-                    "palavras_chave": ["controles internos", "riscos", "integridade", "gestao riscos"],
-                    "areas": ["CGRIS", "todas"],
-                    "hierarquia": 3,
-                    "grupo": "riscos"
-                },
-                {
-                    "id": "norm_022",
-                    "nome_curto": "Portaria Interministerial 140/2006",
-                    "nome_completo": "Portaria Interministerial MF/CGU/MP nº 140, de 16 de março de 2006",
-                    "artigos": "Todos",
-                    "palavras_chave": ["auditoria", "controles internos", "gestao"],
-                    "areas": ["CGRIS", "todas"],
-                    "hierarquia": 3,
-                    "grupo": "riscos"
-                },
-                {
-                    "id": "norm_023",
-                    "nome_curto": "IN TCU 84/2020",
-                    "nome_completo": "Instrução Normativa TCU nº 84, de 22 de abril de 2020",
-                    "artigos": "Todos",
-                    "palavras_chave": ["auditoria interna", "governanca", "controles", "gestao riscos"],
-                    "areas": ["CGRIS", "todas"],
-                    "hierarquia": 4,
-                    "grupo": "riscos"
-                },
-                {
-                    "id": "norm_024",
-                    "nome_curto": "Acórdão TCU 1078/2023",
-                    "nome_completo": "Acórdão TCU nº 1078, de 2023",
-                    "artigos": "Todos",
-                    "palavras_chave": ["controles", "auditoria", "prestacao contas", "tcu", "governanca"],
-                    "areas": ["CGRIS", "todas"],
-                    "hierarquia": 4,
-                    "grupo": "riscos"
-                },
-                {
-                    "id": "norm_025",
-                    "nome_curto": "Lei 12846/2013",
-                    "nome_completo": "Lei nº 12.846, de 1º de agosto de 2013",
-                    "artigos": "Todos",
-                    "palavras_chave": ["anticorrupcao", "integridade", "compliance", "lei anticorrupcao"],
-                    "areas": ["CGRIS", "todas"],
-                    "hierarquia": 1,
-                    "grupo": "riscos"
-                },
-                {
-                    "id": "norm_026",
-                    "nome_curto": "Portaria CGU 909/2015",
-                    "nome_completo": "Portaria CGU nº 909, de 16 de abril de 2015",
-                    "artigos": "Todos",
-                    "palavras_chave": ["controles internos", "auditoria", "cgu", "gestao"],
-                    "areas": ["CGRIS", "todas"],
-                    "hierarquia": 3,
-                    "grupo": "riscos"
-                },
-                {
-                    "id": "norm_027",
-                    "nome_curto": "Decreto 9739/2019",
-                    "nome_completo": "Decreto nº 9.739, de 28 de março de 2019",
-                    "artigos": "Todos",
-                    "palavras_chave": ["medidas protetivas", "integridade", "combate corrupcao"],
-                    "areas": ["CGRIS", "todas"],
-                    "hierarquia": 2,
-                    "grupo": "riscos"
-                },
-
-                # ===== 5. PROTEÇÃO DE DADOS E SEGURANÇA DA INFORMAÇÃO =====
-                {
-                    "id": "norm_028",
-                    "nome_curto": "LGPD",
-                    "nome_completo": "Lei nº 13.709, de 14 de agosto de 2018",
-                    "artigos": "Todos",
-                    "palavras_chave": ["dados pessoais", "privacidade", "lgpd", "protecao dados"],
-                    "areas": ["CGCAF", "todas"],
-                    "hierarquia": 1,
-                    "grupo": "dados"
-                },
-                {
-                    "id": "norm_029",
-                    "nome_curto": "Decreto 10046/2019",
-                    "nome_completo": "Decreto nº 10.046, de 9 de outubro de 2019",
-                    "artigos": "Todos",
-                    "palavras_chave": ["governanca dados", "interoperabilidade", "compartilhamento dados"],
-                    "areas": ["CGCAF", "todas"],
-                    "hierarquia": 2,
-                    "grupo": "dados"
-                },
-                {
-                    "id": "norm_030",
-                    "nome_curto": "Portaria 443/2018",
-                    "nome_completo": "Portaria GM/MD nº 443, de 28 de fevereiro de 2018",
-                    "artigos": "Todos",
-                    "palavras_chave": ["seguranca informacao", "ciberseguranca", "dsic"],
-                    "areas": ["todas"],
-                    "hierarquia": 3,
-                    "grupo": "dados"
-                },
-
-                # ===== 6. TRANSPARÊNCIA E ACESSO À INFORMAÇÃO =====
-                {
-                    "id": "norm_031",
-                    "nome_curto": "LAI",
-                    "nome_completo": "Lei nº 12.527, de 18 de novembro de 2011",
-                    "artigos": "Todos",
-                    "palavras_chave": ["acesso informacao", "transparencia", "lai", "publicidade"],
-                    "areas": ["todas"],
-                    "hierarquia": 1,
-                    "grupo": "transparencia"
-                },
-                {
-                    "id": "norm_032",
-                    "nome_curto": "Decreto 7724/2012",
-                    "nome_completo": "Decreto nº 7.724, de 16 de maio de 2012",
-                    "artigos": "Todos",
-                    "palavras_chave": ["sic", "publicidade", "dados abertos", "transparencia", "esic"],
-                    "areas": ["todas"],
-                    "hierarquia": 2,
-                    "grupo": "transparencia"
-                },
-                {
-                    "id": "norm_033",
-                    "nome_curto": "Decreto 11129/2022",
-                    "nome_completo": "Decreto nº 11.129, de 11 de julho de 2022",
-                    "artigos": "Todos",
-                    "palavras_chave": ["simplificacao", "burocracia", "governanca", "eficiencia"],
-                    "areas": ["todas"],
-                    "hierarquia": 2,
-                    "grupo": "transparencia"
-                },
-            ]
-        }
+        return {"normas": normas}
 
     def _normalizar_keywords(self, texto: str) -> List[str]:
         """Normaliza e extrai keywords de um texto"""

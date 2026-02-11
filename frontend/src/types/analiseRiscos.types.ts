@@ -269,7 +269,9 @@ export const DESCRICOES_ESTRATEGIA: Record<EstrategiaResposta, string> = {
   ACEITAR: 'Reconhecer sem ação (requer justificativa para ALTO/CRÍTICO)',
 };
 
-// Áreas DECIPEX disponíveis (do CSV areas_organizacionais.csv)
+// Áreas DECIPEX disponíveis
+// Fonte: documentos_base/areas_organizacionais.csv
+// ⚠️ Manter sincronizado com o CSV
 export const AREAS_DECIPEX: Array<{ codigo: string; nome: string; prefixo: string }> = [
   { prefixo: '1', codigo: 'CGBEN', nome: 'Benefícios' },
   { prefixo: '2', codigo: 'CGPAG', nome: 'Pagamentos' },
@@ -283,7 +285,7 @@ export const AREAS_DECIPEX: Array<{ codigo: string; nome: string; prefixo: strin
   { prefixo: '7', codigo: 'CGCAF', nome: 'Complementação' },
   { prefixo: '8', codigo: 'CGECO', nome: 'Extinção e Convênio' },
   { prefixo: '9', codigo: 'COADM', nome: 'Apoio Administrativo' },
-  { prefixo: '10', codigo: 'ASDIR', nome: 'Assessoria Diretor' },
+  { prefixo: '10', codigo: 'COGES', nome: 'Coordenação de Gestão' },
 ];
 
 // Etapas do fluxo v2
@@ -304,6 +306,44 @@ export const TIPOS_ORIGEM: Array<{ valor: TipoOrigem; label: string }> = [
   { valor: 'POLITICA', label: 'Politica' },
   { valor: 'NORMA', label: 'Norma' },
   { valor: 'PLANO', label: 'Plano' },
+];
+
+// =============================================================================
+// BLOCO 7 - DADOS PESSOAIS / LGPD / GOVERNANCA DE DADOS
+// =============================================================================
+// Validado por gestor de riscos. Aderente ao Guia de GR do MGI.
+
+export type Bloco7SimNao = 'SIM' | 'NAO' | 'NAO_SEI';
+
+export type Bloco7Controle = 'SIM' | 'NAO' | 'PARCIAL' | 'NAO_SEI';
+
+export interface Bloco7Respostas {
+  Q1?: Bloco7SimNao;    // Tratamento de dados pessoais?
+  Q2?: Bloco7SimNao;    // Dados sensiveis?
+  Q3?: Bloco7SimNao;    // Base legal documentada?
+  Q4?: Bloco7Controle;  // Controles compartilhamento/acesso?
+  Q5?: Bloco7Controle;  // Controles retencao/eliminacao?
+}
+
+export const BLOCO_7_PERGUNTAS = [
+  { id: 'Q1', texto: 'Há tratamento de dados pessoais no processo/serviço?', tipo: 'sim_nao' as const },
+  { id: 'Q2', texto: 'Há tratamento de dados pessoais sensíveis (saúde, biometria, origem racial, etc.)?', tipo: 'sim_nao' as const, condicional: { Q1: ['SIM'] } },
+  { id: 'Q3', texto: 'A finalidade e a base legal estão definidas e documentadas?', tipo: 'sim_nao' as const, condicional: { Q1: ['SIM'] } },
+  { id: 'Q4', texto: 'Existem regras e controles para compartilhamento (com quem, por quê, como) e para acesso?', tipo: 'controle' as const, condicional: { Q1: ['SIM'] } },
+  { id: 'Q5', texto: 'Existem regras e controles para retenção e eliminação/anonimização?', tipo: 'controle' as const, condicional: { Q1: ['SIM'] } },
+];
+
+export const BLOCO_7_OPCOES_SIM_NAO: Array<{ valor: Bloco7SimNao; label: string }> = [
+  { valor: 'SIM', label: 'Sim' },
+  { valor: 'NAO', label: 'Não' },
+  { valor: 'NAO_SEI', label: 'Não sei / Não tenho certeza' },
+];
+
+export const BLOCO_7_OPCOES_CONTROLE: Array<{ valor: Bloco7Controle; label: string }> = [
+  { valor: 'SIM', label: 'Sim' },
+  { valor: 'NAO', label: 'Não' },
+  { valor: 'PARCIAL', label: 'Parcial' },
+  { valor: 'NAO_SEI', label: 'Não sei / Não tenho certeza' },
 ];
 
 // Frequências de execução (Bloco B)

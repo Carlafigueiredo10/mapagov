@@ -37,11 +37,20 @@ interface OpcaoDestino {
   opcoesPredefinidas?: string[];
 }
 
+interface OrigemEntrada {
+  tipo: string;
+  especificacao?: string | null;
+  area_decipex?: string | null;
+  orgao_centralizado?: string | null;
+  canais_atendimento?: string[] | null;
+}
+
 interface InterfaceFluxosSaidaProps {
   dados?: {
     areas_organizacionais?: AreaOrganizacional[];
     orgaos_centralizados?: OrgaoCentralizado[];
     canais_atendimento?: CanalAtendimento[];
+    fluxos_entrada_estruturados?: OrigemEntrada[];
   };
   onConfirm: (resposta: string) => void;
 }
@@ -51,7 +60,7 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
   const [outrosDestinos, setOutrosDestinos] = useState('');
   const [mostrarEspecificacao, setMostrarEspecificacao] = useState<Record<string, boolean>>({});
   const [especificacoes, setEspecificacoes] = useState<Record<string, string>>({});
-  const [areaDecipexSelecionada, setAreaDecipexSelecionada] = useState<Record<string, string>>({});
+  const [areaDecipexSelecionada, setAreaDecipexSelecionada] = useState<Record<string, string[]>>({});
   const [orgaoCentralizadoSelecionado, setOrgaoCentralizadoSelecionado] = useState<Record<string, string>>({});
   const [canaisSelecionados, setCanaisSelecionados] = useState<Record<string, string[]>>({});
   const [isLoading, setIsLoading] = useState(false); // ✅ Proteção contra duplo clique
@@ -60,6 +69,62 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
   const areasDecipex = dados?.areas_organizacionais || [];
   const orgaosCentralizados = dados?.orgaos_centralizados || [];
   const canaisAtendimento = dados?.canais_atendimento || [];
+  const fluxosEntradaEstruturados = dados?.fluxos_entrada_estruturados || [];
+
+  // Mapeamento: label da entrada → id da opção de saída
+  const MAPA_ENTRADA_SAIDA: Record<string, string> = {
+    'De outra área da DECIPEX': 'outra_area_decipex',
+    'De algum órgão centralizado': 'orgao_centralizado',
+    'De fora da DECIPEX (outro órgão/entidade)': 'fora_decipex',
+    'Do usuário/requerente diretamente': 'usuario_requerente',
+    'De outra área interna da sua Coordenação Geral': 'area_interna_cg',
+    'Órgãos de Controle': 'orgaos_controle',
+    'Demanda judicial': 'demanda_judicial',
+  };
+
+  const replicarEntrada = () => {
+    const novosDestinos: DestinoSelecionado[] = [];
+    const novasEspecs: Record<string, string> = {};
+    const novasAreas: Record<string, string> = {};
+    const novosOrgaos: Record<string, string> = {};
+    const novosCanais: Record<string, string[]> = {};
+    const novosMostrar: Record<string, boolean> = {};
+
+    for (const origem of fluxosEntradaEstruturados) {
+      const idSaida = MAPA_ENTRADA_SAIDA[origem.tipo];
+      if (!idSaida) continue;
+
+      novosDestinos.push({
+        tipo: idSaida,
+        especificacao: origem.especificacao || undefined,
+        area_decipex: origem.area_decipex || undefined,
+        orgao_centralizado: origem.orgao_centralizado || undefined,
+        canais_atendimento: origem.canais_atendimento || undefined,
+      });
+
+      novosMostrar[idSaida] = true;
+
+      if (origem.especificacao) {
+        novasEspecs[idSaida] = origem.especificacao;
+      }
+      if (origem.area_decipex) {
+        novasAreas[idSaida] = origem.area_decipex.split(';').filter(Boolean);
+      }
+      if (origem.orgao_centralizado) {
+        novosOrgaos[idSaida] = origem.orgao_centralizado;
+      }
+      if (origem.canais_atendimento && origem.canais_atendimento.length > 0) {
+        novosCanais[idSaida] = origem.canais_atendimento;
+      }
+    }
+
+    setDestinos(novosDestinos);
+    setMostrarEspecificacao(novosMostrar);
+    setEspecificacoes(novasEspecs);
+    setAreaDecipexSelecionada(novasAreas);
+    setOrgaoCentralizadoSelecionado(novosOrgaos);
+    setCanaisSelecionados(novosCanais);
+  };
 
   const opcoesDestino: OpcaoDestino[] = [
     { id: 'outra_area_decipex', label: 'Para outra área da DECIPEX', requerEspecificacao: true, requerAreaDecipex: true },
@@ -68,6 +133,7 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
     { id: 'usuario_requerente', label: 'Para o usuário/requerente diretamente', requerEspecificacao: true, requerCanaisAtendimento: true },
     { id: 'area_interna_cg', label: 'Para outra área interna da sua Coordenação Geral', requerEspecificacao: true, obrigatorio: true },
     { id: 'orgaos_controle', label: 'Órgãos de Controle', requerEspecificacao: true, opcoesPredefinidas: ['TCU - Indícios', 'TCU - Acórdão', 'CGU'] },
+    { id: 'demanda_judicial', label: 'Demanda judicial', requerEspecificacao: true, opcoesPredefinidas: ['AGU/PRU', 'Defensoria Pública', 'Direto das partes (ex: pensão alimentícia)'] },
   ];
 
   const toggleDestino = (id: string, requerEspecificacao: boolean) => {
@@ -114,11 +180,18 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
     ));
   };
 
-  const handleAreaDecipex = (id: string, valor: string) => {
-    setAreaDecipexSelecionada(prev => ({ ...prev, [id]: valor }));
-    setDestinos(prev => prev.map(o =>
-      o.tipo === id ? { ...o, area_decipex: valor } : o
-    ));
+  const handleToggleAreaDecipex = (id: string, codigoArea: string) => {
+    setAreaDecipexSelecionada(prev => {
+      const atuais = prev[id] || [];
+      const jaExiste = atuais.includes(codigoArea);
+      const novas = jaExiste ? atuais.filter(c => c !== codigoArea) : [...atuais, codigoArea];
+
+      setDestinos(p => p.map(o =>
+        o.tipo === id ? { ...o, area_decipex: novas.join(';') } : o
+      ));
+
+      return { ...prev, [id]: novas };
+    });
   };
 
   const handleOrgaoCentralizado = (id: string, valor: string) => {
@@ -128,18 +201,28 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
     ));
   };
 
-  const handleCanaisAtendimento = (id: string, codigo: string, checked: boolean) => {
+  const handleToggleCanal = (idDestino: string, codigoCanal: string) => {
     setCanaisSelecionados(prev => {
-      const canaisAtuais = prev[id] || [];
-      const novosCanais = checked
-        ? [...canaisAtuais, codigo]
-        : canaisAtuais.filter(c => c !== codigo);
-      return { ...prev, [id]: novosCanais };
-    });
+      const canaisAtuais = prev[idDestino] || [];
+      const jaExiste = canaisAtuais.includes(codigoCanal);
 
-    setDestinos(prev => prev.map(o =>
-      o.tipo === id ? { ...o, canais_atendimento: canaisSelecionados[id] || [] } : o
-    ));
+      const novosCanais = jaExiste
+        ? canaisAtuais.filter(c => c !== codigoCanal)
+        : [...canaisAtuais, codigoCanal];
+
+      const nomesCanais = novosCanais.map(codigo => {
+        const canal = canaisAtendimento.find(c => c.codigo === codigo);
+        return canal ? canal.nome : codigo;
+      });
+      const especificacao = nomesCanais.join(', ');
+
+      setEspecificacoes(prev => ({ ...prev, [idDestino]: especificacao }));
+      setDestinos(prev => prev.map(o =>
+        o.tipo === idDestino ? { ...o, canais_atendimento: novosCanais, especificacao } : o
+      ));
+
+      return { ...prev, [idDestino]: novosCanais };
+    });
   };
 
   const handleConfirm = () => {
@@ -196,6 +279,57 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
           Para qual área você entrega ou encaminha?
         </p>
 
+        {fluxosEntradaEstruturados.length > 0 && (
+          <div style={{
+            marginBottom: '1rem',
+            padding: '0.75rem',
+            background: '#e7f3ff',
+            borderLeft: '4px solid #1351B4',
+            borderRadius: '4px',
+            fontSize: '0.85rem',
+            color: '#004085',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem'
+          }}>
+            <span>
+              <strong>Sugestão:</strong> A saída costuma ser devolvida ao demandante.
+              Deseja replicar os fluxos de entrada?
+            </span>
+            <button
+              onClick={replicarEntrada}
+              disabled={isLoading}
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#1351B4',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: '0.85rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Replicar fluxos de entrada
+            </button>
+          </div>
+        )}
+
+        <div style={{
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          background: '#fff3cd',
+          borderLeft: '4px solid #ffc107',
+          borderRadius: '4px',
+          fontSize: '0.85rem',
+          color: '#856404'
+        }}>
+          <strong>Atenção:</strong> Em se tratando de processo administrativo,
+          considere sempre enviar à CGGAF para inclusão em assentamento funcional.
+        </div>
+
         <div style={{ marginBottom: '1.5rem' }}>
           <p style={{ fontSize: '0.9rem', color: '#6c757d', marginBottom: '1rem' }}>
             Selecione todos os destinos que se aplicam:
@@ -224,27 +358,51 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
                 <label style={{ cursor: 'pointer', margin: 0 }}>{opcao.label}</label>
               </div>
 
-              {/* Especificação com dropdown de áreas */}
+              {/* Seletor de Áreas DECIPEX (múltipla seleção) */}
               {mostrarEspecificacao[opcao.id] && opcao.requerAreaDecipex && areasDecipex.length > 0 && (
                 <div style={{ marginTop: '0.5rem', marginLeft: '2rem' }}>
-                  <select
-                    value={areaDecipexSelecionada[opcao.id] || ''}
-                    onChange={(e) => handleAreaDecipex(opcao.id, e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '1px solid #ced4da',
-                      borderRadius: '6px',
-                      fontSize: '0.95rem'
-                    }}
-                  >
-                    <option value="">Selecione uma área da DECIPEX...</option>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#495057', fontWeight: 500 }}>
+                    Selecione as áreas da DECIPEX (pode selecionar várias):
+                  </label>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                    gap: '0.5rem',
+                    padding: '0.75rem',
+                    border: '1px solid #ced4da',
+                    borderRadius: '6px',
+                    background: '#f8f9fa'
+                  }}>
                     {areasDecipex.map(area => (
-                      <option key={area.codigo} value={area.codigo}>
-                        {area.sigla || area.codigo} - {area.nome}
-                      </option>
+                      <div
+                        key={area.codigo}
+                        onClick={() => handleToggleAreaDecipex(opcao.id, area.codigo)}
+                        style={{
+                          padding: '0.5rem',
+                          border: '2px solid',
+                          borderColor: (areaDecipexSelecionada[opcao.id] || []).includes(area.codigo) ? '#1351B4' : '#dee2e6',
+                          borderRadius: '6px',
+                          background: (areaDecipexSelecionada[opcao.id] || []).includes(area.codigo) ? '#e7f3ff' : 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(areaDecipexSelecionada[opcao.id] || []).includes(area.codigo)}
+                          readOnly
+                          style={{ marginRight: '0.5rem', cursor: 'pointer' }}
+                        />
+                        <strong>{area.sigla || area.codigo}</strong> - {area.nome}
+                      </div>
                     ))}
-                  </select>
+                  </div>
+                  {(areaDecipexSelecionada[opcao.id] || []).length > 0 && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#28a745', fontWeight: 500 }}>
+                      ✓ {areaDecipexSelecionada[opcao.id].length} área(s) selecionada(s)
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -272,25 +430,56 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
                 </div>
               )}
 
-              {/* Especificação com checkboxes de canais */}
+              {/* Seletor de Canais de Atendimento (múltipla seleção) */}
               {mostrarEspecificacao[opcao.id] && opcao.requerCanaisAtendimento && canaisAtendimento.length > 0 && (
-                <div style={{ marginTop: '0.5rem', marginLeft: '2rem', background: '#f8f9fa', padding: '1rem', borderRadius: '6px' }}>
-                  <p style={{ fontSize: '0.85rem', color: '#495057', marginBottom: '0.5rem', fontWeight: 500 }}>
-                    Selecione os canais de atendimento:
-                  </p>
-                  {canaisAtendimento.map(canal => (
-                    <div key={canal.codigo} style={{ marginBottom: '0.3rem' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <div style={{ marginTop: '0.5rem', marginLeft: '2rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#495057', fontWeight: 500 }}>
+                    Selecione os canais de atendimento (pode selecionar vários):
+                  </label>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                    gap: '0.5rem',
+                    padding: '0.75rem',
+                    border: '1px solid #ced4da',
+                    borderRadius: '6px',
+                    background: '#f8f9fa'
+                  }}>
+                    {canaisAtendimento.map(canal => (
+                      <div
+                        key={canal.codigo}
+                        onClick={() => handleToggleCanal(opcao.id, canal.codigo)}
+                        style={{
+                          padding: '0.5rem',
+                          border: '2px solid',
+                          borderColor: (canaisSelecionados[opcao.id] || []).includes(canal.codigo) ? '#1351B4' : '#dee2e6',
+                          borderRadius: '6px',
+                          background: (canaisSelecionados[opcao.id] || []).includes(canal.codigo) ? '#e7f3ff' : 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          fontSize: '0.85rem'
+                        }}
+                      >
                         <input
                           type="checkbox"
                           checked={(canaisSelecionados[opcao.id] || []).includes(canal.codigo)}
-                          onChange={(e) => handleCanaisAtendimento(opcao.id, canal.codigo, e.target.checked)}
-                          style={{ marginRight: '0.5rem' }}
+                          readOnly
+                          style={{ marginRight: '0.5rem', cursor: 'pointer' }}
                         />
-                        <span style={{ fontSize: '0.9rem' }}>{canal.nome}</span>
-                      </label>
+                        <strong>{canal.nome}</strong>
+                        {canal.descricao && (
+                          <div style={{ fontSize: '0.75rem', color: '#6c757d', marginTop: '0.25rem', marginLeft: '1.5rem' }}>
+                            {canal.descricao}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {(canaisSelecionados[opcao.id] || []).length > 0 && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#28a745', fontWeight: 500 }}>
+                      ✓ {canaisSelecionados[opcao.id].length} canal(is) selecionado(s)
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
 

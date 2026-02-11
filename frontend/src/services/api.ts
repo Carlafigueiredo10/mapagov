@@ -13,33 +13,41 @@ const api = axios.create({
   withCredentials: true, // CRITICO: Permite envio de cookies para sessao Django
 });
 
-// Adiciona header X-Requested-With para evitar bloqueio CORS
+// Helper para ler cookie por nome
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? match[2] : null;
+}
+
+// Adiciona headers CSRF e X-Requested-With
 api.interceptors.request.use((config) => {
   config.headers['X-Requested-With'] = 'XMLHttpRequest';
-  // Se precisar CSRF, descomente abaixo:
-  // const csrfToken = getCookie('csrftoken');
-  // if (csrfToken) {
-  //   config.headers['X-CSRFToken'] = csrfToken;
-  // }
+  const csrfToken = getCookie('csrftoken');
+  if (csrfToken) {
+    config.headers['X-CSRFToken'] = csrfToken;
+  }
   return config;
 });
 
-// Interceptor de resposta para retry automático em caso de timeout
+// Interceptor de resposta: retry em timeout + redirect em 401
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const config = error.config;
 
-    // Se foi timeout e ainda não tentou retry
-    if (error.code === 'ECONNABORTED' && !config._retry) {
-      config._retry = true;
-      console.warn('⚠️ Timeout na requisição. Tentando novamente...');
-      return api(config);
+    // Session expirada — redirect para login (exceto se ja esta em rota de auth)
+    if (
+      error.response?.status === 401 &&
+      !config.url?.includes('/auth/')
+    ) {
+      window.location.href = '/login';
+      return Promise.reject(error);
     }
 
-    // Se foi erro de rede
-    if (error.message === 'Network Error') {
-      console.error('❌ Erro de rede. Verifique se o backend está rodando.');
+    // Se foi timeout e ainda nao tentou retry
+    if (error.code === 'ECONNABORTED' && !config._retry) {
+      config._retry = true;
+      return api(config);
     }
 
     return Promise.reject(error);

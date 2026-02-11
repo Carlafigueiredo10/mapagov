@@ -100,6 +100,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'processos.infra.access_control_middleware.AccessControlMiddleware',  # Auth: bloqueia usuarios nao aprovados
     'processos.infra.rls_middleware.RLSMiddleware',  # FASE 2: Row-Level Security
     'processos.infra.structured_logging.RequestLoggingMiddleware',  # FASE 3: Structured Logging
     'processos.infra.metrics.PrometheusMetricsMiddleware',  # FASE 3: Prometheus Metrics
@@ -232,6 +233,27 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ============================================================================
+# EMAIL CONFIGURATION
+# ============================================================================
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'MapaGov <noreply@gestao.gov.br>')
+
+# Token de verificacao expira em 24h
+PASSWORD_RESET_TIMEOUT = 86400
+
+# ============================================================================
+# SESSION CONFIGURATION
+# ============================================================================
+SESSION_COOKIE_AGE = 86400  # 24 horas
+SESSION_SAVE_EVERY_REQUEST = True  # Sliding expiry — reseta timeout em cada atividade
+SESSION_COOKIE_HTTPONLY = True  # Previne acesso JS ao cookie de sessao
 
 # Django REST Framework - configuração básica
 REST_FRAMEWORK = {

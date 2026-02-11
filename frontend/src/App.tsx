@@ -1,12 +1,25 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
+
+// Auth
+import ProtectedRoute from './components/Auth/ProtectedRoute'
+import AdminRoute from './components/Auth/AdminRoute'
+import PublicRoute from './components/Auth/PublicRoute'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
+import PendingAccessPage from './pages/PendingAccessPage'
+import PasswordResetPage from './pages/PasswordResetPage'
+import PasswordResetConfirmPage from './pages/PasswordResetConfirmPage'
+import AdminUsersPage from './pages/AdminUsersPage'
+
+// Pages
 import Landing from './pages/Landing'
 import Sobre from './pages/Sobre'
 import Portal from './pages/Portal'
 import MapeamentoProcessosPage from './pages/MapeamentoProcessosPage'
 import AnaliseRiscosPage from './pages/AnaliseRiscos'
 import FluxogramaPage from './pages/FluxogramaPage'
-import ChatV2Demo from './components/Helena/ChatV2Demo'
 import PlanoAcaoPage from './pages/PlanoAcaoPage'
 import HelenaPEModerna from './pages/HelenaPEModerna'
 import Dominio1 from './pages/Dominio1'
@@ -41,100 +54,100 @@ import AvaliacaoSatisfacaoPage from './pages/AvaliacaoSatisfacaoPage'
 import FerramentasApoioPage from './pages/FerramentasApoioPage'
 import MetodosPage from './pages/MetodosPage'
 import MetodoIndividual from './pages/MetodoIndividual'
+import CatalogoPOPPage from './pages/CatalogoPOPPage'
+import CatalogoAreaPage from './pages/CatalogoAreaPage'
+import CatalogoPOPDetailPage from './pages/CatalogoPOPDetailPage'
+import FuncionalidadesPage from './pages/FuncionalidadesPage'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rota Principal: Landing Page */}
+        {/* ================================================================
+            ROTAS PUBLICAS — sem autenticacao
+            ================================================================ */}
         <Route path="/" element={<Landing />} />
-
-        {/* Rota: Sobre MapaGov */}
         <Route path="/sobre" element={<Sobre />} />
+        <Route path="/funcionalidades" element={<FuncionalidadesPage />} />
 
-        {/* Rota: Portal de Produtos */}
-        <Route path="/portal" element={<Portal />} />
+        {/* Catalogo publico (somente leitura) */}
+        <Route path="/catalogo" element={<CatalogoPOPPage />} />
+        <Route path="/catalogo/:slug" element={<CatalogoAreaPage />} />
+        <Route path="/catalogo/:slug/:codigo" element={<CatalogoPOPDetailPage />} />
 
-        {/* Rota: Mapeamento de Atividades (POP) */}
+        {/* ================================================================
+            ROTAS DE AUTH — login, registro, verificacao, reset
+            ================================================================ */}
+        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/registrar" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+        <Route path="/verificar-email/:uid/:token" element={<VerifyEmailPage />} />
+        <Route path="/acesso-pendente" element={<PendingAccessPage />} />
+        <Route path="/recuperar-senha" element={<PasswordResetPage />} />
+        <Route path="/nova-senha/:uid/:token" element={<PasswordResetConfirmPage />} />
+
+        {/* ================================================================
+            ROTAS ADMIN — painel de aprovacao de usuarios
+            ================================================================ */}
+        <Route path="/admin/usuarios" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
+
+        {/* ================================================================
+            ROTAS PROTEGIDAS — exigem login + email verificado + acesso aprovado
+            ================================================================ */}
+        <Route path="/portal" element={<ProtectedRoute><Portal /></ProtectedRoute>} />
+
+        {/* Landings publicas — gate interno protege a ferramenta */}
         <Route path="/pop" element={<MapeamentoProcessosPage />} />
-
-        {/* Rota: Análise de Riscos */}
         <Route path="/riscos" element={<AnaliseRiscosPage />} />
-
-        {/* Rota: Gerador de Fluxogramas */}
         <Route path="/fluxograma" element={<FluxogramaPage />} />
+        <Route path="/plano" element={<ProtectedRoute><PlanoAcaoPage /></ProtectedRoute>} />
 
-        {/* 🚀 FASE 1 - Demo da Nova API */}
-        <Route path="/chat-v2" element={<ChatV2Demo />} />
+        {/* Planejamento Estrategico */}
+        <Route path="/planejamento-estrategico" element={<ProtectedRoute><HelenaPEModerna /></ProtectedRoute>} />
+        <Route path="/planejamento-estrategico/painel" element={<ProtectedRoute><HelenaPEModerna /></ProtectedRoute>} />
+        <Route path="/planejamento-estrategico/modelos" element={<ProtectedRoute><HelenaPEModerna /></ProtectedRoute>} />
+        <Route path="/planejamento-estrategico/diagnostico" element={<ProtectedRoute><DiagnosticoGuiado /></ProtectedRoute>} />
+        <Route path="/planejamento-estrategico/modelos/tradicional" element={<ProtectedRoute><HelenaPEModerna /></ProtectedRoute>} />
+        <Route path="/planejamento-estrategico/modelos/bsc" element={<ProtectedRoute><HelenaPEModerna /></ProtectedRoute>} />
+        <Route path="/planejamento-estrategico/modelos/okr" element={<ProtectedRoute><MetodoIndividual /></ProtectedRoute>} />
+        <Route path="/planejamento-estrategico/modelos/swot" element={<ProtectedRoute><HelenaPEModerna /></ProtectedRoute>} />
+        <Route path="/planejamento-estrategico/modelos/cenarios" element={<ProtectedRoute><HelenaPEModerna /></ProtectedRoute>} />
+        <Route path="/planejamento-estrategico/modelos/5w2h" element={<ProtectedRoute><HelenaPEModerna /></ProtectedRoute>} />
+        <Route path="/planejamento-estrategico/modelos/hoshin" element={<ProtectedRoute><MetodoIndividual /></ProtectedRoute>} />
 
-        {/* P6 - Plano de Ação */}
-        <Route path="/plano" element={<PlanoAcaoPage />} />
+        {/* Dominios MGI */}
+        <Route path="/dominio1" element={<ProtectedRoute><Dominio1 /></ProtectedRoute>} />
+        <Route path="/dominio1/canvas" element={<ProtectedRoute><CanvasPage /></ProtectedRoute>} />
+        <Route path="/dominio1/linha-tempo" element={<ProtectedRoute><LinhaTempoPage /></ProtectedRoute>} />
+        <Route path="/dominio1/checklist" element={<ProtectedRoute><ChecklistPage /></ProtectedRoute>} />
+        <Route path="/dominio2/canvas-escopo" element={<ProtectedRoute><CanvasEscopoPage /></ProtectedRoute>} />
+        <Route path="/dominio2/matriz-raci" element={<ProtectedRoute><MatrizRACIPage /></ProtectedRoute>} />
+        <Route path="/dominio2/indicadores" element={<ProtectedRoute><PainelIndicadoresPage /></ProtectedRoute>} />
+        <Route path="/dominio2/exclusoes" element={<ProtectedRoute><MapaExclusoesPage /></ProtectedRoute>} />
+        <Route path="/dominio3/mapa-papeis" element={<ProtectedRoute><MapaPapeisPage /></ProtectedRoute>} />
+        <Route path="/dominio3/organograma" element={<ProtectedRoute><OrganogramaGovernancaPage /></ProtectedRoute>} />
+        <Route path="/dominio3/acordo-trabalho" element={<ProtectedRoute><AcordoTrabalhoPage /></ProtectedRoute>} />
+        <Route path="/dominio3/mapa-competencias" element={<ProtectedRoute><MapaCompetenciasPage /></ProtectedRoute>} />
+        <Route path="/dominio4/plano-atividades" element={<ProtectedRoute><PlanoAtividadesPage /></ProtectedRoute>} />
+        <Route path="/dominio4/cronograma" element={<ProtectedRoute><CronogramaPage /></ProtectedRoute>} />
+        <Route path="/dominio4/mapa-gargalos" element={<ProtectedRoute><MapaGargalosPage /></ProtectedRoute>} />
+        <Route path="/dominio4/painel-progresso" element={<ProtectedRoute><PainelProgressoPage /></ProtectedRoute>} />
+        <Route path="/dominio5/mapa-stakeholders" element={<ProtectedRoute><MapaStakeholdersPage /></ProtectedRoute>} />
+        <Route path="/dominio5/matriz-engajamento" element={<ProtectedRoute><MatrizEngajamentoPage /></ProtectedRoute>} />
+        <Route path="/dominio5/plano-comunicacao" element={<ProtectedRoute><PlanoComunicacaoPage /></ProtectedRoute>} />
+        <Route path="/dominio5/registro-feedbacks" element={<ProtectedRoute><RegistroFeedbacksPage /></ProtectedRoute>} />
+        <Route path="/dominio6/mapa-contexto" element={<ProtectedRoute><MapaContextoPage /></ProtectedRoute>} />
+        <Route path="/dominio6/matriz-riscos" element={<ProtectedRoute><MatrizRiscosControlesPage /></ProtectedRoute>} />
+        <Route path="/dominio6/plano-tratamento" element={<ProtectedRoute><PlanoTratamentoRiscosPage /></ProtectedRoute>} />
+        <Route path="/dominio6/registro-licoes" element={<ProtectedRoute><RegistroLicoesAprendidasPage /></ProtectedRoute>} />
+        <Route path="/dominio7/painel-resultados" element={<ProtectedRoute><PainelResultadosImpactoPage /></ProtectedRoute>} />
+        <Route path="/dominio7/relatorio-licoes" element={<ProtectedRoute><RelatorioLicoesAprendidasPage /></ProtectedRoute>} />
+        <Route path="/dominio7/matriz-sustentabilidade" element={<ProtectedRoute><MatrizSustentabilidadePage /></ProtectedRoute>} />
+        <Route path="/dominio7/avaliacao-satisfacao" element={<ProtectedRoute><AvaliacaoSatisfacaoPage /></ProtectedRoute>} />
 
-        {/* Helena Planejamento Estratégico - Hierarquia organizada */}
-        <Route path="/planejamento-estrategico" element={<HelenaPEModerna />} />
-        <Route path="/planejamento-estrategico/painel" element={<HelenaPEModerna />} />
-        <Route path="/planejamento-estrategico/modelos" element={<HelenaPEModerna />} />
-        <Route path="/planejamento-estrategico/diagnostico" element={<DiagnosticoGuiado />} />
-
-        {/* Workspaces dos Modelos (hierarquia /planejamento-estrategico/modelos/...) */}
-        <Route path="/planejamento-estrategico/modelos/tradicional" element={<HelenaPEModerna />} />
-        <Route path="/planejamento-estrategico/modelos/bsc" element={<HelenaPEModerna />} />
-        <Route path="/planejamento-estrategico/modelos/okr" element={<MetodoIndividual />} />
-        <Route path="/planejamento-estrategico/modelos/swot" element={<HelenaPEModerna />} />
-        <Route path="/planejamento-estrategico/modelos/cenarios" element={<HelenaPEModerna />} />
-        <Route path="/planejamento-estrategico/modelos/5w2h" element={<HelenaPEModerna />} />
-        <Route path="/planejamento-estrategico/modelos/hoshin" element={<MetodoIndividual />} />
-
-        {/* Domínios MGI */}
-        <Route path="/dominio1" element={<Dominio1 />} />
-
-        {/* Artefatos Domínio 1 */}
-        <Route path="/dominio1/canvas" element={<CanvasPage />} />
-        <Route path="/dominio1/linha-tempo" element={<LinhaTempoPage />} />
-        <Route path="/dominio1/checklist" element={<ChecklistPage />} />
-
-        {/* Artefatos Domínio 2 */}
-        <Route path="/dominio2/canvas-escopo" element={<CanvasEscopoPage />} />
-        <Route path="/dominio2/matriz-raci" element={<MatrizRACIPage />} />
-        <Route path="/dominio2/indicadores" element={<PainelIndicadoresPage />} />
-        <Route path="/dominio2/exclusoes" element={<MapaExclusoesPage />} />
-
-        {/* Artefatos Domínio 3 */}
-        <Route path="/dominio3/mapa-papeis" element={<MapaPapeisPage />} />
-        <Route path="/dominio3/organograma" element={<OrganogramaGovernancaPage />} />
-        <Route path="/dominio3/acordo-trabalho" element={<AcordoTrabalhoPage />} />
-        <Route path="/dominio3/mapa-competencias" element={<MapaCompetenciasPage />} />
-
-        {/* Artefatos Domínio 4 */}
-        <Route path="/dominio4/plano-atividades" element={<PlanoAtividadesPage />} />
-        <Route path="/dominio4/cronograma" element={<CronogramaPage />} />
-        <Route path="/dominio4/mapa-gargalos" element={<MapaGargalosPage />} />
-        <Route path="/dominio4/painel-progresso" element={<PainelProgressoPage />} />
-
-        {/* Artefatos Domínio 5 */}
-        <Route path="/dominio5/mapa-stakeholders" element={<MapaStakeholdersPage />} />
-        <Route path="/dominio5/matriz-engajamento" element={<MatrizEngajamentoPage />} />
-        <Route path="/dominio5/plano-comunicacao" element={<PlanoComunicacaoPage />} />
-        <Route path="/dominio5/registro-feedbacks" element={<RegistroFeedbacksPage />} />
-
-        {/* Artefatos Domínio 6 */}
-        <Route path="/dominio6/mapa-contexto" element={<MapaContextoPage />} />
-        <Route path="/dominio6/matriz-riscos" element={<MatrizRiscosControlesPage />} />
-        <Route path="/dominio6/plano-tratamento" element={<PlanoTratamentoRiscosPage />} />
-        <Route path="/dominio6/registro-licoes" element={<RegistroLicoesAprendidasPage />} />
-
-        {/* Artefatos Domínio 7 */}
-        <Route path="/dominio7/painel-resultados" element={<PainelResultadosImpactoPage />} />
-        <Route path="/dominio7/relatorio-licoes" element={<RelatorioLicoesAprendidasPage />} />
-        <Route path="/dominio7/matriz-sustentabilidade" element={<MatrizSustentabilidadePage />} />
-        <Route path="/dominio7/avaliacao-satisfacao" element={<AvaliacaoSatisfacaoPage />} />
-
-        {/* Página Ferramentas de Apoio */}
-        <Route path="/ferramentas-apoio" element={<FerramentasApoioPage />} />
-
-        {/* Página Métodos de Gestão */}
-        <Route path="/metodos" element={<MetodosPage />} />
-        <Route path="/metodos/:metodoId" element={<MetodoIndividual />} />
+        {/* Ferramentas e Metodos */}
+        <Route path="/ferramentas-apoio" element={<ProtectedRoute><FerramentasApoioPage /></ProtectedRoute>} />
+        <Route path="/metodos" element={<ProtectedRoute><MetodosPage /></ProtectedRoute>} />
+        <Route path="/metodos/:metodoId" element={<ProtectedRoute><MetodoIndividual /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )

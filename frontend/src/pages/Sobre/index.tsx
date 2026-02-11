@@ -86,20 +86,22 @@ export default function Sobre() {
               <div className={styles.catalogCard}>
                 <div className={styles.catalogBadge}>✅ Disponíveis Agora</div>
                 <ul>
-                  <li><strong>Gerador de POP:</strong> transforma conversas em documentos padronizados e auditáveis</li>
-                  <li><strong>Gerador de Fluxogramas:</strong> visualiza processos complexos de forma clara e intuitiva</li>
-                  <li><strong>Análise de Riscos:</strong> identifica vulnerabilidades e propõe controles conforme a ISO 31000 e o COSO ERM</li>
+                  <li><strong>Gerador de POP:</strong> Estrutura processos e gera o Procedimento Operacional Padrão auditável.</li>
+                  <li><strong>Gerador de Fluxograma:</strong> Representa visualmente o fluxo do processo mapeado.</li>
+                  <li><strong>Análise de Riscos:</strong> Identifica, avalia e propõe tratamento de riscos conforme diretrizes institucionais.</li>
+                  <li><strong>Planejamento Estratégico:</strong> Organiza objetivos, metas e ferramentas conforme orientações do MGI.</li>
                 </ul>
               </div>
 
               <div className={styles.catalogCard}>
-                <div className={`${styles.catalogBadge} ${styles.development}`}>🚀 Em Desenvolvimento</div>
+                <div className={`${styles.catalogBadge} ${styles.development}`}>🔵 Em Desenvolvimento</div>
                 <ul>
-                  <li>Dashboard Executivo de Governança</li>
-                  <li>Análise Avançada de Conformidade LGPD</li>
-                  <li>Dossiê Integrado de Governança e Riscos</li>
-                  <li>Gerador Automático de Notas Técnicas</li>
-                  <li>Relatórios de Otimização de Processos</li>
+                  <li><strong>Plano de Ação e Acompanhamento:</strong> Define ações, responsáveis e prazos para execução e monitoramento.</li>
+                  <li><strong>Painel Executivo:</strong> Apresenta indicadores e visão consolidada das iniciativas.</li>
+                  <li><strong>Dossiê Consolidado de Governança:</strong> Reúne todos os documentos e análises produzidos sobre o objeto.</li>
+                  <li><strong>Relatório Técnico Consolidado:</strong> Formaliza o histórico completo do processo para arquivamento.</li>
+                  <li><strong>Relatório de Conformidade:</strong> Avalia se o processo executado seguiu etapas e prazos previstos.</li>
+                  <li><strong>Revisão e Adequação de Documentos:</strong> Ajusta documentos à linguagem simples e aos padrões institucionais.</li>
                 </ul>
               </div>
             </div>

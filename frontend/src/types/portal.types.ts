@@ -6,16 +6,14 @@ export type ProductCode =
   | 'geral'
   | 'pop'
   | 'fluxograma'
-  | 'dossie'
-  | 'dashboard'
   | 'riscos'
-  | 'relatorio'
+  | 'planejamento'
   | 'acao'
-  | 'governanca'
-  | 'documentos'
+  | 'dashboard'
+  | 'dossie'
   | 'conformidade'
-  | 'artefatos'
-  | 'planejamento';
+  | 'documentos'
+  | 'artefatos';
 
 export interface Product {
   code: ProductCode;

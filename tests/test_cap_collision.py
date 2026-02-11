@@ -2,8 +2,9 @@
 Testes de colisão de CAP (codigo_processo).
 
 Garante que:
-1. UniqueConstraint impede duplicatas ativas
-2. Retry no autosave incrementa CAP em colisão
+1. _max_atividade_csv e _max_atividade_db retornam o maior segmento correto
+2. UniqueConstraint impede duplicatas ativas
+3. Retry no autosave incrementa CAP em colisão
 """
 import os
 import sys
@@ -18,7 +19,88 @@ django.setup()
 from django.db import IntegrityError, transaction
 from django.test import TestCase, TransactionTestCase
 from processos.models import POP
+from processos.domain.helena_mapeamento.busca_atividade_pipeline import (
+    _max_atividade_csv,
+    _max_atividade_db,
+)
 
+
+# ── Testes unitários do gerador (funções puras) ─────────────────────────────
+
+class TestMaxAtividadeCSV(unittest.TestCase):
+    """Testa parsing de max atividade a partir de lista de CAPs do CSV."""
+
+    def test_csv_normal(self):
+        caps = ['8.1.1.1', '8.1.1.2', '8.1.1.3']
+        self.assertEqual(_max_atividade_csv(caps), 3)
+
+    def test_csv_com_gaps(self):
+        caps = ['1.1.1.1', '1.1.1.5', '1.1.1.3']
+        self.assertEqual(_max_atividade_csv(caps), 5)
+
+    def test_csv_vazio(self):
+        self.assertEqual(_max_atividade_csv([]), 0)
+
+    def test_csv_com_lixo(self):
+        """Strings não-numéricas no último segmento são ignoradas."""
+        caps = ['8.1.1.abc', '8.1.1.2', 'invalido']
+        self.assertEqual(_max_atividade_csv(caps), 2)
+
+    def test_csv_formato_curto_ignorado(self):
+        """CAPs com menos de 4 segmentos são ignorados."""
+        caps = ['1.1', '8.1.1.4']
+        self.assertEqual(_max_atividade_csv(caps), 4)
+
+    def test_csv_somente_lixo_retorna_zero(self):
+        caps = ['abc', 'x.y.z.w', '']
+        self.assertEqual(_max_atividade_csv(caps), 0)
+
+
+class TestMaxAtividadeDB(TestCase):
+    """Testa consulta de max atividade no banco."""
+
+    def test_db_vazio_retorna_zero(self):
+        """Sem POPs no banco, max_db deve ser 0 (CSV prevalece)."""
+        self.assertEqual(_max_atividade_db('3.7.1.1'), 0)
+
+    def test_db_com_pops(self):
+        """DB com POPs existentes retorna o maior segmento."""
+        POP.objects.create(session_id='s1', codigo_processo='3.7.1.1.2', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s2', codigo_processo='3.7.1.1.5', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s3', codigo_processo='3.7.1.1.3', is_deleted=False, status='draft')
+        self.assertEqual(_max_atividade_db('3.7.1.1'), 5)
+
+    def test_db_maior_que_csv(self):
+        """Cenário: CSV tem max=3, DB tem max=7 → gerador deve usar 7."""
+        POP.objects.create(session_id='s1', codigo_processo='3.7.1.1.7', is_deleted=False, status='draft')
+        csv_max = _max_atividade_csv(['7.1.1.1', '7.1.1.2', '7.1.1.3'])
+        db_max = _max_atividade_db('3.7.1.1')
+        candidato = max(csv_max, db_max) + 1
+        self.assertEqual(csv_max, 3)
+        self.assertEqual(db_max, 7)
+        self.assertEqual(candidato, 8)
+
+    def test_db_com_lixo_no_sufixo(self):
+        """POPs com sufixo não-numérico são ignorados sem quebrar."""
+        POP.objects.create(session_id='s1', codigo_processo='3.7.1.1.abc', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s2', codigo_processo='3.7.1.1.4', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s3', codigo_processo='3.7.1.1.', is_deleted=False, status='draft')
+        self.assertEqual(_max_atividade_db('3.7.1.1'), 4)
+
+    def test_db_ignora_soft_deleted(self):
+        """POPs soft-deleted não devem contar."""
+        POP.objects.create(session_id='s1', codigo_processo='3.7.1.1.9', is_deleted=True, status='draft')
+        POP.objects.create(session_id='s2', codigo_processo='3.7.1.1.3', is_deleted=False, status='draft')
+        self.assertEqual(_max_atividade_db('3.7.1.1'), 3)
+
+    def test_db_ignora_outro_prefixo(self):
+        """POPs de outro prefixo não interferem."""
+        POP.objects.create(session_id='s1', codigo_processo='6.1.1.1.9', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s2', codigo_processo='3.7.1.1.2', is_deleted=False, status='draft')
+        self.assertEqual(_max_atividade_db('3.7.1.1'), 2)
+
+
+# ── Testes de UniqueConstraint ───────────────────────────────────────────────
 
 class TestUniqueCapConstraint(TestCase):
     """Testa que UniqueConstraint impede CAPs duplicados ativos."""
@@ -84,6 +166,8 @@ class TestUniqueCapConstraint(TestCase):
         self.assertTrue(p1.pk)
         self.assertTrue(p2.pk)
 
+
+# ── Testes de retry no autosave ──────────────────────────────────────────────
 
 class TestAutosaveRetry(TransactionTestCase):
     """Testa que o retry com transaction.atomic() incrementa o CAP em colisão."""

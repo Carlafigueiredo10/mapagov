@@ -242,8 +242,12 @@ class HelenaRiscos(BaseHelena):
 
         mapa_palavras = {
             "FINANCEIRO": ["orcamento", "custo", "financeiro", "pagamento", "verba"],
-            "LEGAL": ["lei", "norma", "regulamento", "compliance", "juridico", "legal"],
-            "TECNOLOGICO": ["sistema", "ti", "tecnologia", "software", "dados"],
+            "LEGAL": [
+                "lei", "norma", "regulamento", "compliance", "juridico", "legal",
+                "lgpd", "dados pessoais", "dados sensiveis", "base legal",
+                "consentimento", "titular", "retencao", "anonimizacao",
+            ],
+            "TECNOLOGICO": ["sistema", "ti", "tecnologia", "software"],
             "REPUTACIONAL": ["imagem", "reputacao", "midia", "publico"],
             "IMPACTO_DESIGUAL": ["desigual", "vulneravel", "discrimina", "equidade"],
         }

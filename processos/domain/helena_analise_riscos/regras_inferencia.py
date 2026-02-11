@@ -1,7 +1,7 @@
 """
 Regras de Inferencia de Riscos
 
-34 regras distribuidas em 6 blocos.
+40 regras distribuidas em 7 blocos.
 
 Principio:
 - Nao pergunta "qual e o risco"
@@ -619,6 +619,184 @@ def inferir_riscos_bloco_6(respostas: Dict[str, Any]) -> List[RiscoInferido]:
 
 
 # =============================================================================
+# BLOCO 7 - DADOS PESSOAIS / LGPD / GOVERNANCA DE DADOS
+# =============================================================================
+# Validado por gestor de riscos. Aderente ao Guia de GR do MGI.
+#
+# Principio de classificacao MGI:
+# - INTEGRIDADE: quando o evento descreve violacao/desrespeito a direitos
+#   (ex.: tratamento sem base legal, dados sensiveis desprotegidos)
+# - OPERACIONAL: quando o evento descreve falha de processo/controle
+#   (ex.: ausencia de regras de compartilhamento, retencao sem controle)
+#
+# Tratamento de NAO_SEI:
+# - Q1=NAO_SEI: nao ativa o bloco (incerteza sobre existencia de dados)
+# - Q2=NAO_SEI: nao dispara R2 (sensivel e diferencial grande)
+# - Q3=NAO_SEI: dispara R1 com confianca MEDIO
+# - Q4/Q5=NAO_SEI: dispara R3/R4 com confianca MEDIO
+
+def inferir_riscos_bloco_7(respostas: Dict[str, str]) -> List[RiscoInferido]:
+    """
+    Infere riscos do Bloco 7 - Dados Pessoais / LGPD / Governanca de Dados
+
+    Perguntas:
+    Q1 - tratamento_dados_pessoais: SIM | NAO | NAO_SEI
+    Q2 - dados_sensiveis: SIM | NAO | NAO_SEI
+    Q3 - base_legal_documentada: SIM | NAO | NAO_SEI
+    Q4 - controles_compartilhamento_acesso: SIM | NAO | PARCIAL | NAO_SEI
+    Q5 - controles_retencao_eliminacao: SIM | NAO | PARCIAL | NAO_SEI
+    """
+    riscos = []
+    q1 = respostas.get("Q1", "")
+    q2 = respostas.get("Q2", "")
+    q3 = respostas.get("Q3", "")
+    q4 = respostas.get("Q4", "")
+    q5 = respostas.get("Q5", "")
+
+    # Porta de entrada: so ativa se Q1=SIM
+    # NAO_SEI em Q1 nao ativa o bloco (incerteza sobre existencia de dados)
+    if q1 != "SIM":
+        return riscos
+
+    # -----------------------------------------------------------------
+    # R1 - Tratamento sem base legal definida (tende a INTEGRIDADE via MGI)
+    # -----------------------------------------------------------------
+    if q3 in ("NAO", "NAO_SEI"):
+        is_certo = q3 == "NAO"
+        riscos.append(RiscoInferido(
+            titulo="Tratamento de dados pessoais sem base legal definida",
+            categoria=CategoriaRisco.LEGAL.value,
+            bloco_origem="BLOCO_7",
+            perguntas_acionadoras=["Q1", "Q3"],
+            regra_id="B7_R1_SEM_BASE_LEGAL",
+            grau_confianca=GrauConfianca.ALTO.value if is_certo else GrauConfianca.MEDIO.value,
+            justificativa=(
+                f"Devido a {'ausencia' if is_certo else 'incerteza sobre a existencia'} "
+                "de definicao e documentacao de finalidade e base legal para o tratamento "
+                "de dados pessoais, podera ocorrer tratamento em desconformidade, levando "
+                "a violacao de direitos do titular e exposicao a sancoes administrativas "
+                "e judicializacao, constrangendo a conformidade legal e a continuidade "
+                "regular do processo/servico."
+            ),
+        ))
+
+    # -----------------------------------------------------------------
+    # R2 - Dados sensiveis sem protecao proporcional (tende a INTEGRIDADE)
+    # NAO_SEI em Q2 NAO dispara R2 (recomendacao do gestor)
+    # -----------------------------------------------------------------
+    if q2 == "SIM" and (q3 == "NAO" or q4 == "NAO"):
+        riscos.append(RiscoInferido(
+            titulo="Dados pessoais sensiveis sem protecao proporcional",
+            categoria=CategoriaRisco.LEGAL.value,
+            bloco_origem="BLOCO_7",
+            perguntas_acionadoras=["Q2", "Q3", "Q4"],
+            regra_id="B7_R2_SENSIVEIS_DESPROTEGIDOS",
+            grau_confianca=GrauConfianca.ALTO.value,
+            justificativa=(
+                "Devido a tratamento de dados pessoais sensiveis (saude, biometria, "
+                "origem racial, etc.) sem base legal especifica ou sem controles de "
+                "acesso proporcionais, podera ocorrer exposicao ou tratamento inadequado "
+                "de dados sensiveis, levando a violacao qualificada de direitos, sancoes "
+                "agravadas e dano reputacional, constrangendo a protecao reforcada de "
+                "dados sensiveis e a conformidade do processo."
+            ),
+        ))
+
+    # -----------------------------------------------------------------
+    # R3 - Compartilhamento e acesso sem regras e controles (OPERACIONAL)
+    # Fragilidade de controle, nao violacao consumada
+    # -----------------------------------------------------------------
+    if q4 in ("NAO", "NAO_SEI"):
+        is_certo = q4 == "NAO"
+        riscos.append(RiscoInferido(
+            titulo="Ausencia de regras e controles para compartilhamento e acesso a dados pessoais",
+            categoria=CategoriaRisco.OPERACIONAL.value,
+            bloco_origem="BLOCO_7",
+            perguntas_acionadoras=["Q1", "Q4"],
+            regra_id="B7_R3_SEM_CONTROLE_COMPARTILHAMENTO",
+            grau_confianca=GrauConfianca.ALTO.value if is_certo else GrauConfianca.MEDIO.value,
+            justificativa=(
+                f"Devido a {'ausencia' if is_certo else 'incerteza sobre a existencia'} "
+                "de regras para compartilhamento (com quem, por que, como) e de controles "
+                "de acesso (perfis, logs, segregacao), podera ocorrer acesso nao autorizado "
+                "ou compartilhamento sem criterio de dados pessoais, levando a exposicao, "
+                "retrabalho, responsabilizacao de agentes e perda de confianca, "
+                "constrangendo a governanca de dados e a integridade operacional do processo."
+            ),
+        ))
+
+    # -----------------------------------------------------------------
+    # R4 - Retencao e eliminacao sem regras e controles (OPERACIONAL)
+    # -----------------------------------------------------------------
+    if q5 in ("NAO", "NAO_SEI"):
+        is_certo = q5 == "NAO"
+        riscos.append(RiscoInferido(
+            titulo="Ausencia de regras e controles para retencao e eliminacao de dados pessoais",
+            categoria=CategoriaRisco.OPERACIONAL.value,
+            bloco_origem="BLOCO_7",
+            perguntas_acionadoras=["Q1", "Q5"],
+            regra_id="B7_R4_SEM_CONTROLE_RETENCAO",
+            grau_confianca=GrauConfianca.MEDIO.value,
+            justificativa=(
+                f"Devido a {'ausencia' if is_certo else 'incerteza sobre a existencia'} "
+                "de regras e controles para retencao temporal e eliminacao/anonimizacao "
+                "de dados pessoais, podera ocorrer retencao de dados alem do necessario "
+                "ou eliminacao inadequada, levando a acumulo de dados sem finalidade, "
+                "aumento de superficie de risco em caso de incidente e exposicao a sancoes, "
+                "constrangendo a governanca do ciclo de vida dos dados e a conformidade "
+                "do processo."
+            ),
+        ))
+
+    # -----------------------------------------------------------------
+    # R5 - Ausencia generalizada de governanca de dados (OPERACIONAL)
+    # Consolidador: confianca MEDIO para nao competir com R1-R4 especificos
+    # R1 ja cobre integridade quando Q3=NAO
+    # -----------------------------------------------------------------
+    if q3 == "NAO" and q4 == "NAO" and q5 == "NAO":
+        riscos.append(RiscoInferido(
+            titulo="Ausencia generalizada de governanca de dados pessoais",
+            categoria=CategoriaRisco.OPERACIONAL.value,
+            bloco_origem="BLOCO_7",
+            perguntas_acionadoras=["Q1", "Q3", "Q4", "Q5"],
+            regra_id="B7_R5_GOVERNANCA_AUSENTE",
+            grau_confianca=GrauConfianca.MEDIO.value,
+            justificativa=(
+                "Devido a combinacao de ausencia de base legal, de controles de "
+                "compartilhamento/acesso e de regras de retencao/eliminacao, podera "
+                "ocorrer falha sistemica de governanca de dados pessoais no processo, "
+                "levando a multiplicacao de vetores de risco, exposicao simultanea a "
+                "sancoes, vazamento e interrupcao operacional, constrangendo a governanca "
+                "institucional de dados e a continuidade do processo."
+            ),
+        ))
+
+    # -----------------------------------------------------------------
+    # R6 - Controles parciais de dados pessoais (OPERACIONAL, mitigavel)
+    # Base legal existe, mas controles implantados parcialmente
+    # -----------------------------------------------------------------
+    if q3 == "SIM" and (q4 == "PARCIAL" or q5 == "PARCIAL"):
+        riscos.append(RiscoInferido(
+            titulo="Controles parciais de dados pessoais",
+            categoria=CategoriaRisco.OPERACIONAL.value,
+            bloco_origem="BLOCO_7",
+            perguntas_acionadoras=["Q1", "Q3", "Q4", "Q5"],
+            regra_id="B7_R6_CONTROLES_PARCIAIS",
+            grau_confianca=GrauConfianca.MEDIO.value,
+            justificativa=(
+                "Devido a base legal definida, porem com controles de compartilhamento/"
+                "acesso e/ou retencao/eliminacao implantados parcialmente, podera ocorrer "
+                "falha pontual de controle em compartilhamento ou retencao de dados "
+                "pessoais, levando a exposicao limitada com possibilidade de remediacao "
+                "e retrabalho pontual, constrangendo a maturacao dos controles de dados "
+                "e a conformidade plena do processo."
+            ),
+        ))
+
+    return riscos
+
+
+# =============================================================================
 # FUNCAO PRINCIPAL DE INFERENCIA
 # =============================================================================
 
@@ -627,7 +805,7 @@ def inferir_todos_riscos(respostas_blocos: Dict[str, Dict[str, Any]]) -> List[Ri
     Executa inferencia de riscos em todos os blocos.
 
     Args:
-        respostas_blocos: Dict com chaves BLOCO_1 a BLOCO_6, cada uma com respostas Q1-Qn
+        respostas_blocos: Dict com chaves BLOCO_1 a BLOCO_7, cada uma com respostas Q1-Qn
 
     Returns:
         Lista de RiscoInferido
@@ -657,6 +835,10 @@ def inferir_todos_riscos(respostas_blocos: Dict[str, Dict[str, Any]]) -> List[Ri
     # Bloco 6
     if "BLOCO_6" in respostas_blocos:
         todos_riscos.extend(inferir_riscos_bloco_6(respostas_blocos["BLOCO_6"]))
+
+    # Bloco 7
+    if "BLOCO_7" in respostas_blocos:
+        todos_riscos.extend(inferir_riscos_bloco_7(respostas_blocos["BLOCO_7"]))
 
     return todos_riscos
 

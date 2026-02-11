@@ -1,0 +1,12 @@
+MapaGov — Verifique seu email
+
+Olá{{ user.first_name|default:"" }},
+
+Para ativar seu acesso ao MapaGov, acesse o link abaixo:
+
+{{ verify_url }}
+
+Este link expira em 24 horas.
+
+---
+MapaGov — Ministério da Gestão e da Inovação em Serviços Públicos

@@ -1,0 +1,93 @@
+.step-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.step-modal {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.step-modal__title {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+  color: #1B4F72;
+}
+
+.step-modal__textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.step-modal__textarea:focus {
+  outline: none;
+  border-color: #1351B4;
+  box-shadow: 0 0 0 2px rgba(19, 81, 180, 0.15);
+}
+
+.step-modal__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.step-modal__btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.step-modal__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.step-modal__btn--primary {
+  background: #1351B4;
+  color: #fff;
+}
+
+.step-modal__btn--primary:hover:not(:disabled) {
+  background: #0d3f8a;
+}
+
+.step-modal__btn--cancel {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.step-modal__btn--danger {
+  background: none;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+  margin-left: auto;
+}
+
+.step-modal__btn--danger:hover {
+  background: #fdecea;
+}
+
+.step-modal__btn--danger-confirm {
+  background: #c0392b;
+  color: #fff;
+  margin-left: auto;
+}

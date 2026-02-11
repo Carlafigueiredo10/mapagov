@@ -1,0 +1,376 @@
+/* ============================================================================
+   CatalogoPOPDetailPage — Detalhe read-only de um POP
+   ============================================================================ */
+
+.pop-detail {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+/* Header */
+.pop-detail__header {
+  background: #1351B4;
+  color: white;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+}
+
+.pop-detail__header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pop-detail__logo {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pop-detail__nav {
+  display: flex;
+  gap: 20px;
+}
+
+.pop-detail__nav a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.pop-detail__nav a:hover {
+  color: white;
+}
+
+/* Breadcrumb */
+.pop-detail__breadcrumb-bar {
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 12px 24px;
+}
+
+.pop-detail__breadcrumb {
+  max-width: 1200px;
+  margin: 0 auto;
+  font-size: 13px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pop-detail__breadcrumb-link {
+  background: none;
+  border: none;
+  color: #1351B4;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+
+.pop-detail__breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.pop-detail__breadcrumb-sep {
+  color: #ccc;
+}
+
+.pop-detail__breadcrumb-current {
+  color: #333;
+  font-weight: 500;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+
+/* Content */
+.pop-detail__content {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* POP Header */
+.pop-detail__pop-header {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.pop-detail__pop-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pop-detail__pop-codigo {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1351B4;
+  background: #EBF0F7;
+  padding: 3px 10px;
+  border-radius: 4px;
+}
+
+.pop-detail__pop-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.pop-detail__pop-status--published {
+  background: #d4edda;
+  color: #155724;
+}
+
+.pop-detail__pop-status--draft {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.pop-detail__pop-status--archived {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.pop-detail__pop-version {
+  font-size: 12px;
+  color: #888;
+}
+
+.pop-detail__pdf-btn {
+  margin-left: auto;
+  padding: 6px 14px;
+  background: #1351B4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.pop-detail__pdf-btn:hover {
+  background: #0d3f8f;
+  color: white;
+}
+
+.pop-detail__pop-nome {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1B4F72;
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.pop-detail__pop-macro {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+/* Sections */
+.pop-detail__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pop-detail__section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px 24px;
+  border: 1px solid #e0e0e0;
+}
+
+.pop-detail__section h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1351B4;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin: 0 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.pop-detail__section p {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* Etapas */
+.pop-detail__etapas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pop-detail__etapa {
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+}
+
+.pop-detail__etapa-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1351B4;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pop-detail__etapa-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pop-detail__etapa-nome {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2C3E50;
+  margin: 0 0 4px;
+}
+
+.pop-detail__etapa-desc {
+  font-size: 13px;
+  color: #555;
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
+
+.pop-detail__etapa-resp {
+  font-size: 12px;
+  color: #888;
+}
+
+/* Footer */
+.pop-detail__footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.pop-detail__footer-meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.pop-detail__hash {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  cursor: help;
+}
+
+/* Versions */
+.pop-detail__versions-toggle {
+  background: none;
+  border: none;
+  color: #1351B4;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+.pop-detail__versions-toggle:hover {
+  text-decoration: underline;
+}
+
+.pop-detail__versions-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  font-size: 13px;
+}
+
+.pop-detail__versions-table th {
+  padding: 8px 14px;
+  background: #fafafa;
+  font-weight: 600;
+  color: #888;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.pop-detail__versions-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+}
+
+/* Loading / Error */
+.pop-detail__loading,
+.pop-detail__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: #555;
+  font-size: 16px;
+  gap: 16px;
+}
+
+.pop-detail__error button {
+  padding: 8px 20px;
+  background: #1351B4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pop-detail__content {
+    padding: 16px;
+  }
+
+  .pop-detail__pop-nome {
+    font-size: 20px;
+  }
+
+  .pop-detail__pop-meta {
+    flex-wrap: wrap;
+  }
+
+  .pop-detail__footer-meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

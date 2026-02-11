@@ -34,7 +34,6 @@ const InterfaceTransicaoEpica: React.FC<InterfaceTransicaoEpicaProps> = ({ dados
     botao_secundario,
     mostrar_progresso,
     progresso_texto,
-    background_especial
   } = dados;
 
   const handleClickPrincipal = () => {
@@ -48,36 +47,29 @@ const InterfaceTransicaoEpica: React.FC<InterfaceTransicaoEpicaProps> = ({ dados
   };
 
   return (
-    <div className={`transicao-epica-container ${background_especial ? 'background-especial' : ''}`}>
+    <div className="transicao-epica-container">
       {mostrar_progresso && progresso_texto && (
         <div className="progresso-badge">
           ✅ {progresso_texto}
         </div>
       )}
 
-      <div className="botoes-transicao">
-        <button
-          className={`botao-transicao ${botao_principal.classe} ${botao_principal.animacao}`}
-          style={{
-            backgroundColor: botao_principal.cor,
-            fontSize: botao_principal.tamanho === 'grande' ? '1.3rem' : '1rem'
-          }}
-          onClick={handleClickPrincipal}
-        >
-          {botao_principal.texto}
-        </button>
-
+      <div className="botoes-transicao-dupla">
         {botao_secundario && (
           <button
-            className={`botao-transicao ${botao_secundario.classe}`}
+            className="btn-transicao btn-transicao-secundario"
             onClick={handleClickSecundario}
-            style={{
-              marginTop: botao_secundario.posicao === 'abaixo' ? '1rem' : '0'
-            }}
           >
             {botao_secundario.texto}
           </button>
         )}
+
+        <button
+          className="btn-transicao btn-transicao-principal"
+          onClick={handleClickPrincipal}
+        >
+          {botao_principal.texto}
+        </button>
       </div>
     </div>
   );

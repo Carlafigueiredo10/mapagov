@@ -1,374 +1,466 @@
-import copy
-from typing import Dict, Any, List
-from langchain_openai import ChatOpenAI
+"""
+Helena Flowchart Agent - gera fluxogramas a partir de etapas e decisões.
+
+Fase 1: Coleta etapas e decisões (via PDF ou descrição manual)
+Fase 2: Edição pós-geração via comandos simples com IDs estáveis
+"""
+
+from typing import Dict, Any, List, Optional
 import re
-from processos.domain.helena_semantic_planner import HelenaSemanticPlanner
+import logging
+
+logger = logging.getLogger("helena_flowchart_agent")
+
 
 class FlowchartAgent:
-    """
-    Helena Flowchart Agent – parceira conversacional para mapeamento de processos.
-    Extrai etapas, decisões, responsáveis e sistemas de forma natural.
-    Gera fluxogramas visuais em Mermaid.
-
-    Usa HelenaSemanticPlanner para interpretação semântica robusta.
-    """
 
     CAMPOS_FLUXOGRAMA = [
         {
-            "nome": "nome_processo",
-            "tipo": "texto",
-            "mensagem": "Oi 👋 Vamos mapear seu processo visualmente! Qual o nome dele?",
-            "exemplo": "Ex: 'Solicitação de férias', 'Aprovação de compras'"
-        },
-        {
             "nome": "etapas",
-            "tipo": "lista",
-            "mensagem": "Perfeito! Agora me conta: quais são as principais etapas desse processo, do início ao fim?",
-            "exemplo": "Ex: '1. Servidor preenche formulário, 2. Chefia imediata analisa, 3. RH valida'"
+            "mensagem": "Quais são as etapas do processo, do início ao fim?",
+            "exemplo": "Ex: 1. Servidor preenche formulário, 2. Chefia analisa, 3. RH valida",
         },
         {
             "nome": "decisoes",
-            "tipo": "lista",
-            "mensagem": "Legal! Em quais momentos há decisões/bifurcações? (aprovado/rejeitado, sim/não)",
-            "exemplo": "Ex: 'Após análise da chefia → aprovado ou devolvido'"
+            "mensagem": (
+                "Há pontos de decisão ou bifurcação no processo?\n"
+                "(Pode dizer 'não' se o fluxo for linear)"
+            ),
+            "exemplo": "Ex: Após etapa 2: Aprovado? sim->3 não->1",
         },
-        {
-            "nome": "responsaveis",
-            "tipo": "mapeamento",
-            "mensagem": "Quem são os responsáveis por cada etapa?",
-            "exemplo": "Ex: 'Etapa 1 → Servidor, Etapa 2 → Chefia, Etapa 3 → RH'"
-        },
-        {
-            "nome": "sistemas",
-            "tipo": "lista",
-            "mensagem": "Quais sistemas são utilizados no processo?",
-            "exemplo": "Ex: 'SEI, SIGEPE, SouGov'"
-        },
-        {
-            "nome": "tempo_medio",
-            "tipo": "texto",
-            "mensagem": "Por último: quanto tempo costuma levar do início ao fim?",
-            "exemplo": "Ex: '5 dias úteis', '2 semanas', '1 mês'"
-        }
     ]
 
-    def __init__(self, llm: ChatOpenAI | None = None, dados_pdf: Dict[str, Any] | None = None):
-        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
-        self.planner = HelenaSemanticPlanner()
+    def __init__(self, dados_pdf: Dict[str, Any] | None = None):
         self.dados_pdf = dados_pdf or {}
 
     # =========================================================================
-    # SHIM DE COMPATIBILIDADE COM ORQUESTRADOR
+    # INTERFACE COM ORQUESTRADOR
     # =========================================================================
 
-    def processar_mensagem(self, mensagem: str, estrutura_atual: Dict[str, Any] | None) -> Dict[str, Any]:
+    def processar_mensagem(self, mensagem: str, session_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Método de compatibilidade com o orquestrador.
+        Entry point chamado pelo orquestrador.
 
-        Retorna: {'campo', 'valor', 'proxima_pergunta', 'completo', 'percentual', 'validacao_ok'}
+        Retorna: {proxima_pergunta, completo, percentual, validacao_ok}
         """
-        contexto = self._init_contexto(estrutura_atual)
-        bruto = self.processar(mensagem, contexto)
-        return self._to_orchestrator(bruto, contexto)
+        ctx = self._init_contexto(session_data)
+
+        if ctx.get("fluxograma_gerado"):
+            return self._processar_edicao(mensagem, ctx)
+
+        return self._processar_coleta(mensagem, ctx)
 
     # =========================================================================
-    # LÓGICA INTERNA (FORMATO SEMÂNTICO)
+    # FASE 1 — COLETA (etapas + decisões)
     # =========================================================================
 
-    def processar(self, mensagem: str, contexto: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Processa mensagem do usuário usando interpretação semântica.
-
-        Returns formato interno:
-            {
-                'acao': str,
-                'texto': str,
-                'payload': dict
-            }
-        """
+    def _processar_coleta(self, mensagem: str, ctx: Dict[str, Any]) -> Dict[str, Any]:
         msg = mensagem.lower().strip()
+        idx = ctx["campo_atual_idx"]
 
-        # Inicializa estrutura
-        contexto.setdefault("dados_coletados", {})
-        contexto.setdefault("campo_atual_idx", 0)
+        # Importa metadata do PDF uma única vez
+        if not ctx.get("pdf_importado") and self.dados_pdf:
+            self._importar_dados_pdf(ctx)
+            ctx["pdf_importado"] = True
 
-        # Pré-popula com dados do PDF se disponível
-        if self.dados_pdf and not contexto["dados_coletados"]:
-            self._importar_dados_pdf(contexto)
+        # Primeira interação — qualquer mensagem inicia a conversa
+        if idx == 0:
+            nome = ctx.get("nome_processo", "seu processo")
+            prefixo = (
+                f"Vamos mapear o fluxograma de **{nome}**.\n\n"
+                "Preciso de duas coisas:\n"
+                "1. As etapas do processo (do início ao fim)\n"
+                "2. Os pontos de decisão (se houver)\n\n"
+            )
+            return self._fazer_pergunta(ctx, texto_prefixo=prefixo)
 
-        # 👋 Boas-vindas (primeira interação)
-        if contexto["campo_atual_idx"] == 0:
-            if any(p in msg for p in ["oi", "olá", "começar", "iniciar", "start", "mapear"]):
-                return {
-                    "acao": "boas_vindas",
-                    "texto": (
-                        "Oi 👋 Sou a Helena! Vou te ajudar a mapear seu processo visualmente.\n\n"
-                        "Vamos conversar naturalmente e no final eu gero um fluxograma bonitinho pra você.\n\n"
-                        "Vou te perguntar sobre:\n"
-                        "📋 Nome do processo\n"
-                        "🔄 Etapas principais\n"
-                        "❓ Pontos de decisão\n"
-                        "👥 Responsáveis\n"
-                        "💻 Sistemas utilizados\n"
-                        "⏱️ Tempo médio\n\n"
-                        "Bora começar?"
-                    ),
-                    "payload": {}
-                }
+        # Salva resposta do campo anterior
+        if idx > 0 and idx <= len(self.CAMPOS_FLUXOGRAMA):
+            campo = self.CAMPOS_FLUXOGRAMA[idx - 1]
+            if campo["nome"] == "etapas":
+                self._salvar_etapas(mensagem, ctx)
+            elif campo["nome"] == "decisoes":
+                self._salvar_decisoes(mensagem, ctx)
 
-        # Detecta confirmações de dados do PDF (sim, correto, ok, confirma)
-        if any(p in msg for p in ["sim", "correto", "ok", "confirma", "isso", "exato", "perfeito"]):
-            # Se era uma confirmação de PDF, não salva - apenas avança
-            pass
-        # Detecta ajustes/negações
-        elif any(p in msg for p in ["não", "nao", "errado", "ajustar", "mudar"]):
-            # Se quer ajustar, limpa o valor do PDF do campo atual
-            if contexto["campo_atual_idx"] > 0:
-                idx = contexto["campo_atual_idx"] - 1
-                if idx < len(self.CAMPOS_FLUXOGRAMA):
-                    campo_nome = self.CAMPOS_FLUXOGRAMA[idx]["nome"]
-                    if campo_nome in contexto["dados_coletados"]:
-                        del contexto["dados_coletados"][campo_nome]
-        # Salva resposta normal
-        elif contexto["campo_atual_idx"] > 0:
-            self._salvar_resposta_contexto(mensagem, contexto)
+        # Verifica se coletou tudo
+        if ctx["campo_atual_idx"] >= len(self.CAMPOS_FLUXOGRAMA):
+            ctx["fluxograma_gerado"] = True
+            logger.info("[coleta] completo → gerando fluxograma")
 
-        # Verifica se acabou
-        total_campos = len(self.CAMPOS_FLUXOGRAMA)
-        if contexto["campo_atual_idx"] >= total_campos:
+            guia = (
+                "\n\nPode editar o fluxograma com comandos:\n"
+                "- `editar etapa N: novo texto`\n"
+                "- `inserir etapa após N: texto`\n"
+                "- `remover etapa N`\n"
+                "- `inserir decisão após N: Condição? sim->X não->Y`"
+            )
             return {
-                "acao": "finalizar",
-                "texto": (
-                    "✅ Perfeito! Coletei todas as informações.\n\n"
-                    "Agora vou gerar seu fluxograma visual em Mermaid...\n"
-                    "Segundinho!"
-                ),
-                "payload": {"dados_completos": contexto["dados_coletados"]}
+                "proxima_pergunta": "Fluxograma gerado!" + guia,
+                "completo": True,
+                "percentual": 100,
+                "validacao_ok": True,
             }
 
-        # Próxima pergunta
-        return self._proxima_pergunta(contexto)
+        return self._fazer_pergunta(ctx)
 
-    def _proxima_pergunta(self, contexto: Dict[str, Any]) -> Dict[str, Any]:
-        """Retorna próxima pergunta do fluxo"""
+    def _fazer_pergunta(
+        self, ctx: Dict[str, Any], texto_prefixo: str = ""
+    ) -> Dict[str, Any]:
+        idx = ctx["campo_atual_idx"]
 
-        idx = contexto["campo_atual_idx"]
-
-        if idx < len(self.CAMPOS_FLUXOGRAMA):
-            campo = self.CAMPOS_FLUXOGRAMA[idx]
-            contexto["campo_atual_idx"] += 1
-
-            # Verifica se já tem valor do PDF
-            if campo["nome"] in contexto["dados_coletados"]:
-                valor_existente = contexto["dados_coletados"][campo["nome"]]
-                return {
-                    "acao": "confirmar_pdf",
-                    "texto": (
-                        f"📄 Vi aqui no seu PDF que **{campo['nome']}** seria:\n"
-                        f"**{valor_existente}**\n\n"
-                        "Está correto ou quer ajustar?"
-                    ),
-                    "payload": {
-                        "campo_nome": campo["nome"],
-                        "valor_pdf": valor_existente
-                    }
-                }
-
-            # Pergunta normal
-            progresso = f"[{contexto['campo_atual_idx']}/{len(self.CAMPOS_FLUXOGRAMA)}]"
-            mensagem_completa = f"{progresso} {campo['mensagem']}"
-
-            if campo.get("exemplo"):
-                mensagem_completa += f"\n\n💡 {campo['exemplo']}"
-
+        if idx >= len(self.CAMPOS_FLUXOGRAMA):
             return {
-                "acao": "fazer_pergunta",
-                "texto": mensagem_completa,
-                "payload": {
-                    "campo_nome": campo["nome"],
-                    "campo_config": campo
-                }
+                "proxima_pergunta": "Algo deu errado. Tente novamente.",
+                "completo": False,
+                "percentual": 0,
+                "validacao_ok": False,
             }
-
-        # Acabou
-        return {
-            "acao": "finalizar",
-            "texto": "✅ Dados completos! Gerando fluxograma...",
-            "payload": {}
-        }
-
-    def _salvar_resposta_contexto(self, mensagem: str, contexto: Dict[str, Any]):
-        """Salva resposta do usuário no contexto"""
-
-        idx = contexto["campo_atual_idx"] - 1
-
-        if idx < 0 or idx >= len(self.CAMPOS_FLUXOGRAMA):
-            return
 
         campo = self.CAMPOS_FLUXOGRAMA[idx]
-        nome_campo = campo["nome"]
-        tipo_campo = campo["tipo"]
+        ctx["campo_atual_idx"] += 1
+        logger.info(f"[coleta] campo_atual_idx → {ctx['campo_atual_idx']}")
 
-        # Normaliza conforme tipo
-        if tipo_campo == "lista":
-            # Detecta lista separada por vírgulas, números, ou quebras de linha
-            itens = self._extrair_lista(mensagem)
-            contexto["dados_coletados"][nome_campo] = itens
+        progresso = f"[{ctx['campo_atual_idx']}/{len(self.CAMPOS_FLUXOGRAMA)}]"
+        texto = f"{texto_prefixo}{progresso} {campo['mensagem']}\n\n{campo['exemplo']}"
 
-        elif tipo_campo == "mapeamento":
-            # Tenta extrair mapeamento (Etapa X → Responsável Y)
-            mapeamento = self._extrair_mapeamento(mensagem)
-            contexto["dados_coletados"][nome_campo] = mapeamento
+        return {
+            "proxima_pergunta": texto,
+            "completo": False,
+            "percentual": self._calc_percentual(ctx),
+            "validacao_ok": True,
+        }
 
-        elif tipo_campo == "texto":
-            contexto["dados_coletados"][nome_campo] = mensagem.strip()
+    # ---- salvar respostas ----
 
-    def _extrair_lista(self, texto: str) -> List[str]:
-        """Extrai lista de itens do texto"""
-        # Remove numeração (1., 2., etc.)
-        texto_limpo = re.sub(r'^\d+[\.)]\s*', '', texto, flags=re.MULTILINE)
+    def _salvar_etapas(self, texto: str, ctx: Dict[str, Any]):
+        itens = self._extrair_lista(texto)
+        etapas = []
+        for i, item in enumerate(itens, start=1):
+            etapas.append({"id": i, "texto": item})
+        ctx["etapas"] = etapas
+        ctx["proximo_etapa_id"] = len(etapas) + 1
+        logger.info(f"[etapas] {len(etapas)} etapas salvas")
 
-        # Separa por vírgulas, quebras de linha ou ponto-e-vírgula
-        itens = re.split(r'[,;\n]+', texto_limpo)
+    def _salvar_decisoes(self, texto: str, ctx: Dict[str, Any]):
+        msg = texto.lower().strip()
 
-        # Limpa e filtra vazios
-        itens_limpos = [item.strip() for item in itens if item.strip()]
-
-        return itens_limpos if itens_limpos else [texto.strip()]
-
-    def _extrair_mapeamento(self, texto: str) -> Dict[str, str]:
-        """Extrai mapeamento etapa → responsável"""
-        mapeamento = {}
-
-        # Padrão: "Etapa X → Responsável" ou "Etapa X: Responsável"
-        linhas = texto.split('\n')
-
-        for linha in linhas:
-            # Tenta capturar "Etapa/Step X → Y" ou "X: Y"
-            match = re.search(r'(.+?)(?:→|:|-)\s*(.+)', linha)
-            if match:
-                chave = match.group(1).strip()
-                valor = match.group(2).strip()
-                mapeamento[chave] = valor
-
-        # Se não encontrou nada estruturado, retorna texto bruto
-        if not mapeamento:
-            return {"geral": texto.strip()}
-
-        return mapeamento
-
-    def _importar_dados_pdf(self, contexto: Dict[str, Any]):
-        """Importa dados extraídos do PDF do POP"""
-
-        if not self.dados_pdf:
+        sem_decisao = [
+            "não", "nao", "nenhuma", "nenhum", "sem decisão", "sem decisao",
+            "linear", "nao tem", "não tem", "n", "nope",
+        ]
+        if any(p in msg for p in sem_decisao):
+            ctx["decisoes"] = []
+            ctx["proximo_decisao_id"] = 1
+            logger.info("[decisoes] Fluxo linear (sem decisões)")
             return
 
-        dados = contexto["dados_coletados"]
+        decisoes = self._parse_decisoes(texto, ctx)
+        ctx["decisoes"] = decisoes
+        ctx["proximo_decisao_id"] = len(decisoes) + 1
+        logger.info(f"[decisoes] {len(decisoes)} decisão(ões) salva(s)")
 
-        # Nome do processo
-        if self.dados_pdf.get('atividade') or self.dados_pdf.get('titulo'):
-            dados['nome_processo'] = self.dados_pdf.get('atividade') or self.dados_pdf.get('titulo')
+    def _parse_decisoes(
+        self, texto: str, ctx: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Tenta parse estruturado:  Após etapa N: Condição? sim->X não->Y
+        Fallback: texto bruto com defaults razoáveis.
+        """
+        etapas = ctx.get("etapas", [])
+        etapa_ids = [e["id"] for e in etapas]
+        decisoes: List[Dict[str, Any]] = []
+        linhas = re.split(r"[;\n]+", texto)
+        did = 1
 
-        # Sistemas utilizados
-        if self.dados_pdf.get('sistemas'):
-            dados['sistemas'] = self.dados_pdf.get('sistemas')
+        for linha in linhas:
+            linha = linha.strip()
+            if not linha:
+                continue
 
-        # Responsáveis/Operadores
-        if self.dados_pdf.get('operadores'):
-            dados['responsaveis'] = {f"Etapa {i+1}": op for i, op in enumerate(self.dados_pdf.get('operadores'))}
+            # Padrão completo: "Após etapa 2: Aprovado? sim->3 não->1"
+            m = re.match(
+                r"(?:ap[oó]s\s+(?:etapa\s+)?)?(\d+)\s*[:]\s*"
+                r"(.+?)\?\s*sim\s*->\s*(\d+)\s*[,;]?\s*n[aã]o\s*->\s*(\d+)",
+                linha,
+                re.IGNORECASE,
+            )
+            if m:
+                apos = int(m.group(1))
+                decisoes.append({
+                    "id": did,
+                    "apos_etapa_id": apos if apos in etapa_ids else etapa_ids[-1],
+                    "condicao": m.group(2).strip() + "?",
+                    "sim_id": int(m.group(3)),
+                    "nao_id": int(m.group(4)),
+                })
+                did += 1
+                continue
+
+            # Padrão sem "após": "Aprovado? sim->3 não->1"
+            m2 = re.match(
+                r"(.+?)\?\s*sim\s*->\s*(\d+)\s*[,;]?\s*n[aã]o\s*->\s*(\d+)",
+                linha,
+                re.IGNORECASE,
+            )
+            if m2:
+                apos = etapa_ids[min(did, len(etapa_ids)) - 1] if etapa_ids else 1
+                decisoes.append({
+                    "id": did,
+                    "apos_etapa_id": apos,
+                    "condicao": m2.group(1).strip() + "?",
+                    "sim_id": int(m2.group(2)),
+                    "nao_id": int(m2.group(3)),
+                })
+                did += 1
+                continue
+
+            # Fallback: texto natural → decisão no ponto médio do fluxo
+            if len(etapa_ids) >= 2:
+                mid = len(etapa_ids) // 2
+                decisoes.append({
+                    "id": did,
+                    "apos_etapa_id": etapa_ids[mid],
+                    "condicao": linha.rstrip("?") + "?",
+                    "sim_id": etapa_ids[min(mid + 1, len(etapa_ids) - 1)],
+                    "nao_id": etapa_ids[max(mid - 1, 0)],
+                })
+                did += 1
+
+        return decisoes
+
+    # =========================================================================
+    # FASE 2 — EDIÇÃO PÓS-GERAÇÃO
+    # =========================================================================
+
+    def _processar_edicao(self, mensagem: str, ctx: Dict[str, Any]) -> Dict[str, Any]:
+        cmd = self._parse_comando(mensagem.strip())
+
+        if not cmd:
+            return {
+                "proxima_pergunta": (
+                    "Não entendi o comando. Tente:\n"
+                    "- `editar etapa N: novo texto`\n"
+                    "- `inserir etapa após N: texto`\n"
+                    "- `remover etapa N`\n"
+                    "- `inserir decisão após N: Condição? sim->X não->Y`"
+                ),
+                "completo": True,
+                "percentual": 100,
+                "validacao_ok": True,
+            }
+
+        resultado = self._executar_comando(cmd, ctx)
+
+        return {
+            "proxima_pergunta": resultado.get("erro") or resultado["mensagem"],
+            "completo": True,
+            "percentual": 100,
+            "validacao_ok": "erro" not in resultado,
+        }
+
+    def _parse_comando(self, msg: str) -> Optional[Dict[str, Any]]:
+        # editar etapa N: TEXTO
+        m = re.match(r"editar\s+etapa\s+(\d+)\s*:\s*(.+)", msg, re.IGNORECASE)
+        if m:
+            return {"tipo": "editar_etapa", "id": int(m.group(1)), "texto": m.group(2).strip()}
+
+        # inserir etapa após N: TEXTO
+        m = re.match(r"inserir\s+etapa\s+ap[oó]s\s+(\d+)\s*:\s*(.+)", msg, re.IGNORECASE)
+        if m:
+            return {"tipo": "inserir_etapa", "apos_id": int(m.group(1)), "texto": m.group(2).strip()}
+
+        # remover etapa N
+        m = re.match(r"remover\s+etapa\s+(\d+)", msg, re.IGNORECASE)
+        if m:
+            return {"tipo": "remover_etapa", "id": int(m.group(1))}
+
+        # inserir decisão após N: COND? sim->X não->Y
+        m = re.match(
+            r"inserir\s+decis[aã]o\s+ap[oó]s\s+(\d+)\s*:\s*"
+            r"(.+?)\?\s*sim\s*->\s*(\d+)\s*[,;]?\s*n[aã]o\s*->\s*(\d+)",
+            msg,
+            re.IGNORECASE,
+        )
+        if m:
+            return {
+                "tipo": "inserir_decisao",
+                "apos_id": int(m.group(1)),
+                "condicao": m.group(2).strip() + "?",
+                "sim_id": int(m.group(3)),
+                "nao_id": int(m.group(4)),
+            }
+
+        # remover decisão N
+        m = re.match(r"remover\s+decis[aã]o\s+(\d+)", msg, re.IGNORECASE)
+        if m:
+            return {"tipo": "remover_decisao", "id": int(m.group(1))}
+
+        return None
+
+    def _executar_comando(self, cmd: Dict[str, Any], ctx: Dict[str, Any]) -> Dict[str, Any]:
+        etapas = ctx.get("etapas", [])
+        decisoes = ctx.get("decisoes", [])
+        etapa_ids = {e["id"] for e in etapas}
+        tipo = cmd["tipo"]
+
+        if tipo == "editar_etapa":
+            target = next((e for e in etapas if e["id"] == cmd["id"]), None)
+            if not target:
+                return {"erro": f"Etapa {cmd['id']} não encontrada. IDs disponíveis: {sorted(etapa_ids)}"}
+            old = target["texto"]
+            target["texto"] = cmd["texto"]
+            logger.info(f"[editar] Etapa {cmd['id']}: '{old}' → '{cmd['texto']}'")
+            return {"mensagem": f"Etapa {cmd['id']} atualizada."}
+
+        if tipo == "inserir_etapa":
+            if cmd["apos_id"] not in etapa_ids:
+                return {"erro": f"Etapa {cmd['apos_id']} não encontrada. IDs: {sorted(etapa_ids)}"}
+            novo_id = ctx.get("proximo_etapa_id", max(etapa_ids, default=0) + 1)
+            pos = next(i for i, e in enumerate(etapas) if e["id"] == cmd["apos_id"])
+            etapas.insert(pos + 1, {"id": novo_id, "texto": cmd["texto"]})
+            ctx["proximo_etapa_id"] = novo_id + 1
+            logger.info(f"[inserir] Etapa {novo_id} após {cmd['apos_id']}")
+            return {"mensagem": f"Etapa {novo_id} inserida após etapa {cmd['apos_id']}."}
+
+        if tipo == "remover_etapa":
+            target = next((e for e in etapas if e["id"] == cmd["id"]), None)
+            if not target:
+                return {"erro": f"Etapa {cmd['id']} não encontrada. IDs: {sorted(etapa_ids)}"}
+            refs = [
+                d for d in decisoes
+                if cmd["id"] in (d["sim_id"], d["nao_id"], d["apos_etapa_id"])
+            ]
+            if refs:
+                ref_ids = [f"D{d['id']}" for d in refs]
+                return {
+                    "erro": (
+                        f"Etapa {cmd['id']} é referenciada por decisão(ões) {', '.join(ref_ids)}. "
+                        "Remova ou edite as decisões primeiro."
+                    )
+                }
+            etapas.remove(target)
+            logger.info(f"[remover] Etapa {cmd['id']}")
+            return {"mensagem": f"Etapa {cmd['id']} removida."}
+
+        if tipo == "inserir_decisao":
+            for label, eid in [("após", cmd["apos_id"]), ("sim", cmd["sim_id"]), ("não", cmd["nao_id"])]:
+                if eid not in etapa_ids:
+                    return {"erro": f"Etapa destino {label}={eid} não encontrada. IDs: {sorted(etapa_ids)}"}
+            novo_id = ctx.get("proximo_decisao_id", max((d["id"] for d in decisoes), default=0) + 1)
+            decisoes.append({
+                "id": novo_id,
+                "apos_etapa_id": cmd["apos_id"],
+                "condicao": cmd["condicao"],
+                "sim_id": cmd["sim_id"],
+                "nao_id": cmd["nao_id"],
+            })
+            ctx["proximo_decisao_id"] = novo_id + 1
+            logger.info(f"[decisao] D{novo_id} após E{cmd['apos_id']}")
+            return {"mensagem": f"Decisão {novo_id} inserida após etapa {cmd['apos_id']}."}
+
+        if tipo == "remover_decisao":
+            target = next((d for d in decisoes if d["id"] == cmd["id"]), None)
+            if not target:
+                ids_disp = sorted(d["id"] for d in decisoes)
+                return {"erro": f"Decisão {cmd['id']} não encontrada. IDs: {ids_disp}"}
+            decisoes.remove(target)
+            logger.info(f"[remover] Decisão {cmd['id']}")
+            return {"mensagem": f"Decisão {cmd['id']} removida."}
+
+        return {"erro": "Comando não reconhecido."}
 
     # =========================================================================
     # GERADOR DE FLUXOGRAMA MERMAID
     # =========================================================================
 
-    def gerar_mermaid(self, dados: Dict[str, Any]) -> str:
-        """Gera código Mermaid para fluxograma visual"""
+    def gerar_mermaid(self, ctx: Dict[str, Any]) -> str:
+        """Gera Mermaid a partir da estrutura interna (etapas + decisões)."""
+        etapas = ctx.get("etapas", [])
+        decisoes = ctx.get("decisoes", [])
+        nome = self._sanitize(ctx.get("nome_processo", "Processo"))
 
-        mermaid = "graph TD\n"
+        if not etapas:
+            return "graph TD\n    inicio([Início]) --> fim([Fim])"
 
-        nome_processo = dados.get('nome_processo', 'Processo')
-        mermaid += f"    A[Início: {nome_processo}]\n"
+        # --- nós ---
+        lines = ["graph TD"]
+        lines.append(f"    inicio([Início: {nome}])")
+        for e in etapas:
+            txt = self._sanitize(e["texto"])
+            lines.append(f'    e{e["id"]}["{e["id"]}. {txt}"]')
+        for d in decisoes:
+            cond = self._sanitize(d["condicao"])
+            lines.append(f"    d{d['id']}{{{{{cond}}}}}")
+        lines.append("    fim([Fim])")
+        lines.append("")
 
-        # Adicionar etapas
-        etapas = dados.get('etapas', [])
-        decisoes = dados.get('decisoes', [])
+        # --- arestas ---
+        decisao_por_etapa: Dict[int, List[Dict]] = {}
+        for d in decisoes:
+            decisao_por_etapa.setdefault(d["apos_etapa_id"], []).append(d)
 
-        for i, etapa in enumerate(etapas, start=1):
-            letra = chr(65 + i)  # B, C, D...
+        # início → primeira etapa
+        lines.append(f"    inicio --> e{etapas[0]['id']}")
 
-            # Verifica se é ponto de decisão
-            is_decisao = any(decisao.lower() in etapa.lower() for decisao in decisoes)
+        for i, e in enumerate(etapas):
+            eid = e["id"]
 
-            if is_decisao:
-                mermaid += f"    {letra}{{{{{etapa}}}}}\n"  # Losango
+            if eid in decisao_por_etapa:
+                for d in decisao_por_etapa[eid]:
+                    lines.append(f"    e{eid} --> d{d['id']}")
+                    lines.append(f"    d{d['id']} -->|Sim| e{d['sim_id']}")
+                    lines.append(f"    d{d['id']} -->|Não| e{d['nao_id']}")
             else:
-                mermaid += f"    {letra}[{etapa}]\n"  # Retângulo
+                if i + 1 < len(etapas):
+                    lines.append(f"    e{eid} --> e{etapas[i + 1]['id']}")
+                else:
+                    lines.append(f"    e{eid} --> fim")
 
-        # Conectar etapas
-        for i in range(len(etapas)):
-            letra_atual = chr(65 + i)
-            letra_prox = chr(65 + i + 1)
-            mermaid += f"    {letra_atual} --> {letra_prox}\n"
-
-        # Adicionar fim
-        letra_fim = chr(65 + len(etapas) + 1)
-        mermaid += f"    {chr(65 + len(etapas))} --> {letra_fim}[Fim]\n"
-
-        # Adicionar metadata como comentário
-        mermaid += f"\n%% Sistemas: {', '.join(dados.get('sistemas', []))}\n"
-        mermaid += f"%% Tempo médio: {dados.get('tempo_medio', 'Não informado')}\n"
-
-        return mermaid
+        return "\n".join(lines)
 
     # =========================================================================
-    # CONVERSORES DE FORMATO
+    # HELPERS
     # =========================================================================
 
-    def _init_contexto(self, estrutura_atual: Dict[str, Any] | None) -> Dict[str, Any]:
-        """Inicializa contexto a partir da estrutura do orquestrador."""
-        ctx = copy.deepcopy(estrutura_atual or {})
-        ctx.setdefault("dados_coletados", {})
-        ctx.setdefault("campo_atual_idx", 0)
-        return ctx
+    def _init_contexto(self, session_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Inicializa contexto in-place (preserva referência do caller)."""
+        # Reset sessões do formato antigo (antes da v3)
+        if session_data.get("_version") != "3":
+            session_data.clear()
+            session_data["_version"] = "3"
+        session_data.setdefault("campo_atual_idx", 0)
+        session_data.setdefault("etapas", [])
+        session_data.setdefault("decisoes", [])
+        session_data.setdefault("fluxograma_gerado", False)
+        session_data.setdefault("nome_processo", "Processo")
+        return session_data
 
-    def _to_orchestrator(self, bruto: Dict[str, Any], contexto: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Converte formato interno {acao, texto, payload} para contrato do orquestrador.
-        """
-        acao = bruto.get("acao")
-        texto = bruto.get("texto", "")
-        payload = bruto.get("payload", {})
+    def _importar_dados_pdf(self, ctx: Dict[str, Any]):
+        if self.dados_pdf.get("atividade") or self.dados_pdf.get("titulo"):
+            ctx["nome_processo"] = (
+                self.dados_pdf.get("atividade") or self.dados_pdf.get("titulo")
+            )
+        if self.dados_pdf.get("sistemas"):
+            ctx["sistemas_pdf"] = self.dados_pdf["sistemas"]
 
-        # Mapeamento de ações → campo/valor
-        mapeamento = {
-            "boas_vindas": ("inicio", None, True),
-            "fazer_pergunta": ("pergunta", payload.get("campo_nome"), True),
-            "confirmar_pdf": ("confirmar_pdf", payload.get("valor_pdf"), True),
-            "finalizar": ("fluxograma", payload.get("dados_completos"), True),
-        }
+    def _extrair_lista(self, texto: str) -> List[str]:
+        texto_limpo = re.sub(r"^\d+[\.)]\s*", "", texto, flags=re.MULTILINE)
+        itens = re.split(r"[,;\n]+", texto_limpo)
+        itens_limpos = [item.strip() for item in itens if item.strip()]
+        return itens_limpos if itens_limpos else [texto.strip()]
 
-        campo, valor, validacao_ok = mapeamento.get(acao, ("neutro", None, True))
-
-        return {
-            "campo": campo,
-            "valor": valor,
-            "proxima_pergunta": texto,
-            "completo": acao == "finalizar",
-            "percentual": self._calc_percentual(contexto),
-            "validacao_ok": validacao_ok
-        }
-
-    def _calc_percentual(self, contexto: Dict[str, Any]) -> int:
-        """Calcula percentual de conclusão do mapeamento."""
-        idx = contexto.get("campo_atual_idx", 0)
+    def _calc_percentual(self, ctx: Dict[str, Any]) -> int:
+        idx = ctx.get("campo_atual_idx", 0)
         total = len(self.CAMPOS_FLUXOGRAMA)
-
         if idx == 0:
             return 5
+        return min(int((idx / total) * 95) + 5, 100)
 
-        percentual = int((idx / total) * 95) + 5
-        return min(percentual, 100)
+    @staticmethod
+    def _sanitize(text: str) -> str:
+        """Remove caracteres que quebram sintaxe Mermaid."""
+        return text.replace('"', "'").replace("[", "(").replace("]", ")")
 
 
-# Alias para compatibilidade
+# Alias
 HelenaFlowchartAgent = FlowchartAgent

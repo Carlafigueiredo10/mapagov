@@ -26,8 +26,8 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.NOTICE(f"Iniciando cleanup_pops (draft>{days_draft}d, snapshots>{days_snapshot}d, keep_last={keep_last}, dry_run={dry_run})"))
 
-        # 1. Soft delete POPs em draft/in_progress inativos
-        pops_qs = POP.objects.filter(is_deleted=False, status__in=['draft','in_progress'], last_activity_at__lt=cutoff_draft)
+        # 1. Soft delete POPs em draft inativos
+        pops_qs = POP.objects.filter(is_deleted=False, status='draft', last_activity_at__lt=cutoff_draft)
         pops_count = pops_qs.count()
 
         # 2. Snapshots não milestone antigos

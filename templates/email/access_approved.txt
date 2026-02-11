@@ -1,0 +1,10 @@
+MapaGov — Acesso aprovado
+
+Olá {{ user.first_name|default:user.username }},
+
+Seu cadastro no MapaGov foi aprovado. Acesse a plataforma:
+
+{{ login_url }}
+
+---
+MapaGov — Ministério da Gestão e da Inovação em Serviços Públicos

@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
+from processos.domain.helena_mapeamento.normalizar_etapa import normalizar_etapa, normalizar_etapas
 from processos.utils import FormatadorUtils, preparar_dados_para_pdf
 
 logger = logging.getLogger(__name__)
@@ -29,11 +30,11 @@ def preparar_pop_para_pdf(dados_pop: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         dict pronto para PDFGenerator.gerar_pop_completo()
     """
-    # Passo 0: pre-normalizar etapas para evitar None em campos string
-    # (preparar_dados_para_pdf chama limpar_texto_sistema que nao aceita None)
+    # Passo 0: pre-normalizar etapas via normalizador canonico
+    # (garante id, ordem, acao_principal, verificacoes, operador_nome)
     if 'etapas' in dados_pop and isinstance(dados_pop.get('etapas'), list):
         dados_pop = dict(dados_pop)  # shallow copy para nao mutar original
-        dados_pop['etapas'] = [_normalizar_etapa(e, i) for i, e in enumerate(dados_pop['etapas'], 1)]
+        dados_pop['etapas'] = normalizar_etapas(dados_pop['etapas'])
 
     # Passo 1: sanitizacao base (etapas, operadores, sistemas, area, etc.)
     dados = preparar_dados_para_pdf(dados_pop)
@@ -69,9 +70,9 @@ def preparar_pop_para_pdf(dados_pop: Dict[str, Any]) -> Dict[str, Any]:
     dados.setdefault('data_aprovacao', agora.strftime('%d/%m/%Y'))
     dados.setdefault('data_criacao', agora.strftime('%d/%m/%Y'))
 
-    # --- etapas: defaults defensivos + ordenacao deterministica ---
+    # --- etapas: re-normalizar depois da sanitizacao + ordenacao deterministica ---
     if 'etapas' in dados and isinstance(dados['etapas'], list):
-        dados['etapas'] = [_normalizar_etapa(e, i) for i, e in enumerate(dados['etapas'], 1)]
+        dados['etapas'] = normalizar_etapas(dados['etapas'])
         dados['etapas'] = sorted(dados['etapas'], key=lambda e: _sort_key_etapa(e))
 
     # --- garantir que nenhuma string e None ---
@@ -153,49 +154,3 @@ def _sort_key_etapa(etapa: Dict[str, Any]) -> float:
         return float(etapa.get('numero', 10**9))
     except (ValueError, TypeError):
         return 10**9
-
-
-def _normalizar_etapa(etapa: Dict[str, Any], numero_fallback: int) -> Dict[str, Any]:
-    """
-    Garante defaults defensivos em uma etapa para evitar crashes no PDF.
-    Nao altera a estrutura — apenas garante que campos existem.
-    """
-    if not isinstance(etapa, dict):
-        return {'numero': numero_fallback, 'descricao': str(etapa)}
-
-    # Defaults para campos string (setdefault + None -> fallback)
-    for campo, default in [('numero', numero_fallback), ('descricao', '[Sem descricao]'),
-                           ('operador_nome', ''), ('tempo_estimado', '')]:
-        if etapa.get(campo) is None:
-            etapa[campo] = default
-
-    # Garantir que listas sao listas (nunca string ou None)
-    for campo_lista in ('sistemas', 'docs_requeridos', 'docs_gerados', 'detalhes'):
-        val = etapa.get(campo_lista)
-        if val is None:
-            etapa[campo_lista] = []
-        elif isinstance(val, str):
-            etapa[campo_lista] = [v.strip() for v in val.split(',') if v.strip()] if val.strip() else []
-
-    if etapa.get('tipo') == 'condicional':
-        etapa.setdefault('tipo_condicional', 'binario')
-        etapa.setdefault('pergunta_decisao', 'Condicao de decisao')
-        etapa.setdefault('antes_decisao', {'numero': '', 'descricao': ''})
-        # Garantir antes_decisao e dict
-        if not isinstance(etapa['antes_decisao'], dict):
-            etapa['antes_decisao'] = {'numero': '', 'descricao': str(etapa['antes_decisao'])}
-        etapa.setdefault('cenarios', [])
-        # Garantir subetapas em cada cenario
-        for cenario in etapa.get('cenarios', []):
-            if isinstance(cenario, dict):
-                cenario.setdefault('numero', '')
-                cenario.setdefault('descricao', '')
-                cenario.setdefault('subetapas', [])
-                for sub in cenario.get('subetapas', []):
-                    if isinstance(sub, dict):
-                        sub.setdefault('numero', '')
-                        sub.setdefault('descricao', '')
-    else:
-        etapa.setdefault('detalhes', [])
-
-    return etapa

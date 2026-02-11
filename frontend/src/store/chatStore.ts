@@ -13,6 +13,8 @@ function generateUUID(): string {
 }
 
 export interface DadosPOP {
+  // Usuário
+  nome_usuario?: string;
   // Identificação e Arquitetura
   area?: { codigo: string; nome: string };
   codigo_cap?: string;  // ✅ FASE 2: CAP (Código na Arquitetura de Processos)
@@ -42,6 +44,8 @@ export interface DadosPOP {
   fluxos_saida?: string[];
 }
 
+export type ViewMode = 'landing' | 'chat_canvas' | 'final_review';
+
 interface HistoricoItem {
   timestamp: string;
   tipo: 'usuario' | 'helena';
@@ -65,8 +69,13 @@ interface ChatState {
   
   // Histórico e revisão
   historicoCompleto: HistoricoItem[];
-  modoRevisao: boolean;
-  
+  viewMode: ViewMode;
+
+  // Backend POP identifiers
+  popId: number | null;
+  popUuid: string | null;
+  integrityHash: string | null;
+
   // Actions básicas
   addMessage: (message: HelenaMessage) => void;
   removeMessage: (id: string) => void;
@@ -82,7 +91,8 @@ interface ChatState {
 
   // Actions do POP
   updateDadosPOP: (dados: Partial<DadosPOP>) => void;
-  setModoRevisao: (valor: boolean) => void;
+  setViewMode: (mode: ViewMode) => void;
+  setPopIdentifiers: (id: number, uuid: string, hash: string) => void;
 
   // Helpers
   adicionarMensagemRapida: (tipo: 'usuario' | 'helena', texto: string, opcoes?: Record<string, unknown>) => string;
@@ -98,7 +108,10 @@ export const useChatStore = create<ChatState>()(
       progresso: { atual: 0, total: 10, texto: 'Etapa 0 de 10 · Início do mapeamento' },
       dadosPOP: {},
       historicoCompleto: [],
-      modoRevisao: false,
+      viewMode: 'landing' as ViewMode,
+      popId: null,
+      popUuid: null,
+      integrityHash: null,
 
       // Actions básicas
       addMessage: (message) =>
@@ -125,7 +138,10 @@ export const useChatStore = create<ChatState>()(
           progresso: { atual: 0, total: 10, texto: 'Etapa 0 de 10 · Início do mapeamento' },
           dadosPOP: {},
           historicoCompleto: [],
-          modoRevisao: false,
+          viewMode: 'landing' as ViewMode,
+          popId: null,
+          popUuid: null,
+          integrityHash: null,
         }),
 
       carregarHistorico: (mensagens) => {
@@ -166,7 +182,13 @@ export const useChatStore = create<ChatState>()(
           dadosPOP: { ...state.dadosPOP, ...novosDados },
         })),
 
-      setModoRevisao: (valor) => set({ modoRevisao: valor }),
+      setViewMode: (mode) => set({ viewMode: mode }),
+
+      setPopIdentifiers: (id, uuid, hash) => set({
+        popId: id,
+        popUuid: uuid,
+        integrityHash: hash,
+      }),
 
       // Helper para adicionar mensagem rapidamente
       adicionarMensagemRapida: (tipo, texto, opcoes = {}) => {
@@ -201,9 +223,12 @@ export const useChatStore = create<ChatState>()(
         dadosPOP: state.dadosPOP,
         sessionId: state.sessionId,
         historicoCompleto: state.historicoCompleto,
-        // ✅ BUGFIX: Persistir mensagens renderizadas (últimas 50 para evitar overflow)
-        // Isso garante que interfaces sejam preservadas após reload
+        // Persistir mensagens renderizadas (últimas 50 para evitar overflow)
         messages: state.messages.slice(-50),
+        // Backend POP identifiers
+        popId: state.popId,
+        popUuid: state.popUuid,
+        integrityHash: state.integrityHash,
       }),
     }
   )

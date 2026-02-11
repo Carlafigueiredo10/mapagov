@@ -3,18 +3,15 @@ import type { POPData } from '../types/pop.types';
 
 interface FormState {
   popData: POPData;
-  isReviewMode: boolean;
-  
+
   updateField: (field: keyof POPData, value: any) => void;
   updateMultipleFields: (data: Partial<POPData>) => void;
   clearForm: () => void;
-  setReviewMode: (status: boolean) => void;
   getFilledFieldsCount: () => number;
 }
 
 export const useFormStore = create<FormState>((set, get) => ({
   popData: {},
-  isReviewMode: false,
 
   updateField: (field, value) =>
     set((state) => ({
@@ -29,10 +26,7 @@ export const useFormStore = create<FormState>((set, get) => ({
   clearForm: () =>
     set({
       popData: {},
-      isReviewMode: false,
     }),
-
-  setReviewMode: (status) => set({ isReviewMode: status }),
 
   getFilledFieldsCount: () => {
     const { popData } = get();

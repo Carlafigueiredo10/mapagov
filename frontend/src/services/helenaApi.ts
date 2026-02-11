@@ -4,6 +4,7 @@ export interface ChatRequest {
   message: string;
   contexto: 'gerador_pop' | 'ajuda_mapeamento';
   session_id: string;
+  nome_usuario?: string;
 }
 
 export interface ChatResponse {
@@ -13,6 +14,7 @@ export interface ChatResponse {
   dados_extraidos?: Record<string, unknown>;
   progresso?: string;
   conversa_completa?: boolean;
+  schema_version?: string;
   metadados?: {
     auto_continue?: boolean;
     auto_continue_delay?: number;
@@ -46,34 +48,23 @@ export interface PDFResponse {
   error?: string;
 }
 
-// ✅ FIX: Converte string para objeto (backend às vezes retorna string com NaN)
-const toObjectSafe = (raw: unknown): Record<string, unknown> => {
-  if (typeof raw === 'string') {
-    // Corrigir NaN → null para virar JSON válido
-    const patched = raw.replace(/\bNaN\b/g, 'null');
-    try {
-      return JSON.parse(patched);
-    } catch {
-      console.error('[helenaApi] Erro ao parsear resposta como JSON:', raw.substring(0, 200));
-      return {};
-    }
+// Parse seguro: só age se Axios devolveu string (NaN no JSON do backend)
+function parseIfString(data: unknown): Record<string, unknown> {
+  if (typeof data === 'string') {
+    return JSON.parse(data.replace(/\bNaN\b/g, 'null'));
   }
-  return (raw as Record<string, unknown>) ?? {};
-};
+  return data as Record<string, unknown>;
+}
 
-// ✅ FIX: Sanitiza NaN em objetos já parseados
-const sanitizeNaN = (value: unknown): unknown => {
-  if (typeof value === 'number' && Number.isNaN(value)) return null;
-  if (Array.isArray(value)) return value.map(sanitizeNaN);
-  if (value && typeof value === 'object') {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) out[k] = sanitizeNaN(v);
-    return out;
-  }
-  return value;
-};
-
-// Chat principal com Helena (USA /chat/ com POPStateMachine corrigido)
+/**
+ * POP — Chat principal com Helena (state machine conversacional)
+ *
+ * Padrao: POST /chat/ com contexto='gerador_pop'
+ * Estado gerenciado server-side via Django sessions + POPStateMachine.
+ * Retorna dados_extraidos que alimentam o formulario POP em tempo real.
+ *
+ * @see docs/api-patterns.md#1-pop-mapeamento-de-processos
+ */
 export const chatHelena = async (request: ChatRequest): Promise<ChatResponse> => {
   console.log("[helenaApi.ts] 📤 Enviando para /chat/:", {
     message: request.message,
@@ -84,57 +75,83 @@ export const chatHelena = async (request: ChatRequest): Promise<ChatResponse> =>
   const response = await api.post('/chat/', {
     message: request.message,
     contexto: request.contexto,
-    session_id: request.session_id
+    session_id: request.session_id,
+    nome_usuario: request.nome_usuario,
   });
 
-  // ✅ FIX: Converter para objeto (backend às vezes retorna string com NaN)
-  const raw: any = toObjectSafe(response.data);
-  console.log("[helenaApi.ts] 📥 Resposta (objeto):", raw);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw: any = parseIfString(response.data);
 
-  // ✅ FIX: Normalização robusta (interface/dados -> tipo_interface/dados_interface)
-  const normalized: ChatResponse = {
-    resposta: String(raw.resposta ?? ''),
-    tipo_interface: raw.tipo_interface ?? raw.interface ?? undefined,
-    dados_interface: sanitizeNaN(raw.dados_interface ?? raw.dados ?? {}) as Record<string, unknown>,
-    dados_extraidos: raw.dados_extraidos ?? raw.formulario_pop ?? undefined,
-    progresso: raw.progresso ?? undefined,
-    conversa_completa: raw.conversa_completa ?? undefined,
-    metadados: raw.metadados ?? {}
+  // Contrato único: montar interface como { tipo, dados }
+  const tipo = (raw.tipo_interface ?? raw.interface ?? null) as string | null;
+  const dados = raw.dados_interface ?? raw.dados;
+
+  if (tipo && !dados) {
+    console.error('[helenaApi] tipo_interface presente mas dados_interface ausente:', tipo);
+  }
+
+  const normalized = {
+    ...raw,
+    interface: tipo
+      ? { tipo, dados: dados ?? {} }
+      : null,
   };
 
-  // ✅ FIX: Retornar snapshot limpo (evita referências/mutações)
-  const snap = JSON.parse(JSON.stringify(normalized));
-  console.log("[helenaApi.ts] ✅ Normalized SNAP:", snap);
+  console.log("[API normalized.interface]", normalized.interface);
 
-  return snap;
+  return normalized;
 };
 
-// Chat de ajuda/mapeamento
+/** POP — Chat de ajuda sobre mapeamento de processos. POST /helena-mapeamento/ */
 export const chatAjuda = async (request: ChatRequest): Promise<ChatResponse> => {
   const response = await api.post('/helena-mapeamento/', request);
   return response.data;
 };
 
-// Validação de campos em tempo real
+/** POP — Validacao de campo em tempo real. POST /validar-dados-pop/ */
 export const validarCampo = async (request: ValidationRequest): Promise<ValidationResponse> => {
   const response = await api.post('/validar-dados-pop/', request);
   return response.data;
 };
 
-// Geração de PDF
+/** POP — Geracao de PDF do formulario. POST /gerar-pdf-pop/ (sincrono) */
 export const gerarPDF = async (request: PDFRequest): Promise<PDFResponse> => {
   const response = await api.post('/gerar-pdf-pop/', request);
   return response.data;
 };
 
-// Reiniciar conversa
+/**
+ * POP — Carrega POP salvo do backend.
+ * GET /pop/<identifier>/ onde identifier e UUID ou session_id.
+ *
+ * @see docs/api-patterns.md#1-pop-mapeamento-de-processos
+ */
+export const loadPOP = async (identifier: string): Promise<{
+  success: boolean;
+  pop?: {
+    id: number;
+    uuid: string;
+    session_id: string;
+    integrity_hash: string;
+    autosave_sequence: number;
+    status: string;
+    dados: Record<string, unknown>;
+    updated_at: string | null;
+  };
+  error?: string;
+}> => {
+  const response = await api.get(`/pop/${identifier}/`);
+  return response.data;
+};
+
+/** POP — Reinicia conversa e state machine. POST /reiniciar-conversa-helena/ */
 export const reiniciarConversa = async (sessionId: string): Promise<void> => {
   await api.post('/reiniciar-conversa-helena/', {
     session_id: sessionId
   });
 };
 
-// Obter sugestões da IA
+/** POP — Sugestoes via RAG para campos do formulario. POST /consultar-rag-sugestoes/ */
 export const obterSugestoes = async (campo: string, area: string, contexto: string) => {
   const response = await api.post('/consultar-rag-sugestoes/', {
     campo,
@@ -144,7 +161,7 @@ export const obterSugestoes = async (campo: string, area: string, contexto: stri
   return response.data;
 };
 
-// Chat de recepção (Portal)
+/** Portal — Chat de recepcao/triagem. POST /chat-recepcao/ */
 export interface PortalChatRequest {
   message: string;
   produto: string;

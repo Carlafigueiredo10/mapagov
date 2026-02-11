@@ -87,14 +87,14 @@
   background: linear-gradient(135deg, #f8fbff 0%, #e8f4fd 100%);
   display: flex;
   align-items: center;
-  padding: 6rem 0;
+  padding: 2rem 0 6rem;
   position: relative;
   overflow: hidden;
 }
 
 .heroContent {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: 72fr 28fr;
   gap: 4rem;
   align-items: center;
 }
@@ -149,48 +149,38 @@
   letter-spacing: 1px;
 }
 
-/* Helena Preview */
-.helenaPreviewLink {
-  display: block;
-  text-decoration: none;
-  transition: transform 0.3s ease;
-}
-
-.helenaPreviewLink:hover {
-  transform: translateY(-5px);
-}
-
-.helenaPreview {
-  background: var(--white);
+/* Helena Compacta */
+.heroVisual {
+  border: 2px solid rgba(27, 79, 114, 0.2);
   border-radius: 20px;
+  padding: 0.75rem;
+}
+
+.helenaCompact {
+  background: var(--white);
+  border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 20px 60px rgba(27, 79, 114, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(27, 79, 114, 0.08);
+  text-align: center;
   cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.helenaPreviewLink:hover .helenaPreview {
-  box-shadow: 0 25px 70px rgba(27, 79, 114, 0.15);
+.helenaCompact:hover {
+  box-shadow: 0 8px 30px rgba(27, 79, 114, 0.14);
+  transform: translateY(-2px);
 }
 
-.helenaAvatar {
-  width: 120px;
-  height: 120px;
+.helenaAvatarSmall {
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
   margin: 0 auto 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
   overflow: hidden;
-  transition: transform 0.3s ease;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
 }
 
-.helenaAvatar:hover {
-  transform: scale(1.05);
-}
-
-.helenaAvatar img {
+.helenaAvatarSmall img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -198,34 +188,61 @@
 
 .helenaTitle {
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   color: var(--primary-blue);
+  font-size: 1.1rem;
 }
 
-.helenaChat {
-  background: #f8f9fa;
-  border-radius: 15px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
+.helenaDesc {
+  color: var(--light-text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
 }
 
-.helenaMessage {
-  background: var(--secondary-blue);
-  color: white;
-  padding: 12px 18px;
-  border-radius: 20px 20px 20px 5px;
-  font-size: 0.9rem;
-  margin-bottom: 10px;
+.helenaCards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem 0;
 }
 
-.helenaMessage:last-child {
-  margin-bottom: 0;
+.helenaCard {
+  border: 1px solid var(--primary-blue);
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.85rem;
+  color: var(--primary-blue);
+  line-height: 1.4;
+  text-align: left;
+  background: rgba(27, 79, 114, 0.04);
 }
 
 .helenaNote {
   text-align: center;
   color: var(--light-text);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.helenaLink {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background: var(--primary-blue);
+  color: var(--white);
+  text-decoration: none;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid var(--primary-blue);
+}
+
+.helenaLink:hover {
+  background: var(--white);
+  color: var(--primary-blue);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(27, 79, 114, 0.3);
 }
 
 /* ===== FUNCIONALIDADES ===== */
@@ -252,31 +269,28 @@
 .featureCard {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  padding: 2.5rem;
+  padding: 2rem 2rem 1.5rem;
   border-radius: 20px;
-  text-align: center;
+  text-align: left;
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
-  cursor: pointer;
-  text-decoration: none;
   color: white;
   display: block;
 }
 
 .featureCard:hover {
-  transform: translateY(-15px);
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 .featureIcon {
-  font-size: 2.5rem;
-  margin-bottom: 1.5rem;
+  font-size: 2rem;
+  margin-bottom: 1rem;
   display: block;
 }
 
 .featureCard h3 {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   margin-bottom: 1rem;
   font-weight: 600;
 }
@@ -284,6 +298,138 @@
 .featureCard p {
   color: rgba(255, 255, 255, 0.9);
   line-height: 1.6;
+}
+
+.productItems {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.productItems li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.productItems li > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.productDesc {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.3;
+  padding-left: 0;
+}
+
+.productItems a {
+  color: #fff;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  transition: border-color 0.2s;
+}
+
+.productItems a:hover {
+  border-color: #fff;
+}
+
+.tagDisponivel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(39, 174, 96, 0.3);
+  color: #a8f0c6;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.tagPlanejado {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ===== PRODUTOS (versão landing) ===== */
+.productsGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.25rem;
+}
+
+.productCard {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 1.25rem 1.25rem;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.productCard:hover {
+  background: rgba(255, 255, 255, 0.13);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.productHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.productName {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--white);
+}
+
+.productEntrega {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary-blue);
+  background: var(--white);
+  margin: 0 -1.25rem 0.5rem -1.25rem;
+  line-height: 1.5;
+  padding: 0.4rem 1.25rem;
+}
+
+.productDescricao {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.productLink {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  transition: color 0.2s;
+}
+
+.productLink:hover {
+  color: var(--white);
 }
 
 /* ===== CTA ===== */
@@ -294,7 +440,7 @@
 }
 
 .ctaContent {
-  max-width: 800px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -322,8 +468,10 @@
   background: white;
   border-radius: 15px;
   padding: 2rem;
+  padding-left: 2.25rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
+  border-left: 4px solid var(--primary-blue);
 }
 
 .roadmapPhase:hover {
@@ -333,13 +481,23 @@
 
 .phaseBadge {
   display: inline-block;
-  background: linear-gradient(135deg, var(--secondary-blue), var(--process-green));
+  background: var(--primary-blue);
   color: white;
-  padding: 0.5rem 1.5rem;
-  border-radius: 50px;
+  padding: 0.7rem 1.75rem;
+  border-radius: 16px;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   margin-bottom: 1rem;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.phaseBadge span {
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.85;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .phaseTitle {
@@ -460,5 +618,15 @@
 
   .roadmapGrid {
     grid-template-columns: 1fr;
+  }
+
+  .productsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .productsGrid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

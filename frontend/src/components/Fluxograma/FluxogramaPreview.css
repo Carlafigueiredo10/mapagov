@@ -25,6 +25,76 @@
   font-size: 1.1rem;
 }
 
+/* Config do cabeçalho (não aparece na impressão) */
+.pdf-config {
+  background: white;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  border: 1px solid #e0e0e0;
+}
+
+.toggle-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: #333;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.toggle-header input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #1351B4;
+}
+
+.header-fields {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.header-fields input {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.header-fields input:focus {
+  outline: none;
+  border-color: #1351B4;
+  box-shadow: 0 0 0 2px rgba(19, 81, 180, 0.15);
+}
+
+/* Cabeçalho impresso */
+.print-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #1351B4;
+}
+
+.print-header h2 {
+  font-size: 1.4rem;
+  color: #1B4F72;
+  margin: 0 0 8px 0;
+}
+
+.print-header-meta {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+/* Conteúdo do fluxograma */
 .fluxograma-content {
   background: white;
   border-radius: 8px;
@@ -45,6 +115,7 @@
   height: auto;
 }
 
+/* Botões de ação */
 .fluxograma-actions {
   display: flex;
   gap: 10px;
@@ -69,14 +140,53 @@
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
+.action-btn-primary {
+  background: linear-gradient(135deg, #1351B4, #1B4F72);
+}
+
+.action-btn-primary:hover {
+  box-shadow: 0 4px 12px rgba(19, 81, 180, 0.4);
+}
+
+/* === Impressão === */
 @media print {
-  .fluxograma-actions {
-    display: none;
+  body * {
+    visibility: hidden !important;
+  }
+
+  #fluxograma-print-area,
+  #fluxograma-print-area * {
+    visibility: visible !important;
+  }
+
+  #fluxograma-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .no-print {
+    display: none !important;
   }
 
   .fluxograma-content {
     box-shadow: none;
     border: 1px solid #ddd;
+    padding: 15px;
+  }
+
+  .print-header {
+    border-bottom: 2px solid #333;
+  }
+
+  .print-header h2 {
+    color: #000;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 15mm;
   }
 }
 
@@ -91,5 +201,9 @@
 
   .action-btn {
     width: 100%;
+  }
+
+  .header-fields {
+    flex-direction: column;
   }
 }

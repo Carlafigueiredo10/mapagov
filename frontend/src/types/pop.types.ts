@@ -29,16 +29,28 @@ export interface Cenario {
 }
 
 export interface Etapa {
-  numero: string;
-  descricao: string;
-  operador_nome: string;  // TODO: futuro {id, nome}
+  // --- Identidade ---
+  id: string;              // UUID estavel — obrigatorio para edicao granular
+  ordem: number;           // Posicao explicita (nao depende de index do array)
+  schema_version: number;  // 1 = formato canonico
+
+  // --- Campos canonicos ---
+  numero: string;              // "1", "2" etc. (display, derivado de ordem)
+  acao_principal: string;      // Acao principal da etapa (ERA descricao)
+  operador_nome: string;       // Padronizado (nunca "operador")
+  tempo_estimado?: string;
   sistemas: string[];
   docs_requeridos: string[];
   docs_gerados: string[];
-  tempo_estimado?: string;
+  verificacoes?: string[];     // Sub-itens / o que confere/verifica (ERA detalhes)
+
+  // --- Condicionais ---
   tipo?: 'condicional';
   tipo_condicional?: 'binario' | 'multiplos';
   antes_decisao?: { numero: string; descricao: string };
   cenarios?: Cenario[];
+
+  // --- Retrocompat (POPs antigos — normalizador preenche canonicos) ---
+  descricao?: string;
   detalhes?: string[];
 }

@@ -548,7 +548,7 @@ def adicionar_resposta(request, analise_id, risco_id):
 # API v2 - NOVO FLUXO DE ANALISE DE RISCOS
 # =============================================================================
 
-BLOCOS_ESPERADOS = {"BLOCO_1", "BLOCO_2", "BLOCO_3", "BLOCO_4", "BLOCO_5", "BLOCO_6"}
+BLOCOS_ESPERADOS = {"BLOCO_1", "BLOCO_2", "BLOCO_3", "BLOCO_4", "BLOCO_5", "BLOCO_6", "BLOCO_7"}
 
 
 def resposta_erro_v2(erro: str, codigo: str, http_status: int = 400, dados: dict = None):
@@ -774,7 +774,7 @@ def _merge_contexto(atual: dict, novo: dict) -> dict:
 def salvar_blocos_v2(request, analise_id):
     """PATCH /api/analise-riscos/<id>/blocos/
 
-    Salva respostas dos 6 blocos de identificacao de riscos (Etapa 2).
+    Salva respostas dos 7 blocos de identificacao de riscos (Etapa 2).
 
     Body:
         respostas_blocos: {

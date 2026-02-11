@@ -17,6 +17,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../store/chatStore';
+import { useRequireAuth } from '../hooks/useRequireAuth';
 import { X, FileText, Search, ArrowLeft, Save, Download } from 'lucide-react';
 import MapeamentoProcessosLanding from '../components/Helena/MapeamentoProcessosLanding';
 import ChatContainer from '../components/Helena/ChatContainer';
@@ -33,11 +34,12 @@ const TODOS_CAMPOS = [
 
 const MapeamentoProcessosPage: React.FC = () => {
   const navigate = useNavigate();
-  const [mostrarChat, setMostrarChat] = useState(false);
+  const requireAuth = useRequireAuth();
   const [popAberto, setPopAberto] = useState(false);
   const [salvoFeedback, setSalvoFeedback] = useState(false);
 
-  const { dadosPOP, modoRevisao, setModoRevisao } = useChatStore();
+  const { dadosPOP, viewMode, setViewMode } = useChatStore();
+  const modoRevisao = viewMode === 'final_review';
 
   // Contagem de campos preenchidos (mesma lógica de FormularioPOP)
   const camposPreenchidos = useMemo(() => {
@@ -56,7 +58,7 @@ const MapeamentoProcessosPage: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (modoRevisao) {
-          setModoRevisao(false);
+          setViewMode('chat_canvas');
         } else if (popAberto) {
           setPopAberto(false);
         }
@@ -64,7 +66,7 @@ const MapeamentoProcessosPage: React.FC = () => {
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [popAberto, modoRevisao, setModoRevisao]);
+  }, [popAberto, modoRevisao, setViewMode]);
 
   // Focar no botão fechar ao abrir drawer
   useEffect(() => {
@@ -109,10 +111,10 @@ const MapeamentoProcessosPage: React.FC = () => {
   }, []);
 
   // Landing institucional
-  if (!mostrarChat) {
+  if (viewMode === 'landing') {
     return (
       <LandingShell onBack={() => navigate(-1)}>
-        <MapeamentoProcessosLanding onIniciar={() => setMostrarChat(true)} />
+        <MapeamentoProcessosLanding onIniciar={() => { if (requireAuth()) setViewMode('chat_canvas'); }} />
       </LandingShell>
     );
   }
@@ -142,7 +144,7 @@ const MapeamentoProcessosPage: React.FC = () => {
       {popCompleto && !modoRevisao && (
         <button
           className="mp-page__btn-revisao"
-          onClick={() => setModoRevisao(true)}
+          onClick={() => setViewMode('final_review')}
         >
           <Search size={16} />
           Revisar POP antes de imprimir
@@ -177,7 +179,7 @@ const MapeamentoProcessosPage: React.FC = () => {
         <div className="mp-page__revisao-bar">
           <button
             className="mp-page__revisao-btn mp-page__revisao-btn--voltar"
-            onClick={() => setModoRevisao(false)}
+            onClick={() => setViewMode('chat_canvas')}
           >
             <ArrowLeft size={16} />
             Voltar ao chat

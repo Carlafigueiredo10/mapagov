@@ -1,8 +1,6 @@
 import { useState, useRef, DragEvent } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import './FluxogramaUpload.css';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 interface FluxogramaUploadProps {
   onPdfAnalyzed: (popInfo: any) => void;
@@ -72,7 +70,7 @@ export default function FluxogramaUpload({ onPdfAnalyzed }: FluxogramaUploadProp
     formData.append('pdf_file', file);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/fluxograma-from-pdf/`, formData, {
+      const response = await api.post('/fluxograma-from-pdf/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

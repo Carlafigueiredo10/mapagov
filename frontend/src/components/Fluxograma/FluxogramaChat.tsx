@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import './FluxogramaChat.css';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 interface Message {
   type: 'helena' | 'user';
@@ -12,12 +10,12 @@ interface Message {
 interface FluxogramaChatProps {
   enabled: boolean;
   popInfo: any;
-  onFluxogramaGenerated: (code: string) => void;
+  onFluxogramaGenerated: (code: string, steps?: any[], decisoes?: any[]) => void;
 }
 
 export default function FluxogramaChat({ enabled, popInfo, onFluxogramaGenerated }: FluxogramaChatProps) {
   const [messages, setMessages] = useState<Message[]>([
-    { type: 'helena', text: 'Olá! Faça upload de um PDF de POP para começarmos a criar o fluxograma. 📊' }
+    { type: 'helena', text: 'Olá! Você pode importar um PDF de POP ao lado, ou descrever o processo diretamente aqui. Digite "iniciar" para começar.' }
   ]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -46,46 +44,26 @@ export default function FluxogramaChat({ enabled, popInfo, onFluxogramaGenerated
     setSending(true);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/fluxograma-from-pdf/`, {
+      const response = await api.post('/fluxograma-from-pdf/', {
         message: userMessage,
       });
 
-      const helenaResponse = response.data.resposta || 'Desculpe, não entendi.';
+      const data = response.data;
+      const helenaResponse = data.resposta || 'Desculpe, não entendi.';
       setMessages(prev => [...prev, { type: 'helena', text: helenaResponse }]);
 
-      // Verificar se a conversa está completa
-      if (response.data.conversa_completa) {
+      if (data.completo && data.fluxograma_mermaid) {
         setMessages(prev => [...prev, {
           type: 'helena',
-          text: '✅ Fluxograma completo! Gerando visualização...'
+          text: 'Fluxograma completo! Gerando visualização...'
         }]);
-
-        // Aqui você pode chamar uma API para obter o código Mermaid
-        // Por enquanto, vamos gerar um exemplo
-        const mermaidCode = `graph TD
-    A[Início: ${popInfo?.atividade || 'Processo'}]
-    B[Etapa 1]
-    C[Etapa 2]
-    D[Decisão?]
-    E[Sim]
-    F[Não]
-    G[Fim]
-
-    A --> B
-    B --> C
-    C --> D
-    D -->|Sim| E
-    D -->|Não| F
-    E --> G
-    F --> G`;
-
-        onFluxogramaGenerated(mermaidCode);
+        onFluxogramaGenerated(data.fluxograma_mermaid, data.steps, data.decisoes);
       }
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
       setMessages(prev => [...prev, {
         type: 'helena',
-        text: '❌ Erro ao processar mensagem. Tente novamente.'
+        text: 'Erro ao processar mensagem. Tente novamente.'
       }]);
     } finally {
       setSending(false);

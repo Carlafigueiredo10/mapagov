@@ -8,29 +8,28 @@ interface InterfaceFinalProps {
 
 const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados, onConfirm }) => {
   const [etapa, setEtapa] = useState<'processando' | 'sucesso' | 'erro'>('processando');
-  const [mensagem, setMensagem] = useState('Preparando dados do POP...');
-  const [pdfUrl] = useState<string | null>(null);
 
   const popCompleto = (dados?.pop_completo as Record<string, unknown>) || {};
   const codigo = dados?.codigo as string || 'POP-000';
+  // pdfUrl vem dos dados da interface (atualizado pelo useChat após geração)
+  const pdfUrl = (dados?.pdfUrl as string) || null;
 
   useEffect(() => {
-    // Simular processamento (aqui vai chamar a API de PDF real)
+    // Transição automática para sucesso após breve loading
     const timer = setTimeout(() => {
       setEtapa('sucesso');
-      setMensagem('POP criado com sucesso!');
-      // setPdfUrl será definido pela integração real com a API
-    }, 2000);
-
+    }, 1500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Se pdfUrl chegar depois (atualização do useChat), já mostra sucesso
+  useEffect(() => {
+    if (pdfUrl) setEtapa('sucesso');
+  }, [pdfUrl]);
 
   const handleBaixarPDF = () => {
     if (pdfUrl) {
       window.open(pdfUrl, '_blank');
-    } else {
-      // Se não tiver URL ainda, notificar (será usado na integração real)
-      alert('Gerando PDF... aguarde um momento.');
     }
   };
 
@@ -44,7 +43,7 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados, onConfirm }) => 
         <div className="final-processando">
           <Loader size={48} className="icon-loading" />
           <h2>Finalizando POP...</h2>
-          <p>{mensagem}</p>
+          <p>Preparando dados do POP...</p>
           <div className="progress-bar">
             <div className="progress-fill"></div>
           </div>

@@ -1,0 +1,41 @@
+id,grupo,nome_curto,nome_completo,artigos,palavras_chave,areas,hierarquia
+norm_001,beneficios,IN 97/2022,"Instrução Normativa SGP/SEDGG/ME nº 97, de 26 de dezembro de 2022",Art. 34-42,ressarcimento|plano saude|auxilio saude|assistencia suplementar|aposentado,CGBEN,3
+norm_002,beneficios,Lei 8112/90 - Benefícios,"Lei nº 8.112, de 11 de dezembro de 1990",Art. 215-230,pensao|auxilio funeral|auxilio natalidade|assistencia pre escolar|servidor publico,CGBEN|todas,1
+norm_003,beneficios,Decreto 4978/2004,"Decreto nº 4.978, de 3 de fevereiro de 2004",Todos,assistencia saude|servidor|dependente|ressarcimento|plano saude,CGBEN,2
+norm_004,beneficios,Lei 11784/2008,"Lei nº 11.784, de 22 de setembro de 2008",Art. 139-142,avaliacao desempenho|progressao|promocao|merito,DIGEP,1
+norm_005,beneficios,Portaria 1675/2018,"Portaria GM/MS nº 1.675, de 7 de junho de 2018",Todos,pericia medica|licenca saude|atestado|junta medica,DIGEP,3
+norm_006,beneficios,IN 02/2018,"Instrução Normativa SEGES/MPDG nº 2, de 30 de março de 2018",Todos,consignacao|desconto|folha pagamento|margem consignavel,CGPAG,3
+norm_007,pessoas,Decreto 9991/2019,"Decreto nº 9.991, de 28 de agosto de 2019",Todos,capacitacao|desenvolvimento|gestao pessoas|politica nacional|treinamento,DIGEP,2
+norm_008,pessoas,Portaria 424/2020,"Portaria SGP/SEDGG/ME nº 424, de 27 de março de 2020",Todos,teletrabalho|trabalho remoto|home office,DIGEP,3
+norm_009,pessoas,IN 05/2017,"Instrução Normativa SGP/MP nº 5, de 26 de maio de 2017",Todos,horario flexivel|jornada|banco horas,DIGEP,3
+norm_010,pessoas,Decreto 1171/94,"Decreto nº 1.171, de 22 de junho de 1994",Todos,codigo etica|conduta|deveres|servidor publico,todas,2
+norm_011,pessoas,Lei Inclusão,"Lei nº 13.146, de 6 de julho de 2015",Todos,inclusao|pcd|acessibilidade|pessoa deficiencia,DIGEP|todas,1
+norm_012,pessoas,Lei 8112/90 - Férias,"Lei nº 8.112, de 11 de dezembro de 1990",Art. 77-80,ferias|recesso|afastamento|servidor,DIGEP|todas,1
+norm_013,pessoas,Lei 8112/90 - Licenças,"Lei nº 8.112, de 11 de dezembro de 1990",Art. 81-116,licenca|afastamento|licenca capacitacao|licenca saude|maternidade,DIGEP|todas,1
+norm_014,pessoas,Lei 11091/2005,"Lei nº 11.091, de 12 de janeiro de 2005",Todos,carreira tecnico administrativa|universidade|ifes,DIGEP,1
+norm_015,processos,Lei 9784/99,"Lei nº 9.784, de 29 de janeiro de 1999",Todos,processo administrativo|prazo|atendimento|defesa|devido processo,COATE|todas,1
+norm_016,processos,Decreto 9094/2017,"Decreto nº 9.094, de 17 de julho de 2017",Todos,simplificacao|usuario|servico publico|desburocratizacao,COATE|todas,2
+norm_017,processos,IN 65/2021,"Instrução Normativa SEGES/ME nº 65, de 7 de julho de 2021",Todos,processo eletronico|sei|tramitacao|documento digital,todas,3
+norm_018,processos,Decreto 10139/2019,"Decreto nº 10.139, de 28 de novembro de 2019",Todos,revisao atos|desburocratizacao|simplificacao,todas,2
+norm_019,processos,Portaria 57/2019,"Portaria ME nº 57, de 4 de fevereiro de 2019",Todos,gestao processos|mapeamento|bpm|modelagem,todas,3
+norm_020,riscos,Decreto 9203/2017,"Decreto nº 9.203, de 22 de novembro de 2017",Todos,governanca publica|gestao riscos|accountability|controles,CGRIS|todas,2
+norm_021,riscos,IN Conjunta 01/2016,"Instrução Normativa Conjunta CGU/MP nº 01, de 10 de maio de 2016",Todos,controles internos|riscos|integridade|gestao riscos,CGRIS|todas,3
+norm_022,riscos,Portaria Interministerial 140/2006,"Portaria Interministerial MF/CGU/MP nº 140, de 16 de março de 2006",Todos,auditoria|controles internos|gestao,CGRIS|todas,3
+norm_023,riscos,IN TCU 84/2020,"Instrução Normativa TCU nº 84, de 22 de abril de 2020",Todos,auditoria interna|governanca|controles|gestao riscos,CGRIS|todas,4
+norm_024,riscos,Acórdão TCU 1078/2023,"Acórdão TCU nº 1078, de 2023",Todos,controles|auditoria|prestacao contas|tcu|governanca,CGRIS|todas,4
+norm_025,riscos,Lei 12846/2013,"Lei nº 12.846, de 1º de agosto de 2013",Todos,anticorrupcao|integridade|compliance|lei anticorrupcao,CGRIS|todas,1
+norm_026,riscos,Portaria CGU 909/2015,"Portaria CGU nº 909, de 16 de abril de 2015",Todos,controles internos|auditoria|cgu|gestao,CGRIS|todas,3
+norm_027,riscos,Decreto 9739/2019,"Decreto nº 9.739, de 28 de março de 2019",Todos,medidas protetivas|integridade|combate corrupcao,CGRIS|todas,2
+norm_028,dados,LGPD,"Lei nº 13.709, de 14 de agosto de 2018",Todos,dados pessoais|privacidade|lgpd|protecao dados,CGCAF|todas,1
+norm_029,dados,Decreto 10046/2019,"Decreto nº 10.046, de 9 de outubro de 2019",Todos,governanca dados|interoperabilidade|compartilhamento dados,CGCAF|todas,2
+norm_030,dados,Portaria 443/2018,"Portaria GM/MD nº 443, de 28 de fevereiro de 2018",Todos,seguranca informacao|ciberseguranca|dsic,todas,3
+norm_031,transparencia,LAI,"Lei nº 12.527, de 18 de novembro de 2011",Todos,acesso informacao|transparencia|lai|publicidade,todas,1
+norm_032,transparencia,Decreto 7724/2012,"Decreto nº 7.724, de 16 de maio de 2012",Todos,sic|publicidade|dados abertos|transparencia|esic,todas,2
+norm_033,transparencia,Decreto 11129/2022,"Decreto nº 11.129, de 11 de julho de 2022",Todos,simplificacao|burocracia|governanca|eficiencia,todas,2
+norm_034,controle,CF/88 - Acumulação de Cargos,"Constituição Federal de 1988","Art. 37, XVI, XVII e § 10; Art. 38; Art. 95, Parágrafo único, I; Art. 128, § 5º, II, 'd'; Art. 142, § 3º, II e VIII",acumulacao cargos|cargo publico|compatibilidade horarios|vedacao acumulacao,todas,1
+norm_035,controle,CF/88 - Teto Remuneratório,"Constituição Federal de 1988","Art. 37, XI e § 9; Art. 40, § 11",teto remuneratorio|subsidio|remuneracao|abate teto|teto constitucional,todas,1
+norm_036,controle,Lei 8112/90 - Acumulação,"Lei nº 8.112, de 11 de dezembro de 1990","Art. 118, 119, 133 e 134",acumulacao cargos|servidor|vedacao|acumulacao ilicita|boa fe,todas,1
+norm_037,controle,Lei 3373/1958,"Lei nº 3.373, de 12 de março de 1958",Todos,filha maior solteira|pensao|dependente|pensao civil,todas,1
+norm_038,controle,Acórdão TCU 2780/2016,"Acórdão TCU nº 2.780, de 2016",Todos,filha maior solteira|pensao|tcu|controle,todas,4
+norm_039,controle,EC 103/2019 - Acumulação Benefícios,"Emenda Constitucional nº 103, de 12 de novembro de 2019","Art. 24, § 1º",acumulacao beneficios|previdenciario|aposentadoria|pensao|vedacao,todas,1
+norm_040,controle,EC 103/2019 - Redutor Acumulação,"Emenda Constitucional nº 103, de 12 de novembro de 2019","Art. 24, § 2º",redutor|acumulacao beneficios|previdenciario|aposentadoria|pensao,todas,1

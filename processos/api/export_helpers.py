@@ -77,6 +77,12 @@ DEPENDENCIAS = {
         "Q4": {"Q1": ["POSSIVEL", "PROVAVEL"]},
         "Q5": {"Q1": ["POSSIVEL", "PROVAVEL"]},
     },
+    "BLOCO_7": {
+        "Q2": {"Q1": ["SIM"]},
+        "Q3": {"Q1": ["SIM"]},
+        "Q4": {"Q1": ["SIM"]},
+        "Q5": {"Q1": ["SIM"]},
+    },
 }
 
 
@@ -434,7 +440,7 @@ def build_snapshot_payload(analise: AnaliseRiscos) -> Dict[str, Any]:
     # Contexto estruturado (Bloco A + B)
     contexto = analise.contexto_estruturado or {}
 
-    # Respostas dos 6 blocos
+    # Respostas dos 7 blocos
     respostas_blocos = analise.respostas_blocos or {}
 
     # Riscos com respostas

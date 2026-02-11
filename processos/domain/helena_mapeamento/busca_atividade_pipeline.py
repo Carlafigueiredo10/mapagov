@@ -50,6 +50,39 @@ _CORPUS_CACHE = {
 }
 
 
+def _max_atividade_csv(caps_existentes):
+    """Retorna o maior número de atividade (último segmento) nos CAPs do CSV."""
+    max_csv = 0
+    for cap in caps_existentes:
+        partes = str(cap).split('.')
+        if len(partes) >= 4:
+            try:
+                max_csv = max(max_csv, int(partes[-1]))
+            except ValueError:
+                continue
+    return max_csv
+
+
+def _max_atividade_db(prefixo):
+    """Retorna o maior número de atividade no banco para o prefixo dado."""
+    max_db = 0
+    try:
+        from processos.models import POP
+        prefixo_busca = f"{prefixo}."
+        caps_banco = POP.objects.filter(
+            codigo_processo__startswith=prefixo_busca,
+            is_deleted=False,
+        ).values_list('codigo_processo', flat=True)
+        for cap_db in caps_banco:
+            try:
+                max_db = max(max_db, int(str(cap_db).split('.')[-1]))
+            except (ValueError, IndexError):
+                continue
+    except Exception as e:
+        logger.warning(f"[PIPELINE] Falha ao consultar banco: {e}")
+    return max_db
+
+
 class BuscaAtividadePipeline:
     """
     Pipeline de busca em 5 camadas para atividades da DECIPEX.
@@ -1006,33 +1039,9 @@ class BuscaAtividadePipeline:
             logger.info(f"[PIPELINE] Estrutura processo: {estrutura_processo} (Macro={macro}, Proc={processo}, Sub={subprocesso})")
             logger.info(f"[PIPELINE] CAP base do CSV (sem área): {ultimo_cap}")
 
-            # --- MAX do CSV ---
-            max_csv = 0
-            for cap in caps_existentes:
-                partes_cap = str(cap).split('.')
-                if len(partes_cap) >= 4:
-                    try:
-                        max_csv = max(max_csv, int(partes_cap[-1]))
-                    except ValueError:
-                        continue
-
-            # --- MAX do banco (POPs já salvos com mesmo prefixo) ---
-            max_db = 0
-            try:
-                from processos.models import POP
-                prefixo_busca = f"{prefixo}."
-                caps_banco = POP.objects.filter(
-                    codigo_processo__startswith=prefixo_busca,
-                    is_deleted=False,
-                ).values_list('codigo_processo', flat=True)
-                for cap_db in caps_banco:
-                    try:
-                        max_db = max(max_db, int(str(cap_db).split('.')[-1]))
-                    except (ValueError, IndexError):
-                        continue
-                logger.info(f"[PIPELINE] Max atividade no banco para '{prefixo}': {max_db} ({caps_banco.count()} POPs)")
-            except Exception as e:
-                logger.warning(f"[PIPELINE] Falha ao consultar banco: {e}")
+            max_csv = _max_atividade_csv(caps_existentes)
+            max_db = _max_atividade_db(prefixo)
+            logger.info(f"[PIPELINE] Max atividade - CSV: {max_csv}, DB: {max_db}")
 
             # --- Candidato = max(csv, db) + 1, validar disponibilidade ---
             candidato = max(max_csv, max_db) + 1

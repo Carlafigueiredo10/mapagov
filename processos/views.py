@@ -13,7 +13,7 @@ import pypdf
 from datetime import datetime
 from django.utils import timezone
 
-from .models import POP
+from .models import POP, PopDraft
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -106,6 +106,11 @@ def chat_api_view(request):
             # ✅ ROTEADOR: Verificar modo atual (pop ou etapas)
             modo_inicial = session_data.get('_helena_modo', MODO_POP)
 
+            # Sync nome_usuario do frontend (edição no header)
+            nome_frontend = data.get('nome_usuario')
+            if nome_frontend and nome_frontend.strip():
+                session_data['nome_usuario'] = nome_frontend.strip()
+
             if modo_inicial == MODO_ETAPAS:
                 helena = HelenaEtapas()
                 resultado = helena.processar(user_message, session_data)
@@ -155,6 +160,38 @@ def chat_api_view(request):
 
             # Forcar Django a salvar a sessao modificada
             request.session.modified = True
+
+            # ========== DRAFT: Persistir rascunho no banco ==========
+            estado_atual = novo_session_data.get('estado', '')
+            try:
+                if estado_atual == 'etapa_form' and user_message.strip().lower() in ('vamos', '__confirmar_dupla__', '__confirmar__'):
+                    # VAMOS → criar draft vazio com dados já coletados
+                    PopDraft.objects.update_or_create(
+                        session_id=session_id,
+                        defaults={
+                            'user': request.user if request.user.is_authenticated else None,
+                            'area': novo_session_data.get('area_selecionada', ''),
+                            'process_code': novo_session_data.get('codigo_cap', ''),
+                            'etapa_atual': estado_atual,
+                            'payload_json': novo_session_data,
+                        }
+                    )
+                    logger.info(f"[POP-DRAFT] Draft criado (VAMOS) sid=...{sid_tail}")
+                elif user_message.strip().lower() in ('pausa', 'pausar', 'depois', 'mais tarde', 'salvar'):
+                    # PAUSA → salvar estado atual como rascunho
+                    PopDraft.objects.update_or_create(
+                        session_id=session_id,
+                        defaults={
+                            'user': request.user if request.user.is_authenticated else None,
+                            'area': novo_session_data.get('area_selecionada', ''),
+                            'process_code': novo_session_data.get('codigo_cap', ''),
+                            'etapa_atual': estado_atual,
+                            'payload_json': novo_session_data,
+                        }
+                    )
+                    logger.info(f"[POP-DRAFT] Draft salvo (PAUSA) sid=...{sid_tail}")
+            except Exception as e:
+                logger.warning(f"[POP-DRAFT] Falha ao salvar draft: {e}")
 
             # Log específico da Helena
             log_helena = LogUtils.log_helena_interacao(
@@ -831,13 +868,111 @@ def fluxograma_from_pdf(request):
             request.session[session_key] = session_data
             request.session.modified = True
 
+            # Incluir dados estruturados quando fluxo completo
+            if resultado.get('completo'):
+                resultado['steps'] = _build_labeled_steps(session_data.get('etapas', []))
+                resultado['decisoes'] = session_data.get('decisoes', [])
+
             return JsonResponse(resultado)
-        
+
     except Exception as e:
         return JsonResponse({
             'error': f'Erro ao processar: {str(e)}',
             'resposta': 'Desculpe, ocorreu um erro técnico.'
         }, status=500)
+
+
+def _build_labeled_steps(etapas):
+    """Adiciona label posicional (Etapa 1, Etapa 2, ...) a cada etapa."""
+    return [
+        {'id': e['id'], 'label': f'Etapa {i}', 'texto': e['texto']}
+        for i, e in enumerate(etapas, start=1)
+    ]
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def fluxograma_steps_api(request):
+    """
+    API para manipulação direta de etapas (insert, edit, remove).
+    Reutiliza FlowchartAgent._executar_comando().
+    """
+    try:
+        data = json.loads(request.body)
+        action = data.get('action')
+
+        session_key = 'helena_fluxograma_state'
+        session_data = request.session.get(session_key, {})
+
+        if not session_data.get('fluxograma_gerado') and not session_data.get('etapas'):
+            return JsonResponse(
+                {'ok': False, 'mensagem': 'Fluxograma ainda não foi gerado.'},
+                status=400,
+            )
+
+        from .domain.helena_fluxograma.agents.flowchart_agent import FlowchartAgent
+
+        agent = FlowchartAgent()
+        ctx = agent._init_contexto(session_data)
+
+        # Montar comando
+        if action == 'insert_after':
+            cmd = {
+                'tipo': 'inserir_etapa',
+                'apos_id': data.get('after_step_id'),
+                'texto': data.get('texto', ''),
+            }
+        elif action == 'edit':
+            cmd = {
+                'tipo': 'editar_etapa',
+                'id': data.get('step_id'),
+                'texto': data.get('texto', ''),
+            }
+        elif action == 'remove':
+            cmd = {
+                'tipo': 'remover_etapa',
+                'id': data.get('step_id'),
+            }
+        else:
+            return JsonResponse(
+                {'ok': False, 'mensagem': f'Ação desconhecida: {action}'},
+                status=400,
+            )
+
+        resultado = agent._executar_comando(cmd, ctx)
+
+        if 'erro' in resultado:
+            return JsonResponse(
+                {'ok': False, 'mensagem': resultado['erro']},
+                status=400,
+            )
+
+        mermaid_code = agent.gerar_mermaid(ctx)
+        steps = _build_labeled_steps(ctx.get('etapas', []))
+
+        new_step_id = None
+        if action == 'insert_after':
+            new_step_id = ctx.get('proximo_etapa_id', 1) - 1
+
+        request.session[session_key] = session_data
+        request.session.modified = True
+
+        return JsonResponse({
+            'ok': True,
+            'mensagem': resultado['mensagem'],
+            'steps': steps,
+            'decisoes': ctx.get('decisoes', []),
+            'fluxograma_mermaid': mermaid_code,
+            'new_step_id': new_step_id,
+        })
+
+    except Exception as e:
+        logger.error(f"[fluxograma_steps_api] Erro: {e}", exc_info=True)
+        return JsonResponse(
+            {'ok': False, 'mensagem': f'Erro interno: {str(e)}'},
+            status=500,
+        )
+
 
 def analyze_pop_content(text):
     """
@@ -1123,6 +1258,12 @@ def autosave_pop(request):
         if isinstance(area, dict):
             pop.area_codigo = area.get('codigo', '')
             pop.area_nome = area.get('nome', '')
+            # Resolver FK para Area model
+            if pop.area_codigo:
+                from processos.models import Area
+                area_obj = Area.objects.filter(codigo=pop.area_codigo).first()
+                if area_obj:
+                    pop.area = area_obj
 
         campos_diretos = {
             'macroprocesso': 'macroprocesso',
@@ -1136,6 +1277,9 @@ def autosave_pop(request):
         for frontend_key, model_field in campos_diretos.items():
             val = data.get(frontend_key)
             if val is not None:
+                # Não salvar placeholders como codigo_processo (causa colisão UNIQUE)
+                if model_field == 'codigo_processo' and val in ('Aguardando...', ''):
+                    val = None
                 setattr(pop, model_field, val)
 
         # Campos JSON
@@ -1149,6 +1293,10 @@ def autosave_pop(request):
         for frontend_key, model_field in campos_json.items():
             val = data.get(frontend_key)
             if val is not None:
+                # Normalizar etapas antes de gravar (garante id, ordem, schema canonico)
+                if frontend_key == 'etapas' and isinstance(val, list):
+                    from processos.domain.helena_mapeamento.normalizar_etapa import normalizar_etapas
+                    val = normalizar_etapas(val)
                 setattr(pop, model_field, val)
 
         # Operadores: frontend envia list, modelo aceita TextField
@@ -1284,6 +1432,103 @@ def get_pop(request, identifier):
 
     except Exception as e:
         logger.exception(f"[GET-POP] Erro: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+# ============================================================================
+# APIs POP DRAFT - Rascunho do wizard (PAUSA / retomada)
+# ============================================================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def pop_draft_save(request):
+    """
+    Cria ou atualiza rascunho do POP.
+
+    POST /api/pop-draft/save/
+    Body: {
+        "session_id": "uuid",
+        "area": "DIGEP",
+        "process_code": "7.1.1.1",
+        "etapa_atual": "transicao_epica",
+        "payload_json": { ... dados coletados ... }
+    }
+    """
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+
+        if not session_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'session_id obrigatório'
+            }, status=400)
+
+        user = request.user if request.user.is_authenticated else None
+
+        # Upsert: busca draft existente pela session_id, ou cria novo
+        draft, created = PopDraft.objects.update_or_create(
+            session_id=session_id,
+            defaults={
+                'user': user,
+                'area': data.get('area', ''),
+                'process_code': data.get('process_code', ''),
+                'etapa_atual': data.get('etapa_atual', 'nome_usuario'),
+                'payload_json': data.get('payload_json', {}),
+            }
+        )
+
+        logger.info(f"[POP-DRAFT] {'Criado' if created else 'Atualizado'} draft {draft.pk} session={session_id}")
+
+        return JsonResponse({
+            'success': True,
+            'draft_id': draft.pk,
+            'created': created,
+        })
+
+    except Exception as e:
+        logger.exception(f"[POP-DRAFT] Erro ao salvar: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def pop_draft_load(request, session_id):
+    """
+    Carrega rascunho mais recente do POP.
+
+    GET /api/pop-draft/<session_id>/
+    """
+    try:
+        draft = PopDraft.objects.filter(session_id=session_id).first()
+
+        if not draft:
+            return JsonResponse({
+                'success': False,
+                'error': 'Rascunho não encontrado'
+            }, status=404)
+
+        return JsonResponse({
+            'success': True,
+            'draft': {
+                'id': draft.pk,
+                'session_id': draft.session_id,
+                'area': draft.area,
+                'process_code': draft.process_code,
+                'etapa_atual': draft.etapa_atual,
+                'payload_json': draft.payload_json,
+                'updated_at': draft.updated_at.isoformat(),
+            }
+        })
+
+    except Exception as e:
+        logger.exception(f"[POP-DRAFT] Erro ao carregar: {e}")
         return JsonResponse({
             'success': False,
             'error': str(e)

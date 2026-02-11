@@ -45,6 +45,13 @@ class AuditLog(models.Model):
         ('export', 'Exportar'),
         ('import', 'Importar'),
         ('generate', 'Gerar'),
+        # Auth & Access Control
+        ('register', 'Registro'),
+        ('email_verify', 'Verificação de E-mail'),
+        ('access_request', 'Solicitação de Acesso'),
+        ('access_approve', 'Aprovação de Acesso'),
+        ('access_reject', 'Rejeição de Acesso'),
+        ('password_reset', 'Reset de Senha'),
     ]
 
     # Quem

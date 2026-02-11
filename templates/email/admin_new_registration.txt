@@ -1,0 +1,14 @@
+MapaGov — Novo cadastro pendente
+
+Olá {{ approver.first_name|default:approver.username }},
+
+Um novo usuário externo solicitou acesso ao MapaGov:
+
+Email: {{ new_user.email }}
+Nome: {{ new_user.first_name }} {{ new_user.last_name }}
+
+Acesse o painel de administração para aprovar ou rejeitar:
+{{ admin_url }}
+
+---
+MapaGov — Ministério da Gestão e da Inovação em Serviços Públicos

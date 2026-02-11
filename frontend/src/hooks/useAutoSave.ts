@@ -14,6 +14,7 @@ interface AutoSaveResponse {
     uuid: string;
     autosave_sequence: number;
   };
+  integrity_hash?: string;
   snapshot_created?: boolean;
   error?: string;
 }
@@ -21,11 +22,9 @@ interface AutoSaveResponse {
 export const useAutoSave = (options: AutoSaveOptions = {}) => {
   const { interval = 30000, enabled = true } = options;
 
-  const { dadosPOP, sessionId } = useChatStore();
+  const { dadosPOP, sessionId, popId, popUuid, integrityHash, setPopIdentifiers } = useChatStore();
   const lastSaveRef = useRef<string>('');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const popIdRef = useRef<number | null>(null);
-  const popUuidRef = useRef<string | null>(null);
 
   // Salvar manualmente
   const saveNow = useCallback(async () => {
@@ -36,20 +35,14 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
 
       // Verificar se houve mudanças desde último save
       if (dadosSerializados === lastSaveRef.current) {
-        console.log('⏭️ Auto-save: Sem mudanças desde último save');
         return { success: true, skipped: true };
       }
 
-      console.log('💾 Auto-save: Salvando dados...', {
-        sessionId,
-        popId: popIdRef.current,
-        dadosSize: Object.keys(dadosPOP).length
-      });
-
       const payload = {
-        id: popIdRef.current,
-        uuid: popUuidRef.current,
+        id: popId,
+        uuid: popUuid,
         session_id: sessionId,
+        integrity_hash: integrityHash,
         ...dadosPOP,
         raw_payload: dadosSerializados,
       };
@@ -57,53 +50,57 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
       const response = await api.post<AutoSaveResponse>('/pop-autosave/', payload);
 
       if (response.data.success) {
-        // Armazenar referências para próximos saves
-        if (response.data.pop) {
-          popIdRef.current = response.data.pop.id;
-          popUuidRef.current = response.data.pop.uuid;
+        if (response.data.pop && response.data.integrity_hash) {
+          setPopIdentifiers(
+            response.data.pop.id,
+            response.data.pop.uuid,
+            response.data.integrity_hash,
+          );
         }
 
         lastSaveRef.current = dadosSerializados;
 
-        console.log('✅ Auto-save concluído:', {
-          id: popIdRef.current,
-          sequence: response.data.pop?.autosave_sequence,
-          snapshot: response.data.snapshot_created
-        });
-
         return {
           success: true,
-          popId: popIdRef.current,
-          snapshot: response.data.snapshot_created
+          popId: response.data.pop?.id,
+          snapshot: response.data.snapshot_created,
         };
       } else {
-        console.error('❌ Auto-save falhou:', response.data.error);
+        console.error('[Auto-save] Falhou:', response.data.error);
         return { success: false, error: response.data.error };
       }
-    } catch (error) {
-      console.error('❌ Erro no auto-save:', error);
+    } catch (error: unknown) {
+      // Detectar conflito 409 (outra aba modificou o POP)
+      const axiosErr = error as { response?: { status?: number; data?: { conflict?: Record<string, unknown> } } };
+      if (axiosErr?.response?.status === 409) {
+        console.warn('[Auto-save] Conflito detectado (409)');
+        return {
+          success: false,
+          conflict: true,
+          serverData: axiosErr.response.data?.conflict,
+        };
+      }
+
+      console.error('[Auto-save] Erro:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
       };
     }
-  }, [enabled, dadosPOP, sessionId]);
+  }, [enabled, dadosPOP, sessionId, popId, popUuid, integrityHash, setPopIdentifiers]);
 
   // Auto-save periódico
   useEffect(() => {
     if (!enabled) return;
 
-    // Limpar timeout anterior
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Agendar próximo save
     saveTimeoutRef.current = setTimeout(() => {
       saveNow();
     }, interval);
 
-    // Cleanup
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -116,8 +113,6 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
     if (!enabled) return;
 
     const handleBeforeUnload = () => {
-      // Tentar salvar sincronamente antes de sair
-      // Note: nem sempre funciona devido a restrições do navegador
       saveNow();
     };
 
@@ -130,7 +125,7 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
 
   return {
     saveNow,
-    popId: popIdRef.current,
-    popUuid: popUuidRef.current,
+    popId,
+    popUuid,
   };
 };

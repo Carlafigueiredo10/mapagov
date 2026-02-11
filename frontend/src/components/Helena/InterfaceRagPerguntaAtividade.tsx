@@ -2,6 +2,7 @@ import React from 'react';
 import './InterfaceRagPerguntaAtividade.css';
 
 interface HierarquiaHerdada {
+    area?: string;
     macroprocesso: string;
     processo: string;
     subprocesso: string;
@@ -30,6 +31,15 @@ const InterfaceRagPerguntaAtividade: React.FC<Props> = ({
             <div className="hierarquia-herdada">
                 <h4 className="hierarquia-titulo">📍 Sua atividade será criada em:</h4>
                 <div className="hierarquia-path">
+                    {hierarquiaHerdada.area && (
+                        <>
+                            <div className="hierarquia-item">
+                                <span className="hierarquia-label">Área</span>
+                                <span className="hierarquia-valor">{hierarquiaHerdada.area}</span>
+                            </div>
+                            <span className="hierarquia-seta">↓</span>
+                        </>
+                    )}
                     <div className="hierarquia-item">
                         <span className="hierarquia-label">Macroprocesso</span>
                         <span className="hierarquia-valor">{hierarquiaHerdada.macroprocesso}</span>

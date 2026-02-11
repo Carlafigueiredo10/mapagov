@@ -98,35 +98,11 @@ function MessageBubble({ message }: MessageBubbleProps) {
     }
   }, [partesVisiveis.length]);
 
-  // ============================================================
-  // 🔧 PATCH: Compatibilidade entre backend antigo e novo formato
-  // ============================================================
-  // Alguns retornos vêm com `interface: "sugestao_atividade"` (string)
-  // enquanto outros usam `{ tipo: "sugestao_atividade", dados: {...} }` (objeto).
-  // Este bloco garante compatibilidade entre ambos.
-  // ============================================================
-
-  const tipoInterface =
-    typeof message.interface === 'string'
-      ? message.interface
-      : message.interface?.tipo;
-
-  const dadosInterface =
-    typeof message.interface === 'object'
-      ? message.interface.dados
-      : message.dados_interface || null;
-
-  const temInterfaceValida = tipoInterface && tipoInterface.trim() !== '';
-
-  // Debug: Ver o que está chegando
-  if (message.interface) {
-    console.log('📦 MessageBubble - Interface recebida:', {
-      raw: message.interface,
-      tipo: tipoInterface,
-      dados: dadosInterface,
-      valida: temInterfaceValida
-    });
-  }
+  // Interface já vem como { tipo, dados } do helenaApi — só consumir
+  const iface = typeof message.interface === 'object' ? message.interface : null;
+  const tipoInterface = iface?.tipo;
+  const dadosInterface = iface?.dados ?? null;
+  const temInterfaceValida = !!tipoInterface;
 
   // ✅ VALIDAÇÃO 3: Verificar se tem badge nos metadados
   const temBadge = message.metadados?.badge && message.metadados.badge.mostrar_animacao;

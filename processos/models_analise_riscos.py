@@ -94,7 +94,7 @@ class AnaliseRiscos(models.Model):
     respostas_blocos = models.JSONField(
         default=dict,
         blank=True,
-        help_text="Respostas dos 6 blocos de identificacao de riscos",
+        help_text="Respostas dos 7 blocos de identificacao de riscos",
     )
 
     status = models.CharField(

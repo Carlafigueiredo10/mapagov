@@ -143,8 +143,9 @@ export interface EstatisticasDashboard {
 }
 
 /**
- * Áreas organizacionais disponíveis (carregadas do CSV)
+ * Áreas organizacionais disponíveis
  * Fonte: documentos_base/areas_organizacionais.csv
+ * ⚠️ Manter sincronizado com o CSV
  */
 export const AREAS_DISPONIVEIS = [
   'CGBEN',    // Benefícios
@@ -156,7 +157,7 @@ export const AREAS_DISPONIVEIS = [
   'CGCAF',    // Complementação
   'CGECO',    // Extinção e Convênio
   'COADM',    // Apoio Administrativo
-  'ASDIR'     // Assessoria Diretor
+  'COGES'     // Coordenação de Gestão
 ] as const;
 
 export type AreaOrganizacional = typeof AREAS_DISPONIVEIS[number];

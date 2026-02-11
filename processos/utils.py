@@ -740,7 +740,7 @@ class PDFGenerator:
                 continue
 
             numero = etapa.get('numero', '')
-            descricao = etapa.get('descricao', '[Sem descricao]')
+            descricao = etapa.get('acao_principal', '') or etapa.get('descricao', '[Sem descricao]')
             is_condicional = etapa.get('tipo') == 'condicional'
 
             # --- Cabecalho da etapa (KeepTogether: titulo + metadados) ---
@@ -824,8 +824,8 @@ class PDFGenerator:
                 if decisao_items:
                     elementos.extend(decisao_items)
             else:
-                # --- Detalhes (etapa linear) como ListFlowable ---
-                detalhes = etapa.get('detalhes', [])
+                # --- Verificacoes/detalhes (etapa linear) como ListFlowable ---
+                detalhes = etapa.get('verificacoes', []) or etapa.get('detalhes', [])
                 if isinstance(detalhes, list) and detalhes:
                     det_items = [
                         ListItem(
@@ -1928,15 +1928,23 @@ def preparar_dados_para_pdf(dados: Dict[str, Any]) -> Dict[str, Any]:
             dados_limpos['etapas'] = []
             for i, etapa in enumerate(etapas, 1):
                 if isinstance(etapa, dict):
+                    # Ler campo canonico com fallback legado
+                    acao = etapa.get('acao_principal', '') or etapa.get('descricao', '[Sem descricao]')
+                    verifs = etapa.get('verificacoes', []) or etapa.get('detalhes', [])
                     etapa_limpa = {
                         'numero': etapa.get('numero', i),
-                        'descricao': limpar(etapa.get('descricao', '[Sem descrição]')),
-                        'operador_nome': limpar(etapa.get('operador_nome', '')),
+                        'acao_principal': limpar(acao),
+                        'descricao': limpar(acao),  # alias retrocompat
+                        'operador_nome': limpar(etapa.get('operador_nome', '') or etapa.get('operador', '')),
                         'sistemas': [limpar(str(s)) for s in etapa.get('sistemas', []) if s],
                         'docs_requeridos': [limpar(str(d)) for d in etapa.get('docs_requeridos', []) if d],
                         'docs_gerados': [limpar(str(d)) for d in etapa.get('docs_gerados', []) if d],
                         'tempo_estimado': limpar(etapa.get('tempo_estimado', '')) if etapa.get('tempo_estimado') else None,
                     }
+                    # Preservar id/ordem/schema_version se existirem
+                    for k in ('id', 'ordem', 'schema_version'):
+                        if etapa.get(k) is not None:
+                            etapa_limpa[k] = etapa[k]
                     # Campos condicionais
                     if etapa.get('tipo') == 'condicional':
                         etapa_limpa['tipo'] = 'condicional'
@@ -1967,14 +1975,17 @@ def preparar_dados_para_pdf(dados: Dict[str, Any]) -> Dict[str, Any]:
                                 cenarios_limpos.append(cenario_limpo)
                         etapa_limpa['cenarios'] = cenarios_limpos
                     else:
-                        # Etapa linear: detalhes
-                        etapa_limpa['detalhes'] = [limpar(str(d)) for d in etapa.get('detalhes', []) if d]
+                        # Etapa linear: verificacoes (canonico) + detalhes (alias)
+                        verifs_limpos = [limpar(str(d)) for d in verifs if d]
+                        etapa_limpa['verificacoes'] = verifs_limpos
+                        etapa_limpa['detalhes'] = verifs_limpos  # alias retrocompat
                     dados_limpos['etapas'].append(etapa_limpa)
                 else:
                     # Fallback: etapa como string (schema antigo)
                     dados_limpos['etapas'].append({
                         'numero': i,
-                        'descricao': limpar(str(etapa))
+                        'acao_principal': limpar(str(etapa)),
+                        'descricao': limpar(str(etapa)),
                     })
         else:
             dados_limpos['etapas'] = []

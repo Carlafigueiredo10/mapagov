@@ -2,6 +2,7 @@ import React from 'react';
 import './InterfaceSugestaoAtividade.css';
 
 interface AtividadeSugerida {
+    area?: string;
     macroprocesso: string;
     processo: string;
     subprocesso: string;
@@ -88,6 +89,13 @@ const InterfaceSugestaoAtividade: React.FC<Props> = ({
                     <div className="valor-cap">{cap}</div>
                 </div>
 
+                {atividade.area && (
+                    <div className="campo-info">
+                        <label>Área</label>
+                        <div className="valor">{atividade.area}</div>
+                    </div>
+                )}
+
                 <div className="campo-info">
                     <label>Macroprocesso</label>
                     <div className="valor">{atividade.macroprocesso}</div>
@@ -122,7 +130,7 @@ const InterfaceSugestaoAtividade: React.FC<Props> = ({
                     onClick={onConcordar}
                 >
                     <span className="btn-icone">✓</span>
-                    Você acertou, Helena!
+                    Atividade correta
                 </button>
 
                 <button
@@ -130,10 +138,7 @@ const InterfaceSugestaoAtividade: React.FC<Props> = ({
                     onClick={onSelecionarManual}
                 >
                     <span className="btn-icone">🧭</span>
-                    {origem === 'rag_nova_atividade'
-                        ? 'Não é essa minha atividade, vou digitar o que faço'
-                        : 'Não é essa minha atividade, vou selecionar manualmente'
-                    }
+                    Atividade incorreta
                 </button>
             </div>
 

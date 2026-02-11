@@ -158,13 +158,13 @@
 }
 
 .btn-concordar {
-    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    background: #28a745;
     color: white;
 }
 
 .btn-concordar:hover {
-    background: linear-gradient(135deg, #229954 0%, #1e8449 100%);
-    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+    background: #218838;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
     transform: translateY(-2px);
 }
 
@@ -173,15 +173,13 @@
 }
 
 .btn-selecionar-manual {
-    background: white;
-    color: #2c3e50;
-    border: 2px solid #bdc3c7;
+    background: #ffc107;
+    color: #212529;
 }
 
 .btn-selecionar-manual:hover {
-    background: #ecf0f1;
-    border-color: #95a5a6;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: #e0a800;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
     transform: translateY(-2px);
 }
 

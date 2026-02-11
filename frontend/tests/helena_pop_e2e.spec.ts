@@ -78,15 +78,11 @@ test.describe('Helena POP - Fluxo Completo E2E', () => {
   });
 
   test('Fluxo completo: Nome até Transição Épica', async ({ page }) => {
-    // 1. NOME_USUARIO
+    // 1. NOME_USUARIO → vai direto para ESCOLHA_TIPO_EXPLICACAO
     await enviarMensagem(page, 'João');
-    await expect(page.locator('.message.helena').last()).toContainText('posso te chamar de João');
+    await expect(page.locator('.message.helena').last()).toContainText('Olá, João');
 
-    // 2. CONFIRMA_NOME
-    await enviarMensagem(page, 'sim');
-    await expect(page.locator('.message.helena').last()).toContainText('tipo de explicação');
-
-    // 3. ESCOLHA_TIPO_EXPLICACAO - Curta
+    // 2. ESCOLHA_TIPO_EXPLICACAO - Curta
     await clicarCard(page, 'Explicação objetiva');
     await expect(page.locator('.message.helena').last()).toContainText('compromisso');
 

@@ -29,6 +29,7 @@ class BaseHelena(ABC):
 
     VERSION = "1.0.0"  # Versionamento semântico (MAJOR.MINOR.PATCH)
     PRODUTO_NOME = "Helena Base"  # Sobrescrever nas subclasses
+    SCHEMA_VERSION = "1.0"  # Versao do contrato de interface (ver ADR-001 §2.10)
 
     def __init__(self):
         """Inicialização básica - não deve conter estado mutável"""
@@ -198,6 +199,9 @@ class BaseHelena(ABC):
             resultado['metadados']['retornar_para'] = retornar_para
             if dados:
                 resultado['metadados']['dados_retorno'] = dados
+
+        # Incluir versao do schema na resposta (ADR-001 §2.10)
+        resultado['schema_version'] = self.SCHEMA_VERSION
 
         # 🔒 HOTFIX: Normalizar dados_interface ANTES de logar (à prova de None)
         tipo_interface_final = resultado.get('tipo_interface')

@@ -1,28 +1,6 @@
 import React, { useState } from 'react';
 import { Edit2, Trash2, Plus, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
-
-interface Subetapa {
-  numero?: string;
-  descricao: string;
-  sistemas?: string[];
-  documentos?: string[];
-}
-
-interface Cenario {
-  descricao: string;
-  resultado?: string;
-}
-
-interface Etapa {
-  numero: number;
-  descricao: string;
-  sistemas?: string[];
-  documentos?: string[];
-  subetapas?: Subetapa[];
-  tem_decisoes?: boolean | string;
-  tipo_decisao?: string;
-  cenarios?: Cenario[];
-}
+import type { Etapa, Cenario } from '../../types/pop.types';
 
 interface InterfaceEditarEtapasProps {
   dados?: Record<string, unknown>;
@@ -32,130 +10,90 @@ interface InterfaceEditarEtapasProps {
 const InterfaceEditarEtapas: React.FC<InterfaceEditarEtapasProps> = ({ dados, onConfirm }) => {
   const etapasOriginais = (dados?.etapas as Etapa[]) || [];
   const [etapas, setEtapas] = useState<Etapa[]>([...etapasOriginais]);
-  const [expandidas, setExpandidas] = useState<Record<number, boolean>>({});
-  const [acaoSelecionada, setAcaoSelecionada] = useState<{ tipo: 'editar' | 'adicionar' | 'deletar' | null, numeroEtapa?: number }>({ tipo: null });
+  const [expandidas, setExpandidas] = useState<Record<string, boolean>>({});
 
-  // Toggle expansão de etapa
-  const toggleExpansao = (numero: number) => {
-    setExpandidas(prev => ({ ...prev, [numero]: !prev[numero] }));
+  const getEtapaKey = (etapa: Etapa) => etapa.id || String(etapa.numero);
+  const getEtapaLabel = (etapa: Etapa) => etapa.acao_principal || etapa.descricao || '[Sem descricao]';
+
+  const toggleExpansao = (key: string) => {
+    setExpandidas(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Handler para deletar etapa
-  const handleDeletar = (numero: number) => {
-    const etapaParaDeletar = etapas.find(e => e.numero === numero);
-    if (!etapaParaDeletar) return;
+  const handleDeletar = (etapa: Etapa) => {
+    const label = getEtapaLabel(etapa);
+    const confirmacao = confirm(`Tem certeza que deseja deletar a Etapa ${etapa.numero}?\n\n"${label}"\n\nEsta acao nao pode ser desfeita.`);
+    if (!confirmacao) return;
 
-    const confirmacao = confirm(`Tem certeza que deseja deletar a Etapa ${numero}?\n\n"${etapaParaDeletar.descricao}"\n\nEsta ação não pode ser desfeita.`);
-
-    if (confirmacao) {
-      // Remover etapa
-      const novasEtapas = etapas.filter(e => e.numero !== numero);
-
-      // Renumerar etapas
-      const etapasRenumeradas = novasEtapas.map((etapa, idx) => ({
-        ...etapa,
-        numero: idx + 1
-      }));
-
-      setEtapas(etapasRenumeradas);
-
-      // Limpar expansão da etapa deletada
-      setExpandidas(prev => {
-        const novo = { ...prev };
-        delete novo[numero];
-        return novo;
-      });
-    }
+    const novasEtapas = etapas
+      .filter(e => getEtapaKey(e) !== getEtapaKey(etapa))
+      .map((e, idx) => ({ ...e, numero: String(idx + 1), ordem: idx + 1 }));
+    setEtapas(novasEtapas);
   };
 
-  // Handler para editar etapa
-  const handleEditar = (numero: number) => {
-    setAcaoSelecionada({ tipo: 'editar', numeroEtapa: numero });
-    // Enviar para backend para iniciar edição
+  const handleEditar = (etapa: Etapa) => {
     onConfirm(JSON.stringify({
       acao: 'editar_etapa',
-      numero_etapa: numero
+      etapa_id: etapa.id,
+      numero_etapa: Number(etapa.numero)
     }));
   };
 
-  // Handler para adicionar nova etapa
   const handleAdicionarNova = () => {
-    setAcaoSelecionada({ tipo: 'adicionar' });
-    // Enviar para backend para iniciar adição
     onConfirm(JSON.stringify({
       acao: 'adicionar_etapa',
       numero_etapa: etapas.length + 1
     }));
   };
 
-  // Handler para salvar alterações
   const handleSalvar = () => {
     if (etapas.length === 0) {
-      alert('Você precisa ter pelo menos uma etapa no processo.');
+      alert('Voce precisa ter pelo menos uma etapa no processo.');
       return;
     }
-
-    // Enviar etapas atualizadas para backend
-    onConfirm(JSON.stringify({
-      acao: 'salvar_etapas',
-      etapas: etapas
-    }));
+    onConfirm(JSON.stringify({ acao: 'salvar_etapas', etapas }));
   };
 
-  // Handler para cancelar
   const handleCancelar = () => {
     onConfirm('cancelar');
   };
 
-  // Renderizar preview de subetapas
-  const renderSubetapas = (subetapas: Subetapa[]) => {
-    if (!subetapas || subetapas.length === 0) return null;
-
+  const renderVerificacoes = (etapa: Etapa) => {
+    const items = etapa.verificacoes || etapa.detalhes || [];
+    if (items.length === 0) return null;
     return (
-      <div className="subetapas-preview">
-        <div className="subetapas-header">
-          <span className="subetapas-icone">└─</span>
-          <span className="subetapas-titulo">Subetapas ({subetapas.length}):</span>
-        </div>
-        <div className="subetapas-lista">
-          {subetapas.slice(0, 3).map((sub, idx) => (
-            <div key={idx} className="subetapa-item">
-              <span className="subetapa-numero">{sub.numero || `${idx + 1}`}.</span>
-              <span className="subetapa-texto">{sub.descricao}</span>
-            </div>
-          ))}
-          {subetapas.length > 3 && (
-            <div className="subetapa-item subetapa-mais">
-              <span>... e mais {subetapas.length - 3} subetapa(s)</span>
-            </div>
-          )}
-        </div>
+      <div className="detalhe-section">
+        <div className="detalhe-label">Verificacoes:</div>
+        <ul className="detalhe-lista">
+          {items.slice(0, 4).map((v, i) => <li key={i}>{v}</li>)}
+          {items.length > 4 && <li className="detalhe-mais">... e mais {items.length - 4}</li>}
+        </ul>
       </div>
     );
   };
 
-  // Renderizar preview de cenários
-  const renderCenarios = (cenarios: Cenario[], tipoDecisao?: string) => {
+  const renderCenarios = (cenarios?: Cenario[], tipoCondicional?: string) => {
     if (!cenarios || cenarios.length === 0) return null;
-
     return (
       <div className="cenarios-preview">
         <div className="cenarios-header">
           <AlertCircle size={16} className="cenarios-icone" />
           <span className="cenarios-titulo">
-            Etapa Condicional {tipoDecisao ? `(${tipoDecisao})` : ''} - {cenarios.length} cenário(s):
+            Condicional {tipoCondicional ? `(${tipoCondicional})` : ''} - {cenarios.length} cenario(s):
           </span>
         </div>
         <div className="cenarios-lista">
-          {cenarios.slice(0, 2).map((cen, idx) => (
+          {cenarios.slice(0, 3).map((cen, idx) => (
             <div key={idx} className="cenario-item">
-              <span className="cenario-bullet">•</span>
+              <span className="cenario-bullet">{cen.numero || '•'}</span>
               <span className="cenario-texto">{cen.descricao}</span>
+              {cen.subetapas?.length > 0 && (
+                <span className="cenario-sub-count">({cen.subetapas.length} sub)</span>
+              )}
             </div>
           ))}
-          {cenarios.length > 2 && (
+          {cenarios.length > 3 && (
             <div className="cenario-item cenario-mais">
-              <span>... e mais {cenarios.length - 2} cenário(s)</span>
+              <span>... e mais {cenarios.length - 3} cenario(s)</span>
             </div>
           )}
         </div>
@@ -163,27 +101,22 @@ const InterfaceEditarEtapas: React.FC<InterfaceEditarEtapasProps> = ({ dados, on
     );
   };
 
-  // Renderizar sistemas e documentos
-  const renderRecursos = (etapa: Etapa) => {
-    const temSistemas = etapa.sistemas && etapa.sistemas.length > 0;
-    const temDocumentos = etapa.documentos && etapa.documentos.length > 0;
-
-    if (!temSistemas && !temDocumentos) return null;
-
+  const renderMetadados = (etapa: Etapa) => {
+    const campos: { label: string; valor: string }[] = [];
+    if (etapa.operador_nome) campos.push({ label: 'Operador', valor: etapa.operador_nome });
+    if (etapa.tempo_estimado) campos.push({ label: 'Tempo', valor: etapa.tempo_estimado });
+    if (etapa.sistemas?.length) campos.push({ label: 'Sistemas', valor: etapa.sistemas.join(', ') });
+    if (etapa.docs_requeridos?.length) campos.push({ label: 'Docs requeridos', valor: etapa.docs_requeridos.join(', ') });
+    if (etapa.docs_gerados?.length) campos.push({ label: 'Docs gerados', valor: etapa.docs_gerados.join(', ') });
+    if (campos.length === 0) return null;
     return (
-      <div className="recursos-preview">
-        {temSistemas && (
-          <div className="recurso-item">
-            <span className="recurso-icone">💻</span>
-            <span className="recurso-texto">Sistemas: {etapa.sistemas!.join(', ')}</span>
+      <div className="metadados-grid">
+        {campos.map((c, i) => (
+          <div key={i} className="metadado-item">
+            <span className="metadado-label">{c.label}:</span>
+            <span className="metadado-valor">{c.valor}</span>
           </div>
-        )}
-        {temDocumentos && (
-          <div className="recurso-item">
-            <span className="recurso-icone">📄</span>
-            <span className="recurso-texto">Documentos: {etapa.documentos!.join(', ')}</span>
-          </div>
-        )}
+        ))}
       </div>
     );
   };
@@ -197,7 +130,7 @@ const InterfaceEditarEtapas: React.FC<InterfaceEditarEtapasProps> = ({ dados, on
         </div>
         <p className="etapas-subtitle">
           {etapas.length} {etapas.length === 1 ? 'etapa mapeada' : 'etapas mapeadas'}.
-          Você pode adicionar, editar ou remover etapas.
+          Voce pode adicionar, editar ou remover etapas.
         </p>
       </div>
 
@@ -205,28 +138,24 @@ const InterfaceEditarEtapas: React.FC<InterfaceEditarEtapasProps> = ({ dados, on
         <div className="etapas-vazias">
           <AlertCircle size={48} className="icon-alerta" />
           <p className="texto-vazio">Nenhuma etapa no processo ainda.</p>
-          <button
-            onClick={handleAdicionarNova}
-            className="btn-adicionar-primeira"
-          >
-            <Plus size={20} />
-            Adicionar Primeira Etapa
+          <button onClick={handleAdicionarNova} className="btn-adicionar-primeira">
+            <Plus size={20} /> Adicionar Primeira Etapa
           </button>
         </div>
       ) : (
         <div className="etapas-lista">
           {etapas.map((etapa) => {
-            const estaExpandida = expandidas[etapa.numero];
-            const temSubetapas = etapa.subetapas && etapa.subetapas.length > 0;
-            const temCondicional = etapa.tem_decisoes === true || etapa.tem_decisoes === 'sim';
-            const temCenarios = etapa.cenarios && etapa.cenarios.length > 0;
+            const key = getEtapaKey(etapa);
+            const estaExpandida = expandidas[key];
+            const isCondicional = etapa.tipo === 'condicional';
+            const label = getEtapaLabel(etapa);
 
             return (
-              <div key={etapa.numero} className="etapa-card">
+              <div key={key} className="etapa-card">
                 <div className="etapa-header-card">
                   <div className="etapa-info-principal">
                     <button
-                      onClick={() => toggleExpansao(etapa.numero)}
+                      onClick={() => toggleExpansao(key)}
                       className="btn-expandir"
                       aria-label={estaExpandida ? 'Recolher' : 'Expandir'}
                     >
@@ -236,45 +165,34 @@ const InterfaceEditarEtapas: React.FC<InterfaceEditarEtapasProps> = ({ dados, on
                       Etapa {etapa.numero}
                     </div>
                     <div className="etapa-descricao-principal">
-                      <span className="etapa-descricao-texto">{etapa.descricao}</span>
-                      {temCondicional && (
-                        <span className="badge-condicional" title="Etapa com decisões condicionais">
-                          <AlertCircle size={14} />
-                          Condicional
+                      <span className="etapa-descricao-texto">{label}</span>
+                      {isCondicional && (
+                        <span className="badge-condicional" title="Etapa com decisoes condicionais">
+                          <AlertCircle size={14} /> Condicional
                         </span>
                       )}
-                      {temSubetapas && (
-                        <span className="badge-subetapas" title={`${etapa.subetapas!.length} subetapas`}>
-                          └─ {etapa.subetapas!.length}
+                      {etapa.operador_nome && (
+                        <span className="badge-operador" title="Operador responsavel">
+                          {etapa.operador_nome}
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="etapa-acoes">
-                    <button
-                      onClick={() => handleEditar(etapa.numero)}
-                      className="btn-acao btn-editar"
-                      title="Editar esta etapa"
-                    >
-                      <Edit2 size={18} />
-                      Editar
+                    <button onClick={() => handleEditar(etapa)} className="btn-acao btn-editar" title="Editar esta etapa">
+                      <Edit2 size={18} /> Editar
                     </button>
-                    <button
-                      onClick={() => handleDeletar(etapa.numero)}
-                      className="btn-acao btn-deletar"
-                      title="Deletar esta etapa"
-                    >
-                      <Trash2 size={18} />
-                      Deletar
+                    <button onClick={() => handleDeletar(etapa)} className="btn-acao btn-deletar" title="Deletar esta etapa">
+                      <Trash2 size={18} /> Deletar
                     </button>
                   </div>
                 </div>
 
                 {estaExpandida && (
                   <div className="etapa-detalhes">
-                    {renderRecursos(etapa)}
-                    {temSubetapas && renderSubetapas(etapa.subetapas!)}
-                    {temCondicional && temCenarios && renderCenarios(etapa.cenarios!, etapa.tipo_decisao)}
+                    {renderMetadados(etapa)}
+                    {renderVerificacoes(etapa)}
+                    {isCondicional && renderCenarios(etapa.cenarios, etapa.tipo_condicional)}
                   </div>
                 )}
               </div>
@@ -285,476 +203,89 @@ const InterfaceEditarEtapas: React.FC<InterfaceEditarEtapasProps> = ({ dados, on
 
       {etapas.length > 0 && (
         <div className="adicionar-nova-section">
-          <button
-            onClick={handleAdicionarNova}
-            className="btn-adicionar-nova"
-          >
-            <Plus size={20} />
-            Adicionar Nova Etapa
+          <button onClick={handleAdicionarNova} className="btn-adicionar-nova">
+            <Plus size={20} /> Adicionar Nova Etapa
           </button>
         </div>
       )}
 
       <div className="etapas-footer">
-        <button
-          onClick={handleCancelar}
-          className="btn-etapas btn-cancelar"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={handleSalvar}
-          className="btn-etapas btn-salvar"
-          disabled={etapas.length === 0}
-        >
-          <Edit2 size={18} />
-          Salvar Alterações
+        <button onClick={handleCancelar} className="btn-etapas btn-cancelar">Cancelar</button>
+        <button onClick={handleSalvar} className="btn-etapas btn-salvar" disabled={etapas.length === 0}>
+          <Edit2 size={18} /> Salvar Alteracoes
         </button>
       </div>
 
       <style>{`
-        .interface-editar-etapas {
-          background: white;
-          border-radius: 12px;
-          padding: 1.5rem;
-          max-height: 70vh;
-          overflow-y: auto;
-        }
-
-        .etapas-header {
-          margin-bottom: 1.5rem;
-          padding-bottom: 1rem;
-          border-bottom: 2px solid #e9ecef;
-        }
-
-        .etapas-title {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .etapas-title h2 {
-          margin: 0;
-          font-size: 1.5rem;
-          color: #212529;
-        }
-
-        .icon-edit {
-          color: #007bff;
-        }
-
-        .etapas-subtitle {
-          margin: 0;
-          color: #6c757d;
-          font-size: 0.95rem;
-        }
-
-        .etapas-vazias {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 3rem 1rem;
-          background: #f8f9fa;
-          border-radius: 8px;
-          border: 2px dashed #dee2e6;
-        }
-
-        .icon-alerta {
-          color: #ffc107;
-          margin-bottom: 1rem;
-        }
-
-        .texto-vazio {
-          color: #6c757d;
-          font-size: 1.1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .btn-adicionar-primeira {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.5rem;
-          background: #007bff;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-adicionar-primeira:hover {
-          background: #0056b3;
-          transform: translateY(-1px);
-        }
-
-        .etapas-lista {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .etapa-card {
-          background: #f8f9fa;
-          border: 2px solid #dee2e6;
-          border-radius: 8px;
-          overflow: hidden;
-          transition: all 0.2s;
-        }
-
-        .etapa-card:hover {
-          border-color: #adb5bd;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .etapa-header-card {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 1rem;
-          gap: 1rem;
-        }
-
-        .etapa-info-principal {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          flex: 1;
-          min-width: 0;
-        }
-
-        .btn-expandir {
-          background: none;
-          border: none;
-          padding: 0.25rem;
-          cursor: pointer;
-          color: #6c757d;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-          flex-shrink: 0;
-        }
-
-        .btn-expandir:hover {
-          color: #212529;
-          transform: scale(1.1);
-        }
-
-        .etapa-numero-badge {
-          background: #007bff;
-          color: white;
-          padding: 0.375rem 0.75rem;
-          border-radius: 6px;
-          font-weight: 600;
-          font-size: 0.85rem;
-          flex-shrink: 0;
-        }
-
-        .etapa-descricao-principal {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          flex: 1;
-          min-width: 0;
-          flex-wrap: wrap;
-        }
-
-        .etapa-descricao-texto {
-          font-size: 0.95rem;
-          color: #212529;
-          font-weight: 500;
-          word-break: break-word;
-        }
-
-        .badge-condicional,
-        .badge-subetapas {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.25rem;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-size: 0.75rem;
-          font-weight: 600;
-          white-space: nowrap;
-        }
-
-        .badge-condicional {
-          background: #fff3cd;
-          color: #856404;
-          border: 1px solid #ffc107;
-        }
-
-        .badge-subetapas {
-          background: #e7f3ff;
-          color: #004085;
-          border: 1px solid #b8daff;
-        }
-
-        .etapa-acoes {
-          display: flex;
-          gap: 0.5rem;
-          flex-shrink: 0;
-        }
-
-        .btn-acao {
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          padding: 0.5rem 0.75rem;
-          border: none;
-          border-radius: 6px;
-          font-weight: 500;
-          font-size: 0.85rem;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-editar {
-          background: #007bff;
-          color: white;
-        }
-
-        .btn-editar:hover {
-          background: #0056b3;
-          transform: translateY(-1px);
-        }
-
-        .btn-deletar {
-          background: #dc3545;
-          color: white;
-        }
-
-        .btn-deletar:hover {
-          background: #c82333;
-          transform: translateY(-1px);
-        }
-
-        .etapa-detalhes {
-          padding: 0 1rem 1rem 1rem;
-          border-top: 1px solid #dee2e6;
-          background: white;
-        }
-
-        .recursos-preview {
-          padding: 0.75rem;
-          background: #f8f9fa;
-          border-radius: 6px;
-          margin-top: 0.75rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .recurso-item {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.85rem;
-          color: #495057;
-        }
-
-        .recurso-icone {
-          font-size: 1rem;
-        }
-
-        .recurso-texto {
-          flex: 1;
-          word-break: break-word;
-        }
-
-        .subetapas-preview,
-        .cenarios-preview {
-          margin-top: 0.75rem;
-          padding: 0.75rem;
-          background: #e9ecef;
-          border-radius: 6px;
-          border-left: 4px solid #007bff;
-        }
-
-        .cenarios-preview {
-          border-left-color: #ffc107;
-          background: #fff3cd;
-        }
-
-        .subetapas-header,
-        .cenarios-header {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .subetapas-icone {
-          font-size: 0.9rem;
-          color: #6c757d;
-          font-weight: bold;
-        }
-
-        .subetapas-titulo,
-        .cenarios-titulo {
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: #495057;
-        }
-
-        .cenarios-icone {
-          color: #856404;
-        }
-
-        .subetapas-lista,
-        .cenarios-lista {
-          display: flex;
-          flex-direction: column;
-          gap: 0.375rem;
-          margin-left: 1rem;
-        }
-
-        .subetapa-item,
-        .cenario-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.5rem;
-          font-size: 0.85rem;
-          color: #495057;
-        }
-
-        .subetapa-numero,
-        .cenario-bullet {
-          font-weight: 600;
-          flex-shrink: 0;
-        }
-
-        .subetapa-texto,
-        .cenario-texto {
-          flex: 1;
-          word-break: break-word;
-        }
-
-        .subetapa-mais,
-        .cenario-mais {
-          color: #6c757d;
-          font-style: italic;
-        }
-
-        .adicionar-nova-section {
-          margin-top: 1rem;
-          padding-top: 1rem;
-          border-top: 2px dashed #dee2e6;
-          display: flex;
-          justify-content: center;
-        }
-
-        .btn-adicionar-nova {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.5rem;
-          background: #28a745;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-adicionar-nova:hover {
-          background: #218838;
-          transform: translateY(-1px);
-        }
-
-        .etapas-footer {
-          margin-top: 1.5rem;
-          padding-top: 1rem;
-          border-top: 2px solid #e9ecef;
-          display: flex;
-          gap: 1rem;
-          justify-content: flex-end;
-        }
-
-        .btn-etapas {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 6px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-size: 0.95rem;
-        }
-
-        .btn-cancelar {
-          background: #6c757d;
-          color: white;
-        }
-
-        .btn-cancelar:hover {
-          background: #5a6268;
-          transform: translateY(-1px);
-        }
-
-        .btn-salvar {
-          background: #28a745;
-          color: white;
-        }
-
-        .btn-salvar:hover:not(:disabled) {
-          background: #218838;
-          transform: translateY(-1px);
-        }
-
-        .btn-salvar:disabled {
-          background: #ced4da;
-          color: #6c757d;
-          cursor: not-allowed;
-        }
-
-        /* Scroll customizado */
-        .interface-editar-etapas::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        .interface-editar-etapas::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 4px;
-        }
-
-        .interface-editar-etapas::-webkit-scrollbar-thumb {
-          background: #888;
-          border-radius: 4px;
-        }
-
-        .interface-editar-etapas::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-
-        /* Responsividade */
+        .interface-editar-etapas { background: white; border-radius: 12px; padding: 1.5rem; max-height: 70vh; overflow-y: auto; }
+        .etapas-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e9ecef; }
+        .etapas-title { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+        .etapas-title h2 { margin: 0; font-size: 1.5rem; color: #212529; }
+        .icon-edit { color: #1351B4; }
+        .etapas-subtitle { margin: 0; color: #6c757d; font-size: 0.95rem; }
+        .etapas-vazias { display: flex; flex-direction: column; align-items: center; padding: 3rem 1rem; background: #f8f9fa; border-radius: 8px; border: 2px dashed #dee2e6; }
+        .icon-alerta { color: #ffc107; margin-bottom: 1rem; }
+        .texto-vazio { color: #6c757d; font-size: 1.1rem; margin-bottom: 1.5rem; }
+        .btn-adicionar-primeira { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: #1351B4; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-adicionar-primeira:hover { background: #0c3d8a; transform: translateY(-1px); }
+        .etapas-lista { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+        .etapa-card { background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; overflow: hidden; transition: all 0.2s; }
+        .etapa-card:hover { border-color: #adb5bd; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .etapa-header-card { display: flex; align-items: center; justify-content: space-between; padding: 1rem; gap: 1rem; }
+        .etapa-info-principal { display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0; }
+        .btn-expandir { background: none; border: none; padding: 0.25rem; cursor: pointer; color: #6c757d; display: flex; align-items: center; transition: all 0.2s; flex-shrink: 0; }
+        .btn-expandir:hover { color: #212529; transform: scale(1.1); }
+        .etapa-numero-badge { background: #1351B4; color: white; padding: 0.375rem 0.75rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem; flex-shrink: 0; }
+        .etapa-descricao-principal { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0; flex-wrap: wrap; }
+        .etapa-descricao-texto { font-size: 0.95rem; color: #212529; font-weight: 500; word-break: break-word; }
+        .badge-condicional, .badge-operador { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+        .badge-condicional { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+        .badge-operador { background: #e8f0fe; color: #1351B4; border: 1px solid #b8d4fe; }
+        .etapa-acoes { display: flex; gap: 0.5rem; flex-shrink: 0; }
+        .btn-acao { display: flex; align-items: center; gap: 0.375rem; padding: 0.5rem 0.75rem; border: none; border-radius: 6px; font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+        .btn-editar { background: #1351B4; color: white; }
+        .btn-editar:hover { background: #0c3d8a; transform: translateY(-1px); }
+        .btn-deletar { background: #dc3545; color: white; }
+        .btn-deletar:hover { background: #c82333; transform: translateY(-1px); }
+        .etapa-detalhes { padding: 0 1rem 1rem 1rem; border-top: 1px solid #dee2e6; background: white; }
+        .metadados-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; padding: 0.75rem; background: #f8f9fa; border-radius: 6px; margin-top: 0.75rem; }
+        .metadado-item { font-size: 0.82rem; color: #495057; }
+        .metadado-label { font-weight: 600; margin-right: 0.3rem; }
+        .metadado-valor { color: #212529; }
+        .detalhe-section { margin-top: 0.75rem; padding: 0.75rem; background: #e9ecef; border-radius: 6px; border-left: 4px solid #1351B4; }
+        .detalhe-label { font-size: 0.82rem; font-weight: 600; color: #495057; margin-bottom: 0.4rem; }
+        .detalhe-lista { margin: 0; padding-left: 1.2rem; font-size: 0.82rem; color: #495057; }
+        .detalhe-lista li { margin-bottom: 0.2rem; }
+        .detalhe-mais { color: #6c757d; font-style: italic; }
+        .cenarios-preview { margin-top: 0.75rem; padding: 0.75rem; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107; }
+        .cenarios-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .cenarios-titulo { font-size: 0.82rem; font-weight: 600; color: #856404; }
+        .cenarios-icone { color: #856404; }
+        .cenarios-lista { display: flex; flex-direction: column; gap: 0.375rem; margin-left: 1rem; }
+        .cenario-item { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.82rem; color: #495057; }
+        .cenario-bullet { font-weight: 600; flex-shrink: 0; }
+        .cenario-texto { flex: 1; word-break: break-word; }
+        .cenario-sub-count { color: #6c757d; font-size: 0.75rem; }
+        .cenario-mais { color: #6c757d; font-style: italic; }
+        .adicionar-nova-section { margin-top: 1rem; padding-top: 1rem; border-top: 2px dashed #dee2e6; display: flex; justify-content: center; }
+        .btn-adicionar-nova { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-adicionar-nova:hover { background: #218838; transform: translateY(-1px); }
+        .etapas-footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 2px solid #e9ecef; display: flex; gap: 1rem; justify-content: flex-end; }
+        .btn-etapas { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.95rem; }
+        .btn-cancelar { background: #6c757d; color: white; }
+        .btn-cancelar:hover { background: #5a6268; transform: translateY(-1px); }
+        .btn-salvar { background: #28a745; color: white; }
+        .btn-salvar:hover:not(:disabled) { background: #218838; transform: translateY(-1px); }
+        .btn-salvar:disabled { background: #ced4da; color: #6c757d; cursor: not-allowed; }
+        .interface-editar-etapas::-webkit-scrollbar { width: 8px; }
+        .interface-editar-etapas::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .interface-editar-etapas::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        .interface-editar-etapas::-webkit-scrollbar-thumb:hover { background: #555; }
         @media (max-width: 768px) {
-          .etapa-header-card {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .etapa-acoes {
-            width: 100%;
-            justify-content: flex-end;
-          }
-
-          .etapas-footer {
-            flex-direction: column;
-          }
-
-          .btn-etapas {
-            width: 100%;
-            justify-content: center;
-          }
+          .etapa-header-card { flex-direction: column; align-items: flex-start; }
+          .etapa-acoes { width: 100%; justify-content: flex-end; }
+          .etapas-footer { flex-direction: column; }
+          .btn-etapas { width: 100%; justify-content: center; }
         }
       `}</style>
     </div>

@@ -51,7 +51,7 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
   const [outrasOrigens, setOutrasOrigens] = useState('');
   const [mostrarEspecificacao, setMostrarEspecificacao] = useState<Record<string, boolean>>({});
   const [especificacoes, setEspecificacoes] = useState<Record<string, string>>({});
-  const [areaDecipexSelecionada, setAreaDecipexSelecionada] = useState<Record<string, string>>({});
+  const [areaDecipexSelecionada, setAreaDecipexSelecionada] = useState<Record<string, string[]>>({});
   const [orgaoCentralizadoSelecionado, setOrgaoCentralizadoSelecionado] = useState<Record<string, string>>({});
   const [canaisSelecionados, setCanaisSelecionados] = useState<Record<string, string[]>>({});
   const [isLoading, setIsLoading] = useState(false); // ✅ Proteção contra duplo clique
@@ -68,6 +68,7 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
     { id: 'usuario_requerente', label: 'Do usuário/requerente diretamente', requerEspecificacao: true, requerCanaisAtendimento: true },
     { id: 'area_interna_cg', label: 'De outra área interna da sua Coordenação Geral', requerEspecificacao: true, obrigatorio: true },
     { id: 'orgaos_controle', label: 'Órgãos de Controle', requerEspecificacao: true, opcoesPredefinidas: ['TCU - Indícios', 'TCU - Acórdão', 'CGU'] },
+    { id: 'demanda_judicial', label: 'Demanda judicial', requerEspecificacao: true, opcoesPredefinidas: ['AGU/PRU', 'Defensoria Pública', 'Direto das partes (ex: pensão alimentícia)'] },
   ];
 
   const toggleOrigem = (id: string, requerEspecificacao: boolean) => {
@@ -114,15 +115,25 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
     ));
   };
 
-  const handleAreaDecipex = (id: string, codigoArea: string) => {
-    setAreaDecipexSelecionada(prev => ({ ...prev, [id]: codigoArea }));
-    const areaInfo = areasDecipex.find(a => a.codigo === codigoArea);
-    const especificacao = areaInfo ? `${areaInfo.codigo} - ${areaInfo.nome}` : codigoArea;
+  const handleToggleAreaDecipex = (id: string, codigoArea: string) => {
+    setAreaDecipexSelecionada(prev => {
+      const atuais = prev[id] || [];
+      const jaExiste = atuais.includes(codigoArea);
+      const novas = jaExiste ? atuais.filter(c => c !== codigoArea) : [...atuais, codigoArea];
 
-    setEspecificacoes(prev => ({ ...prev, [id]: especificacao }));
-    setOrigens(prev => prev.map(o =>
-      o.tipo === id ? { ...o, area_decipex: codigoArea, especificacao } : o
-    ));
+      // Atualizar especificação com todos os selecionados
+      const especificacao = novas.map(cod => {
+        const info = areasDecipex.find(a => a.codigo === cod);
+        return info ? `${info.codigo} - ${info.nome}` : cod;
+      }).join('; ');
+
+      setEspecificacoes(p => ({ ...p, [id]: especificacao }));
+      setOrigens(p => p.map(o =>
+        o.tipo === id ? { ...o, area_decipex: novas.join(';'), especificacao } : o
+      ));
+
+      return { ...prev, [id]: novas };
+    });
   };
 
   const handleOrgaoCentralizado = (id: string, siglaOrgao: string) => {
@@ -181,7 +192,7 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
           setIsLoading(false);
           return;
         }
-        if (opcao?.requerAreaDecipex && !areaDecipexSelecionada[origem.tipo]) {
+        if (opcao?.requerAreaDecipex && (!areaDecipexSelecionada[origem.tipo] || areaDecipexSelecionada[origem.tipo].length === 0)) {
           alert(`Por favor, selecione a área da DECIPEX de origem.`);
           setIsLoading(false);
           return;
@@ -260,31 +271,51 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
                 </label>
               </div>
 
-              {/* Seletor de Área DECIPEX */}
+              {/* Seletor de Áreas DECIPEX (múltipla seleção) */}
               {mostrarEspecificacao[opcao.id] && opcao.requerAreaDecipex && (
                 <div style={{ marginTop: '0.5rem', marginLeft: '2rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#495057' }}>
-                    Selecione a área da DECIPEX:
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#495057', fontWeight: 500 }}>
+                    Selecione as áreas da DECIPEX (pode selecionar várias):
                   </label>
-                  <select
-                    value={areaDecipexSelecionada[opcao.id] || ''}
-                    onChange={(e) => handleAreaDecipex(opcao.id, e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '1px solid #ced4da',
-                      borderRadius: '6px',
-                      fontSize: '0.95rem',
-                      background: 'white'
-                    }}
-                  >
-                    <option value="">Selecione uma área...</option>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                    gap: '0.5rem',
+                    padding: '0.75rem',
+                    border: '1px solid #ced4da',
+                    borderRadius: '6px',
+                    background: '#f8f9fa'
+                  }}>
                     {areasDecipex.map(area => (
-                      <option key={area.codigo} value={area.codigo}>
-                        {area.codigo} - {area.nome}
-                      </option>
+                      <div
+                        key={area.codigo}
+                        onClick={() => handleToggleAreaDecipex(opcao.id, area.codigo)}
+                        style={{
+                          padding: '0.5rem',
+                          border: '2px solid',
+                          borderColor: (areaDecipexSelecionada[opcao.id] || []).includes(area.codigo) ? '#1351B4' : '#dee2e6',
+                          borderRadius: '6px',
+                          background: (areaDecipexSelecionada[opcao.id] || []).includes(area.codigo) ? '#e7f3ff' : 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(areaDecipexSelecionada[opcao.id] || []).includes(area.codigo)}
+                          readOnly
+                          style={{ marginRight: '0.5rem', cursor: 'pointer' }}
+                        />
+                        <strong>{area.codigo}</strong> - {area.nome}
+                      </div>
                     ))}
-                  </select>
+                  </div>
+                  {(areaDecipexSelecionada[opcao.id] || []).length > 0 && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#28a745', fontWeight: 500 }}>
+                      ✓ {areaDecipexSelecionada[opcao.id].length} área(s) selecionada(s)
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -396,7 +427,7 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
               )}
 
               {/* Campo de texto para especificação (obrigatório ou opcional) */}
-              {mostrarEspecificacao[opcao.id] && !opcao.requerAreaDecipex && !opcao.opcoesPredefinidas && (
+              {mostrarEspecificacao[opcao.id] && !opcao.requerAreaDecipex && !opcao.opcoesPredefinidas && !opcao.requerOrgaoCentralizado && (
                 <div style={{ marginTop: '0.5rem', marginLeft: '2rem' }}>
                   <input
                     type="text"

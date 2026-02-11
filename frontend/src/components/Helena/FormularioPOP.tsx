@@ -6,7 +6,8 @@ import type { Etapa, Cenario } from '../../types/pop.types';
 import './FormularioPOP.css';
 
 const FormularioPOP: React.FC = () => {
-  const { dadosPOP, modoRevisao, updateDadosPOP, resetChat, sessionId } = useChatStore();
+  const { dadosPOP, viewMode, updateDadosPOP, resetChat, sessionId } = useChatStore();
+  const modoRevisao = viewMode === 'final_review';
 
   // Estado local para campos editáveis
   const [formData, setFormData] = useState(dadosPOP);
@@ -449,10 +450,14 @@ const FormularioPOP: React.FC = () => {
           Limpar
         </button>
         
-        <button 
-          type="button" 
+        <button
+          type="button"
           className="btn-form ver-preview"
           disabled={camposPreenchidos < 5}
+          onClick={() => {
+            const formEl = document.querySelector('.form-section');
+            if (formEl) formEl.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         >
           <Eye size={16} />
           Ver Preview

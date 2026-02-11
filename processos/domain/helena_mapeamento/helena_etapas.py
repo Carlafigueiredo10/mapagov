@@ -110,15 +110,18 @@ class Etapa:
     cenarios: List[Cenario] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converte para formato esperado pelo frontend/backend"""
+        """Converte para formato canonico (schema_version=1)"""
         base = {
             "numero": self.numero,
-            "descricao": self.descricao,
-            "operador": self.operador,
+            # Canonicos
+            "acao_principal": self.descricao,
+            "operador_nome": self.operador,
             "sistemas": self.sistemas,
             "docs_requeridos": self.docs_requeridos,
             "docs_gerados": self.docs_gerados,
             "tempo_estimado": self.tempo_estimado,
+            # Aliases retrocompat
+            "descricao": self.descricao,
         }
 
         if self.tipo == "condicional":
@@ -129,7 +132,8 @@ class Etapa:
                 "cenarios": [c.to_dict() for c in self.cenarios]
             })
         else:
-            base["detalhes"] = self.detalhes
+            base["verificacoes"] = self.detalhes
+            base["detalhes"] = self.detalhes  # alias retrocompat
 
         return base
 
@@ -302,7 +306,7 @@ class EtapaStateMachine:
         )
         sm.estado = EstadoEtapa(data['estado'])
         sm.descricao = data['descricao']
-        sm.operador = data.get('operador')
+        sm.operador = data.get('operador_nome') or data.get('operador')
         sm.sistemas = data.get('sistemas', [])
         sm.docs_requeridos = data.get('docs_requeridos', [])
         sm.docs_gerados = data.get('docs_gerados', [])
@@ -673,8 +677,8 @@ class HelenaEtapas(BaseHelena):
             total_etapas = len(estado['etapas'])
             resposta = f"\n✅ **Etapa {total_etapas} completa!**\n\n"
             resposta += f"📊 **Resumo rápido:**\n"
-            resposta += f"- **Etapa:** {etapa_dict['descricao']}\n"
-            resposta += f"- **Responsável:** {etapa_dict['operador']}\n"
+            resposta += f"- **Etapa:** {etapa_dict.get('acao_principal') or etapa_dict.get('descricao', '')}\n"
+            resposta += f"- **Responsável:** {etapa_dict.get('operador_nome') or etapa_dict.get('operador', '')}\n"
             resposta += f"- **Sistemas:** {', '.join(etapa_dict['sistemas']) if etapa_dict['sistemas'] else 'Nenhum'}\n"
             resposta += f"- **Tipo:** {'🔀 Condicional' if etapa_dict.get('tipo') == 'condicional' else '➡️ Linear'}\n\n"
             resposta += f"🔄 **Há mais alguma etapa?**\n\n"
@@ -813,7 +817,7 @@ class HelenaEtapas(BaseHelena):
                 estado['sistemas_consolidados'].append(s)
 
         # Adicionar operador único
-        op = etapa.get('operador')
+        op = etapa.get('operador_nome') or etapa.get('operador')
         if op and op not in estado['operadores_consolidados']:
             estado['operadores_consolidados'].append(op)
 
@@ -880,8 +884,8 @@ class HelenaEtapas(BaseHelena):
         resposta = "📊 **RESUMO DAS ETAPAS MAPEADAS**\n\n"
 
         for etapa in estado['etapas']:
-            resposta += f"**{etapa['numero']}. {etapa['descricao']}**\n"
-            resposta += f"   👤 {etapa['operador']}\n"
+            resposta += f"**{etapa['numero']}. {etapa.get('acao_principal') or etapa.get('descricao', '')}**\n"
+            resposta += f"   👤 {etapa.get('operador_nome') or etapa.get('operador', '')}\n"
 
             if etapa.get('sistemas'):
                 resposta += f"   💻 Sistemas: {', '.join(etapa['sistemas'])}\n"

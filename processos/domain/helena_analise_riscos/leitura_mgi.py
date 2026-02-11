@@ -102,9 +102,17 @@ PALAVRAS_INTEGRIDADE = {
     "conduta ilicita",
     # Compliance (sinais fortes)
     "lavagem de dinheiro", "evasao", "sonegacao",
+    # LGPD - violacao de direitos (sinais fortes, validado por gestor de riscos)
+    # NOTA: "lgpd" ou "dados pessoais" sozinhos NAO sao gatilho de integridade.
+    # Apenas termos que descrevem violacao/desrespeito a direitos do titular.
+    "sem base legal",
+    "tratamento em desconformidade",
+    "violacao de direitos",
+    "compartilhamento indevido",
 }
 # NOTA: Removidos por ambiguidade: assedio, discriminacao, ma conduta,
 # conduta antiética, manipulacao (pode ser de dados legitima)
+# NOTA LGPD: "vazamento" NAO e gatilho de integridade — pode ser operacional.
 
 # Palavras-chave que indicam risco ESTRATEGICO
 PALAVRAS_ESTRATEGICO = {

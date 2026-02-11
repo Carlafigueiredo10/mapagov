@@ -1,0 +1,394 @@
+/* ============================================================================
+   CatalogoAreaPage — Lista de POPs de uma area
+   ============================================================================ */
+
+.cat-area {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+/* Header — mesmo padrao do CatalogoPOPPage */
+.cat-area__header {
+  background: #1351B4;
+  color: white;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+}
+
+.cat-area__header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cat-area__logo {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cat-area__nav {
+  display: flex;
+  gap: 20px;
+}
+
+.cat-area__nav a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.cat-area__nav a:hover {
+  color: white;
+}
+
+/* Breadcrumb */
+.cat-area__breadcrumb-bar {
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 12px 24px;
+}
+
+.cat-area__breadcrumb {
+  max-width: 1200px;
+  margin: 0 auto;
+  font-size: 13px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cat-area__breadcrumb-link {
+  background: none;
+  border: none;
+  color: #1351B4;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+
+.cat-area__breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.cat-area__breadcrumb-sep {
+  color: #ccc;
+}
+
+.cat-area__breadcrumb-current {
+  color: #333;
+  font-weight: 500;
+}
+
+/* Area info */
+.cat-area__info {
+  background: white;
+  padding: 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.cat-area__info-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.cat-area__info-codigo {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1351B4;
+  background: #EBF0F7;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.cat-area__info-nome {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1B4F72;
+  margin: 8px 0 4px;
+}
+
+.cat-area__info-desc {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cat-area__info-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cat-area__info-stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1351B4;
+}
+
+.cat-area__info-stat-label {
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+/* Content */
+.cat-area__content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Toolbar */
+.cat-area__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cat-area__filters {
+  display: flex;
+  gap: 4px;
+}
+
+.cat-area__filter-btn {
+  padding: 6px 14px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  background: white;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.cat-area__filter-btn:hover {
+  border-color: #1351B4;
+  color: #1351B4;
+}
+
+.cat-area__filter-btn--active {
+  background: #1351B4;
+  color: white;
+  border-color: #1351B4;
+}
+
+.cat-area__result-count {
+  font-size: 13px;
+  color: #888;
+}
+
+/* Table */
+.cat-area__table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.cat-area__table thead {
+  background: #fafafa;
+}
+
+.cat-area__table th {
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.cat-area__table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.cat-area__table-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.cat-area__table-row:hover {
+  background: #f8f9ff;
+}
+
+.cat-area__table-codigo {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 13px;
+  color: #1351B4;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cat-area__table-macro {
+  color: #888;
+  font-size: 13px;
+}
+
+.cat-area__table-center {
+  text-align: center;
+}
+
+.cat-area__table-date {
+  white-space: nowrap;
+  color: #888;
+  font-size: 13px;
+}
+
+/* Badges */
+.cat-area__badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.cat-area__badge--published {
+  background: #d4edda;
+  color: #155724;
+}
+
+.cat-area__badge--draft {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.cat-area__badge--archived {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+/* Empty state */
+.cat-area__empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: #888;
+  font-size: 15px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Subareas */
+.cat-area__subareas-section {
+  margin-top: 32px;
+}
+
+.cat-area__subareas-section h3 {
+  font-size: 16px;
+  color: #555;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.cat-area__subareas-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cat-area__subarea-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+  min-width: 160px;
+}
+
+.cat-area__subarea-card:hover {
+  border-color: #1351B4;
+}
+
+.cat-area__subarea-codigo {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1351B4;
+}
+
+.cat-area__subarea-nome {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.cat-area__subarea-count {
+  font-size: 12px;
+  color: #888;
+}
+
+/* Loading / Error */
+.cat-area__loading,
+.cat-area__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: #555;
+  font-size: 16px;
+  gap: 16px;
+}
+
+.cat-area__error button {
+  padding: 8px 20px;
+  background: #1351B4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cat-area__info-content {
+    flex-direction: column;
+  }
+
+  .cat-area__info-nome {
+    font-size: 20px;
+  }
+
+  .cat-area__toolbar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .cat-area__table {
+    font-size: 13px;
+  }
+
+  .cat-area__table th:nth-child(3),
+  .cat-area__table td:nth-child(3) {
+    display: none;
+  }
+}

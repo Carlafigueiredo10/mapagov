@@ -163,11 +163,11 @@ def build_diagnostico(data: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     Constroi conteudo da secao Diagnostico por Dimensao.
 
-    Retorna lista dos 6 blocos renderizados (usando helper).
+    Retorna lista dos 7 blocos renderizados (usando helper).
     """
     respostas_blocos = data.get("respostas_blocos", {})
 
-    blocos_ids = ["BLOCO_1", "BLOCO_2", "BLOCO_3", "BLOCO_4", "BLOCO_5", "BLOCO_6"]
+    blocos_ids = ["BLOCO_1", "BLOCO_2", "BLOCO_3", "BLOCO_4", "BLOCO_5", "BLOCO_6", "BLOCO_7"]
     diagnostico = []
 
     for bloco_id in blocos_ids:

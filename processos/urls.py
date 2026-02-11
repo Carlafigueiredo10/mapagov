@@ -1,13 +1,24 @@
 # processos/urls.py - URLs completas do sistema com APIs renovadas
 
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 from . import views
 from .views import helena_mapeamento_api
 from processos.api import chat_api  # FASE 1 - Nova API
 from processos.api import planejamento_estrategico_api as pe_api  # Planejamento Estratégico API
 from processos.api import analise_riscos_api as ar_api  # Analise de Riscos API
 from processos.api import analise_riscos_export as ar_export  # Exportacao Word/PDF
+from processos.api.catalogo_api import AreaViewSet, POPViewSet, pop_por_area_codigo, resolve_pop
+from processos.api.catalogo_pdf import gerar_pdf_catalogo
+from processos.api.catalogo_search import search_pops
+from processos.api.catalogo_stats import stats_global, stats_area
+from processos.api import auth_api, admin_api  # Auth & Access Control
 from processos.infra import metrics  # FASE 3 - Prometheus Metrics
+
+# DRF Router para CRUD de catalogo (Areas + POPs)
+router = DefaultRouter()
+router.register(r'api/areas', AreaViewSet, basename='area')
+router.register(r'api/pops', POPViewSet, basename='pop-catalogo')
 
 urlpatterns = [
     # ============================================================================
@@ -23,7 +34,9 @@ urlpatterns = [
     # path('fluxograma/', views.fluxograma_temp, name='fluxograma'),  # Agora servido pelo React
 
     # ============================================================================
-    # APIs HELENA - CHAT CONVERSACIONAL (BÁSICAS - FUNCIONAIS)
+    # APIs HELENA POP - Padrao: Chat-driven State Machine
+    # O POP NAO segue REST. A state machine e acionada via POST /api/chat/
+    # com contexto='gerador_pop'. Ver docs/api-patterns.md
     # ============================================================================
 
     path('api/chat/', views.chat_api_view, name='chat-api'),
@@ -34,7 +47,8 @@ urlpatterns = [
     path('api/helena-ajuda-arquitetura/', views.helena_ajuda_arquitetura, name='helena_ajuda_arquitetura'),
 
     # ============================================================================
-    # APIs HELENA V2 - NOVA ARQUITETURA (FASE 1) ⭐
+    # APIs CHAT V2 - Padrao: Sessao unificada com roteamento automatico
+    # Endpoint unico que roteia entre produtos via contexto. Ver docs/api-patterns.md
     # ============================================================================
     path('api/chat-v2/', chat_api.chat_v2, name='chat-v2'),
     path('api/chat-v2/mudar-contexto/', chat_api.mudar_contexto, name='chat-v2-mudar-contexto'),
@@ -44,7 +58,9 @@ urlpatterns = [
     path('api/chat-v2/finalizar/', chat_api.finalizar_sessao, name='chat-v2-finalizar'),
 
     # ============================================================================
-    # APIs PLANEJAMENTO ESTRATÉGICO - PE 🎯
+    # APIs PLANEJAMENTO ESTRATEGICO - Padrao: REST (IDs int) + Conversacional
+    # Combina CRUD (/listar, /<id>/) com /iniciar/ e /processar/
+    # Ver docs/api-patterns.md
     # ============================================================================
     path('api/planejamento-estrategico/iniciar/', pe_api.iniciar_planejamento, name='pe-iniciar'),
     path('api/planejamento-estrategico/processar/', pe_api.processar_mensagem, name='pe-processar'),
@@ -61,7 +77,8 @@ urlpatterns = [
     path('api/planejamento-estrategico/confirmar-modelo/', pe_api.confirmar_modelo, name='pe-confirmar-modelo'),
 
     # ============================================================================
-    # APIs ANALISE DE RISCOS 🎯
+    # APIs ANALISE DE RISCOS - Padrao: REST CRUD com identificadores UUID
+    # Ver docs/api-patterns.md
     # ============================================================================
     path('api/analise-riscos/criar/', ar_api.criar_analise, name='ar-criar'),
     path('api/analise-riscos/listar/', ar_api.listar_analises, name='ar-listar'),
@@ -75,7 +92,7 @@ urlpatterns = [
     path('api/analise-riscos/<uuid:analise_id>/riscos/<uuid:risco_id>/respostas/', ar_api.adicionar_resposta, name='ar-adicionar-resposta'),
 
     # ============================================================================
-    # APIs ANALISE DE RISCOS v2 - NOVO FLUXO 🎯
+    # APIs ANALISE DE RISCOS v2 - Novo fluxo (contexto + blocos + inferencia)
     # ============================================================================
     path('api/analise-riscos/v2/criar/', ar_api.criar_analise_v2, name='ar-v2-criar'),
     path('api/analise-riscos/<uuid:analise_id>/contexto/', ar_api.salvar_contexto_v2, name='ar-v2-contexto'),
@@ -90,7 +107,10 @@ urlpatterns = [
 
     # APIs de autosave/snapshot/histórico
     # path('api/reiniciar-conversa-helena/', views.reiniciar_conversa_helena, name='reiniciar_helena'),
-    path('api/pop-autosave/', views.autosave_pop, name='pop_autosave'),  # ✅ FASE 2: Auto-save habilitado
+    path('api/pop-autosave/', views.autosave_pop, name='pop_autosave'),  # Auto-save real (PostgreSQL)
+    path('api/pop/<str:identifier>/', views.get_pop, name='get_pop'),  # Carrega POP salvo
+    path('api/pop-draft/save/', views.pop_draft_save, name='pop_draft_save'),  # Salva rascunho (PAUSA)
+    path('api/pop-draft/<str:session_id>/', views.pop_draft_load, name='pop_draft_load'),  # Carrega rascunho
     # path('api/pop-backup-session/', views.backup_session_pops, name='pop_backup_session'),
     # path('api/pop-restore-snapshot/', views.restore_pop_snapshot, name='pop_restore_snapshot'),
     # path('api/pop-snapshot-milestone/', views.marcar_milestone_snapshot, name='pop_snapshot_milestone'),
@@ -119,6 +139,48 @@ urlpatterns = [
     path('api/extract-pdf/', views.extract_pdf_text, name='extract_pdf'),
     # path('api/analyze-risks/', views.analyze_risks_helena, name='analyze_risks'),  # View não existe
     path('api/fluxograma-from-pdf/', views.fluxograma_from_pdf, name='fluxograma_from_pdf'),
+    path('api/fluxograma-steps/', views.fluxograma_steps_api, name='fluxograma_steps_api'),
+
+    # ============================================================================
+    # APIs CATALOGO POP - CRUD + Resolve + Stats (Etapas 1-5)
+    # Rotas manuais VEM ANTES do router.urls para nao conflitar
+    # ============================================================================
+
+    # PDF sob demanda version-aware (ANTES do detalhe para nao conflitar com <path:codigo>)
+    path('api/areas/<slug:slug>/pops/<path:codigo>/pdf/', gerar_pdf_catalogo, name='pop-pdf-catalogo'),
+
+    # Detalhe por area+codigo (usa <path:> para aceitar pontos em codigo tipo 6.1.1.1.5)
+    path('api/areas/<slug:slug>/pops/<path:codigo>/', pop_por_area_codigo, name='pop-por-area-codigo'),
+
+    # Resolve CAP via query params (evita conflito com router)
+    path('api/pops/resolve/', resolve_pop, name='pop-resolve'),
+
+    # Busca full-text
+    path('api/pops/search/', search_pops, name='pop-search'),
+
+    # Metricas
+    path('api/stats/', stats_global, name='stats-global'),
+    path('api/stats/areas/<str:slug>/', stats_area, name='stats-area'),
+
+    # ============================================================================
+    # AUTH API — Registro, Login, Verificação, Senha
+    # ============================================================================
+    path('api/auth/csrf/', auth_api.get_csrf, name='auth-csrf'),
+    path('api/auth/register/', auth_api.register, name='auth-register'),
+    path('api/auth/verify-email/<str:uidb64>/<str:token>/', auth_api.verify_email, name='auth-verify-email'),
+    path('api/auth/login/', auth_api.login_view, name='auth-login'),
+    path('api/auth/logout/', auth_api.logout_view, name='auth-logout'),
+    path('api/auth/me/', auth_api.me, name='auth-me'),
+    path('api/auth/password-reset/', auth_api.password_reset, name='auth-password-reset'),
+    path('api/auth/password-reset-confirm/', auth_api.password_reset_confirm, name='auth-password-reset-confirm'),
+
+    # ============================================================================
+    # ADMIN API — Aprovação de cadastros, auditoria
+    # ============================================================================
+    path('api/admin/pending-users/', admin_api.list_pending, name='admin-pending'),
+    path('api/admin/users/<int:user_id>/vote/', admin_api.cast_vote, name='admin-vote'),
+    path('api/admin/users/<int:user_id>/', admin_api.user_detail, name='admin-user-detail'),
+    path('api/admin/audit-log/', admin_api.audit_log, name='admin-audit'),
 
     # ============================================================================
     # APIs FUTURAS - PRODUTOS EM DESENVOLVIMENTO
@@ -138,3 +200,6 @@ urlpatterns = [
     # ============================================================================
     # path('api/test-openai/', views.test_openai, name='test_openai'),
 ]
+
+# DRF Router URLs (Areas + POPs CRUD)
+urlpatterns += router.urls

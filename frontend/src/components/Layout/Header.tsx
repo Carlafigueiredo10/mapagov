@@ -16,9 +16,9 @@ export default function Header() {
         <ul className={styles.navLinks}>
           <li><Link to="/sobre">Sobre</Link></li>
           <li><Link to="/funcionalidades">Funcionalidades</Link></li>
-          <li><Link to="/roadmap">Roadmap</Link></li>
           <li><Link to="/base-legal">Base Legal</Link></li>
-          <li><Link to="/portal">Portal</Link></li>
+          <li><Link to="/roadmap">Roteiro de Desenvolvimento</Link></li>
+          <li><Link to="/portal">Acessar Plataforma</Link></li>
         </ul>
       </nav>
     </header>

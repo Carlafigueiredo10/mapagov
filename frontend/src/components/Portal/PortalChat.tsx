@@ -5,27 +5,27 @@ import { chatRecepcao } from '../../services/helenaApi';
 import InterfaceDecisaoProduto from './InterfaceDecisaoProduto';
 import styles from './PortalChat.module.css';
 
-// Dados dos produtos para o menu inicial (espelhado do backend)
+// Dados dos produtos disponíveis para o menu inicial (espelhado do backend)
 const PRODUTOS_MENU = [
   {
     key: 'pop',
-    nome: 'Mapear processo (POP)',
-    descricao_curta: 'Registro estruturado de atividades, responsáveis e documentos de um processo de trabalho.',
-  },
-  {
-    key: 'riscos',
-    nome: 'Analisar riscos',
-    descricao_curta: 'Identificação e avaliação de riscos associados a um processo, com base no Guia de Gestão de Riscos do MGI.',
-  },
-  {
-    key: 'planejamento',
-    nome: 'Planejar estrategicamente',
-    descricao_curta: 'Construção de planejamento estratégico institucional com modelos reconhecidos de gestão.',
+    nome: 'Gerador de POP',
+    descricao_curta: 'Estrutura o processo e gera o Procedimento Operacional Padrão.',
   },
   {
     key: 'fluxograma',
-    nome: 'Criar fluxograma',
-    descricao_curta: 'Representação visual do fluxo de um processo em notação BPMN.',
+    nome: 'Gerador de Fluxograma',
+    descricao_curta: 'Representa visualmente o fluxo do processo mapeado.',
+  },
+  {
+    key: 'riscos',
+    nome: 'Análise de Riscos',
+    descricao_curta: 'Identifica, avalia e sugere tratamento de riscos do processo.',
+  },
+  {
+    key: 'planejamento',
+    nome: 'Planejamento Estratégico',
+    descricao_curta: 'Organiza objetivos, metas e diretrizes institucionais.',
   },
 ];
 

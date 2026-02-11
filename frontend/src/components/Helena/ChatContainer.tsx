@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Save } from 'lucide-react';
+import { Send, Save, Pencil } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import ErrorMessage from './ErrorMessage';
 import SaveIndicator from './SaveIndicator';
@@ -8,6 +8,7 @@ import { useChat } from '../../hooks/useChat';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { useSyncHistorico } from '../../hooks/useSyncHistorico';
 import { useChatStore } from '../../store/chatStore';
+import { loadPOP } from '../../services/helenaApi';
 import './ChatContainer.css';
 
 interface ChatContainerProps {
@@ -19,6 +20,10 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
   const [saveStatus, setSaveStatus] = useState<'salvando' | 'salvo' | 'erro' | 'idle'>('idle');
   const [ultimoSalvamento, setUltimoSalvamento] = useState<Date | undefined>(undefined);
   const [mostrarSeta, setMostrarSeta] = useState(false);
+  const [conflictDetected, setConflictDetected] = useState(false);
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [nomeTemp, setNomeTemp] = useState('');
+  const nomeInputRef = useRef<HTMLInputElement>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,9 +37,31 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
       setSaveStatus('salvo');
       setUltimoSalvamento(new Date());
       setTimeout(() => setSaveStatus('idle'), 3000);
+    } else if ((result as { conflict?: boolean }).conflict) {
+      setConflictDetected(true);
+      setSaveStatus('erro');
     } else {
       setSaveStatus('erro');
       setTimeout(() => setSaveStatus('idle'), 5000);
+    }
+  };
+
+  // Recarregar dados do servidor após conflito
+  const reloadFromServer = async () => {
+    const { popUuid, popId: pid, sessionId: sid, updateDadosPOP, setPopIdentifiers } = useChatStore.getState();
+    const identifier = popUuid || pid?.toString() || sid;
+    if (!identifier) return;
+
+    try {
+      const res = await loadPOP(identifier);
+      if (res.success && res.pop) {
+        updateDadosPOP(res.pop.dados as Record<string, unknown>);
+        setPopIdentifiers(res.pop.id, res.pop.uuid, res.pop.integrity_hash);
+        setConflictDetected(false);
+        setSaveStatus('idle');
+      }
+    } catch {
+      // fallback: manter estado local
     }
   };
 
@@ -43,12 +70,55 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
     isProcessing,
     error,
     progresso,
+    dadosPOP,
     enviarMensagem,
     clearError,
   } = useChat(handleAutoSave);
 
+  const { updateDadosPOP } = useChatStore();
+  const nomeUsuario = dadosPOP.nome_usuario || '';
+
+  // Abrir edição inline do nome
+  const iniciarEdicaoNome = () => {
+    setNomeTemp(nomeUsuario);
+    setEditandoNome(true);
+    setTimeout(() => nomeInputRef.current?.focus(), 50);
+  };
+
+  // Confirmar edição do nome
+  const confirmarNome = () => {
+    const novoNome = nomeTemp.trim();
+    if (novoNome && novoNome !== nomeUsuario) {
+      updateDadosPOP({ nome_usuario: novoNome });
+    }
+    setEditandoNome(false);
+  };
+
   // Sincronizar histórico ao montar componente
   useSyncHistorico();
+
+  // Carregar POP do backend ao montar (backend é fonte de verdade)
+  useEffect(() => {
+    const { popUuid, popId, sessionId: sid, updateDadosPOP, setPopIdentifiers } = useChatStore.getState();
+    const identifier = popUuid || popId?.toString() || sid;
+    if (!identifier) return;
+
+    loadPOP(identifier)
+      .then((res) => {
+        if (res.success && res.pop) {
+          const serverSeq = res.pop.autosave_sequence ?? 0;
+          const localSeq = useChatStore.getState().popId ? 0 : -1; // se nao tem popId local, backend vence
+          if (serverSeq > localSeq || !useChatStore.getState().popId) {
+            updateDadosPOP(res.pop.dados as Record<string, unknown>);
+            setPopIdentifiers(res.pop.id, res.pop.uuid, res.pop.integrity_hash);
+          }
+        }
+      })
+      .catch(() => {
+        // 404 = POP ainda nao existe no backend (primeiro acesso), manter dados locais
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-save automático
   const { saveNow } = useAutoSave({ interval: 30000, enabled: true });
@@ -203,6 +273,44 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
         <div className="header-content">
           <h2>POP — Mapeamento de Procedimento Operacional</h2>
           <p>DECIPEX · Ministério da Gestão e da Inovação</p>
+          {(nomeUsuario || dadosPOP.codigo_cap) && (
+            <div className="header-meta-line">
+              {nomeUsuario && (
+                <span className="header-meta-item">
+                  <span className="meta-label">Responsável:</span>
+                  {editandoNome ? (
+                    <input
+                      ref={nomeInputRef}
+                      type="text"
+                      value={nomeTemp}
+                      onChange={(e) => setNomeTemp(e.target.value)}
+                      onBlur={confirmarNome}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') confirmarNome();
+                        if (e.key === 'Escape') setEditandoNome(false);
+                      }}
+                      className="nome-usuario-input"
+                      maxLength={40}
+                    />
+                  ) : (
+                    <span
+                      className="nome-usuario-label"
+                      onClick={iniciarEdicaoNome}
+                      title="Clique para alterar seu nome"
+                    >
+                      {nomeUsuario} <Pencil size={12} />
+                    </span>
+                  )}
+                </span>
+              )}
+              {dadosPOP.codigo_cap && (
+                <span className="header-meta-item">
+                  <span className="meta-label">Código CAP:</span>
+                  <span>{dadosPOP.codigo_cap}</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Barra de Progresso */}
@@ -214,6 +322,38 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
         </div>
         <div className="progress-text">{progresso.texto}</div>
       </div>
+
+      {/* Banner de conflito */}
+      {conflictDetected && (
+        <div style={{
+          background: '#fff3cd',
+          border: '1px solid #ffc107',
+          borderRadius: '6px',
+          padding: '10px 16px',
+          margin: '8px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '13px',
+          color: '#664d03',
+        }}>
+          <span>Este POP foi modificado em outra aba.</span>
+          <button
+            onClick={reloadFromServer}
+            style={{
+              background: '#ffc107',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 12px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '13px',
+            }}
+          >
+            Recarregar dados
+          </button>
+        </div>
+      )}
 
       {/* Messages Area */}
       <div className="messages-area">

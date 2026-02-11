@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: #1351B4; padding: 20px; text-align: center;">
+    <h1 style="color: #fff; margin: 0; font-size: 24px;">MapaGov</h1>
+  </div>
+  <div style="padding: 30px 20px; background: #f8f9fa;">
+    <h2 style="color: #1B4F72;">Novo cadastro pendente</h2>
+    <p>Olá {{ approver.first_name|default:approver.username }},</p>
+    <p>Um novo usuário externo solicitou acesso ao MapaGov:</p>
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+      <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #ddd;">Email:</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ new_user.email }}</td></tr>
+      <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #ddd;">Nome:</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ new_user.first_name }} {{ new_user.last_name }}</td></tr>
+    </table>
+    <p>Acesse o painel de administração para aprovar ou rejeitar este cadastro:</p>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="{{ admin_url }}" style="background: #1351B4; color: #fff; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Ver Cadastros Pendentes</a>
+    </div>
+  </div>
+  <div style="padding: 15px 20px; text-align: center; font-size: 12px; color: #999;">
+    MapaGov — Ministério da Gestão e da Inovação em Serviços Públicos
+  </div>
+</body>
+</html>

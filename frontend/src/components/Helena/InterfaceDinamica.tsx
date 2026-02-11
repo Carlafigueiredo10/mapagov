@@ -42,11 +42,15 @@ import InterfaceSelecaoManualHierarquica from './InterfaceSelecaoManualHierarqui
 import InterfaceRagPerguntaAtividade from './InterfaceRagPerguntaAtividade';
 import InterfaceSugestaoEntregaEsperada from './InterfaceSugestaoEntregaEsperada';
 import LoadingAnaliseAtividade from './LoadingAnaliseAtividade';
+import InterfaceFallback from './InterfaceFallback';
+import InterfaceRevisaoFinal from './InterfaceRevisaoFinal';
+import { validateInterfaceData } from '../../schemas/validate';
 
 // TIPOS E INTERFACES GLOBAIS (sem duplicatas)
 interface InterfaceData {
   tipo: string;
   dados?: Record<string, unknown> | null;
+  schema_version?: string;
 }
 
 interface InterfaceDinamicaProps {
@@ -64,6 +68,12 @@ const InterfaceDinamica: React.FC<InterfaceDinamicaProps> = ({ interfaceData, on
   if (!interfaceData || typeof interfaceData !== "object" || !interfaceData.tipo) {
     console.debug("⏸️ Ignorando interface incompleta:", interfaceData);
     return null;
+  }
+
+  // Versioning: detectar schemas desconhecidos (ADR-001 §2.10)
+  const SUPPORTED_VERSIONS = ['1.0', '0.0'];
+  if (interfaceData.schema_version && !SUPPORTED_VERSIONS.includes(interfaceData.schema_version)) {
+    console.warn(`[InterfaceDinamica] Versão desconhecida: ${interfaceData.schema_version}`);
   }
 
   // ✅ Seu console.log está aqui, no lugar certo!
@@ -87,6 +97,12 @@ const InterfaceDinamica: React.FC<InterfaceDinamicaProps> = ({ interfaceData, on
         <div className="interface-title">⚠️ Erro: Tipo de Interface Desconhecido</div>
       </div>
     );
+  }
+
+  // Validação de schema: fallback UI se dados inválidos
+  const validation = validateInterfaceData(tipo, dados as Record<string, unknown> | null);
+  if (!validation.valid) {
+    return <InterfaceFallback tipo={tipo} errors={validation.errors} schemaVersion={interfaceData.schema_version} />;
   }
 
   const handleConfirm = (resposta: string) => {
@@ -233,7 +249,8 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
       );
 
     case 'areas':
-      return <AreasSelector data={dados as { opcoes_areas: Record<string, { codigo: string; nome: string }> }} onConfirm={handleConfirm} />;
+      // ✅ Usa validation.data (normalizado pelo z.preprocess: Array→Record)
+      return <AreasSelector data={validation.data as { opcoes_areas: Record<string, { codigo: string; nome: string }> }} onConfirm={handleConfirm} />;
 
     case 'subareas':
       return <SubareasSelector
@@ -573,6 +590,9 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
     case 'revisao':
       return <InterfaceRevisao dados={dados || undefined} onConfirm={handleConfirm} />;
 
+    case 'revisao_final':
+      return <InterfaceRevisaoFinal dados={dados || undefined} onConfirm={handleConfirm} />;
+
     case 'selecao_edicao':
       return <InterfaceSelecaoEdicao dados={dados || undefined} onConfirm={handleConfirm} />;
 
@@ -768,8 +788,8 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
 
     case 'confirmacao_explicacao':
       return <InterfaceConfirmacaoDupla dados={{
-        botao_confirmar: 'Sim',
-        botao_editar: 'Não, quero mais detalhes',
+        botao_confirmar: 'Continuar',
+        botao_editar: 'Ver detalhes do mapeamento',
         valor_confirmar: 'sim',
         valor_editar: 'detalhes'
       }} onEnviar={handleConfirm} />;

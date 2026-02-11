@@ -479,6 +479,94 @@ BLOCOS_SCHEMA: Dict[str, Dict[str, Any]] = {
 }
 
 
+# =============================================================================
+# BLOCO 7 - DADOS PESSOAIS / LGPD / GOVERNANCA DE DADOS
+# =============================================================================
+# Validado por gestor de riscos. Aderente ao Guia de GR do MGI.
+# LGPD e tema/dimensao interna (tag), nao categoria MGI.
+# Classificacao MGI derivada: Integridade (violacao de direitos) ou
+# Operacional (falha de processo/controle).
+
+
+class B7_TratamentoDadosPessoais(str, Enum):
+    """Q1 - Ha tratamento de dados pessoais no processo/servico?"""
+    SIM = "SIM"
+    NAO = "NAO"
+    NAO_SEI = "NAO_SEI"
+
+
+class B7_DadosSensiveis(str, Enum):
+    """Q2 - Ha tratamento de dados pessoais sensiveis?"""
+    SIM = "SIM"
+    NAO = "NAO"
+    NAO_SEI = "NAO_SEI"
+
+
+class B7_BaseLegalDocumentada(str, Enum):
+    """Q3 - A finalidade e a base legal estao definidas e documentadas?"""
+    SIM = "SIM"
+    NAO = "NAO"
+    NAO_SEI = "NAO_SEI"
+
+
+class B7_ControlesCompartilhamento(str, Enum):
+    """Q4 - Existem regras e controles para compartilhamento e acesso?"""
+    SIM = "SIM"
+    NAO = "NAO"
+    PARCIAL = "PARCIAL"
+    NAO_SEI = "NAO_SEI"
+
+
+class B7_ControlesRetencao(str, Enum):
+    """Q5 - Existem regras e controles para retencao e eliminacao/anonimizacao?"""
+    SIM = "SIM"
+    NAO = "NAO"
+    PARCIAL = "PARCIAL"
+    NAO_SEI = "NAO_SEI"
+
+
+BLOCOS_SCHEMA["BLOCO_7"] = {
+    "titulo": "Dados Pessoais, LGPD e Governanca de Dados",
+    "objetivo": "Identificar riscos de conformidade, violacao de direitos e fragilidade de controles relativos a dados pessoais",
+    "perguntas": {
+        "Q1": {
+            "texto": "Ha tratamento de dados pessoais no processo/servico?",
+            "tipo": "DETECCAO",
+            "enum": "B7_TratamentoDadosPessoais",
+            "obrigatoria": True,
+        },
+        "Q2": {
+            "texto": "Ha tratamento de dados pessoais sensiveis (saude, biometria, origem racial, etc.)?",
+            "tipo": "DETECCAO",
+            "enum": "B7_DadosSensiveis",
+            "obrigatoria": True,
+            "condicional": {"Q1": ["SIM"]},
+        },
+        "Q3": {
+            "texto": "A finalidade e a base legal estao definidas e documentadas?",
+            "tipo": "FORMALIZACAO",
+            "enum": "B7_BaseLegalDocumentada",
+            "obrigatoria": True,
+            "condicional": {"Q1": ["SIM"]},
+        },
+        "Q4": {
+            "texto": "Existem regras e controles para compartilhamento (com quem, por que, como) e para acesso?",
+            "tipo": "CONTROLE",
+            "enum": "B7_ControlesCompartilhamento",
+            "obrigatoria": True,
+            "condicional": {"Q1": ["SIM"]},
+        },
+        "Q5": {
+            "texto": "Existem regras e controles para retencao e eliminacao/anonimizacao?",
+            "tipo": "CONTROLE",
+            "enum": "B7_ControlesRetencao",
+            "obrigatoria": True,
+            "condicional": {"Q1": ["SIM"]},
+        },
+    },
+}
+
+
 def get_enum_values(enum_name: str) -> List[str]:
     """Retorna os valores possiveis de um enum pelo nome"""
     enums_map = {
@@ -516,6 +604,12 @@ def get_enum_values(enum_name: str) -> List[str]:
         "B6_NaturezaImpacto": B6_NaturezaImpacto,
         "B6_EscalaImpacto": B6_EscalaImpacto,
         "B6_MedidasMitigacao": B6_MedidasMitigacao,
+        # Bloco 7
+        "B7_TratamentoDadosPessoais": B7_TratamentoDadosPessoais,
+        "B7_DadosSensiveis": B7_DadosSensiveis,
+        "B7_BaseLegalDocumentada": B7_BaseLegalDocumentada,
+        "B7_ControlesCompartilhamento": B7_ControlesCompartilhamento,
+        "B7_ControlesRetencao": B7_ControlesRetencao,
     }
     enum_class = enums_map.get(enum_name)
     if enum_class:

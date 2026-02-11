@@ -57,6 +57,17 @@ DESCRICOES_CATEGORIA = {
     "IMPACTO_DESIGUAL": "Impacto desigual/excludente por ausencia ou insuficiencia de analise distributiva",
 }
 
+# Descricoes dos blocos de identificacao (para relatorios)
+DESCRICOES_BLOCO = {
+    "BLOCO_1": "Dependencia de Terceiros",
+    "BLOCO_2": "Recursos Humanos e Capacidades",
+    "BLOCO_3": "Tecnologia e Sistemas",
+    "BLOCO_4": "Prazos, SLAs e Pressoes Legais",
+    "BLOCO_5": "Governanca e Tomada de Decisao",
+    "BLOCO_6": "Impacto Desigual e Sensibilidade Social",
+    "BLOCO_7": "Dados Pessoais, LGPD e Governanca de Dados",
+}
+
 # Descricoes das estrategias (4 oficiais do Guia MGI)
 DESCRICOES_ESTRATEGIA = {
     "MITIGAR": "Reduzir probabilidade ou impacto",
