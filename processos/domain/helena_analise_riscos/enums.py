@@ -19,6 +19,9 @@ from processos.analise_riscos_enums import (
     NivelRisco,
     GrauConfianca,
     CategoriaRisco,
+    TipoAvaliacao,
+    TipoControle,
+    ObjetivoControle,
 )
 
 # Expoe tudo para imports existentes
@@ -30,4 +33,7 @@ __all__ = [
     "NivelRisco",
     "GrauConfianca",
     "CategoriaRisco",
+    "TipoAvaliacao",
+    "TipoControle",
+    "ObjetivoControle",
 ]

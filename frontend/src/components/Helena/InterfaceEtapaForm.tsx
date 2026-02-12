@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import DocumentoSelector, { TipoDocumento } from "./DocumentoSelector";
 
 interface CenarioInput {
@@ -80,6 +80,31 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
   // ── UI state ──
   const [complementaresAberto, setComplementaresAberto] = useState(true);
   const [erro, setErro] = useState('');
+
+  // Scroll suave para o primeiro campo com erro
+  const scrollParaErro = useCallback((primeiroErro: string) => {
+    const erroParaId: Record<string, string> = {
+      'Acao principal': 'ef-bloco-acao',
+      'Pelo menos 1 verificacao': 'ef-bloco-verificacoes',
+      'Pelo menos 2 cenarios com condicao': 'ef-bloco-cenarios',
+      'Responsavel': 'ef-campo-operador',
+      'Pelo menos 1 sistema': 'ef-campo-sistemas',
+      'Pelo menos 1 documento consultado/recebido': 'ef-campo-docs-req',
+      'Pelo menos 1 documento gerado': 'ef-campo-docs-ger',
+      'Tempo estimado': 'ef-campo-tempo',
+    };
+    const targetId = erroParaId[primeiroErro];
+    if (!targetId) return;
+    setTimeout(() => {
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.boxShadow = '0 0 0 3px rgba(220, 53, 69, 0.4)';
+        el.style.borderRadius = '8px';
+        setTimeout(() => { el.style.boxShadow = ''; }, 2500);
+      }
+    }, 150);
+  }, []);
 
   const todosSistemas = Object.values(sistemas).flat();
 
@@ -189,6 +214,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
       if (!operador.trim() || sistemasSelecionados.length === 0 || docsRequeridos.length === 0 || docsGerados.length === 0 || !tempoEstimado.trim()) {
         setComplementaresAberto(true);
       }
+      scrollParaErro(erros[0]);
       return;
     }
     setErro('');
@@ -311,7 +337,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
           ════════════════════════════════════════════ */}
       <div style={blocoHeaderStyle}>O que e feito</div>
 
-      <div style={sectionStyle}>
+      <div id="ef-bloco-acao" style={sectionStyle}>
         <label style={labelStyle}>O que e feito nesta etapa? *</label>
         <input
           type="text"
@@ -331,7 +357,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
           ════════════════════════════════════════════ */}
       <div style={blocoHeaderStyle}>O que e verificado / conferido</div>
 
-      <div style={sectionStyle}>
+      <div id="ef-bloco-verificacoes" style={sectionStyle}>
         <label style={labelStyle}>Quais verificacoes sao feitas nesta etapa? *</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           {verificacoes.map((v, idx) => (
@@ -386,7 +412,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
           ════════════════════════════════════════════ */}
       <div style={blocoHeaderStyle}>Encerramento da etapa</div>
 
-      <div style={sectionStyle}>
+      <div id="ef-bloco-cenarios" style={sectionStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <label style={{ ...labelStyle, marginBottom: 0, flex: 1 }}>
             Pode ter caminhos diferentes dependendo da situacao? *
@@ -590,7 +616,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
         {complementaresAberto && (
           <div style={{ marginTop: '0.75rem' }}>
             {/* Responsavel */}
-            <div style={sectionStyle}>
+            <div id="ef-campo-operador" style={sectionStyle}>
               <label style={labelStyle}>Quem executa esta etapa? *</label>
               {operadores.length > 0 ? (
                 <select
@@ -618,7 +644,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
             </div>
 
             {/* Docs consultados/recebidos */}
-            <div style={sectionStyle}>
+            <div id="ef-campo-docs-req" style={sectionStyle}>
               <DocumentoSelector
                 tipos={tiposDocsRequeridos}
                 value={docsRequeridos}
@@ -631,7 +657,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
             </div>
 
             {/* Docs produzidos */}
-            <div style={sectionStyle}>
+            <div id="ef-campo-docs-ger" style={sectionStyle}>
               <DocumentoSelector
                 tipos={tiposDocsGerados}
                 value={docsGerados}
@@ -644,7 +670,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
             </div>
 
             {/* Sistemas */}
-            <div style={sectionStyle}>
+            <div id="ef-campo-sistemas" style={sectionStyle}>
               <label style={labelStyle}>Quais sistemas sao utilizados? *</label>
               {todosSistemas.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
@@ -704,7 +730,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
             </div>
 
             {/* Tempo estimado */}
-            <div style={sectionStyle}>
+            <div id="ef-campo-tempo" style={sectionStyle}>
               <label style={labelStyle}>Tempo estimado de execucao *</label>
               <input
                 type="text"

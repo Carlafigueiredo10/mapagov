@@ -103,6 +103,24 @@ class StatusTratamento(str, Enum):
 # Chave ausente = nao respondeu (diferente de lista vazia ou NAO_SEI)
 
 
+class TipoAvaliacao(str, Enum):
+    """Tipo de avaliacao P×I conforme Manual Agatha 3.0"""
+    INERENTE = "INERENTE"              # Antes de controles
+    RESIDUAL_ATUAL = "RESIDUAL_ATUAL"  # Considerando controles existentes
+
+
+class TipoControle(str, Enum):
+    """Tipo de controle no plano de controle Agatha"""
+    PREVENTIVO = "PREVENTIVO"
+    CORRETIVO = "CORRETIVO"
+
+
+class ObjetivoControle(str, Enum):
+    """Objetivo do controle no plano de controle Agatha"""
+    NOVO = "NOVO"          # Implementar controle novo
+    MELHORIA = "MELHORIA"  # Melhorar controle existente
+
+
 class BlocoBRecurso(str, Enum):
     """Tipos de recursos necessarios (checklist, multipla escolha)"""
     PESSOAS = "PESSOAS"

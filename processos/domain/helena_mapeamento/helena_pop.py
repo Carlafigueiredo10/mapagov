@@ -2914,6 +2914,21 @@ class HelenaPOP(BaseHelena):
             )
             return resposta, sm
 
+        if msg_lower == '__editar_ultima_etapa__':
+            if sm.etapas_coletadas:
+                # Usar indice salvo (para insercoes no meio) ou fallback para ultima
+                idx = (sm.dados_interface or {}).get('ultimo_etapa_idx', len(sm.etapas_coletadas) - 1)
+                idx = min(idx, len(sm.etapas_coletadas) - 1)
+                etapa_existente = sm.etapas_coletadas[idx]
+                sm.estado = EstadoPOP.ETAPA_FORM
+                sm._etapa_sm = None
+                dados_form = self._montar_dados_etapa_form(sm, idx + 1)
+                dados_form['etapa_preenchida'] = etapa_existente
+                dados_form['editando_idx'] = idx
+                sm.tipo_interface = 'etapa_form'
+                sm.dados_interface = dados_form
+                return f"Editando **Etapa {idx + 1}**. Ajuste os campos e confirme.", sm
+
         if msg_lower == '__proxima_etapa__':
             numero = len(sm.etapas_coletadas) + 1
             sm.estado = EstadoPOP.ETAPA_FORM
@@ -2966,10 +2981,12 @@ class HelenaPOP(BaseHelena):
                     sm.tipo_interface = 'confirmacao_dupla'
                     total = len(sm.etapas_coletadas)
                     sm.dados_interface = {
-                        'botao_confirmar': f'Adicionar Etapa {total + 1}',
+                        'botao_terceiro': f'Editar Etapa {total}',
+                        'valor_terceiro': f'__editar_ultima_etapa__',
                         'botao_editar': 'Finalizar etapas',
-                        'valor_confirmar': '__proxima_etapa__',
-                        'valor_editar': '__finalizar_etapas__'
+                        'valor_editar': '__finalizar_etapas__',
+                        'botao_confirmar': f'Adicionar Etapa {total + 1}',
+                        'valor_confirmar': '__proxima_etapa__'
                     }
                     return "Erro interno ao salvar condicionais. Voce pode continuar ou finalizar.", sm
 
@@ -3007,10 +3024,13 @@ class HelenaPOP(BaseHelena):
 
             sm.tipo_interface = 'confirmacao_dupla'
             sm.dados_interface = {
-                'botao_confirmar': f'Adicionar Etapa {total + 1}',
+                'botao_terceiro': f'Editar Etapa {total}',
+                'valor_terceiro': '__editar_ultima_etapa__',
+                'ultimo_etapa_idx': total - 1,
                 'botao_editar': 'Finalizar etapas',
+                'valor_editar': '__finalizar_etapas__',
+                'botao_confirmar': f'Adicionar Etapa {total + 1}',
                 'valor_confirmar': '__proxima_etapa__',
-                'valor_editar': '__finalizar_etapas__'
             }
 
             return resposta, sm
@@ -3027,6 +3047,21 @@ class HelenaPOP(BaseHelena):
     def _processar_etapa_mais(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """Processa decisão: mais etapas ou finalizar"""
         msg_lower = mensagem.lower().strip()
+
+        if msg_lower == '__editar_ultima_etapa__':
+            if sm.etapas_coletadas:
+                # Usar indice salvo (para insercoes no meio) ou fallback para ultima
+                idx = (sm.dados_interface or {}).get('ultimo_etapa_idx', len(sm.etapas_coletadas) - 1)
+                idx = min(idx, len(sm.etapas_coletadas) - 1)
+                etapa_existente = sm.etapas_coletadas[idx]
+                sm.estado = EstadoPOP.ETAPA_FORM
+                sm._etapa_sm = None
+                dados_form = self._montar_dados_etapa_form(sm, idx + 1)
+                dados_form['etapa_preenchida'] = etapa_existente
+                dados_form['editando_idx'] = idx
+                sm.tipo_interface = 'etapa_form'
+                sm.dados_interface = dados_form
+                return f"Editando **Etapa {idx + 1}**. Ajuste os campos e confirme.", sm
 
         if msg_lower == '__proxima_etapa__' or self._detectar_intencao(msg_lower, 'confirmacao'):
             # Próxima etapa via form
@@ -3084,20 +3119,31 @@ class HelenaPOP(BaseHelena):
             acao = data.get('acao', '')
 
             if acao == 'salvar_etapas':
-                # Frontend envia etapas em formato simplificado (sem operador, tempo, etc.)
-                # Aplicar apenas DELEÇÕES - manter dados ricos do backend
+                # Frontend envia etapas (pode ter deleções e reordenações).
+                # Usar id (UUID) para preservar dados ricos do backend
+                # e respeitar a ordem do frontend.
                 etapas_editadas = data.get('etapas', [])
+                n_front = len(etapas_editadas)
+                n_back = len(sm.etapas_coletadas)
                 if etapas_editadas:
-                    # Detectar quais numeros sobreviveram na edição
-                    numeros_sobreviventes = {e.get('numero') for e in etapas_editadas}
-                    # Filtrar etapas originais mantendo dados ricos
-                    sm.etapas_coletadas = [
-                        e for e in sm.etapas_coletadas
-                        if int(e.get('numero', 0)) in numeros_sobreviventes
-                    ]
-                    # Renumerar
-                    for i, e in enumerate(sm.etapas_coletadas, 1):
-                        e['numero'] = str(i)
+                    etapas_by_id = {e.get('id'): e for e in sm.etapas_coletadas}
+                    novas_etapas = []
+                    for i, fe in enumerate(etapas_editadas, 1):
+                        etapa_id = fe.get('id')
+                        if etapa_id and etapa_id in etapas_by_id:
+                            etapa = etapas_by_id[etapa_id]
+                            etapa['numero'] = str(i)
+                            etapa['ordem'] = i
+                            novas_etapas.append(etapa)
+                        else:
+                            logger.warning(f"[GUARD salvar_etapas] id={etapa_id} sem match (backend ids: {list(etapas_by_id.keys())[:3]}...)")
+                    if novas_etapas:
+                        sm.etapas_coletadas = novas_etapas
+                    # Logar apenas anomalia: match parcial ou zero
+                    if len(novas_etapas) < n_front:
+                        logger.warning(f"[GUARD salvar_etapas] ANOMALIA: match {len(novas_etapas)}/{n_front} (backend tinha {n_back})")
+                elif n_back > 0:
+                    logger.warning(f"[GUARD salvar_etapas] frontend enviou 0 etapas mas backend tinha {n_back}")
                 return self._finalizar_etapas(sm)
 
             elif acao == 'deletar_etapa':
@@ -3155,8 +3201,22 @@ class HelenaPOP(BaseHelena):
                 resposta = f"Editando **Etapa {etapa_idx + 1}**. Ajuste os campos e confirme."
                 return resposta, sm
 
+            elif acao == 'inserir_etapa':
+                # Inserir nova etapa em posicao especifica
+                posicao = data.get('posicao', len(sm.etapas_coletadas))
+                posicao = max(0, min(posicao, len(sm.etapas_coletadas)))
+                numero_display = posicao + 1
+                sm.estado = EstadoPOP.ETAPA_FORM
+                sm._etapa_sm = None
+                dados_form = self._montar_dados_etapa_form(sm, numero_display)
+                dados_form['inserir_na_posicao'] = posicao
+                sm.tipo_interface = 'etapa_form'
+                sm.dados_interface = dados_form
+                resposta = f"Inserindo nova etapa na **posicao {numero_display}**. Preencha o formulario."
+                return resposta, sm
+
             elif acao == 'adicionar_etapa':
-                # Iniciar nova etapa via form
+                # Iniciar nova etapa via form (no final)
                 numero = len(sm.etapas_coletadas) + 1
                 sm.estado = EstadoPOP.ETAPA_FORM
                 sm._etapa_sm = None
@@ -3203,6 +3263,8 @@ class HelenaPOP(BaseHelena):
         """Monta payload completo da revisão final para o frontend."""
         dados = sm.dados_coletados
         area = sm.area_selecionada or {}
+        if not sm.etapas_coletadas:
+            logger.warning(f"[GUARD _montar_dados_revisao_final] etapas_coletadas VAZIO — revisao final sem etapas")
 
         return {
             'campos_bloqueados': {
@@ -3212,6 +3274,7 @@ class HelenaPOP(BaseHelena):
                 'macroprocesso': sm.macro_selecionado or '',
                 'processo_especifico': sm.processo_selecionado or '',
                 'subprocesso': sm.subprocesso_selecionado or '',
+                'atividade': sm.atividade_selecionada or '',
             },
             'campos_editaveis_inline': {
                 'nome_processo': dados.get('nome_processo', ''),
@@ -3584,7 +3647,8 @@ class HelenaPOP(BaseHelena):
             }
             return f"Etapa {numero} atualizada. Revise abaixo.", sm
 
-        # MODO NOVO: montar etapa e append
+        # MODO NOVO: montar etapa e inserir na posicao correta
+        inserir_na_posicao = sm.dados_interface.get('inserir_na_posicao') if sm.dados_interface else None
         numero = len(sm.etapas_coletadas) + 1
         etapa_obj = {
             'numero': str(numero),
@@ -3599,11 +3663,19 @@ class HelenaPOP(BaseHelena):
             'detalhes': detalhes,  # alias retrocompat
         }
 
-        # Normalizar e append
+        # Normalizar e inserir (na posicao especifica ou ao final)
         etapa_obj = normalizar_etapa(etapa_obj, numero)
-        sm.etapas_coletadas.append(etapa_obj)
+        if inserir_na_posicao is not None and 0 <= inserir_na_posicao <= len(sm.etapas_coletadas):
+            sm.etapas_coletadas.insert(inserir_na_posicao, etapa_obj)
+            # Renumerar todas as etapas
+            for i, e in enumerate(sm.etapas_coletadas, 1):
+                e['numero'] = str(i)
+                e['ordem'] = i
+            etapa_index = inserir_na_posicao
+        else:
+            sm.etapas_coletadas.append(etapa_obj)
+            etapa_index = len(sm.etapas_coletadas) - 1
         self._consolidar_documentos(sm)
-        etapa_index = len(sm.etapas_coletadas) - 1
 
         is_condicional = etapa_data.get('is_condicional', False)
 
@@ -3636,14 +3708,20 @@ class HelenaPOP(BaseHelena):
         sm._etapa_sm = None
         sm.estado = EstadoPOP.ETAPA_MAIS
 
+        # Numero real da etapa (pode diferir apos insercao no meio)
+        numero_real = int(sm.etapas_coletadas[etapa_index].get('numero', etapa_index + 1))
+        total = len(sm.etapas_coletadas)
         resposta = self._formatar_resumo_etapa(etapa_obj)
 
         sm.tipo_interface = 'confirmacao_dupla'
         sm.dados_interface = {
-            'botao_confirmar': f'Adicionar Etapa {numero + 1}',
+            'botao_terceiro': f'Editar Etapa {numero_real}',
+            'valor_terceiro': '__editar_ultima_etapa__',
+            'ultimo_etapa_idx': etapa_index,  # indice real para editar
             'botao_editar': 'Finalizar etapas',
-            'valor_confirmar': '__proxima_etapa__',
-            'valor_editar': '__finalizar_etapas__'
+            'valor_editar': '__finalizar_etapas__',
+            'botao_confirmar': f'Adicionar Etapa {total + 1}',
+            'valor_confirmar': '__proxima_etapa__'
         }
 
         return resposta, sm
@@ -3942,25 +4020,28 @@ class HelenaPOP(BaseHelena):
         # Gerar código CAP se ainda não foi gerado
         codigo_cap = sm.codigo_cap if sm.codigo_cap else "Aguardando..."
 
+        etapas_out = sm.etapas_coletadas if sm.etapas_coletadas else []
+        if not etapas_out and sm.estado.value in ('etapa_revisao', 'revisao_final', 'finalizado'):
+            logger.warning(f"[GUARD _preparar_dados_formulario] etapas VAZIO no estado {sm.estado} — possivel sessao corrompida")
+
         return {
             # Identificação
             "codigo_cap": codigo_cap,
-            "codigo_processo": codigo_cap,  # ✅ Alias para frontend
+            "codigo_processo": codigo_cap,
             "area": {
                 "nome": area_info.get("nome", ""),
                 "codigo": area_info.get("codigo", "")
             },
             "macroprocesso": sm.macro_selecionado or "",
             "processo": sm.processo_selecionado or "",
-            "processo_especifico": sm.processo_selecionado or "",  # ✅ Alias para frontend
+            "processo_especifico": sm.processo_selecionado or "",
             "subprocesso": sm.subprocesso_selecionado or "",
             "atividade": sm.atividade_selecionada or "",
 
             # Dados coletados
-            "nome_processo": dados.get("nome_processo", "") or sm.atividade_selecionada or "",  # ✅ Fallback para atividade
+            "nome_processo": dados.get("nome_processo", "") or sm.atividade_selecionada or "",
             "entrega_esperada": dados.get("entrega_esperada", ""),
             "dispositivos_normativos": dados.get("dispositivos_normativos", []),
-            # ✅ FIX: Manter operadores como LISTA (igual sistemas)
             "operadores": dados.get("operadores", []),
             "sistemas": dados.get("sistemas", []),
             "documentos_utilizados": dados.get("documentos_utilizados", []),
@@ -3969,12 +4050,12 @@ class HelenaPOP(BaseHelena):
             "pontos_atencao": dados.get("pontos_atencao", ""),
 
             # Etapas inline (schema completo)
-            "etapas": sm.etapas_coletadas if sm.etapas_coletadas else [],
+            "etapas": etapas_out,
 
             # Metadados
             "nome_usuario": sm.nome_usuario or "",
             "versao": "1.0",
-            "data_criacao": "",  # Frontend preenche
+            "data_criacao": "",
 
             # Estado do preenchimento
             "campo_atual": self._obter_campo_atual(sm.estado),

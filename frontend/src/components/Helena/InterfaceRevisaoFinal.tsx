@@ -119,6 +119,12 @@ const InterfaceRevisaoFinal: React.FC<InterfaceRevisaoFinalProps> = ({ dados, on
               <span className="rf-campo-valor-bloqueado">{bloqueados.subprocesso}</span>
             </div>
           )}
+          {bloqueados.atividade && (
+            <div className="rf-campo-bloqueado">
+              <span className="rf-campo-label">Atividade:</span>
+              <span className="rf-campo-valor-bloqueado">{bloqueados.atividade}</span>
+            </div>
+          )}
         </div>
       </div>
 

@@ -71,6 +71,22 @@ export type EstrategiaResposta =
 // Status de tratamento do risco (derivado, nao persistido)
 export type StatusTratamento = 'PENDENTE_DE_DELIBERACAO' | 'RESPONDIDO';
 
+// =============================================================================
+// AGATHA 3.0 - TIPOS ESTRUTURADOS
+// =============================================================================
+
+export type TipoAvaliacao = 'INERENTE' | 'RESIDUAL_ATUAL';
+
+export type TipoControle = 'PREVENTIVO' | 'CORRETIVO';
+
+export type ObjetivoControle = 'NOVO' | 'MELHORIA';
+
+export interface ControleExistente {
+  descricao: string;
+  desenho: string;   // "N/A" por default, futuramente valores da tabela Agatha
+  operacao: string;   // idem
+}
+
 // Estruturas de dados
 export interface RiscoIdentificado {
   id: string;
@@ -84,6 +100,15 @@ export interface RiscoIdentificado {
   estrategia?: EstrategiaResposta;
   acao_resposta?: string;
   ativo: boolean;
+  // Campos Agatha 3.0
+  causas?: string[];
+  consequencias?: string[];
+  controles_existentes?: ControleExistente[];
+  tipo_avaliacao?: TipoAvaliacao;
+  probabilidade_pos_plano?: number;
+  impacto_pos_plano?: number;
+  score_pos_plano?: number;
+  nivel_pos_plano?: NivelRisco | '';
   // Status de tratamento (derivado, transparencia gerencial)
   status_tratamento?: StatusTratamento;
   resposta_definida?: boolean;
@@ -99,6 +124,12 @@ export interface RespostaRisco {
   responsavel_nome?: string;
   responsavel_area?: string;
   prazo?: string;
+  // Campos Agatha 3.0 (plano de controle)
+  tipo_controle?: TipoControle;
+  objetivo_controle?: ObjetivoControle;
+  como_implementar?: string;
+  data_inicio?: string;
+  data_conclusao_prevista?: string;
 }
 
 export interface AnaliseRiscos {

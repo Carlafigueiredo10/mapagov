@@ -521,8 +521,14 @@ def gerar_pdf_pop(request):
         
         # Preparar dados para PDF (adapter normaliza schema novo + legado)
         from processos.export.pop_adapter import preparar_pop_para_pdf
+        n_etapas_in = len(dados_pop.get('etapas', []))
         dados_limpos = preparar_pop_para_pdf(dados_pop)
-        
+        n_etapas_out = len(dados_limpos.get('etapas', []))
+        if n_etapas_in > 0 and n_etapas_out == 0:
+            logger.warning(f"[GUARD gerar_pdf_pop] ANOMALIA: adapter dropou etapas ({n_etapas_in} → 0)")
+        elif n_etapas_in == 0:
+            logger.warning(f"[GUARD gerar_pdf_pop] PDF sem etapas (frontend enviou 0)")
+
         # Validar estrutura completa
         campos_obrigatorios = ['nome_processo', 'area', 'entrega_esperada']
         campos_faltando = [c for c in campos_obrigatorios if not dados_limpos.get(c)]

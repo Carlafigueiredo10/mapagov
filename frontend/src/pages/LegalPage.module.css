@@ -1,0 +1,145 @@
+/* LegalPage.module.css - Estilos para páginas legais (Política, Termos) */
+
+.legalContainer {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+  font-family: 'Inter', sans-serif;
+  color: #2C3E50;
+  line-height: 1.8;
+}
+
+/* Headings */
+.legalContainer h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.2rem;
+  color: #1B4F72;
+  margin-bottom: 0.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #1B4F72;
+}
+
+.legalContainer h2 {
+  font-size: 1.5rem;
+  color: #1B4F72;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.legalContainer h3 {
+  font-size: 1.2rem;
+  color: #1B4F72;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.legalContainer h4 {
+  font-size: 1.05rem;
+  color: #1B4F72;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Paragraphs */
+.legalContainer p {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  text-align: justify;
+}
+
+/* Strong */
+.legalContainer strong {
+  color: #1B4F72;
+}
+
+/* Lists */
+.legalContainer ul,
+.legalContainer ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.legalContainer li {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+/* Horizontal rules */
+.legalContainer hr {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 2rem 0;
+}
+
+/* Tables (GFM) */
+.legalContainer table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.legalContainer th {
+  background: #1B4F72;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+.legalContainer td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.legalContainer tr:nth-child(even) td {
+  background: #f8f9fa;
+}
+
+/* Blockquotes */
+.legalContainer blockquote {
+  border-left: 4px solid #1B4F72;
+  margin: 1.5rem 0;
+  padding: 0.75rem 1.5rem;
+  background: #f4f7fa;
+  color: #2C3E50;
+}
+
+.legalContainer blockquote p {
+  margin-bottom: 0;
+}
+
+/* Links */
+.legalContainer a {
+  color: #1B4F72;
+  text-decoration: underline;
+}
+
+.legalContainer a:hover {
+  color: #2C5F86;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 4rem 0;
+  color: #7F8C8D;
+  font-size: 1.1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .legalContainer {
+    padding: 2rem 1rem 3rem;
+  }
+
+  .legalContainer h1 {
+    font-size: 1.8rem;
+  }
+
+  .legalContainer h2 {
+    font-size: 1.3rem;
+  }
+}

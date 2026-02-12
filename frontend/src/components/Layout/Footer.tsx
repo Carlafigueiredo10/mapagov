@@ -10,50 +10,59 @@ export default function Footer() {
           <div className={styles.footerBrand}>
             <h4>MapaGov</h4>
             <p>
-              Sistema completo de Governança, Riscos e Conformidade desenvolvido especificamente
-              para as necessidades do setor público brasileiro.
+              Sistema de Governança, Riscos e Conformidade para o Setor Público Brasileiro.
             </p>
             <p>
-              Desenvolvido pela DECIPEX/MGI. Baseado em padrões DECIPEX/MGI, referenciais TCU/CGU
-              e normas internacionais.
+              Sistema desenvolvido pela Diretoria de Serviços de Aposentados e Pensionistas
+              e de Órgãos Extintos (DECIPEX), unidade integrante do Ministério da Gestão
+              e da Inovação em Serviços Públicos (MGI).
             </p>
+          </div>
+
+          <div>
+            <h5>Institucional</h5>
+            <ul>
+              <li><Link to="/sobre">Sobre o MapaGov</Link></li>
+              <li><a href="/#base-legal-preview">Base legal</a></li>
+              <li><Link to="/funcionalidades">Governança do sistema</Link></li>
+              <li><Link to="/legal/politica">Política de privacidade</Link></li>
+              <li><Link to="/legal/termos">Termos de uso</Link></li>
+            </ul>
           </div>
 
           <div>
             <h5>Sistema</h5>
             <ul>
-              <li><Link to="/portal">Portal</Link></li>
-              <li><a href="#funcionalidades">Funcionalidades</a></li>
-              <li><a href="#roadmap">Roadmap</a></li>
+              <li><Link to="/portal">Acessar portal</Link></li>
+              <li><Link to="/funcionalidades">Funcionalidades</Link></li>
+              <li><a href="/#roadmap">Roadmap</a></li>
               <li><Link to="/pop">Helena IA</Link></li>
-              <li><a href="#base-legal">Base Legal</a></li>
             </ul>
           </div>
 
           <div>
-            <h5>Recursos</h5>
+            <h5>Suporte e Recursos</h5>
             <ul>
               <li><Link to="/pop">Assistente IA</Link></li>
+              <li><Link to="/funcionalidades">Documentação</Link></li>
               <li><Link to="/fluxograma">Fluxogramas</Link></li>
               <li><Link to="/riscos">Análise de Riscos</Link></li>
-              <li><a href="#roadmap">Próximos Lançamentos</a></li>
-              <li><a href="#base-legal">Base Legal</a></li>
             </ul>
           </div>
 
           <div>
-            <h5>Contato</h5>
+            <h5>Transparência</h5>
             <ul>
-              <li><Link to="/portal">Demonstração</Link></li>
-              <li><Link to="/pop">Começar Agora</Link></li>
-              <li><a href="#funcionalidades">Recursos</a></li>
-              <li><Link to="/portal">Suporte</Link></li>
+              <li><a href="/#roadmap">Histórico de versões</a></li>
+              <li><a href="/#roadmap">Próximos lançamentos</a></li>
+              <li><Link to="/sobre">Fale conosco</Link></li>
             </ul>
           </div>
         </div>
 
         <div className={styles.footerBottom}>
-          <p>&copy; 2025 MapaGov. Sistema de Governança, Riscos e Conformidade para o Setor Público Brasileiro.</p>
+          <p>&copy; 2025 MapaGov</p>
+          <p>Plataforma oficial do Ministério da Gestão e da Inovação em Serviços Públicos.</p>
         </div>
       </div>
     </footer>

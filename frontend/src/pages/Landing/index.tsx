@@ -100,115 +100,101 @@ export default function Landing() {
             Soluções integradas para estruturar, executar, monitorar e consolidar a governança do seu órgão.
           </p>
 
+          {/* ── Produtos disponíveis ── */}
+          <h3 className={styles.productsBlockTitle}>Disponíveis para uso</h3>
           <div className={styles.productsGrid}>
-            {/* 1 — Pronto */}
-            <div className={styles.productCard}>
+            <Link to="/pop" className={styles.productCard}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productName}>Gerador de POP</h3>
-                <Link to="/pop" className={styles.tagDisponivel}>Pronto</Link>
+                <span className={styles.tagDisponivel}>Disponível</span>
               </div>
-              <p className={styles.productEntrega}>Entrega: Documento completo do Procedimento Operacional Padrão (PDF).</p>
-              <p className={styles.productDescricao}>Estrutura etapas, responsabilidades e regras do processo, pronto para formalização e uso institucional.</p>
-              <Link to="/funcionalidades" className={styles.productLink}>Ver funcionalidades →</Link>
-            </div>
+              <p className={styles.productEntrega}>Documento completo do Procedimento Operacional Padrão (PDF).</p>
+              <span className={styles.productBtnAcessar}>Acessar produto</span>
+            </Link>
 
-            {/* 2 — Pronto */}
-            <div className={styles.productCard}>
+            <Link to="/fluxograma" className={styles.productCard}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productName}>Gerador de Fluxograma</h3>
-                <Link to="/fluxograma" className={styles.tagDisponivel}>Pronto</Link>
+                <span className={styles.tagDisponivel}>Disponível</span>
               </div>
-              <p className={styles.productEntrega}>Entrega: Fluxograma visual do processo (imagem ou PDF).</p>
-              <p className={styles.productDescricao}>Representação gráfica clara das etapas e decisões para organização e apresentação interna.</p>
-              <Link to="/funcionalidades" className={styles.productLink}>Ver funcionalidades →</Link>
-            </div>
+              <p className={styles.productEntrega}>Fluxograma visual do processo (imagem ou PDF).</p>
+              <span className={styles.productBtnAcessar}>Acessar produto</span>
+            </Link>
 
-            {/* 3 — Pronto */}
-            <div className={styles.productCard}>
+            <Link to="/riscos" className={styles.productCard}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productName}>Análise de Riscos</h3>
-                <Link to="/riscos" className={styles.tagDisponivel}>Pronto</Link>
+                <span className={styles.tagDisponivel}>Disponível</span>
               </div>
-              <p className={styles.productEntrega}>Entrega: Relatório de Riscos com estratégias de mitigação.</p>
-              <p className={styles.productDescricao}>Documento estruturado com identificação, avaliação e propostas de tratamento para anexar ao projeto.</p>
-              <Link to="/funcionalidades" className={styles.productLink}>Ver funcionalidades →</Link>
-            </div>
+              <p className={styles.productEntrega}>Relatório de Riscos com estratégias de mitigação.</p>
+              <span className={styles.productBtnAcessar}>Acessar produto</span>
+            </Link>
 
-            {/* 4 — Pronto */}
-            <div className={styles.productCard}>
+            <Link to="/planejamento-estrategico" className={styles.productCard}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productName}>Planejamento Estratégico</h3>
-                <Link to="/planejamento-estrategico" className={styles.tagDisponivel}>Pronto</Link>
+                <span className={styles.tagDisponivel}>Disponível</span>
               </div>
-              <p className={styles.productEntrega}>Entrega: Plano estratégico estruturado em documento formal.</p>
-              <p className={styles.productDescricao}>Organiza objetivos, metas e diretrizes conforme orientações do MGI.</p>
-              <Link to="/funcionalidades" className={styles.productLink}>Ver funcionalidades →</Link>
-            </div>
+              <p className={styles.productEntrega}>Plano estratégico estruturado em documento formal.</p>
+              <span className={styles.productBtnAcessar}>Acessar produto</span>
+            </Link>
+          </div>
 
-            {/* 5 — Em desenvolvimento */}
-            <div className={styles.productCard}>
+          {/* ── Em desenvolvimento ── */}
+          <h3 className={styles.productsBlockTitle}>Em desenvolvimento</h3>
+          <div className={styles.productsGridPlanejado}>
+            <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
-                <h3 className={styles.productName}>Plano de Ação e Acompanhamento</h3>
+                <h3 className={styles.productNamePlanejado}>Plano de Ação e Acompanhamento</h3>
                 <span className={styles.tagPlanejado}>Em desenvolvimento</span>
               </div>
-              <p className={styles.productEntrega}>Entrega: Plano de ação com responsáveis, prazos e status de execução.</p>
-              <p className={styles.productDescricao}>Organiza a implementação de projetos e iniciativas com acompanhamento estruturado.</p>
-              <Link to="/funcionalidades" className={styles.productLink}>Ver funcionalidades →</Link>
+              <p className={styles.productEntregaPlanejado}>Plano de ação com responsáveis, prazos e status de execução.</p>
+              <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
             </div>
 
-            {/* 6 — Em desenvolvimento */}
-            <div className={styles.productCard}>
+            <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
-                <h3 className={styles.productName}>Painel Executivo</h3>
+                <h3 className={styles.productNamePlanejado}>Painel Executivo</h3>
                 <span className={styles.tagPlanejado}>Em desenvolvimento</span>
               </div>
-              <p className={styles.productEntrega}>Entrega: Painel consolidado com indicadores e status das iniciativas.</p>
-              <p className={styles.productDescricao}>Apresenta visão gerencial das ações, riscos e resultados produzidos na plataforma.</p>
-              <Link to="/funcionalidades" className={styles.productLink}>Ver funcionalidades →</Link>
+              <p className={styles.productEntregaPlanejado}>Painel consolidado com indicadores e status das iniciativas.</p>
+              <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
             </div>
 
-            {/* 7 — Em desenvolvimento */}
-            <div className={styles.productCard}>
+            <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
-                <h3 className={styles.productName}>Dossiê Consolidado de Governança</h3>
+                <h3 className={styles.productNamePlanejado}>Dossiê Consolidado de Governança</h3>
                 <span className={styles.tagPlanejado}>Em desenvolvimento</span>
               </div>
-              <p className={styles.productEntrega}>Entrega: Dossiê completo reunindo todos os documentos e análises gerados.</p>
-              <p className={styles.productDescricao}>Compilação estruturada para registro institucional e prestação de contas.</p>
-              <Link to="/funcionalidades" className={styles.productLink}>Ver funcionalidades →</Link>
+              <p className={styles.productEntregaPlanejado}>Dossiê completo reunindo todos os documentos e análises gerados.</p>
+              <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
             </div>
 
-            {/* 8 — Em desenvolvimento */}
-            <div className={styles.productCard}>
+            <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
-                <h3 className={styles.productName}>Relatório Técnico Consolidado</h3>
+                <h3 className={styles.productNamePlanejado}>Relatório Técnico Consolidado</h3>
                 <span className={styles.tagPlanejado}>Em desenvolvimento</span>
               </div>
-              <p className={styles.productEntrega}>Entrega: Relatório técnico com histórico completo do processo.</p>
-              <p className={styles.productDescricao}>Formaliza as etapas realizadas para arquivamento e documentação administrativa.</p>
-              <Link to="/funcionalidades" className={styles.productLink}>Ver funcionalidades →</Link>
+              <p className={styles.productEntregaPlanejado}>Relatório técnico com histórico completo do processo.</p>
+              <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
             </div>
 
-            {/* 9 — Em desenvolvimento */}
-            <div className={styles.productCard}>
+            <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
-                <h3 className={styles.productName}>Relatório de Conformidade</h3>
+                <h3 className={styles.productNamePlanejado}>Relatório de Conformidade</h3>
                 <span className={styles.tagPlanejado}>Em desenvolvimento</span>
               </div>
-              <p className={styles.productEntrega}>Entrega: Relatório de verificação de aderência ao POP e prazos definidos.</p>
-              <p className={styles.productDescricao}>Avalia a execução do processo conforme regras estabelecidas.</p>
-              <Link to="/funcionalidades" className={styles.productLink}>Ver funcionalidades →</Link>
+              <p className={styles.productEntregaPlanejado}>Verificação de aderência ao POP e prazos definidos.</p>
+              <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
             </div>
 
-            {/* 10 — Em desenvolvimento */}
-            <div className={styles.productCard}>
+            <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
-                <h3 className={styles.productName}>Revisão e Adequação de Documentos</h3>
+                <h3 className={styles.productNamePlanejado}>Revisão e Adequação de Documentos</h3>
                 <span className={styles.tagPlanejado}>Em desenvolvimento</span>
               </div>
-              <p className={styles.productEntrega}>Entrega: Documento revisado conforme linguagem simples e padrões institucionais.</p>
-              <p className={styles.productDescricao}>Ajusta textos para adequação normativa e maior clareza administrativa.</p>
-              <Link to="/funcionalidades" className={styles.productLink}>Ver funcionalidades →</Link>
+              <p className={styles.productEntregaPlanejado}>Documento revisado conforme linguagem simples e padrões institucionais.</p>
+              <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
             </div>
           </div>
         </div>

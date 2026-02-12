@@ -46,11 +46,19 @@ export default function Sobre() {
         {/* Helena */}
         <section className={styles.section}>
           <div className={styles.container}>
-            <h2 className={styles.sectionTitle}>Helena: Inteligência a Serviço da Governança</h2>
+            <h2 className={styles.sectionTitle}>Helena</h2>
+            <p className={styles.sectionSubtitle}>Inteligência artificial a serviço da governança pública</p>
             <p className={styles.text}>
-              No centro do MapaGov está <strong>Helena</strong>, o módulo de inteligência artificial conversacional
-              da plataforma. Desenvolvida para compreender o contexto e o linguajar da administração pública, Helena
-              apoia o servidor na produção e qualificação de informações institucionais.
+              No centro do MapaGov está <strong>Helena</strong>, módulo de inteligência artificial conversacional
+              desenvolvido para apoiar atividades administrativas no âmbito da governança, riscos e conformidade.
+            </p>
+            <p className={styles.text}>
+              Projetada para compreender o contexto e a linguagem da administração pública, Helena auxilia na
+              organização, estruturação e qualificação de informações institucionais, contribuindo para maior
+              eficiência, padronização e segurança nos processos.
+            </p>
+            <p className={styles.text}>
+              Sua atuação ocorre sempre como ferramenta de apoio, sob supervisão do usuário responsável.
             </p>
 
             {/* Layout 2 colunas: Helena + Features */}
@@ -64,15 +72,24 @@ export default function Sobre() {
               </div>
 
               <div className={styles.featuresList}>
-                <h3>Com base em modelos de IA ética e supervisionada, Helena:</h3>
+                <h3>Capacidades da Helena</h3>
                 <ul>
-                  <li>Extrai informações estruturadas de conversas e documentos</li>
-                  <li>Preenche automaticamente formulários e modelos oficiais</li>
-                  <li>Sugere melhorias baseadas em boas práticas e normativos</li>
-                  <li>Identifica riscos e pontos de atenção</li>
-                  <li>Valida conformidade com legislações e manuais aplicáveis</li>
+                  <li>Extrair informações estruturadas a partir de conversas e documentos institucionais</li>
+                  <li>Apoiar o preenchimento de formulários e modelos oficiais</li>
+                  <li>Sugerir melhorias com base em boas práticas e referenciais normativos</li>
+                  <li>Indicar potenciais riscos e pontos de atenção em processos administrativos</li>
+                  <li>Apoiar a verificação de aderência a normativos e manuais aplicáveis</li>
                 </ul>
               </div>
+            </div>
+
+            <div className={styles.helenaDisclaimer}>
+              <h4>Uso Responsável</h4>
+              <p>
+                As recomendações e análises geradas pela Helena possuem caráter auxiliar e não substituem
+                a avaliação técnica, administrativa ou jurídica do usuário responsável. A decisão final sobre
+                conteúdos, encaminhamentos e conformidade permanece sob responsabilidade do agente público competente.
+              </p>
             </div>
           </div>
         </section>
@@ -108,67 +125,104 @@ export default function Sobre() {
           </div>
         </section>
 
-        {/* Por que escolher */}
+        {/* Diferenciais */}
         <section className={styles.section}>
           <div className={styles.container}>
-            <h2 className={styles.sectionTitle}>Por que escolher o MapaGov</h2>
+            <h2 className={styles.sectionTitle}>Diferenciais institucionais</h2>
 
             <div className={styles.benefitsGrid}>
               <div className={styles.benefitCard}>
-                <span className={styles.benefitIcon}>🎯</span>
-                <h3>Desenvolvido por e para o Setor Público</h3>
-                <p>Concebido pela DECIPEX/MGI com base em referenciais como COSO ERM, ISO 31000, Modelo das Três Linhas (IIA) e Referencial Básico de Governança Organizacional do TCU.</p>
+                <span className={styles.benefitIcon}>🏛</span>
+                <h3>Desenvolvido para o setor público</h3>
+                <p>Concebido no âmbito do DECIPEx/MGI, com base em referenciais do COSO ERM, ISO 31000 e boas práticas de governança organizacional.</p>
               </div>
 
               <div className={styles.benefitCard}>
                 <span className={styles.benefitIcon}>⚡</span>
-                <h3>Agilidade com Confiabilidade</h3>
-                <p>Reduz o tempo de documentação e análise mantendo o rigor técnico e a aderência às normas vigentes.</p>
+                <h3>Eficiência com conformidade</h3>
+                <p>Estrutura processos e documentos mantendo aderência a normativos e padrões institucionais vigentes.</p>
               </div>
 
               <div className={styles.benefitCard}>
-                <span className={styles.benefitIcon}>🔒</span>
-                <h3>Segurança e Privacidade</h3>
-                <p>Totalmente alinhado à Lei Geral de Proteção de Dados (Lei nº 13.709/2018) e às diretrizes de segurança da informação do governo federal.</p>
+                <span className={styles.benefitIcon}>🔐</span>
+                <h3>Segurança da informação</h3>
+                <p>Tratamento de dados alinhado à Lei n.º 13.709/2018 (LGPD) e às diretrizes de segurança da Administração Pública Federal.</p>
               </div>
 
               <div className={styles.benefitCard}>
-                <span className={styles.benefitIcon}>🤝</span>
-                <h3>Interface Intuitiva e Acessível</h3>
-                <p>Design moderno e responsivo, compatível com o padrão gov.br, pensado para todos os níveis de usuários.</p>
+                <span className={styles.benefitIcon}>♿</span>
+                <h3>Interface acessível</h3>
+                <p>Interface responsiva e compatível com padrões de acessibilidade digital, promovendo inclusão e previsibilidade de uso.</p>
               </div>
 
               <div className={styles.benefitCard}>
-                <span className={styles.benefitIcon}>📊</span>
-                <h3>Inteligência Contextualizada</h3>
-                <p>A IA reconhece o contexto de cada órgão, sugerindo automaticamente bases legais, controles internos e boas práticas de governança e integridade.</p>
+                <span className={styles.benefitIcon}>🧠</span>
+                <h3>Inteligência contextual</h3>
+                <p>Apoio à tomada de decisão com base no contexto administrativo, referenciais normativos e boas práticas de governança.</p>
+              </div>
+
+              <div className={styles.benefitCard}>
+                <span className={styles.benefitIcon}>🔄</span>
+                <h3>Evolução e sustentabilidade institucional</h3>
+                <p>Plataforma estruturada para atualização contínua, com governança técnica e acompanhamento institucional, assegurando aderência a mudanças normativas e tecnológicas.</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Tecnologia */}
+        {/* Arquitetura */}
         <section className={`${styles.section} ${styles.bgLight}`}>
           <div className={styles.container}>
-            <h2 className={styles.sectionTitle}>Tecnologia e Arquitetura</h2>
-            <p className={styles.text}>O MapaGov combina tecnologias abertas, seguras e escaláveis:</p>
+            <h2 className={styles.sectionTitle}>Arquitetura e governança digital</h2>
+            <p className={styles.sectionSubtitle}>
+              Plataforma tecnológica estruturante para a modernização da governança pública.
+            </p>
 
             <div className={styles.techGrid}>
               <div className={styles.techCard}>
-                <h4>IA Avançada</h4>
-                <p>Modelos baseados em GPT-4 com RAG (Retrieval-Augmented Generation) para respostas precisas e contextualizadas</p>
+                <h4>Inteligência artificial assistiva</h4>
+                <p>
+                  Modelos de linguagem com recuperação contextual (RAG) para apoio à análise de riscos,
+                  estruturação de informações e qualificação de documentos administrativos.
+                </p>
               </div>
+
               <div className={styles.techCard}>
-                <h4>Interface Moderna</h4>
-                <p>Construída em React 19 + TypeScript para experiência fluida e responsiva</p>
+                <h4>Aplicação web modular</h4>
+                <p>
+                  Arquitetura frontend escalável, tipada e preparada para expansão contínua de funcionalidades.
+                </p>
               </div>
+
               <div className={styles.techCard}>
-                <h4>Backend Robusto</h4>
-                <p>Desenvolvido em Django + PostgreSQL, assegurando estabilidade e integridade dos dados</p>
+                <h4>Backend e processamento estruturado</h4>
+                <p>
+                  API REST com banco relacional e geração automatizada de documentos institucionais.
+                </p>
               </div>
+
               <div className={styles.techCard}>
-                <h4>Cloud Native</h4>
-                <p>Preparado para implantação em infraestrutura de nuvem pública ou governamental</p>
+                <h4>Segurança e rastreabilidade</h4>
+                <p>
+                  Autenticação auditável, registro de ações e histórico de versões,
+                  assegurando responsabilidade administrativa.
+                </p>
+              </div>
+
+              <div className={styles.techCard}>
+                <h4>Infraestrutura escalável</h4>
+                <p>
+                  Execução em ambientes de nuvem pública ou governamental,
+                  com monitoramento contínuo e arquitetura containerizada.
+                </p>
+              </div>
+
+              <div className={styles.techCard}>
+                <h4>Evolução contínua</h4>
+                <p>
+                  Plataforma preparada para integração normativa, interoperabilidade governamental
+                  e expansão progressiva de módulos estratégicos.
+                </p>
               </div>
             </div>
           </div>
@@ -177,36 +231,92 @@ export default function Sobre() {
         {/* Impacto */}
         <section className={styles.section}>
           <div className={styles.container}>
-            <h2 className={styles.sectionTitle}>Impacto Esperado</h2>
-            <p className={styles.text}>Com o MapaGov, os órgãos públicos poderão:</p>
+            <h2 className={styles.sectionTitle}>Impacto na governança pública</h2>
+            <p className={styles.sectionSubtitle}>Com o MapaGov, os órgãos públicos passam a:</p>
 
             <ul className={styles.impactList}>
-              <li>Padronizar e automatizar fluxos de trabalho</li>
-              <li>Integrar dados e gerar indicadores em tempo real</li>
-              <li>Reduzir retrabalho e tempo de tramitação</li>
-              <li>Fortalecer a cultura de integridade e prevenção de riscos</li>
-              <li>Elevar o nível de maturidade em governança institucional</li>
+              <li><strong>Estruturar e padronizar</strong> processos de governança de forma integrada</li>
+              <li><strong>Consolidar dados estratégicos</strong> para acompanhamento e tomada de decisão</li>
+              <li><strong>Reduzir retrabalho</strong> e aumentar a eficiência administrativa</li>
+              <li><strong>Fortalecer mecanismos</strong> de integridade e prevenção de riscos</li>
+              <li><strong>Elevar o nível de maturidade</strong> institucional em governança, riscos e conformidade</li>
             </ul>
           </div>
         </section>
 
-        {/* Alinhamento */}
+        {/* Referenciais */}
         <section className={`${styles.section} ${styles.bgLight}`}>
           <div className={styles.container}>
-            <h2 className={styles.sectionTitle}>Alinhamento Técnico e Institucional</h2>
-            <p className={styles.text}>O MapaGov está fundamentado nos principais referenciais nacionais e internacionais:</p>
-
-            <ul className={styles.referencesList}>
-              <li>COSO ERM – Enterprise Risk Management (2017)</li>
-              <li>ISO 31000 – Risk Management (2018)</li>
-              <li>Referencial Básico de Governança Organizacional – TCU (2020)</li>
-              <li>Guia de Gestão de Riscos – CGU (2022)</li>
-              <li>Modelo de Maturidade em Integridade Pública – MMIP/CGU (2023)</li>
-            </ul>
-
-            <p className={styles.text}>
-              Esses referenciais orientam toda a arquitetura da plataforma, garantindo aderência normativa, transparência e valor público.
+            <h2 className={styles.sectionTitle}>Referenciais normativos e técnicos</h2>
+            <p className={styles.sectionSubtitle}>
+              Fundamentos jurídicos, metodológicos e digitais que orientam a concepção e evolução do MapaGov.
             </p>
+
+            <div className={styles.refGrid}>
+              <div className={styles.refCategory}>
+                <h3>1. Governança e gestão pública</h3>
+                <ul>
+                  <li>Decreto n.º 9.203/2017 — Diretrizes de governança, gestão de riscos e controles internos na Administração Pública Federal.</li>
+                  <li>Instrução Normativa Conjunta MP/CGU n.º 1/2016 — Controles internos, gestão de riscos e governança no Poder Executivo Federal.</li>
+                  <li>Referencial Básico de Governança Organizacional — TCU (2020) — Diretrizes para liderança, estratégia e controle.</li>
+                </ul>
+              </div>
+
+              <div className={styles.refCategory}>
+                <h3>2. Integridade pública</h3>
+                <ul>
+                  <li>Decreto n.º 11.529/2023 — Sistema de Integridade, Transparência e Acesso à Informação.</li>
+                  <li>Portaria MGI n.º 6.725/2024 — Programa de Integridade do MGI.</li>
+                  <li>Modelo de Maturidade em Integridade Pública — CGU (2023)</li>
+                </ul>
+              </div>
+
+              <div className={styles.refCategory}>
+                <h3>3a. Gestão de riscos — marco institucional (MGI)</h3>
+                <ul>
+                  <li>Resolução CITARC/MGI n.º 1/2023 — Política de Gestão de Riscos do MGI.</li>
+                  <li>Resolução CITARC/MGI n.º 4/2024 — Aprova o Guia de Gestão de Riscos do MGI.</li>
+                  <li>Resolução CITARC/MGI n.º 5/2025 — Disciplina a Carteira de Riscos Estratégicos.</li>
+                  <li>Guia de Gestão de Riscos do MGI (2024) — Metodologia institucional.</li>
+                </ul>
+              </div>
+
+              <div className={styles.refCategory}>
+                <h3>3b. Gestão de riscos — referenciais técnicos</h3>
+                <ul>
+                  <li>ISO 31000 (2018) — Diretrizes internacionais de gestão de riscos.</li>
+                  <li>ABNT NBR ISO 31073 (2022) — Terminologia aplicável à gestão de riscos.</li>
+                  <li>ABNT NBR ISO/IEC 31010 (2012) — Técnicas de identificação e análise de riscos.</li>
+                  <li>COSO ERM (2017) — Estrutura integrada de riscos, estratégia e desempenho.</li>
+                  <li>Referencial Básico de Gestão de Riscos — TCU (2018)</li>
+                  <li>Manual de Gestão de Riscos — TCU (2020)</li>
+                  <li>Metodologia de Gestão de Riscos — CGU (2018)</li>
+                </ul>
+              </div>
+
+              <div className={styles.refCategory}>
+                <h3>4. Estrutura organizacional, estratégia e processos</h3>
+                <ul>
+                  <li>Decreto n.º 12.102/2024 — Estrutura Regimental do MGI.</li>
+                  <li>Resolução CMG/MGI n.º 1/2023 — Planejamento Estratégico 2023–2027.</li>
+                  <li>Resolução CMG/MGI n.º 2/2024 — Cadeia de Valor do MGI.</li>
+                  <li>Guia de Modelagem de Processos — MGI (2023)</li>
+                  <li>Guia Prático de Gestão de Projetos — MGI (2025)</li>
+                </ul>
+              </div>
+
+              <div className={styles.refCategory}>
+                <h3>5. Experiência digital e comunicação</h3>
+
+                <ul>
+                  <li>Decreto n.º 10.332/2020 — Estratégia de Governo Digital.</li>
+                  <li>Decreto n.º 9.094/2017 — Simplificação do atendimento ao usuário.</li>
+                  <li>Lei n.º 13.460/2017 — Direitos dos usuários de serviços públicos.</li>
+                  <li>Decreto n.º 11.871/2023 — Política de Linguagem Simples.</li>
+                  <li>Design System Gov.br — vigente — Padrões oficiais de interface e acessibilidade digital.</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </section>
 

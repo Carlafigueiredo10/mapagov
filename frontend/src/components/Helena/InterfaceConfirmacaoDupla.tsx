@@ -7,6 +7,8 @@ interface InterfaceConfirmacaoDuplaProps {
     botao_editar?: string;
     valor_confirmar?: string;
     valor_editar?: string;
+    botao_terceiro?: string;
+    valor_terceiro?: string;
   };
   onEnviar: (valor: string) => void;
 }
@@ -17,11 +19,10 @@ const InterfaceConfirmacaoDupla: React.FC<InterfaceConfirmacaoDuplaProps> = ({ d
     botao_editar = 'Editar ✏️',
     valor_confirmar: valor_backend_confirmar,
     valor_editar: valor_backend_editar,
+    botao_terceiro,
+    valor_terceiro,
   } = dados;
 
-  // ✅ FIX: Usar valores do backend quando específicos, tokens só para genéricos
-  // Se backend envia "objetiva"/"detalhada"/etc → usa esses valores
-  // Se backend envia "CONFIRMAR"/"EDITAR" ou nada → usa tokens determinísticos
   const valor_confirmar = (valor_backend_confirmar && !['CONFIRMAR', 'SEGUIR'].includes(valor_backend_confirmar))
     ? valor_backend_confirmar
     : CHAT_CMD.CONFIRMAR_DUPLA;
@@ -37,9 +38,21 @@ const InterfaceConfirmacaoDupla: React.FC<InterfaceConfirmacaoDuplaProps> = ({ d
     onEnviar(valor_editar);
   };
 
+  const handleTerceiro = () => {
+    if (valor_terceiro) onEnviar(valor_terceiro);
+  };
+
   return (
     <div className="confirmacao-dupla-container">
       <div className="botoes-confirmacao">
+        {botao_terceiro && valor_terceiro && (
+          <button
+            className="btn-confirmacao btn-terceiro"
+            onClick={handleTerceiro}
+          >
+            {botao_terceiro}
+          </button>
+        )}
         {dados.botao_editar && (
           <button
             className="btn-confirmacao btn-editar"
@@ -99,6 +112,17 @@ const InterfaceConfirmacaoDupla: React.FC<InterfaceConfirmacaoDuplaProps> = ({ d
           background: #e0a800;
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+        }
+
+        .btn-terceiro {
+          background: #1351B4;
+          color: white;
+        }
+
+        .btn-terceiro:hover {
+          background: #0c3d8a;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(19, 81, 180, 0.3);
         }
 
         .btn-confirmacao:active {

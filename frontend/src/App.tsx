@@ -58,6 +58,7 @@ import CatalogoPOPPage from './pages/CatalogoPOPPage'
 import CatalogoAreaPage from './pages/CatalogoAreaPage'
 import CatalogoPOPDetailPage from './pages/CatalogoPOPDetailPage'
 import FuncionalidadesPage from './pages/FuncionalidadesPage'
+import LegalPage from './pages/LegalPage'
 
 function App() {
   return (
@@ -69,6 +70,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/sobre" element={<Sobre />} />
         <Route path="/funcionalidades" element={<FuncionalidadesPage />} />
+        <Route path="/legal/:doc" element={<LegalPage />} />
 
         {/* Catalogo publico (somente leitura) */}
         <Route path="/catalogo" element={<CatalogoPOPPage />} />

@@ -198,6 +198,15 @@ def detalhar_analise(request, analise_id):
                 "grau_confianca": r.grau_confianca,
                 "fonte_sugestao": r.fonte_sugestao,
                 "ativo": r.ativo,
+                # Campos Agatha 3.0
+                "causas": r.causas or [],
+                "consequencias": r.consequencias or [],
+                "controles_existentes": r.controles_existentes or [],
+                "tipo_avaliacao": r.tipo_avaliacao or "RESIDUAL_ATUAL",
+                "probabilidade_pos_plano": r.probabilidade_pos_plano,
+                "impacto_pos_plano": r.impacto_pos_plano,
+                "score_pos_plano": r.score_pos_plano,
+                "nivel_pos_plano": r.nivel_pos_plano or "",
                 # Status de tratamento (derivado, transparencia gerencial)
                 "status_tratamento": status_tratamento,
                 "resposta_definida": tem_resposta,
@@ -411,6 +420,10 @@ def adicionar_risco(request, analise_id):
             probabilidade=prob,
             impacto=imp,
             fonte_sugestao=data.get("fonte_sugestao", "USUARIO"),
+            causas=data.get("causas", []),
+            consequencias=data.get("consequencias", []),
+            controles_existentes=data.get("controles_existentes", []),
+            tipo_avaliacao=data.get("tipo_avaliacao", "RESIDUAL_ATUAL"),
         )
 
         return Response({
@@ -454,6 +467,20 @@ def analisar_risco(request, analise_id, risco_id):
             if not (1 <= imp <= 5):
                 return resposta_erro("Impacto deve ser 1-5", "IMPACTO_INVALIDO")
             risco.impacto = imp
+
+        # Campos Agatha 3.0
+        if "causas" in data:
+            risco.causas = data["causas"]
+        if "consequencias" in data:
+            risco.consequencias = data["consequencias"]
+        if "controles_existentes" in data:
+            risco.controles_existentes = data["controles_existentes"]
+        if "tipo_avaliacao" in data:
+            risco.tipo_avaliacao = data["tipo_avaliacao"]
+        if "probabilidade_pos_plano" in data:
+            risco.probabilidade_pos_plano = data["probabilidade_pos_plano"]
+        if "impacto_pos_plano" in data:
+            risco.impacto_pos_plano = data["impacto_pos_plano"]
 
         risco.save()
 
@@ -529,6 +556,11 @@ def adicionar_resposta(request, analise_id, risco_id):
             responsavel_nome=data.get("responsavel_nome", ""),
             responsavel_area=data.get("responsavel_area", ""),
             prazo=data.get("prazo"),
+            tipo_controle=data.get("tipo_controle", ""),
+            objetivo_controle=data.get("objetivo_controle", ""),
+            como_implementar=data.get("como_implementar", ""),
+            data_inicio=data.get("data_inicio"),
+            data_conclusao_prevista=data.get("data_conclusao_prevista"),
         )
 
         return Response({
@@ -927,6 +959,8 @@ def inferir_riscos_v2(request, analise_id):
                     grau_confianca=ri.grau_confianca,
                     justificativa=ri.justificativa,
                     fonte_sugestao=FonteSugestao.HELENA_INFERENCIA,
+                    causas=ri.causas,
+                    consequencias=ri.consequencias,
                     # probabilidade e impacto ficam None (pendente de avaliacao)
                 )
                 riscos_criados.append({

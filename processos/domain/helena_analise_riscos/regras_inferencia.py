@@ -19,7 +19,7 @@ Riscos inferidos entram como:
 - grau_confianca explicito
 """
 from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 from .enums import CategoriaRisco, GrauConfianca
@@ -35,6 +35,8 @@ class RiscoInferido:
     regra_id: str
     grau_confianca: str
     justificativa: str
+    causas: List[str] = field(default_factory=list)
+    consequencias: List[str] = field(default_factory=list)
 
 
 # =============================================================================
@@ -70,7 +72,9 @@ def inferir_riscos_bloco_1(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q4"],
             regra_id="B1_R1_ATRASO_DEPENDENCIA",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa=f"Dependencia {q1.lower()} de terceiros com entrega {q4.lower().replace('_', ' ')}, indicando risco de atraso na execucao."
+            justificativa=f"Dependencia {q1.lower()} de terceiros com entrega {q4.lower().replace('_', ' ')}, indicando risco de atraso na execucao.",
+            causas=["Dependencia significativa de entregas de terceiros"],
+            consequencias=["Atraso na execucao do processo/projeto", "Descumprimento de cronograma"],
         ))
 
     # RISCO 2 - Descontinuidade por falta de garantias
@@ -82,7 +86,9 @@ def inferir_riscos_bloco_1(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q2"],
             regra_id="B1_R2_DESCONTINUIDADE",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Dependencia alta de terceiros associada a ausencia de instrumento formal vigente, comprometendo a continuidade da entrega."
+            justificativa="Dependencia alta de terceiros associada a ausencia de instrumento formal vigente, comprometendo a continuidade da entrega.",
+            causas=["Ausencia de instrumento formal com terceiros de alta dependencia"],
+            consequencias=["Interrupcao de entregas essenciais", "Descontinuidade do processo"],
         ))
 
     # RISCO 3 - Risco legal por relacao informal
@@ -94,7 +100,9 @@ def inferir_riscos_bloco_1(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q2"],
             regra_id="B1_R3_LEGAL_INFORMAL",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Dependencia significativa de terceiros sem formalizacao adequada, expondo a organizacao a questionamentos juridicos."
+            justificativa="Dependencia significativa de terceiros sem formalizacao adequada, expondo a organizacao a questionamentos juridicos.",
+            causas=["Relacao com terceiros sem formalizacao contratual"],
+            consequencias=["Questionamento juridico por orgaos de controle", "Responsabilizacao de agentes"],
         ))
 
     # RISCO 4 - Inviabilizacao por contratacao futura
@@ -106,7 +114,9 @@ def inferir_riscos_bloco_1(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q3", "Q4"],
             regra_id="B1_R4_CONTRATACAO_FUTURA",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Entrega critica depende de contratacao ainda nao realizada, com risco de inviabilizacao do objeto."
+            justificativa="Entrega critica depende de contratacao ainda nao realizada, com risco de inviabilizacao do objeto.",
+            causas=["Contratacao necessaria ainda nao realizada ou licitacao pendente"],
+            consequencias=["Inviabilizacao do resultado final", "Paralisacao do projeto"],
         ))
 
     # RISCO 5 - Instabilidade por contratos temporarios
@@ -118,7 +128,9 @@ def inferir_riscos_bloco_1(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q3"],
             regra_id="B1_R5_CONTRATO_TEMPORARIO",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Dependencia relevante de contratos temporarios ou sazonais, gerando instabilidade na execucao."
+            justificativa="Dependencia relevante de contratos temporarios ou sazonais, gerando instabilidade na execucao.",
+            causas=["Dependencia de contratos temporarios ou sazonais"],
+            consequencias=["Instabilidade operacional por falta de continuidade contratual"],
         ))
 
     # RISCO 6 - Sistemico (combinacao critica)
@@ -130,7 +142,9 @@ def inferir_riscos_bloco_1(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q2", "Q4"],
             regra_id="B1_R6_SISTEMICO",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Combinacao critica: dependencia alta, sem formalizacao, para resultado final. Risco de falha em cadeia."
+            justificativa="Combinacao critica: dependencia alta, sem formalizacao, para resultado final. Risco de falha em cadeia.",
+            causas=["Dependencia alta de terceiros sem formalizacao para entrega critica"],
+            consequencias=["Falha em cadeia comprometendo resultado final", "Paralisacao operacional"],
         ))
 
     return riscos
@@ -165,7 +179,9 @@ def inferir_riscos_bloco_2(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q3"],
             regra_id="B2_R1_CONTINUIDADE",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Dependencia de pessoas-chave com risco de vacancia/afastamento, ameacando a continuidade operacional."
+            justificativa="Dependencia de pessoas-chave com risco de vacancia/afastamento, ameacando a continuidade operacional.",
+            causas=["Concentracao de conhecimento em pessoas-chave com risco de vacancia"],
+            consequencias=["Interrupcao de atividades essenciais", "Descontinuidade operacional"],
         ))
 
     # RISCO 2 - Perda de memoria institucional
@@ -177,7 +193,9 @@ def inferir_riscos_bloco_2(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q2"],
             regra_id="B2_R2_MEMORIA_INSTITUCIONAL",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Alta dependencia de pessoas-chave com longo tempo de substituicao, indicando risco de perda de conhecimento critico."
+            justificativa="Alta dependencia de pessoas-chave com longo tempo de substituicao, indicando risco de perda de conhecimento critico.",
+            causas=["Alta dependencia de pessoas-chave com tempo de substituicao longo"],
+            consequencias=["Perda de conhecimento critico nao documentado", "Degradacao da qualidade das entregas"],
         ))
 
     # RISCO 3 - Falha por capacitacao insuficiente
@@ -189,7 +207,9 @@ def inferir_riscos_bloco_2(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q4"],
             regra_id="B2_R3_CAPACITACAO",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Nivel de capacitacao insuficiente para a complexidade do objeto, aumentando risco de falhas."
+            justificativa="Nivel de capacitacao insuficiente para a complexidade do objeto, aumentando risco de falhas.",
+            causas=["Capacitacao da equipe insuficiente para a complexidade do objeto"],
+            consequencias=["Erros na execucao", "Retrabalho e atrasos"],
         ))
 
     # RISCO 4 - Atraso por curva de aprendizado
@@ -201,7 +221,9 @@ def inferir_riscos_bloco_2(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q2", "Q4"],
             regra_id="B2_R4_CURVA_APRENDIZADO",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Capacitacao parcial combinada com tempo de substituicao significativo, indicando risco de atraso."
+            justificativa="Capacitacao parcial combinada com tempo de substituicao significativo, indicando risco de atraso.",
+            causas=["Capacitacao parcial da equipe com tempo de substituicao significativo"],
+            consequencias=["Atraso por curva de aprendizado", "Entregas com qualidade reduzida"],
         ))
 
     # RISCO 5 - Sobrecarga operacional
@@ -213,7 +235,9 @@ def inferir_riscos_bloco_2(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q3", "Q4"],
             regra_id="B2_R5_SOBRECARGA",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Combinacao de dependencia de pessoas-chave, risco de vacancia e capacitacao parcial, gerando sobrecarga."
+            justificativa="Combinacao de dependencia de pessoas-chave, risco de vacancia e capacitacao parcial, gerando sobrecarga.",
+            causas=["Equipe reduzida com capacitacao parcial e risco de vacancia"],
+            consequencias=["Sobrecarga dos profissionais remanescentes", "Risco de erros por fadiga"],
         ))
 
     # RISCO 6 - Inviabilidade operacional (critico)
@@ -225,7 +249,9 @@ def inferir_riscos_bloco_2(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q2", "Q3"],
             regra_id="B2_R6_INVIABILIDADE",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Cenario critico: alta dependencia, longo tempo de substituicao e risco elevado de vacancia."
+            justificativa="Cenario critico: alta dependencia, longo tempo de substituicao e risco elevado de vacancia.",
+            causas=["Alta dependencia de pessoas-chave com risco elevado de vacancia e sem substitutos preparados"],
+            consequencias=["Inviabilidade operacional", "Paralisacao de atividades criticas"],
         ))
 
     return riscos
@@ -266,7 +292,9 @@ def inferir_riscos_bloco_3(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q4"],
             regra_id="B3_R1_INDISPONIBILIDADE",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Dependencia critica de sistemas sem contingencia manual, indicando risco de paralisacao total."
+            justificativa="Dependencia critica de sistemas sem contingencia manual, indicando risco de paralisacao total.",
+            causas=["Dependencia critica de sistemas sem plano de contingencia manual"],
+            consequencias=["Paralisacao total das operacoes em caso de falha", "Impossibilidade de atendimento"],
         ))
 
     # RISCO 2 - Falha sistemica por instabilidade
@@ -278,7 +306,9 @@ def inferir_riscos_bloco_3(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q3"],
             regra_id="B3_R2_INSTABILIDADE",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Sistemas em situacao instavel ou critica com dependencia operacional significativa."
+            justificativa="Sistemas em situacao instavel ou critica com dependencia operacional significativa.",
+            causas=["Sistemas em situacao instavel ou critica utilizados em operacoes dependentes"],
+            consequencias=["Falhas recorrentes nos sistemas", "Interrupcao de processos operacionais"],
         ))
 
     # RISCO 3 - Dependencia de sistemas externos
@@ -290,7 +320,9 @@ def inferir_riscos_bloco_3(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q2"],
             regra_id="B3_R3_SISTEMAS_EXTERNOS",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Dependencia critica de sistemas fora do controle direto da organizacao."
+            justificativa="Dependencia critica de sistemas fora do controle direto da organizacao.",
+            causas=["Dependencia critica de sistemas mantidos por terceiros"],
+            consequencias=["Impossibilidade de correcao rapida em caso de falha", "Exposicao a decisoes externas"],
         ))
 
     # RISCO 4 - Atraso por falhas recorrentes
@@ -302,7 +334,9 @@ def inferir_riscos_bloco_3(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q5"],
             regra_id="B3_R4_FALHAS_RECORRENTES",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Historico recorrente de falhas nos sistemas, indicando problema estrutural nao resolvido."
+            justificativa="Historico recorrente de falhas nos sistemas, indicando problema estrutural nao resolvido.",
+            causas=["Historico recorrente de falhas nos sistemas sem resolucao estrutural"],
+            consequencias=["Atrasos operacionais por indisponibilidade", "Perda de confianca nos sistemas"],
         ))
 
     # RISCO 5 - Mitigavel por contingencia parcial
@@ -314,7 +348,9 @@ def inferir_riscos_bloco_3(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q4"],
             regra_id="B3_R5_CONTINGENCIA_PARCIAL",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Dependencia critica com contingencia parcial - risco existe mas com possibilidade de mitigacao."
+            justificativa="Dependencia critica com contingencia parcial - risco existe mas com possibilidade de mitigacao.",
+            causas=["Dependencia critica de sistemas com contingencia apenas parcial"],
+            consequencias=["Degradacao parcial do servico em caso de falha", "Retrabalho manual"],
         ))
 
     # RISCO 6 - Paralisacao total (critico)
@@ -326,7 +362,9 @@ def inferir_riscos_bloco_3(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q3", "Q4"],
             regra_id="B3_R6_PARALISACAO_TOTAL",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Cenario critico: dependencia critica de sistemas instaveis sem contingencia manual."
+            justificativa="Cenario critico: dependencia critica de sistemas instaveis sem contingencia manual.",
+            causas=["Sistemas instaveis de uso critico sem nenhuma contingencia disponivel"],
+            consequencias=["Paralisacao total das operacoes", "Impossibilidade de continuidade por qualquer via"],
         ))
 
     return riscos
@@ -367,7 +405,9 @@ def inferir_riscos_bloco_4(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q2"],
             regra_id="B4_R1_PRAZO_NORMATIVO",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Prazo normativo critico de origem legal/regulamentar, com risco de descumprimento."
+            justificativa="Prazo normativo critico de origem legal/regulamentar, com risco de descumprimento.",
+            causas=["Prazo normativo critico de origem legal ou regulamentar"],
+            consequencias=["Descumprimento de obrigacao legal", "Sancoes administrativas ou judiciais"],
         ))
 
     # RISCO 2 - Responsabilizacao de agentes
@@ -379,7 +419,9 @@ def inferir_riscos_bloco_4(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q3"],
             regra_id="B4_R2_RESPONSABILIZACAO",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Descumprimento pode gerar responsabilizacao direta dos agentes envolvidos."
+            justificativa="Descumprimento pode gerar responsabilizacao direta dos agentes envolvidos.",
+            causas=["Risco de descumprimento de prazo com consequencia de responsabilizacao"],
+            consequencias=["Responsabilizacao pessoal de agentes publicos", "Processos administrativos disciplinares"],
         ))
 
     # RISCO 3 - Judicializacao
@@ -391,7 +433,9 @@ def inferir_riscos_bloco_4(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q3"],
             regra_id="B4_R3_JUDICIALIZACAO",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Descumprimento pode resultar em acoes judiciais contra a organizacao."
+            justificativa="Descumprimento pode resultar em acoes judiciais contra a organizacao.",
+            causas=["Descumprimento de prazo com possibilidade de judicializacao"],
+            consequencias=["Acoes judiciais contra a organizacao", "Custos processuais e dano reputacional"],
         ))
 
     # RISCO 4 - Reputacional por pressao externa
@@ -403,7 +447,9 @@ def inferir_riscos_bloco_4(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q5"],
             regra_id="B4_R4_REPUTACIONAL",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Pressao externa sobre prazos pode gerar danos reputacionais em caso de descumprimento."
+            justificativa="Pressao externa sobre prazos pode gerar danos reputacionais em caso de descumprimento.",
+            causas=["Pressao externa (midia, sociedade ou orgaos de controle) sobre cumprimento de prazos"],
+            consequencias=["Dano a imagem institucional", "Exposicao publica negativa"],
         ))
 
     # RISCO 5 - Elevado sem margem
@@ -415,7 +461,9 @@ def inferir_riscos_bloco_4(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q4"],
             regra_id="B4_R5_SEM_MARGEM",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Prazos existentes sem possibilidade de renegociacao, aumentando exposicao ao risco."
+            justificativa="Prazos existentes sem possibilidade de renegociacao, aumentando exposicao ao risco.",
+            causas=["Prazos normativos sem margem de renegociacao"],
+            consequencias=["Exposicao direta a sancoes em caso de atraso", "Impossibilidade de ajuste de cronograma"],
         ))
 
     # RISCO 6 - Moderado (administravel)
@@ -427,7 +475,9 @@ def inferir_riscos_bloco_4(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q4"],
             regra_id="B4_R6_ADMINISTRAVEL",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Prazos com margem e possibilidade de renegociacao - risco administravel."
+            justificativa="Prazos com margem e possibilidade de renegociacao - risco administravel.",
+            causas=["Prazos existentes com margem e possibilidade de renegociacao"],
+            consequencias=["Atraso administravel com possibilidade de ajuste"],
         ))
 
     return riscos
@@ -468,7 +518,9 @@ def inferir_riscos_bloco_5(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q4"],
             regra_id="B5_R1_ATRASO_DECISORIO",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Atribuicao decisoria difusa ou fluxo imprevisivel, gerando risco de atrasos."
+            justificativa="Atribuicao decisoria difusa ou fluxo imprevisivel, gerando risco de atrasos.",
+            causas=["Atribuicao decisoria difusa ou fluxo decisorio imprevisivel"],
+            consequencias=["Atraso na tomada de decisao", "Bloqueio de entregas dependentes de deliberacao"],
         ))
 
     # RISCO 2 - Paralisia institucional
@@ -480,7 +532,9 @@ def inferir_riscos_bloco_5(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q3", "Q4"],
             regra_id="B5_R2_PARALISIA",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Dependencia de multiplas instancias externas com fluxo nao previsivel."
+            justificativa="Dependencia de multiplas instancias externas com fluxo nao previsivel.",
+            causas=["Dependencia de multiplas instancias decisorias externas sem previsibilidade"],
+            consequencias=["Paralisia institucional", "Impossibilidade de avanco sem autorizacao externa"],
         ))
 
     # RISCO 3 - Conflito de competencia
@@ -492,7 +546,9 @@ def inferir_riscos_bloco_5(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q5"],
             regra_id="B5_R3_CONFLITO_COMPETENCIA",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Possibilidade de conflito de competencia, gerando impasses e questionamentos."
+            justificativa="Possibilidade de conflito de competencia, gerando impasses e questionamentos.",
+            causas=["Sobreposicao ou indefinicao de competencias entre areas/instancias"],
+            consequencias=["Impasses decisorios", "Questionamentos juridicos sobre validade das decisoes"],
         ))
 
     # RISCO 4 - Decisoes informais sem respaldo
@@ -504,7 +560,9 @@ def inferir_riscos_bloco_5(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q2"],
             regra_id="B5_R4_DECISOES_INFORMAIS",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Decisoes claras mas sem ato formal de governanca, expondo agentes a questionamentos."
+            justificativa="Decisoes claras mas sem ato formal de governanca, expondo agentes a questionamentos.",
+            causas=["Tomada de decisao sem respaldo em ato formal de governanca"],
+            consequencias=["Exposicao de agentes a questionamentos por orgaos de controle", "Inseguranca juridica"],
         ))
 
     # RISCO 5 - Reputacional por falha de coordenacao
@@ -516,7 +574,9 @@ def inferir_riscos_bloco_5(respostas: Dict[str, str]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q3"],
             regra_id="B5_R5_COORDENACAO",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Atribuicao difusa com dependencia externa pode gerar falhas de coordenacao visiveis."
+            justificativa="Atribuicao difusa com dependencia externa pode gerar falhas de coordenacao visiveis.",
+            causas=["Atribuicao decisoria difusa com dependencia de instancias externas"],
+            consequencias=["Falhas de coordenacao visiveis ao publico", "Dano a imagem institucional"],
         ))
 
     return riscos
@@ -563,7 +623,9 @@ def inferir_riscos_bloco_6(respostas: Dict[str, Any]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q5"],
             regra_id="B6_R1_NAO_MITIGADO",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Impacto diferenciado provavel sem medidas mitigadoras adequadas."
+            justificativa="Impacto diferenciado provavel sem medidas mitigadoras adequadas.",
+            causas=["Ausencia ou insuficiencia de medidas mitigadoras para impacto diferenciado provavel"],
+            consequencias=["Afetacao desproporcional de grupos especificos", "Questionamento por orgaos de controle e sociedade"],
         ))
 
     # RISCO 2 - Reputacional por efeito sobre grupos vulneraveis
@@ -576,7 +638,9 @@ def inferir_riscos_bloco_6(respostas: Dict[str, Any]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q2", "Q4"],
             regra_id="B6_R2_GRUPOS_VULNERAVEIS",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Impacto recorrente/sistemico sobre grupos vulneraveis gera risco reputacional significativo."
+            justificativa="Impacto recorrente/sistemico sobre grupos vulneraveis gera risco reputacional significativo.",
+            causas=["Impacto recorrente ou sistemico sobre grupos vulneraveis sem mitigacao"],
+            consequencias=["Dano reputacional institucional", "Exposicao publica e questionamento social"],
         ))
 
     # RISCO 3 - Questionamento institucional por tratamento desigual
@@ -588,7 +652,9 @@ def inferir_riscos_bloco_6(respostas: Dict[str, Any]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q3", "Q5"],
             regra_id="B6_R3_QUESTIONAMENTO",
             grau_confianca=GrauConfianca.ALTO.value,
-            justificativa="Tratamento desigual ou barreira tecnologica provavel sem mitigacao, expondo a questionamentos."
+            justificativa="Tratamento desigual ou barreira tecnologica provavel sem mitigacao, expondo a questionamentos.",
+            causas=["Tratamento desigual ou barreira tecnologica provavel sem medidas mitigadoras"],
+            consequencias=["Questionamento institucional por orgaos de controle", "Risco de acoes judiciais por tratamento discriminatorio"],
         ))
 
     # RISCO 4 - Operacional ampliado por exclusao
@@ -600,7 +666,9 @@ def inferir_riscos_bloco_6(respostas: Dict[str, Any]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q2", "Q3"],
             regra_id="B6_R4_BARREIRA_ACESSO",
             grau_confianca=GrauConfianca.MEDIO.value,
-            justificativa="Barreira tecnologica afetando populacoes vulneraveis pode comprometer resultados operacionais."
+            justificativa="Barreira tecnologica afetando populacoes vulneraveis pode comprometer resultados operacionais.",
+            causas=["Barreira tecnologica de acesso afetando populacoes vulneraveis"],
+            consequencias=["Exclusao de publico-alvo do servico", "Comprometimento dos resultados operacionais"],
         ))
 
     # RISCO 5 - Residual (impacto mitigado)
@@ -612,7 +680,9 @@ def inferir_riscos_bloco_6(respostas: Dict[str, Any]) -> List[RiscoInferido]:
             perguntas_acionadoras=["Q1", "Q5"],
             regra_id="B6_R5_MITIGADO",
             grau_confianca=GrauConfianca.BAIXO.value,
-            justificativa="Impacto desigual identificado com medidas mitigadoras formalizadas - risco residual aceitavel."
+            justificativa="Impacto desigual identificado com medidas mitigadoras formalizadas - risco residual aceitavel.",
+            causas=["Impacto desigual identificado, porem com medidas mitigadoras formalizadas"],
+            consequencias=["Risco residual aceitavel com controles em operacao"],
         ))
 
     return riscos
@@ -678,6 +748,8 @@ def inferir_riscos_bloco_7(respostas: Dict[str, str]) -> List[RiscoInferido]:
                 "e judicializacao, constrangendo a conformidade legal e a continuidade "
                 "regular do processo/servico."
             ),
+            causas=[f"{'Ausencia' if q3 == 'NAO' else 'Incerteza sobre existencia'} de base legal documentada para tratamento de dados pessoais"],
+            consequencias=["Sancoes administrativas da ANPD", "Violacao de direitos dos titulares de dados", "Judicializacao"],
         ))
 
     # -----------------------------------------------------------------
@@ -700,6 +772,8 @@ def inferir_riscos_bloco_7(respostas: Dict[str, str]) -> List[RiscoInferido]:
                 "agravadas e dano reputacional, constrangendo a protecao reforcada de "
                 "dados sensiveis e a conformidade do processo."
             ),
+            causas=["Tratamento de dados sensiveis sem base legal especifica ou controles de acesso proporcionais"],
+            consequencias=["Exposicao de dados sensiveis", "Sancoes agravadas pela natureza dos dados", "Dano reputacional institucional"],
         ))
 
     # -----------------------------------------------------------------
@@ -723,6 +797,8 @@ def inferir_riscos_bloco_7(respostas: Dict[str, str]) -> List[RiscoInferido]:
                 "retrabalho, responsabilizacao de agentes e perda de confianca, "
                 "constrangendo a governanca de dados e a integridade operacional do processo."
             ),
+            causas=[f"{'Ausencia' if q4 == 'NAO' else 'Incerteza sobre existencia'} de regras de compartilhamento e controles de acesso a dados pessoais"],
+            consequencias=["Acesso nao autorizado a dados pessoais", "Compartilhamento sem criterio", "Responsabilizacao de agentes"],
         ))
 
     # -----------------------------------------------------------------
@@ -746,6 +822,8 @@ def inferir_riscos_bloco_7(respostas: Dict[str, str]) -> List[RiscoInferido]:
                 "constrangendo a governanca do ciclo de vida dos dados e a conformidade "
                 "do processo."
             ),
+            causas=[f"{'Ausencia' if q5 == 'NAO' else 'Incerteza sobre existencia'} de regras para retencao e eliminacao de dados pessoais"],
+            consequencias=["Retencao de dados alem do necessario", "Aumento de superficie de risco em caso de incidente"],
         ))
 
     # -----------------------------------------------------------------
@@ -769,6 +847,8 @@ def inferir_riscos_bloco_7(respostas: Dict[str, str]) -> List[RiscoInferido]:
                 "sancoes, vazamento e interrupcao operacional, constrangendo a governanca "
                 "institucional de dados e a continuidade do processo."
             ),
+            causas=["Ausencia combinada de base legal, controles de acesso e regras de retencao/eliminacao"],
+            consequencias=["Falha sistemica de governanca de dados", "Exposicao simultanea a multiplos vetores de risco"],
         ))
 
     # -----------------------------------------------------------------
@@ -791,6 +871,8 @@ def inferir_riscos_bloco_7(respostas: Dict[str, str]) -> List[RiscoInferido]:
                 "e retrabalho pontual, constrangendo a maturacao dos controles de dados "
                 "e a conformidade plena do processo."
             ),
+            causas=["Controles de compartilhamento/acesso e/ou retencao/eliminacao parcialmente implantados"],
+            consequencias=["Falha pontual de controle com possibilidade de remediacao", "Retrabalho pontual"],
         ))
 
     return riscos
@@ -854,6 +936,8 @@ def riscos_para_dict(riscos: List[RiscoInferido]) -> List[Dict[str, Any]]:
             "regra_id": r.regra_id,
             "grau_confianca": r.grau_confianca,
             "justificativa": r.justificativa,
+            "causas": r.causas,
+            "consequencias": r.consequencias,
         }
         for r in riscos
     ]

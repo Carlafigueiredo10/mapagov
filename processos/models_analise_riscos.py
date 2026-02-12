@@ -21,6 +21,9 @@ from .analise_riscos_enums import (
     ModoEntrada,
     TipoOrigem,
     GrauConfianca,
+    TipoAvaliacao,
+    TipoControle,
+    ObjetivoControle,
 )
 from .analise_riscos_matriz import calcular_score, calcular_nivel
 
@@ -195,6 +198,37 @@ class RiscoIdentificado(models.Model):
         help_text="Justificativa rastreavel da inferencia",
     )
 
+    # --- Campos Agatha 3.0 ---
+    causas = models.JSONField(
+        default=list, blank=True,
+        help_text="Lista de causas do evento de risco",
+    )
+    consequencias = models.JSONField(
+        default=list, blank=True,
+        help_text="Lista de consequencias do evento de risco",
+    )
+    controles_existentes = models.JSONField(
+        default=list, blank=True,
+        help_text="[{descricao, desenho, operacao}] - tripe Agatha",
+    )
+    tipo_avaliacao = models.CharField(
+        max_length=30,
+        choices=[(t.value, t.value) for t in TipoAvaliacao],
+        default=TipoAvaliacao.RESIDUAL_ATUAL.value,
+    )
+
+    # Projecao pos-plano (opcional)
+    probabilidade_pos_plano = models.PositiveSmallIntegerField(null=True, blank=True)
+    impacto_pos_plano = models.PositiveSmallIntegerField(null=True, blank=True)
+    score_pos_plano = models.PositiveSmallIntegerField(
+        editable=False, null=True, blank=True,
+    )
+    nivel_pos_plano = models.CharField(
+        max_length=20,
+        choices=[(n.value, n.value) for n in NivelRisco],
+        editable=False, blank=True, default="",
+    )
+
     fonte_sugestao = models.CharField(
         max_length=20,
         choices=FonteSugestao.choices,
@@ -217,13 +251,19 @@ class RiscoIdentificado(models.Model):
 
     def save(self, *args, **kwargs):
         # Calcula score/nivel apenas se P e I estiverem definidos
-        # Caso contrario, deixa pendente (null/vazio)
         if self.probabilidade is not None and self.impacto is not None:
             self.score_risco = calcular_score(self.probabilidade, self.impacto)
             self.nivel_risco = calcular_nivel(self.score_risco)
         else:
             self.score_risco = None
             self.nivel_risco = ""
+        # Calcula projecao pos-plano (se preenchida)
+        if self.probabilidade_pos_plano is not None and self.impacto_pos_plano is not None:
+            self.score_pos_plano = calcular_score(self.probabilidade_pos_plano, self.impacto_pos_plano)
+            self.nivel_pos_plano = calcular_nivel(self.score_pos_plano)
+        else:
+            self.score_pos_plano = None
+            self.nivel_pos_plano = ""
         if not self.orgao_id:
             self.orgao_id = self.analise.orgao_id
         super().save(*args, **kwargs)
@@ -252,6 +292,21 @@ class RespostaRisco(models.Model):
     responsavel_nome = models.CharField(max_length=255)
     responsavel_area = models.CharField(max_length=100)
     prazo = models.DateField(null=True, blank=True)
+
+    # --- Campos Agatha 3.0 (plano de controle) ---
+    tipo_controle = models.CharField(
+        max_length=20,
+        choices=[(t.value, t.value) for t in TipoControle],
+        blank=True,
+    )
+    objetivo_controle = models.CharField(
+        max_length=20,
+        choices=[(o.value, o.value) for o in ObjetivoControle],
+        blank=True,
+    )
+    como_implementar = models.TextField(blank=True)
+    data_inicio = models.DateField(null=True, blank=True)
+    data_conclusao_prevista = models.DateField(null=True, blank=True)
 
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)

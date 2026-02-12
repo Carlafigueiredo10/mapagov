@@ -31,7 +31,7 @@ from processos.domain.helena_analise_riscos.blocos_schema import BLOCOS_SCHEMA
 # CONSTANTES
 # =============================================================================
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 VERSAO_SISTEMA = "Helena v2.1"
 
 # Nota institucional para documentos exportados
@@ -230,6 +230,18 @@ LABELS = {
     "MITIGAR": "Mitigar",
     "COMPARTILHAR": "Compartilhar",
     "ACEITAR": "Aceitar",
+
+    # --- Agatha 3.0: Tipo de Avaliacao ---
+    "INERENTE": "Inerente (antes de controles)",
+    "RESIDUAL_ATUAL": "Residual (atual, considerando controles existentes)",
+
+    # --- Agatha 3.0: Tipo de Controle ---
+    "PREVENTIVO": "Preventivo",
+    "CORRETIVO": "Corretivo",
+
+    # --- Agatha 3.0: Objetivo do Controle ---
+    "NOVO": "Implementar controle novo",
+    "MELHORIA": "Melhorar controle existente",
 }
 
 
@@ -463,6 +475,15 @@ def build_snapshot_payload(analise: AnaliseRiscos) -> Dict[str, Any]:
             "grau_confianca": risco.grau_confianca or "",
             "perguntas_acionadoras": risco.perguntas_acionadoras or [],
             "regra_aplicada": risco.regra_aplicada or "",
+            # Campos Agatha 3.0
+            "causas": risco.causas or [],
+            "consequencias": risco.consequencias or [],
+            "controles_existentes": risco.controles_existentes or [],
+            "tipo_avaliacao": risco.tipo_avaliacao or "RESIDUAL_ATUAL",
+            "probabilidade_pos_plano": risco.probabilidade_pos_plano,
+            "impacto_pos_plano": risco.impacto_pos_plano,
+            "score_pos_plano": risco.score_pos_plano,
+            "nivel_pos_plano": risco.nivel_pos_plano or "",
             # Respostas ao risco (plano de tratamento)
             "respostas": [],
         }
@@ -476,6 +497,12 @@ def build_snapshot_payload(analise: AnaliseRiscos) -> Dict[str, Any]:
                 "responsavel_nome": resposta.responsavel_nome,
                 "responsavel_area": resposta.responsavel_area,
                 "prazo": resposta.prazo.isoformat() if resposta.prazo else None,
+                # Campos Agatha 3.0
+                "tipo_controle": resposta.tipo_controle or "",
+                "objetivo_controle": resposta.objetivo_controle or "",
+                "como_implementar": resposta.como_implementar or "",
+                "data_inicio": resposta.data_inicio.isoformat() if resposta.data_inicio else None,
+                "data_conclusao_prevista": resposta.data_conclusao_prevista.isoformat() if resposta.data_conclusao_prevista else None,
             })
 
         riscos_payload.append(risco_data)

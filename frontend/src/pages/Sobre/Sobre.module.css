@@ -57,8 +57,15 @@
   font-family: 'Playfair Display', serif;
   font-size: 2.2rem;
   color: var(--primary-blue);
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
   text-align: center;
+}
+
+.sectionSubtitle {
+  font-size: 1.15rem;
+  color: var(--light-text);
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
 .intro {
@@ -88,27 +95,20 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  background: #ffffff;
 }
 
 .helenaImage {
   width: 100%;
   max-width: 350px;
   height: auto;
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(52, 152, 219, 0.3);
-  transition: transform 0.3s ease;
-}
-
-.helenaImage:hover {
-  transform: scale(1.05);
+  mix-blend-mode: multiply;
 }
 
 /* Features List */
 .featuresList {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: transparent;
+  padding: 1rem 0;
 }
 
 .featuresList h3 {
@@ -139,6 +139,35 @@
 
 .featuresList li:last-child {
   border-bottom: none;
+}
+
+.featuresList p {
+  color: var(--light-text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 0.5rem 0;
+}
+
+/* Helena Disclaimer */
+.helenaDisclaimer {
+  margin-top: 2.5rem;
+  padding: 1.5rem 2rem;
+  background: #fef9e7;
+  border-left: 4px solid #f0b429;
+  border-radius: 8px;
+}
+
+.helenaDisclaimer h4 {
+  color: var(--primary-blue);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.05rem;
+}
+
+.helenaDisclaimer p {
+  color: var(--dark-text);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin: 0;
 }
 
 /* Catalog Grid */
@@ -226,31 +255,35 @@
 /* Tech Grid */
 .techGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   margin-top: 2rem;
 }
 
 .techCard {
   background: white;
-  padding: 1.5rem;
+  padding: 1.8rem;
   border-radius: 8px;
   border-left: 4px solid var(--secondary-blue);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
 .techCard h4 {
   color: var(--primary-blue);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
 }
 
 .techCard p {
   color: var(--light-text);
   font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
 }
 
-/* Impact & References Lists */
-.impactList,
-.referencesList {
+/* Impact List */
+.impactList {
+  list-style: none;
   background: white;
   padding: 2rem;
   border-radius: 12px;
@@ -258,8 +291,7 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
-.impactList li,
-.referencesList li {
+.impactList li {
   padding: 0.8rem 0;
   padding-left: 1.5rem;
   position: relative;
@@ -273,14 +305,61 @@
   font-weight: bold;
 }
 
-.referencesList li:before {
-  content: '•';
+/* References Grid */
+.refGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.refCategory {
+  background: white;
+  padding: 1.8rem;
+  border-radius: 8px;
+  border-top: 3px solid var(--secondary-blue);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.refCategory h3 {
+  color: var(--primary-blue);
+  font-size: 1.1rem;
+  margin: 0 0 1rem 0;
+}
+
+.refCategory h4 {
+  color: var(--dark-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 1.2rem 0 0.5rem 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.refCategory ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.refCategory li {
+  padding: 0.4rem 0;
+  padding-left: 1rem;
+  position: relative;
+  font-size: 0.9rem;
+  color: var(--dark-text);
+  line-height: 1.6;
+}
+
+.refCategory li:before {
+  content: '·';
   position: absolute;
   left: 0;
   color: var(--secondary-blue);
   font-weight: bold;
-  font-size: 1.5rem;
-  line-height: 1;
+  font-size: 1.2rem;
 }
 
 /* CTA Section */
@@ -353,7 +432,8 @@
   }
 
   .benefitsGrid,
-  .techGrid {
+  .techGrid,
+  .refGrid {
     grid-template-columns: 1fr;
   }
 

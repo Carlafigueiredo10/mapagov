@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Plus, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { Edit2, Trash2, Plus, ChevronDown, ChevronRight, AlertCircle, ArrowUp, ArrowDown, PlusCircle } from 'lucide-react';
 import type { Etapa, Cenario } from '../../types/pop.types';
 
 interface InterfaceEditarEtapasProps {
@@ -35,6 +35,38 @@ const InterfaceEditarEtapas: React.FC<InterfaceEditarEtapasProps> = ({ dados, on
       acao: 'editar_etapa',
       etapa_id: etapa.id,
       numero_etapa: Number(etapa.numero)
+    }));
+  };
+
+  const handleMoverCima = (etapa: Etapa) => {
+    const idx = etapas.findIndex(e => getEtapaKey(e) === getEtapaKey(etapa));
+    if (idx <= 0) return;
+    const novas = [...etapas];
+    [novas[idx - 1], novas[idx]] = [novas[idx], novas[idx - 1]];
+    setEtapas(novas.map((e, i) => ({ ...e, numero: String(i + 1), ordem: i + 1 })));
+  };
+
+  const handleMoverBaixo = (etapa: Etapa) => {
+    const idx = etapas.findIndex(e => getEtapaKey(e) === getEtapaKey(etapa));
+    if (idx < 0 || idx >= etapas.length - 1) return;
+    const novas = [...etapas];
+    [novas[idx], novas[idx + 1]] = [novas[idx + 1], novas[idx]];
+    setEtapas(novas.map((e, i) => ({ ...e, numero: String(i + 1), ordem: i + 1 })));
+  };
+
+  const handleInserirAntes = (etapa: Etapa) => {
+    const numero = Number(etapa.numero);
+    onConfirm(JSON.stringify({
+      acao: 'inserir_etapa',
+      posicao: numero - 1
+    }));
+  };
+
+  const handleInserirDepois = (etapa: Etapa) => {
+    const numero = Number(etapa.numero);
+    onConfirm(JSON.stringify({
+      acao: 'inserir_etapa',
+      posicao: numero
     }));
   };
 
@@ -179,12 +211,38 @@ const InterfaceEditarEtapas: React.FC<InterfaceEditarEtapasProps> = ({ dados, on
                     </div>
                   </div>
                   <div className="etapa-acoes">
+                    <div className="acoes-mover">
+                      <button
+                        onClick={() => handleMoverCima(etapa)}
+                        className="btn-mover"
+                        title="Mover para cima"
+                        disabled={Number(etapa.numero) === 1}
+                      >
+                        <ArrowUp size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleMoverBaixo(etapa)}
+                        className="btn-mover"
+                        title="Mover para baixo"
+                        disabled={Number(etapa.numero) === etapas.length}
+                      >
+                        <ArrowDown size={16} />
+                      </button>
+                    </div>
                     <button onClick={() => handleEditar(etapa)} className="btn-acao btn-editar" title="Editar esta etapa">
-                      <Edit2 size={18} /> Editar
+                      <Edit2 size={16} /> Editar
                     </button>
                     <button onClick={() => handleDeletar(etapa)} className="btn-acao btn-deletar" title="Deletar esta etapa">
-                      <Trash2 size={18} /> Deletar
+                      <Trash2 size={16} /> Deletar
                     </button>
+                    <div className="acoes-inserir">
+                      <button onClick={() => handleInserirAntes(etapa)} className="btn-inserir" title="Inserir etapa antes">
+                        <PlusCircle size={14} /> Antes
+                      </button>
+                      <button onClick={() => handleInserirDepois(etapa)} className="btn-inserir" title="Inserir etapa depois">
+                        <PlusCircle size={14} /> Depois
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -241,7 +299,14 @@ const InterfaceEditarEtapas: React.FC<InterfaceEditarEtapasProps> = ({ dados, on
         .badge-condicional, .badge-operador { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
         .badge-condicional { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
         .badge-operador { background: #e8f0fe; color: #1351B4; border: 1px solid #b8d4fe; }
-        .etapa-acoes { display: flex; gap: 0.5rem; flex-shrink: 0; }
+        .etapa-acoes { display: flex; gap: 0.4rem; flex-shrink: 0; align-items: center; flex-wrap: wrap; }
+        .acoes-mover { display: flex; flex-direction: column; gap: 0.15rem; }
+        .btn-mover { background: #e9ecef; border: none; border-radius: 4px; padding: 0.2rem; cursor: pointer; color: #495057; display: flex; align-items: center; transition: all 0.2s; }
+        .btn-mover:hover:not(:disabled) { background: #1351B4; color: white; }
+        .btn-mover:disabled { opacity: 0.3; cursor: not-allowed; }
+        .acoes-inserir { display: flex; flex-direction: column; gap: 0.15rem; }
+        .btn-inserir { display: flex; align-items: center; gap: 0.2rem; background: #e8f0fe; border: none; border-radius: 4px; padding: 0.2rem 0.4rem; cursor: pointer; color: #1351B4; font-size: 0.7rem; font-weight: 500; transition: all 0.2s; white-space: nowrap; }
+        .btn-inserir:hover { background: #1351B4; color: white; }
         .btn-acao { display: flex; align-items: center; gap: 0.375rem; padding: 0.5rem 0.75rem; border: none; border-radius: 6px; font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
         .btn-editar { background: #1351B4; color: white; }
         .btn-editar:hover { background: #0c3d8a; transform: translateY(-1px); }

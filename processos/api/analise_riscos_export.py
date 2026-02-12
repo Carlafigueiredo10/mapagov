@@ -67,7 +67,8 @@ SECTIONS = [
     {"id": "riscos", "title": "4. Riscos Identificados"},
     {"id": "tratamento", "title": "5. Tratamento dos Riscos"},
     {"id": "leitura_mgi", "title": "6. Enquadramento Institucional e Prioridades Gerenciais (MGI)"},
-    {"id": "metadados", "title": "7. Metadados e Rastreabilidade"},
+    {"id": "agatha", "title": "7. Insumos Estruturados para Registro no Sistema Agatha"},
+    {"id": "metadados", "title": "8. Metadados e Rastreabilidade"},
 ]
 
 
@@ -373,6 +374,121 @@ def build_leitura_mgi(data: Dict[str, Any]) -> Dict[str, Any]:
         "frase_sem_resposta": (
             "Os riscos listados a seguir encontram-se fora do apetite institucional "
             "e ainda nao possuem resposta formal definida."
+        ),
+    }
+
+
+def build_insumos_agatha(riscos_com_leitura: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Constroi conteudo da secao Insumos Agatha (Manual 3.0).
+
+    Consolida por evento de risco as informacoes estruturadas
+    necessarias para registro no Sistema Agatha.
+    """
+    insumos = []
+    checklist = []
+
+    for risco in riscos_com_leitura:
+        lm = risco.get("leitura_mgi") or {}
+        respostas = risco.get("respostas", [])
+        causas = risco.get("causas", [])
+        consequencias = risco.get("consequencias", [])
+        controles = risco.get("controles_existentes", [])
+
+        identificacao = {
+            "titulo": risco.get("titulo", ""),
+            "categoria": labelize(risco.get("categoria", "")),
+            "integridade_associado": "Sim" if lm.get("is_integridade") else "Nao",
+        }
+
+        tipo_aval = risco.get("tipo_avaliacao", "RESIDUAL_ATUAL")
+        avaliacao_atual = {
+            "tipo_avaliacao": labelize(tipo_aval) or tipo_aval,
+            "probabilidade": fmt_dash(risco.get("probabilidade")),
+            "impacto": fmt_dash(risco.get("impacto")),
+            "score": fmt_dash(risco.get("score_risco")),
+            "nivel": fmt_text(risco.get("nivel_risco"), "Pendente"),
+        }
+
+        controles_render = []
+        if controles:
+            for ctrl in controles:
+                desenho = ctrl.get("desenho", "N/A")
+                operacao = ctrl.get("operacao", "N/A")
+                controles_render.append({
+                    "descricao": ctrl.get("descricao", ""),
+                    "desenho": desenho,
+                    "operacao": operacao,
+                    "sem_avaliacao": desenho == "N/A" and operacao == "N/A",
+                })
+
+        respostas_render = []
+        for resp in respostas:
+            respostas_render.append({
+                "estrategia": labelize(resp.get("estrategia", "")),
+                "estrategia_raw": resp.get("estrategia", ""),
+                "acao": resp.get("descricao_acao", ""),
+                "responsavel": resp.get("responsavel_nome", ""),
+                "area": resp.get("responsavel_area", ""),
+                "prazo": resp.get("prazo", ""),
+                "tipo_controle": labelize(resp.get("tipo_controle", "")) or "",
+                "objetivo_controle": labelize(resp.get("objetivo_controle", "")) or "",
+                "como_implementar": resp.get("como_implementar", "") or "",
+                "data_inicio": resp.get("data_inicio", "") or "",
+                "data_conclusao_prevista": resp.get("data_conclusao_prevista", "") or "",
+            })
+
+        p_pos = risco.get("probabilidade_pos_plano")
+        i_pos = risco.get("impacto_pos_plano")
+        avaliacao_projetada = None
+        if p_pos is not None and i_pos is not None:
+            avaliacao_projetada = {
+                "probabilidade": str(p_pos),
+                "impacto": str(i_pos),
+                "score": fmt_dash(risco.get("score_pos_plano")),
+                "nivel": fmt_text(risco.get("nivel_pos_plano"), "\u2014"),
+            }
+
+        insumos.append({
+            "identificacao": identificacao,
+            "causas": causas,
+            "consequencias": consequencias,
+            "avaliacao_atual": avaliacao_atual,
+            "controles_existentes": controles_render,
+            "respostas": respostas_render,
+            "avaliacao_projetada": avaliacao_projetada,
+        })
+
+        pendencias = []
+        if risco.get("probabilidade") is None or risco.get("impacto") is None:
+            pendencias.append("P/I nao definido")
+        if not is_respondido(risco):
+            pendencias.append("Resposta nao definida")
+        if not causas:
+            pendencias.append("Causas nao informadas")
+        if not consequencias:
+            pendencias.append("Consequencias nao informadas")
+        tem_mitigar = any(r.get("estrategia") == "MITIGAR" for r in respostas)
+        if tem_mitigar:
+            plano_ok = any(
+                r.get("estrategia") == "MITIGAR" and r.get("descricao_acao")
+                for r in respostas
+            )
+            if not plano_ok:
+                pendencias.append("Plano de controle pendente (estrategia MITIGAR)")
+
+        checklist.append({
+            "titulo": risco.get("titulo", ""),
+            "pronto": len(pendencias) == 0,
+            "pendencias": pendencias,
+        })
+
+    return {
+        "insumos": insumos,
+        "checklist": checklist,
+        "subtitulo": (
+            "Esta secao consolida, por evento de risco identificado, as informacoes "
+            "estruturadas necessarias para registro no Sistema Agatha, conforme Manual 3.0."
         ),
     }
 
@@ -1019,7 +1135,154 @@ def render_pdf(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
 
     elements.append(Spacer(1, 16))
 
-    # === ENCAMINHAMENTO AO GESTOR (AJUSTE 7) ===
+    # === SECAO 7: INSUMOS AGATHA ===
+    agatha = build_insumos_agatha(leitura_mgi['riscos_com_leitura'])
+    elements.append(Paragraph(SECTIONS[6]["title"], styles['SectionTitle']))
+    elements.append(Paragraph(f"<i>{agatha['subtitulo']}</i>", styles['SmallGray']))
+    elements.append(Spacer(1, 10))
+
+    for idx, insumo in enumerate(agatha['insumos'], 1):
+        ident = insumo['identificacao']
+
+        # 7.X - Titulo do evento
+        elements.append(Paragraph(
+            f"<b>7.{idx}. {ident['titulo']}</b>",
+            styles['SubSectionTitle']
+        ))
+
+        # 7.X.1 - Identificacao do evento
+        elements.append(Paragraph('<b>Identificacao do evento</b>', styles['CardTitle']))
+        elements.append(Paragraph(f"Evento: {ident['titulo']}", styles['GovBody']))
+        elements.append(Paragraph(f"Categoria: {ident['categoria']}", styles['GovBody']))
+        elements.append(Paragraph(f"Integridade associado: {ident['integridade_associado']}", styles['GovBody']))
+        elements.append(Spacer(1, 6))
+
+        # 7.X.2 - Causas
+        elements.append(Paragraph('<b>Causas</b>', styles['CardTitle']))
+        if insumo['causas']:
+            for causa in insumo['causas']:
+                elements.append(Paragraph(f"&bull; {causa}", styles['GovBody']))
+        else:
+            elements.append(Paragraph("Nao informado", styles['SmallGray']))
+        elements.append(Spacer(1, 6))
+
+        # 7.X.3 - Consequencias
+        elements.append(Paragraph('<b>Consequencias</b>', styles['CardTitle']))
+        if insumo['consequencias']:
+            for conseq in insumo['consequencias']:
+                elements.append(Paragraph(f"&bull; {conseq}", styles['GovBody']))
+        else:
+            elements.append(Paragraph("Nao informado", styles['SmallGray']))
+        elements.append(Spacer(1, 6))
+
+        # 7.X.4 - Avaliacao do risco (atual)
+        aval = insumo['avaliacao_atual']
+        elements.append(Paragraph('<b>Avaliacao do risco (atual)</b>', styles['CardTitle']))
+        elements.append(Paragraph(
+            f"Tipo: {aval['tipo_avaliacao']} | P: {aval['probabilidade']} | I: {aval['impacto']} | "
+            f"Score: {aval['score']} | Nivel: {aval['nivel']}",
+            styles['GovBody']
+        ))
+        elements.append(Spacer(1, 6))
+
+        # 7.X.5 - Controles existentes
+        elements.append(Paragraph('<b>Controles existentes</b>', styles['CardTitle']))
+        if not insumo['controles_existentes']:
+            elements.append(Paragraph("Nao ha controles registrados", styles['SmallGray']))
+        else:
+            ctrl_data = [['Descricao', 'Desenho', 'Operacao']]
+            for ctrl in insumo['controles_existentes']:
+                nota = " *" if ctrl['sem_avaliacao'] else ""
+                ctrl_data.append([
+                    Paragraph(ctrl['descricao'] + nota, styles['SmallGray']),
+                    ctrl['desenho'],
+                    ctrl['operacao'],
+                ])
+            ctrl_table = Table(ctrl_data, colWidths=[8*cm, 3*cm, 3*cm])
+            ctrl_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), COR_AZUL_GOV),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, COR_CINZA_CLARO),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('PADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(ctrl_table)
+            tem_na = any(c['sem_avaliacao'] for c in insumo['controles_existentes'])
+            if tem_na:
+                elements.append(Paragraph(
+                    "* Controle registrado sem avaliacao de desenho/operacao",
+                    styles['SmallGray']
+                ))
+        elements.append(Spacer(1, 6))
+
+        # 7.X.6 - Resposta ao risco
+        elements.append(Paragraph('<b>Resposta ao risco</b>', styles['CardTitle']))
+        if insumo['respostas']:
+            for resp in insumo['respostas']:
+                resp_text = f"{resp['estrategia']}: {resp['acao']}"
+                if resp['responsavel']:
+                    resp_text += f" | Resp: {resp['responsavel']}"
+                elements.append(Paragraph(resp_text, styles['GovBody']))
+        else:
+            elements.append(Paragraph("Resposta nao definida", styles['SmallGray']))
+        elements.append(Spacer(1, 6))
+
+        # 7.X.7 - Plano de controle
+        elements.append(Paragraph('<b>Plano de controle</b>', styles['CardTitle']))
+        tem_plano = False
+        for resp in insumo['respostas']:
+            plano_parts = []
+            if resp['tipo_controle']:
+                plano_parts.append(f"Tipo: {resp['tipo_controle']}")
+            if resp['objetivo_controle']:
+                plano_parts.append(f"Objetivo: {resp['objetivo_controle']}")
+            if resp['como_implementar']:
+                plano_parts.append(f"Como implementar: {resp['como_implementar']}")
+            if resp['data_inicio']:
+                plano_parts.append(f"Inicio: {resp['data_inicio']}")
+            if resp['data_conclusao_prevista']:
+                plano_parts.append(f"Conclusao prevista: {resp['data_conclusao_prevista']}")
+            if plano_parts:
+                tem_plano = True
+                elements.append(Paragraph(" | ".join(plano_parts), styles['GovBody']))
+        if not tem_plano:
+            elements.append(Paragraph("Plano nao detalhado", styles['SmallGray']))
+        elements.append(Spacer(1, 6))
+
+        # 7.X.8 - Avaliacao projetada (pos-plano)
+        elements.append(Paragraph('<b>Avaliacao projetada (pos-plano)</b>', styles['CardTitle']))
+        if insumo['avaliacao_projetada']:
+            proj = insumo['avaliacao_projetada']
+            elements.append(Paragraph(
+                f"P: {proj['probabilidade']} | I: {proj['impacto']} | "
+                f"Score: {proj['score']} | Nivel: {proj['nivel']}",
+                styles['GovBody']
+            ))
+        else:
+            elements.append(Paragraph("Nao informado", styles['SmallGray']))
+
+        elements.append(Spacer(1, 12))
+
+    # Checklist de prontidao
+    elements.append(Paragraph('<b>Checklist de Prontidao para Registro no Agatha</b>', styles['SubSectionTitle']))
+    elements.append(Spacer(1, 6))
+
+    for item in agatha['checklist']:
+        status = "Sim" if item['pronto'] else "Nao"
+        status_cor = "green" if item['pronto'] else "red"
+        elements.append(Paragraph(
+            f"&bull; {item['titulo']}: <font color='{status_cor}'><b>{status}</b></font>",
+            styles['GovBody']
+        ))
+        if not item['pronto']:
+            for pend in item['pendencias']:
+                elements.append(Paragraph(f"  - {pend}", styles['SmallGray']))
+
+    elements.append(Spacer(1, 16))
+
+    # === ENCAMINHAMENTO AO GESTOR ===
     # Texto recomendatorio, sem verbo imperativo, sem obrigacao
     elements.append(Paragraph('<b>Encaminhamento ao gestor do objeto</b>', styles['SubSectionTitle']))
     elements.append(Paragraph(
@@ -1030,8 +1293,8 @@ def render_pdf(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
 
     elements.append(Spacer(1, 16))
 
-    # === SECAO 7: METADADOS E RASTREABILIDADE ===
-    elements.append(Paragraph(SECTIONS[6]["title"], styles['SectionTitle']))
+    # === SECAO 8: METADADOS E RASTREABILIDADE ===
+    elements.append(Paragraph(SECTIONS[7]["title"], styles['SectionTitle']))
 
     # Metadados em tabela compacta
     meta_data = [
@@ -1572,7 +1835,173 @@ def render_docx(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
 
     doc.add_paragraph()
 
-    # === ENCAMINHAMENTO AO GESTOR (AJUSTE 7) ===
+    # === SECAO 7: INSUMOS AGATHA ===
+    agatha = build_insumos_agatha(leitura_mgi['riscos_com_leitura'])
+    doc.add_heading(SECTIONS[6]["title"], level=1)
+
+    p_sub = doc.add_paragraph()
+    run_sub = p_sub.add_run(agatha['subtitulo'])
+    run_sub.italic = True
+    run_sub.font.size = Pt(9)
+    run_sub.font.color.rgb = COR_CINZA
+
+    doc.add_paragraph()
+
+    for idx, insumo in enumerate(agatha['insumos'], 1):
+        ident = insumo['identificacao']
+
+        # 7.X - Titulo do evento
+        doc.add_heading(f"7.{idx}. {ident['titulo']}", level=2)
+
+        # 7.X.1 - Identificacao do evento
+        p_id_h = doc.add_paragraph()
+        p_id_h.add_run('Identificacao do evento').bold = True
+        p_ev = doc.add_paragraph()
+        p_ev.add_run(f"Evento: {ident['titulo']}")
+        p_cat = doc.add_paragraph()
+        p_cat.add_run(f"Categoria: {ident['categoria']}")
+        p_int = doc.add_paragraph()
+        p_int.add_run(f"Integridade associado: {ident['integridade_associado']}")
+
+        # 7.X.2 - Causas
+        p_causas_h = doc.add_paragraph()
+        p_causas_h.add_run('Causas').bold = True
+        if insumo['causas']:
+            for causa in insumo['causas']:
+                doc.add_paragraph(causa, style='List Bullet')
+        else:
+            p_nc = doc.add_paragraph()
+            run_nc = p_nc.add_run("Nao informado")
+            run_nc.italic = True
+            run_nc.font.color.rgb = COR_CINZA
+
+        # 7.X.3 - Consequencias
+        p_conseq_h = doc.add_paragraph()
+        p_conseq_h.add_run('Consequencias').bold = True
+        if insumo['consequencias']:
+            for conseq in insumo['consequencias']:
+                doc.add_paragraph(conseq, style='List Bullet')
+        else:
+            p_nc2 = doc.add_paragraph()
+            run_nc2 = p_nc2.add_run("Nao informado")
+            run_nc2.italic = True
+            run_nc2.font.color.rgb = COR_CINZA
+
+        # 7.X.4 - Avaliacao do risco (atual)
+        aval = insumo['avaliacao_atual']
+        p_aval_h = doc.add_paragraph()
+        p_aval_h.add_run('Avaliacao do risco (atual)').bold = True
+        p_aval = doc.add_paragraph()
+        p_aval.add_run(
+            f"Tipo: {aval['tipo_avaliacao']} | P: {aval['probabilidade']} | I: {aval['impacto']} | "
+            f"Score: {aval['score']} | Nivel: {aval['nivel']}"
+        )
+
+        # 7.X.5 - Controles existentes
+        p_ctrl_h = doc.add_paragraph()
+        p_ctrl_h.add_run('Controles existentes').bold = True
+        if not insumo['controles_existentes']:
+            p_nc3 = doc.add_paragraph()
+            run_nc3 = p_nc3.add_run("Nao ha controles registrados")
+            run_nc3.italic = True
+            run_nc3.font.color.rgb = COR_CINZA
+        else:
+            ctrl_table = doc.add_table(rows=1, cols=3)
+            ctrl_table.style = 'Table Grid'
+            for i, h in enumerate(['Descricao', 'Desenho', 'Operacao']):
+                ctrl_table.rows[0].cells[i].text = h
+                ctrl_table.rows[0].cells[i].paragraphs[0].runs[0].bold = True
+            for ctrl in insumo['controles_existentes']:
+                row = ctrl_table.add_row()
+                nota = " *" if ctrl['sem_avaliacao'] else ""
+                row.cells[0].text = ctrl['descricao'] + nota
+                row.cells[1].text = ctrl['desenho']
+                row.cells[2].text = ctrl['operacao']
+            tem_na = any(c['sem_avaliacao'] for c in insumo['controles_existentes'])
+            if tem_na:
+                p_nota_ctrl = doc.add_paragraph()
+                run_nota_ctrl = p_nota_ctrl.add_run("* Controle registrado sem avaliacao de desenho/operacao")
+                run_nota_ctrl.font.size = Pt(8)
+                run_nota_ctrl.font.color.rgb = COR_CINZA
+
+        # 7.X.6 - Resposta ao risco
+        p_resp_h = doc.add_paragraph()
+        p_resp_h.add_run('Resposta ao risco').bold = True
+        if insumo['respostas']:
+            for resp in insumo['respostas']:
+                p_resp = doc.add_paragraph(style='List Bullet')
+                p_resp.add_run(f"{resp['estrategia']}: ").bold = True
+                p_resp.add_run(resp['acao'])
+                if resp['responsavel']:
+                    p_resp.add_run(f" | Resp: {resp['responsavel']}")
+        else:
+            p_nc4 = doc.add_paragraph()
+            run_nc4 = p_nc4.add_run("Resposta nao definida")
+            run_nc4.italic = True
+            run_nc4.font.color.rgb = COR_CINZA
+
+        # 7.X.7 - Plano de controle
+        p_plano_h = doc.add_paragraph()
+        p_plano_h.add_run('Plano de controle').bold = True
+        tem_plano = False
+        for resp in insumo['respostas']:
+            plano_parts = []
+            if resp['tipo_controle']:
+                plano_parts.append(f"Tipo: {resp['tipo_controle']}")
+            if resp['objetivo_controle']:
+                plano_parts.append(f"Objetivo: {resp['objetivo_controle']}")
+            if resp['como_implementar']:
+                plano_parts.append(f"Como implementar: {resp['como_implementar']}")
+            if resp['data_inicio']:
+                plano_parts.append(f"Inicio: {resp['data_inicio']}")
+            if resp['data_conclusao_prevista']:
+                plano_parts.append(f"Conclusao prevista: {resp['data_conclusao_prevista']}")
+            if plano_parts:
+                tem_plano = True
+                doc.add_paragraph(" | ".join(plano_parts))
+        if not tem_plano:
+            p_nc5 = doc.add_paragraph()
+            run_nc5 = p_nc5.add_run("Plano nao detalhado")
+            run_nc5.italic = True
+            run_nc5.font.color.rgb = COR_CINZA
+
+        # 7.X.8 - Avaliacao projetada (pos-plano)
+        p_proj_h = doc.add_paragraph()
+        p_proj_h.add_run('Avaliacao projetada (pos-plano)').bold = True
+        if insumo['avaliacao_projetada']:
+            proj = insumo['avaliacao_projetada']
+            doc.add_paragraph(
+                f"P: {proj['probabilidade']} | I: {proj['impacto']} | "
+                f"Score: {proj['score']} | Nivel: {proj['nivel']}"
+            )
+        else:
+            p_nc6 = doc.add_paragraph()
+            run_nc6 = p_nc6.add_run("Nao informado")
+            run_nc6.italic = True
+            run_nc6.font.color.rgb = COR_CINZA
+
+        doc.add_paragraph()
+
+    # Checklist de prontidao
+    doc.add_heading('Checklist de Prontidao para Registro no Agatha', level=2)
+
+    for item in agatha['checklist']:
+        p_chk = doc.add_paragraph(style='List Bullet')
+        p_chk.add_run(f"{item['titulo']}: ")
+        status = "Sim" if item['pronto'] else "Nao"
+        run_status = p_chk.add_run(status)
+        run_status.bold = True
+        run_status.font.color.rgb = _hex_to_rgb("#16a34a") if item['pronto'] else COR_VERMELHO
+        if not item['pronto']:
+            for pend in item['pendencias']:
+                p_pend = doc.add_paragraph()
+                run_pend = p_pend.add_run(f"  - {pend}")
+                run_pend.font.size = Pt(8)
+                run_pend.font.color.rgb = COR_CINZA
+
+    doc.add_paragraph()
+
+    # === ENCAMINHAMENTO AO GESTOR ===
     # Texto recomendatorio, sem verbo imperativo, sem obrigacao
     doc.add_heading('Encaminhamento ao gestor do objeto', level=2)
     p_encaminhamento = doc.add_paragraph()
@@ -1583,8 +2012,8 @@ def render_docx(data: Dict[str, Any], snap, desatualizado: bool) -> io.BytesIO:
 
     doc.add_paragraph()
 
-    # === SECAO 7: METADADOS E RASTREABILIDADE ===
-    doc.add_heading(SECTIONS[6]["title"], level=1)
+    # === SECAO 8: METADADOS E RASTREABILIDADE ===
+    doc.add_heading(SECTIONS[7]["title"], level=1)
 
     # Metadados em tabela compacta
     table_meta = doc.add_table(rows=6, cols=2)
