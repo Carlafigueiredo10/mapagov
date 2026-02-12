@@ -330,6 +330,60 @@
   }
 }
 
+/* ================================================
+   MODO FULLSCREEN CHAT
+   POP escondido, Chat 100% (editar etapas / revisão)
+   ================================================ */
+.mp-page--fullscreen-chat {
+  padding: 0;
+  gap: 0;
+}
+
+.mp-page--fullscreen-chat .mp-page__pop {
+  display: none !important;
+}
+
+.mp-page--fullscreen-chat .mp-page__toggle-pop,
+.mp-page--fullscreen-chat .mp-page__btn-revisao {
+  display: none !important;
+}
+
+.mp-page--fullscreen-chat .mp-page__chat {
+  flex: 1;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100vh;
+}
+
+/* Dentro do fullscreen: interfaces e bubbles ocupam tela toda */
+.mp-page--fullscreen-chat .interface-container,
+.mp-page--fullscreen-chat .interface-editar-etapas,
+.mp-page--fullscreen-chat .interface-revisao-final {
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+}
+
+.mp-page--fullscreen-chat .message {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* message-container usa align-items: flex-start, que impede stretch.
+   Em fullscreen, forçar items a ocupar largura total. */
+.mp-page--fullscreen-chat .message-container {
+  align-items: stretch !important;
+}
+
+/* Mas manter bubbles de texto alinhados (não esticar) */
+.mp-page--fullscreen-chat .message-container.helena .message-wrapper {
+  align-self: flex-start;
+}
+
+.mp-page--fullscreen-chat .message-container.usuario .message-wrapper {
+  align-self: flex-end;
+}
+
 /* ---- Utilitários ---- */
 @keyframes mp-fadeIn {
   from { opacity: 0; }

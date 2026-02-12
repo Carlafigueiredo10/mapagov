@@ -1,6 +1,7 @@
 // No arquivo: InterfaceDinamica.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useChatStore } from '../../store/chatStore';
 
 // Importando todos os componentes filhos de seus respectivos arquivos (sem duplicatas)
 import AreasSelector from './AreasSelector';
@@ -26,7 +27,6 @@ import InterfaceEtapasTempoReal from './InterfaceEtapasTempoReal';
 import InterfaceFluxosEntrada from './InterfaceFluxosEntrada';
 import InterfaceFluxosSaida from './InterfaceFluxosSaida';
 import InterfaceRevisao from './InterfaceRevisao';
-import InterfaceSelecaoEdicao from './InterfaceSelecaoEdicao';
 import InterfaceEditarEtapas from './InterfaceEditarEtapas';
 import InterfaceDocumentosEtapa from './InterfaceDocumentosEtapa';
 import InterfaceEtapaForm from './InterfaceEtapaForm';
@@ -57,6 +57,16 @@ interface InterfaceDinamicaProps {
   interfaceData: InterfaceData | null;
   onRespond: (resposta: string) => void;
 }
+
+// Wrapper que ativa fullscreen no chat enquanto o componente estiver montado
+const FullscreenChat: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const setFullscreenChat = useChatStore((s) => s.setFullscreenChat);
+  useEffect(() => {
+    setFullscreenChat(true);
+    return () => setFullscreenChat(false);
+  }, [setFullscreenChat]);
+  return <>{children}</>;
+};
 
 // COMPONENTE PRINCIPAL (Roteador de Interfaces)
 const InterfaceDinamica: React.FC<InterfaceDinamicaProps> = ({ interfaceData, onRespond }) => {
@@ -591,13 +601,10 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
       return <InterfaceRevisao dados={dados || undefined} onConfirm={handleConfirm} />;
 
     case 'revisao_final':
-      return <InterfaceRevisaoFinal dados={dados || undefined} onConfirm={handleConfirm} />;
-
-    case 'selecao_edicao':
-      return <InterfaceSelecaoEdicao dados={dados || undefined} onConfirm={handleConfirm} />;
+      return <FullscreenChat><InterfaceRevisaoFinal dados={dados || undefined} onConfirm={handleConfirm} /></FullscreenChat>;
 
     case 'editar_etapas':
-      return <InterfaceEditarEtapas dados={dados || undefined} onConfirm={handleConfirm} />;
+      return <FullscreenChat><InterfaceEditarEtapas dados={dados || undefined} onConfirm={handleConfirm} /></FullscreenChat>;
 
     case 'docs_requeridos_etapa':
     case 'docs_gerados_etapa':

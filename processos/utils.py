@@ -847,6 +847,28 @@ class PDFGenerator:
             elementos.append(Spacer(1, 0.25*cm))
 
         elementos.append(Spacer(1, 0.3*cm))
+
+        # Tempo total do processo (soma dos tempos estimados de cada etapa)
+        tempo_total = 0
+        for etapa in etapas:
+            if isinstance(etapa, dict):
+                raw = str(etapa.get('tempo_estimado', '') or '')
+                numeros = ''.join(c for c in raw if c.isdigit())
+                if numeros:
+                    tempo_total += int(numeros)
+        if tempo_total > 0:
+            if tempo_total >= 60:
+                horas = tempo_total // 60
+                minutos_rest = tempo_total % 60
+                texto_tempo = f"{horas}h{minutos_rest:02d}min" if minutos_rest else f"{horas}h"
+            else:
+                texto_tempo = f"{tempo_total} minutos"
+            elementos.append(Paragraph(
+                f"<b>Tempo total estimado do processo:</b> {texto_tempo}",
+                self.estilos['texto_normal'],
+            ))
+            elementos.append(Spacer(1, 0.3*cm))
+
         return elementos
 
     def _gerar_secao_documentos(self, titulo: str, documentos: Any) -> List:
@@ -1838,14 +1860,20 @@ def validar_entrada_helena(mensagem: str) -> Tuple[bool, str]:
     """Valida entrada do usuário para Helena"""
     if not mensagem or not mensagem.strip():
         return False, "Mensagem vazia"
-    
-    if len(mensagem) > 2000:
-        return False, "Mensagem muito longa (máximo 2000 caracteres)"
-    
-    alertas = SegurancaUtils.verificar_conteudo_suspeito(mensagem)
-    if alertas:
-        return False, f"Conteúdo suspeito detectado: {', '.join(alertas)}"
-    
+
+    # Comandos JSON de interface (salvar_etapas etc.) podem ser grandes
+    is_json_command = mensagem.strip().startswith('{') and '"acao"' in mensagem
+    limite = 100_000 if is_json_command else 2000
+
+    if len(mensagem) > limite:
+        return False, "Mensagem muito longa"
+
+    # Não verificar conteúdo suspeito em JSON de interface (contém dados do usuário)
+    if not is_json_command:
+        alertas = SegurancaUtils.verificar_conteudo_suspeito(mensagem)
+        if alertas:
+            return False, f"Conteúdo suspeito detectado: {', '.join(alertas)}"
+
     return True, "Válido"
 
 

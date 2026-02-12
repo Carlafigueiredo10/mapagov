@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useChatStore } from '../../store/chatStore';
-import { FileText, CheckCircle, AlertCircle, Download, Eye, Loader2 } from 'lucide-react';
+import { FileText, CheckCircle, AlertCircle, Download, ArrowLeft, Loader2 } from 'lucide-react';
 import { gerarPDF } from '../../services/helenaApi';
 import type { Etapa, Cenario } from '../../types/pop.types';
 import './FormularioPOP.css';
@@ -452,15 +452,15 @@ const FormularioPOP: React.FC = () => {
         
         <button
           type="button"
-          className="btn-form ver-preview"
-          disabled={camposPreenchidos < 5}
+          className="btn-form encerrar"
           onClick={() => {
-            const formEl = document.querySelector('.form-section');
-            if (formEl) formEl.scrollTo({ top: 0, behavior: 'smooth' });
+            if (confirm('Deseja encerrar e voltar à página inicial?')) {
+              resetChat();
+            }
           }}
         >
-          <Eye size={16} />
-          Ver Preview
+          <ArrowLeft size={16} />
+          Encerrar
         </button>
         
         <button

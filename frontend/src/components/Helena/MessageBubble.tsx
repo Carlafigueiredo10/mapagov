@@ -17,7 +17,11 @@ function MessageBubble({ message }: MessageBubbleProps) {
   const messageEndRef = useRef<HTMLDivElement>(null);
 
   const handleInterfaceResponse = (resposta: string) => {
-    responderInterface(resposta);
+    responderInterface(resposta).catch((err) => {
+      const status = err?.response?.status;
+      const body = err?.response?.data;
+      console.error(`[MessageBubble] Erro na resposta de interface (HTTP ${status}):`, body || err);
+    });
   };
 
   // ✅ VALIDAÇÃO 1: Não renderizar se mensagem vazia E sem interface

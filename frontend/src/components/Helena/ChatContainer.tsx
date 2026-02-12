@@ -208,6 +208,18 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
   };
 
 
+  // Detectar se a última mensagem da Helena tem interface que espera clique (não texto)
+  const interfaceBloqueiaInput = (() => {
+    if (messages.length === 0) return false;
+    const ultima = messages[messages.length - 1];
+    if (ultima.tipo !== 'helena') return false;
+    const iface = typeof ultima.interface === 'object' ? ultima.interface : null;
+    if (!iface?.tipo) return false;
+    // Tipos que esperam digitação no input do chat — liberar
+    const tiposPermitemDigitacao = ['texto_livre', 'texto_com_exemplos', 'texto'];
+    return !tiposPermitemDigitacao.includes(iface.tipo);
+  })();
+
   const handleSalvarManual = async () => {
     setSaveStatus('salvando');
     const result = await saveNow();
@@ -383,15 +395,15 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Digite sua mensagem..."
+            placeholder={interfaceBloqueiaInput ? "Use os botões acima para responder" : "Digite sua mensagem..."}
             maxLength={2000}
-            disabled={isProcessing}
+            disabled={isProcessing || interfaceBloqueiaInput}
             className="message-input"
           />
 
           <button
             type="submit"
-            disabled={isProcessing || !inputValue.trim()}
+            disabled={isProcessing || interfaceBloqueiaInput || !inputValue.trim()}
             className="send-button"
             key={isProcessing ? 'processing' : 'idle'}
           >

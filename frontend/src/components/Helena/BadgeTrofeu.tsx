@@ -71,13 +71,6 @@ export default function BadgeTrofeu({
               >
                 Continuar
               </button>
-              <button
-                className={styles.btnSecundario}
-                onClick={handleContinuar}
-                aria-label="Guardar badge e continuar"
-              >
-                Guardar badge
-              </button>
             </div>
           </>
         )}

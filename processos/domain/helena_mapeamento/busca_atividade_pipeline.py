@@ -50,6 +50,54 @@ _CORPUS_CACHE = {
 }
 
 
+def precarregar_modelo_semantico():
+    """
+    Pré-carrega modelo SentenceTransformer e embeddings no startup do servidor.
+
+    Chamada pelo AppConfig.ready() para eliminar cold-start na primeira busca.
+    Idempotente: se já carregado, retorna imediatamente.
+    """
+    global _CORPUS_CACHE
+
+    if _CORPUS_CACHE['model'] is not None and _CORPUS_CACHE['loaded']:
+        logger.info("[STARTUP] Modelo semântico já carregado")
+        return
+
+    if os.getenv('HELENA_LITE_MODE', 'False').lower() in ('true', '1', 'yes'):
+        logger.info("[STARTUP] HELENA_LITE_MODE ativo - pulando pré-carregamento")
+        return
+
+    logger.info("[STARTUP] Pré-carregando modelo semântico...")
+    start_total = time.time()
+
+    pipeline = BuscaAtividadePipeline()
+
+    # Embeddings (.npy + meta)
+    t0 = time.time()
+    pipeline._carregar_embeddings_precomputados()
+    t_embeddings = time.time() - t0
+
+    # SentenceTransformer model
+    t1 = time.time()
+    pipeline._carregar_modelo_query()
+    t_modelo = time.time() - t1
+
+    elapsed = time.time() - start_total
+
+    # RAM do processo atual
+    try:
+        import psutil
+        mem_mb = psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024)
+        mem_info = f" | RAM: {mem_mb:.0f}MB"
+    except ImportError:
+        mem_info = ""
+
+    logger.info(
+        f"[STARTUP] Modelo semântico pré-carregado em {elapsed:.1f}s "
+        f"(embeddings: {t_embeddings:.1f}s, modelo: {t_modelo:.1f}s{mem_info})"
+    )
+
+
 def _max_atividade_csv(caps_existentes):
     """Retorna o maior número de atividade (último segmento) nos CAPs do CSV."""
     max_csv = 0

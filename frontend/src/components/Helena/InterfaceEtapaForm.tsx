@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import DocumentoSelector, { TipoDocumento } from "./DocumentoSelector";
 
 interface CenarioInput {
@@ -20,6 +20,7 @@ interface InterfaceEtapaFormProps {
  *   docs_requeridos, docs_gerados, tempo_estimado, is_condicional, cenarios_input}}
  */
 const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfirm }) => {
+  const formRef = useRef<HTMLDivElement>(null);
   const numeroEtapa = (dados?.numero_etapa as number) || 1;
   const operadores = (dados?.operadores as string[]) || [];
   const sistemas = (dados?.sistemas as Record<string, string[]>) || {};
@@ -69,7 +70,8 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
     (prefill.docs_gerados as string[]) || []
   );
   const [tempoEstimado, setTempoEstimado] = useState(
-    (prefill.tempo_estimado as string) || ''
+    // Extrair só o número se vier "30 minutos" (edição)
+    ((prefill.tempo_estimado as string) || '').replace(/\s*minutos?\s*/i, '')
   );
 
   // ── Modo avancado (sintese) ──
@@ -96,7 +98,8 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
     const targetId = erroParaId[primeiroErro];
     if (!targetId) return;
     setTimeout(() => {
-      const el = document.getElementById(targetId);
+      // Buscar DENTRO do form atual (evita conflito com IDs de etapas anteriores no chat)
+      const el = formRef.current?.querySelector(`#${targetId}`) as HTMLElement | null;
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         el.style.boxShadow = '0 0 0 3px rgba(220, 53, 69, 0.4)';
@@ -238,7 +241,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
         docs_gerados: docsGerados,
         verificacoes: verificacoesLimpas,
         detalhes: verificacoesLimpas, // alias retrocompat
-        tempo_estimado: tempoEstimado.trim() || null,
+        tempo_estimado: (() => { const v = String(tempoEstimado ?? '').trim(); return v ? `${v} minutos` : null; })(),
         is_condicional: isCondicional,
         ...(isCondicional && {
           cenarios_input: cenarios
@@ -309,7 +312,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
   };
 
   return (
-    <div className="interface-container fade-in">
+    <div ref={formRef} className="interface-container fade-in">
       <div className="interface-title" style={{ fontSize: '1.1rem', color: '#1351B4', marginBottom: '0.5rem' }}>
         {prefill.id ? `Editar Etapa ${numeroEtapa}` : `Etapa ${numeroEtapa}`}
       </div>
@@ -656,6 +659,20 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
               </div>
             </div>
 
+            {/* Separador visual entre documentos recebidos e gerados */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              margin: '0.75rem 0',
+            }}>
+              <div style={{ flex: 1, height: '1px', background: '#ced4da' }} />
+              <span style={{ fontSize: '0.7rem', color: '#6c757d', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
+                Documentos gerados
+              </span>
+              <div style={{ flex: 1, height: '1px', background: '#ced4da' }} />
+            </div>
+
             {/* Docs produzidos */}
             <div id="ef-campo-docs-ger" style={sectionStyle}>
               <DocumentoSelector
@@ -731,16 +748,22 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
 
             {/* Tempo estimado */}
             <div id="ef-campo-tempo" style={sectionStyle}>
-              <label style={labelStyle}>Tempo estimado de execucao *</label>
-              <input
-                type="text"
-                value={tempoEstimado}
-                onChange={(e) => setTempoEstimado(e.target.value)}
-                placeholder="Ex: 30 minutos, 2 horas, 1 dia util"
-                style={inputStyle}
-              />
+              <label style={labelStyle}>Tempo estimado de execucao (minutos) *</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  inputMode="numeric"
+                  value={tempoEstimado}
+                  onChange={(e) => setTempoEstimado(e.target.value)}
+                  placeholder="30"
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <span style={{ fontSize: '0.9rem', color: '#495057', whiteSpace: 'nowrap' }}>minutos</span>
+              </div>
               <div style={helperStyle}>
-                Informe uma estimativa media de duracao desta etapa.
+                Informe a estimativa media em minutos.
               </div>
             </div>
           </div>

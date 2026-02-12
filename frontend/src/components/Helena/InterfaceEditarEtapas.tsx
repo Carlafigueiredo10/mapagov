@@ -237,10 +237,10 @@ const InterfaceEditarEtapas: React.FC<InterfaceEditarEtapasProps> = ({ dados, on
                     </button>
                     <div className="acoes-inserir">
                       <button onClick={() => handleInserirAntes(etapa)} className="btn-inserir" title="Inserir etapa antes">
-                        <PlusCircle size={14} /> Antes
+                        <PlusCircle size={14} /> Incluir uma etapa antes
                       </button>
                       <button onClick={() => handleInserirDepois(etapa)} className="btn-inserir" title="Inserir etapa depois">
-                        <PlusCircle size={14} /> Depois
+                        <PlusCircle size={14} /> Incluir uma etapa depois
                       </button>
                     </div>
                   </div>

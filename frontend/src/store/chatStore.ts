@@ -94,6 +94,10 @@ interface ChatState {
   setViewMode: (mode: ViewMode) => void;
   setPopIdentifiers: (id: number, uuid: string, hash: string) => void;
 
+  // UI
+  fullscreenChat: boolean;
+  setFullscreenChat: (value: boolean) => void;
+
   // Helpers
   adicionarMensagemRapida: (tipo: 'usuario' | 'helena', texto: string, opcoes?: Record<string, unknown>) => string;
 }
@@ -109,6 +113,7 @@ export const useChatStore = create<ChatState>()(
       dadosPOP: {},
       historicoCompleto: [],
       viewMode: 'landing' as ViewMode,
+      fullscreenChat: false,
       popId: null,
       popUuid: null,
       integrityHash: null,
@@ -183,6 +188,7 @@ export const useChatStore = create<ChatState>()(
         })),
 
       setViewMode: (mode) => set({ viewMode: mode }),
+      setFullscreenChat: (value) => set({ fullscreenChat: value }),
 
       setPopIdentifiers: (id, uuid, hash) => set({
         popId: id,

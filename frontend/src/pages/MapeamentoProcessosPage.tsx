@@ -18,7 +18,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../store/chatStore';
 import { useRequireAuth } from '../hooks/useRequireAuth';
-import { X, FileText, Search, ArrowLeft, Save, Download } from 'lucide-react';
+import { X, FileText, ArrowLeft, Save, Download } from 'lucide-react';
 import MapeamentoProcessosLanding from '../components/Helena/MapeamentoProcessosLanding';
 import ChatContainer from '../components/Helena/ChatContainer';
 import FormularioPOP from '../components/Helena/FormularioPOP';
@@ -38,7 +38,7 @@ const MapeamentoProcessosPage: React.FC = () => {
   const [popAberto, setPopAberto] = useState(false);
   const [salvoFeedback, setSalvoFeedback] = useState(false);
 
-  const { dadosPOP, viewMode, setViewMode } = useChatStore();
+  const { dadosPOP, viewMode, setViewMode, fullscreenChat } = useChatStore();
   const modoRevisao = viewMode === 'final_review';
 
   // Contagem de campos preenchidos (mesma lógica de FormularioPOP)
@@ -51,7 +51,6 @@ const MapeamentoProcessosPage: React.FC = () => {
     }).length;
   }, [dadosPOP]);
 
-  const popCompleto = camposPreenchidos === TODOS_CAMPOS.length;
 
   // ESC fecha drawer ou sai do modo revisão
   useEffect(() => {
@@ -121,7 +120,7 @@ const MapeamentoProcessosPage: React.FC = () => {
 
   // Chat + POP
   return (
-    <div className={`mp-page${modoRevisao ? ' mp-page--revisao' : ''}`}>
+    <div className={`mp-page${modoRevisao ? ' mp-page--revisao' : ''}${fullscreenChat && !modoRevisao ? ' mp-page--fullscreen-chat' : ''}`}>
       {/* Chat */}
       <div className="mp-page__chat">
         <ChatContainer />
@@ -140,16 +139,7 @@ const MapeamentoProcessosPage: React.FC = () => {
         </button>
       )}
 
-      {/* Botão revisão (quando 15/15) */}
-      {popCompleto && !modoRevisao && (
-        <button
-          className="mp-page__btn-revisao"
-          onClick={() => setViewMode('final_review')}
-        >
-          <Search size={16} />
-          Revisar POP antes de imprimir
-        </button>
-      )}
+      {/* Botão revisão removido — redundante com revisão final via chat */}
 
       {/* Overlay (medium/mobile, fecha ao clicar) */}
       {popAberto && !modoRevisao && (

@@ -554,9 +554,6 @@ class HelenaPOP(BaseHelena):
         elif sm.estado == EstadoPOP.TRANSICAO_EPICA:
             resposta, novo_sm = self._processar_transicao_epica(mensagem, sm)
 
-        elif sm.estado == EstadoPOP.SELECAO_EDICAO:
-            resposta, novo_sm = self._processar_selecao_edicao(mensagem, sm)
-
         elif sm.estado == EstadoPOP.REVISAO_FINAL:
             resposta, novo_sm = self._processar_revisao_final(mensagem, sm)
 
@@ -2199,7 +2196,9 @@ class HelenaPOP(BaseHelena):
             if isinstance(dados, list):
                 normas = [n for n in dados if str(n).strip().lower() not in self._SENTINEL_SEM_NORMAS]
             else:
-                normas = [n.strip() for n in raw.replace('\n', ',').split(',')
+                # Normalizar separadores: pipe, tab, newline → vírgula
+                raw_normalizado = raw.replace(' | ', ',').replace('|', ',').replace('\t', ',').replace('\n', ',')
+                normas = [n.strip() for n in raw_normalizado.split(',')
                           if n.strip() and n.strip().lower() not in self._SENTINEL_SEM_NORMAS]
 
         sm.dados_coletados['dispositivos_normativos'] = normas
@@ -2505,12 +2504,14 @@ class HelenaPOP(BaseHelena):
 
             # Ir para PONTOS_ATENCAO (fluxo completo: PONTOS → REVISAO → TRANSICAO_EPICA)
             sm.estado = EstadoPOP.PONTOS_ATENCAO
-            sm.tipo_interface = 'confirmacao_dupla'
+            sm.tipo_interface = 'texto_com_alternativa'
             sm.dados_interface = {
-                'botao_confirmar': 'Nenhum ponto de atenção',
-                'valor_confirmar': 'nenhum',
-                'botao_editar': 'Ver exemplos comuns',
-                'valor_editar': 'ver_exemplos',
+                'placeholder': 'Descreva os pontos de atenção...',
+                'hint': 'Prazo crítico, documentos sensíveis, etapas que geram dúvidas, etc.',
+                'botao_alternativo': {
+                    'label': 'Nenhum ponto de atenção',
+                    'acao': 'nenhum',
+                },
             }
 
             nome = sm.nome_usuario or "você"
@@ -2522,7 +2523,7 @@ class HelenaPOP(BaseHelena):
                 f"• Prazo crítico que não pode atrasar\n"
                 f"• Documentos que devem ter atenção redobrada\n"
                 f"• Etapas que costumam gerar dúvidas\n\n"
-                f"Digite os pontos de atenção ou use os botões abaixo."
+                f"Digite os pontos de atenção ou clique no botão abaixo."
             )
 
         return resposta, sm
@@ -2538,10 +2539,13 @@ class HelenaPOP(BaseHelena):
 
         # Mostrar exemplos comuns e permanecer no estado
         if msg_lower == 'ver_exemplos':
-            sm.tipo_interface = 'confirmacao_dupla'
+            sm.tipo_interface = 'texto_com_alternativa'
             sm.dados_interface = {
-                'botao_confirmar': 'Nenhum ponto de atenção',
-                'valor_confirmar': 'nenhum',
+                'placeholder': 'Descreva os pontos de atenção...',
+                'botao_alternativo': {
+                    'label': 'Nenhum ponto de atenção',
+                    'acao': 'nenhum',
+                },
             }
             resposta = (
                 f"Aqui estão alguns exemplos comuns de pontos de atenção:\n\n"
@@ -2550,7 +2554,7 @@ class HelenaPOP(BaseHelena):
                 f"• Verificar se exigências devem ser feitas todas de uma vez\n"
                 f"• Verificar se não há outro processo com o mesmo tema\n"
                 f"• Em acerto de contas, sempre fazer batimento de devido x recebido\n\n"
-                f"Se algum desses se aplica, digite o ponto de atenção ou use o botão abaixo."
+                f"Se algum desses se aplica, digite o ponto de atenção ou clique no botão abaixo."
             )
             return resposta, sm
 
@@ -2573,17 +2577,15 @@ class HelenaPOP(BaseHelena):
         resposta = (
             f"Perfeito, {nome}! Já registramos os dados principais do POP.\n\n"
             f"{resumo}\n\n"
-            f"**Agora vamos detalhar as etapas da atividade.**\n\n"
-            f"Se quiser ajustar algum dado antes disso, é só editar."
+            f"Caso queira alterar algum dado desta fase, a revisão final estará disponível ao concluir o mapeamento."
         )
 
-        # Interface com botões
-        sm.tipo_interface = 'confirmacao_dupla'
+        # Badge troféu — celebrar conclusão da Fase 1
+        sm.tipo_interface = 'badge_cartografo'
         sm.dados_interface = {
-            'botao_confirmar': 'Seguir para as etapas ✔️',
-            'botao_editar': 'Editar informações ✏️',
-            'valor_confirmar': 'SEGUIR',
-            'valor_editar': 'EDITAR'
+            'titulo': 'Fase 1 concluída!',
+            'emoji': '🏆',
+            'descricao': 'Os dados principais do seu POP foram registrados com sucesso.',
         }
 
         return resposta, sm
@@ -2592,259 +2594,82 @@ class HelenaPOP(BaseHelena):
         """
         REVISÃO 2 - Pré-delegação
 
-        Permite editar 9 campos ou seguir para etapas
+        Badge troféu da Fase 1 → clique mostra introdução pré-etapas (café, etc.)
+        com botões "Vamos começar" / "Salvar e continuar depois".
         """
-        msg_lower = mensagem.lower().strip()
         nome = sm.nome_usuario or "você"
 
-        # Se confirmar/seguir → TRANSICAO_EPICA
-        if self._detectar_intencao(msg_lower, 'confirmacao'):
-            sm.estado = EstadoPOP.TRANSICAO_EPICA
-            sm.tipo_interface = None
-            sm.dados_interface = {}
+        # Clique no badge → introdução pré-etapas + botões
+        sm.estado = EstadoPOP.TRANSICAO_EPICA
 
-            progresso = self.obter_progresso(sm)
-            percentual = progresso['percentual']
+        resposta = (
+            f"## 🎯 **AGORA ENTRAMOS NA PARTE PRINCIPAL DO PROCESSO**\n\n"
+            f"A próxima fase é a **mais importante e detalhada**.\n"
+            f"Nela, vamos mapear **cada etapa** da sua atividade, com atenção aos detalhes.\n\n"
+            f"Para cada etapa, vou perguntar:\n\n"
+            f"📄 O que é feito\n"
+            f"👤 Quem executa\n"
+            f"📚 Qual norma fundamenta\n"
+            f"💻 Qual sistema é utilizado\n"
+            f"🗂 Quais documentos são utilizados ou gerados\n\n"
+            f"**⏱ Tempo estimado:** entre 30 minutos e 1 hora, dependendo da complexidade do processo.\n\n"
+            f"**💡 Antes de começar**\n\n"
+            f"Esta é a etapa mais detalhada do processo. Para facilitar, recomendamos:\n\n"
+            f"☕ Ter água ou café por perto\n"
+            f"🧍‍♂️ Fazer uma breve pausa para se alongar, se necessário\n"
+            f"🚻 Ir ao banheiro antes de iniciar\n"
+            f"📂 Ter em mãos exemplos reais do processo\n\n"
+            f"Caso queira alterar algum dado da fase anterior, a revisão final estará disponível ao concluir o mapeamento.\n\n"
+            f"Quando estiver pronto(a), clique em **Vamos começar** para iniciar.\n"
+            f"Se preferir continuar em outro momento, utilize a opção **Salvar e continuar depois**."
+        )
 
-            resposta = (
-                f"## 🎯 **AGORA ENTRAMOS NA PARTE PRINCIPAL DO PROCESSO**\n\n"
-                f"A próxima fase é a **mais importante e detalhada**.\n"
-                f"Nela, vamos mapear **cada etapa** da sua atividade, com atenção aos detalhes.\n\n"
-                f"Para cada etapa, vou perguntar:\n\n"
-                f"📄 O que é feito\n"
-                f"👤 Quem executa\n"
-                f"📚 Qual norma fundamenta\n"
-                f"💻 Qual sistema é utilizado\n"
-                f"🗂 Quais documentos são utilizados ou gerados\n\n"
-                f"**⏱ Tempo estimado:** entre 30 minutos e 1 hora, dependendo da complexidade do processo.\n\n"
-                f"**💡 Antes de começar**\n\n"
-                f"Esta é a etapa mais detalhada do processo. Para facilitar, recomendamos:\n\n"
-                f"☕ Ter água ou café por perto\n"
-                f"🧍‍♂️ Fazer uma breve pausa para se alongar, se necessário\n"
-                f"🚻 Ir ao banheiro antes de iniciar\n"
-                f"📂 Ter em mãos exemplos reais do processo\n\n"
-                f"Quando estiver pronto(a), clique em **Vamos começar** para iniciar.\n"
-                f"Se preferir continuar em outro momento, utilize a opção **Salvar e continuar depois**."
-            )
+        sm.tipo_interface = 'confirmacao_dupla'
+        sm.dados_interface = {
+            'opcao_a': 'Vamos começar',
+            'opcao_b': 'Salvar e continuar depois',
+        }
 
-            return resposta, sm
-
-        # Se editar → SELECAO_EDICAO com 9 campos
-        elif self._detectar_intencao(msg_lower, 'edicao'):
-            sm.estado = EstadoPOP.SELECAO_EDICAO
-            sm.tipo_interface = 'selecao_edicao'
-            sm._voltou_de_revisao = True  # Flag para saber que veio da revisão
-
-            # 9 CAMPOS EDITÁVEIS (CAP é imutável)
-            campos_editaveis = {
-                "1": {"campo": "entrega_esperada", "label": "Entrega Esperada"},
-                "2": {"campo": "sistemas", "label": "Sistemas Utilizados"},
-                "3": {"campo": "dispositivos_normativos", "label": "Dispositivos Normativos"},
-                "4": {"campo": "operadores", "label": "Operadores"},
-                "5": {"campo": "fluxos_entrada", "label": "Fluxos de Entrada"},
-                "6": {"campo": "etapas", "label": "Tarefas/Etapas (será editado depois)"},
-                "7": {"campo": "fluxos_saida", "label": "Fluxos de Saída"},
-                "8": {"campo": "documentos", "label": "Documentos"},
-                "9": {"campo": "pontos_atencao", "label": "Pontos de Atenção"}
-            }
-
-            sm.dados_interface = {
-                'campos_editaveis': campos_editaveis
-            }
-
-            resumo = self._gerar_resumo_pop(sm)
-
-            resposta = (
-                f"## 🔧 **EDIÇÃO DE CAMPOS**\n\n"
-                f"{resumo}\n\n"
-                f"**Qual campo você gostaria de editar, {nome}?**\n\n"
-                f"1️⃣ Entrega Esperada\n"
-                f"2️⃣ Sistemas Utilizados\n"
-                f"3️⃣ Dispositivos Normativos\n"
-                f"4️⃣ Operadores\n"
-                f"5️⃣ Fluxos de Entrada\n"
-                f"6️⃣ Tarefas/Etapas (será editado depois no Helena Etapas)\n"
-                f"7️⃣ Fluxos de Saída\n"
-                f"8️⃣ Documentos\n"
-                f"9️⃣ Pontos de Atenção\n\n"
-                f"Digite o **número** do campo ou **'cancelar'** para voltar."
-            )
-
-            return resposta, sm
-
-        else:
-            # Não entendeu - repetir pergunta
-            resposta = (
-                f"Não entendi, {nome}.\n\n"
-                f"Digite **'tudo certo'** para seguir ou **'editar'** para alterar algum campo."
-            )
-            return resposta, sm
+        return resposta, sm
 
     def _processar_transicao_epica(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """
-        Estado de transição épica - Celebra conquistas e prepara para etapas detalhadas
-
-        Inclui:
-        - Troféu/badge de conquista animado
-        - Mensagem motivacional humanizada
-        - Dicas práticas de preparação (café, banheiro, etc.)
-        - Estimativa de tempo realista
-        - Opção de pausa com salvamento automático
-        - Interface dinâmica com botões pulsantes
+        Processa botões "Vamos começar" / "Salvar e continuar depois".
         """
         msg_lower = mensagem.lower().strip()
         nome = sm.nome_usuario
 
         if self._detectar_intencao(msg_lower, 'pausa') or self._detectar_intencao(msg_lower, 'negacao'):
-            # Usuário quer pausar - mensagem humanizada com resumo
             resposta = (
                 f"Sem problema, {nome}! 😊\n\n"
                 "Entendo perfeitamente. Mapear processos requer concentração e tempo.\n\n"
                 "**✅ Seus dados foram salvos** e você pode continuar quando quiser.\n\n"
                 "📌 **Para retomar:** É só clicar em **Vamos começar**\n\n"
-                "**Dicas para o mapeamento de etapas:**\n"
-                "📝 Tenha exemplos reais do processo em mãos\n"
-                "📋 Pense em todas as decisões e caminhos alternativos\n"
-                "⏱️ Reserve 20-30 minutos sem interrupções\n"
-                "☕ Esteja confortável e descansado\n\n"
                 "Até breve! Estarei aqui quando você voltar. 👋"
             )
-            # Não muda o estado, fica esperando
-            return resposta, sm
 
-        elif self._detectar_intencao(msg_lower, 'confirmacao'):
-            if ETAPAS_INLINE:
-                # Coleta via form: 1 tela por etapa
-                sm.estado = EstadoPOP.ETAPA_FORM
-                sm._etapa_sm = None  # Sem SM no caminho linear
-
-                # Montar dados_interface com listas para o form
-                sm.tipo_interface = 'etapa_form'
-                sm.dados_interface = self._montar_dados_etapa_form(sm, 1)
-
-                resposta = (
-                    f"📋 **Resumo do processo registrado**\n\n"
-                    f"Agora vamos descrever as etapas da atividade.\n\n"
-                    f"Cada etapa representa uma ação concreta que a equipe executa para cumprir a demanda. "
-                    f"Descreva o que é feito, em que ordem e com qual objetivo.\n\n"
-                    f"Essas informações serão usadas para orientar a execução do processo e apoiar análises futuras.\n\n"
-                    f"*Se precisar ajustar algum dado do resumo, você pode editar antes de continuar.*"
-                )
-            else:
-                # Fluxo legado: delegar para agente HelenaEtapas
-                sm.estado = EstadoPOP.DELEGACAO_ETAPAS
-                resposta = (
-                    f"🏆 **PRIMEIRA FASE CONCLUÍDA!** 🏆\n\n"
-                    f"{nome}, você está indo muito bem!\n\n"
-                    f"Agora a Helena especializada em etapas vai te guiar no detalhamento operacional.\n\n"
-                    f"**Iniciando mapeamento de etapas...** 🎯"
-                )
-
-            return resposta, sm
-
-        else:
-            # Primeira visita ou mensagem não reconhecida - mostrar transição épica COMPLETA
-            progresso = self.obter_progresso(sm)
-            percentual = progresso['percentual']
-
-            resposta = (
-                f"## 🎯 **AGORA ENTRAMOS NA PARTE PRINCIPAL DO PROCESSO**\n\n"
-                f"A próxima fase é a **mais importante e detalhada**.\n"
-                f"Nela, vamos mapear **cada etapa** da sua atividade, com atenção aos detalhes.\n\n"
-                f"Para cada etapa, vou perguntar:\n\n"
-                f"📄 O que é feito\n"
-                f"👤 Quem executa\n"
-                f"📚 Qual norma fundamenta\n"
-                f"💻 Qual sistema é utilizado\n"
-                f"🗂 Quais documentos são utilizados ou gerados\n\n"
-                f"**⏱ Tempo estimado:** entre 30 minutos e 1 hora, dependendo da complexidade do processo.\n\n"
-                f"**💡 Antes de começar**\n\n"
-                f"Esta é a etapa mais detalhada do processo. Para facilitar, recomendamos:\n\n"
-                f"☕ Ter água ou café por perto\n"
-                f"🧍‍♂️ Fazer uma breve pausa para se alongar, se necessário\n"
-                f"🚻 Ir ao banheiro antes de iniciar\n"
-                f"📂 Ter em mãos exemplos reais do processo\n\n"
-                f"Quando estiver pronto(a), clique em **Vamos começar** para iniciar.\n"
-                f"Se preferir continuar em outro momento, utilize a opção **Salvar e continuar depois**."
-            )
-
-            return resposta, sm
-
-    def _processar_selecao_edicao(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
-        """
-        Sistema de Edição Granular - permite editar qualquer campo coletado
-
-        Menu interativo com todas as opções editáveis numeradas.
-        Usuário seleciona número e volta ao estado correspondente.
-        """
-        msg_lower = mensagem.lower().strip()
-
-        # Verificar se é cancelamento
-        if self._detectar_intencao(msg_lower, 'cancelar') or msg_lower == 'não':
-            # Verificar se veio da revisão
-            if hasattr(sm, '_voltou_de_revisao') and sm._voltou_de_revisao:
-                sm._voltou_de_revisao = False
-                sm.estado = EstadoPOP.REVISAO_PRE_DELEGACAO
-                return "Ok, voltando para revisão! Digite 'tudo certo' para seguir ou 'editar' para alterar outro campo.", sm
-            else:
-                sm.estado = EstadoPOP.TRANSICAO_EPICA
-                return "Ok, voltando ao fluxo principal! Digite 'VAMOS' quando estiver pronto.", sm
-
-        # Mapear opções de edição para estados
-        opcoes_edicao = {
-            '1': ('Nome do Processo', EstadoPOP.NOME_PROCESSO),
-            '2': ('Entrega Esperada', EstadoPOP.ENTREGA_ESPERADA),
-            '3': ('Dispositivos Normativos', EstadoPOP.DISPOSITIVOS_NORMATIVOS),
-            '4': ('Operadores', EstadoPOP.OPERADORES),
-            '5': ('Sistemas', EstadoPOP.SISTEMAS),
-            '6': ('Fluxos Entrada/Saída', EstadoPOP.FLUXOS),
-        }
-
-        # Se primeira visita, mostrar menu
-        if not hasattr(sm, '_primeira_edicao') or sm._primeira_edicao:
-            sm._primeira_edicao = False
-
-            resumo = self._gerar_resumo_pop(sm)
-
-            resposta = (
-                f"## 🔧 **EDIÇÃO GRANULAR DE CAMPOS**\n\n"
-                f"{resumo}\n\n"
-                f"**Qual campo deseja editar?**\n\n"
-                f"1️⃣ Nome do Processo\n"
-                f"2️⃣ Entrega Esperada\n"
-                f"3️⃣ Dispositivos Normativos\n"
-                f"4️⃣ Operadores\n"
-                f"5️⃣ Sistemas\n"
-                f"6️⃣ Documentos de Entrada\n"
-                f"7️⃣ Documentos de Saída\n"
-                f"8️⃣ Fluxos Entrada/Saída\n\n"
-                f"Digite o **número** do campo que deseja editar, ou **'CANCELAR'** para voltar."
-            )
-
-            sm.tipo_interface = 'selecao_numero'
+            sm.tipo_interface = 'confirmacao_dupla'
             sm.dados_interface = {
-                'titulo': 'Selecione o campo para editar',
-                'opcoes': list(opcoes_edicao.keys()),
-                'labels': [v[0] for v in opcoes_edicao.values()]
+                'opcao_a': 'Vamos começar',
+                'opcao_b': 'Salvar e continuar depois',
             }
-
             return resposta, sm
 
-        # Processar seleção
-        escolha = mensagem.strip()
+        # Confirmação → direto pra etapas
+        sm.estado = EstadoPOP.ETAPA_FORM
+        sm._etapa_sm = None
 
-        if escolha in opcoes_edicao:
-            campo_nome, novo_estado = opcoes_edicao[escolha]
-            sm.estado = novo_estado
+        sm.tipo_interface = 'etapa_form'
+        sm.dados_interface = self._montar_dados_etapa_form(sm, 1)
 
-            resposta = f"✏️ Editando **{campo_nome}**...\n\nPor favor, forneça o novo valor:"
-            return resposta, sm
-        else:
-            resposta = (
-                "❌ Opção inválida!\n\n"
-                "Por favor, digite um número de **1 a 8** ou **'CANCELAR'**."
-            )
-            return resposta, sm
+        resposta = (
+            f"📋 **Vamos às etapas da atividade**\n\n"
+            f"Cada etapa representa uma ação concreta que a equipe executa para cumprir a demanda. "
+            f"Descreva o que é feito, em que ordem e com qual objetivo.\n\n"
+            f"Essas informações serão usadas para orientar a execução do processo e apoiar análises futuras."
+        )
+
+        return resposta, sm
 
     def _processar_delegacao_etapas(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """Processa delegação para Helena Etapas"""
@@ -3136,7 +2961,11 @@ class HelenaPOP(BaseHelena):
                             etapa['ordem'] = i
                             novas_etapas.append(etapa)
                         else:
-                            logger.warning(f"[GUARD salvar_etapas] id={etapa_id} sem match (backend ids: {list(etapas_by_id.keys())[:3]}...)")
+                            # FALLBACK: aceitar etapa do frontend (não descartar)
+                            logger.warning(f"[GUARD salvar_etapas] id={etapa_id} sem match — usando dados do frontend")
+                            fe['numero'] = str(i)
+                            fe['ordem'] = i
+                            novas_etapas.append(normalizar_etapa(fe, i))
                     if novas_etapas:
                         sm.etapas_coletadas = novas_etapas
                     # Logar apenas anomalia: match parcial ou zero
@@ -3277,7 +3106,7 @@ class HelenaPOP(BaseHelena):
                 'atividade': sm.atividade_selecionada or '',
             },
             'campos_editaveis_inline': {
-                'nome_processo': dados.get('nome_processo', ''),
+                'nome_processo': dados.get('nome_processo', '') or sm.atividade_selecionada or '',
                 'entrega_esperada': dados.get('entrega_esperada', ''),
                 'dispositivos_normativos': '; '.join(dados.get('dispositivos_normativos', [])) if isinstance(dados.get('dispositivos_normativos'), list) else dados.get('dispositivos_normativos', ''),
                 'pontos_atencao': dados.get('pontos_atencao', ''),
