@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useChatStore } from '../../store/chatStore';
-import { FileText, CheckCircle, AlertCircle, Download, ArrowLeft, Loader2 } from 'lucide-react';
+import { FileText, CheckCircle, AlertCircle, Download, ArrowLeft, Loader2, Eye, X } from 'lucide-react';
 import { gerarPDF } from '../../services/helenaApi';
 import type { Etapa, Cenario } from '../../types/pop.types';
 import './FormularioPOP.css';
@@ -16,6 +16,21 @@ const FormularioPOP: React.FC = () => {
   const [ultimoCampoPreenchido, setUltimoCampoPreenchido] = useState<string | null>(null);
   const [gerandoPDF, setGerandoPDF] = useState(false);
   const [erroPDF, setErroPDF] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // ESC para fechar + travar scroll do body
+  useEffect(() => {
+    if (!showPreview) return;
+    document.body.style.overflow = 'hidden';
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowPreview(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [showPreview]);
 
   const handleGerarPDF = async () => {
     setGerandoPDF(true);
@@ -42,7 +57,7 @@ const FormularioPOP: React.FC = () => {
   const todosCampos = useMemo(() => [
     'area', 'codigo_processo', 'macroprocesso', 'processo_especifico',
     'subprocesso', 'nome_processo', 'entrega_esperada', 'dispositivos_normativos',
-    'sistemas', 'operadores', 'etapas', 'documentos_utilizados', 'pontos_atencao',
+    'sistemas', 'operadores', 'etapas', 'pontos_atencao',
     'fluxos_entrada', 'fluxos_saida'
   ], []);
 
@@ -189,26 +204,24 @@ const FormularioPOP: React.FC = () => {
 
   return (
     <div className={`form-section ${modoRevisao ? 'modo-revisao' : ''}`}>
-      {/* Header */}
-      <div className="form-header">
-        <div className="fields-indicator">
-          {camposPreenchidos}/{todosCampos.length} campos
+      {/* Header — oculto em modo revisão (já tem título na barra superior) */}
+      {!modoRevisao && (
+        <div className="form-header">
+          <h2>Formulário do POP</h2>
+
+          {/* Barra de progresso — percentual principal, campos secundário */}
+          <div className="form-progress-container">
+            <div
+              className="form-progress-bar"
+              style={{ width: `${porcentagemPreenchimento}%` }}
+            />
+          </div>
+          <div className="form-progress-text" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{Math.round(porcentagemPreenchimento)}% concluído</span>
+            <span style={{ fontSize: '11px', opacity: 0.7 }}>{camposPreenchidos} de {todosCampos.length} campos</span>
+          </div>
         </div>
-        <h2>
-          {modoRevisao ? '✓ Formulário do POP - Revisão Final' : 'Formulário do POP'}
-        </h2>
-        
-        {/* Barra de progresso do preenchimento */}
-        <div className="form-progress-container">
-          <div 
-            className="form-progress-bar" 
-            style={{ width: `${porcentagemPreenchimento}%` }}
-          />
-        </div>
-        <div className="form-progress-text">
-          {Math.round(porcentagemPreenchimento)}% preenchido
-        </div>
-      </div>
+      )}
 
       {/* Content */}
       <div className="form-content">
@@ -427,53 +440,177 @@ const FormularioPOP: React.FC = () => {
         {renderCampo('pontos_atencao', 'Pontos Gerais de Atenção na Atividade', 'textarea')}
       </div>
 
-      {/* Actions */}
+      {/* Actions — hierarquia: primário > secundário > destrutivo */}
       <div className="form-actions">
-        <button
-          type="button"
-          className="btn-form limpar"
-          onClick={() => {
-            if (confirm('Tem certeza que deseja iniciar um novo mapeamento? Isso irá limpar o formulário e a conversa atual.')) {
-              // Limpar estado local
-              setFormData({});
-              setValidacoes({});
-
-              // Reset completo do chat store
-              resetChat();
-
-              // Opcional: Recarregar a página para garantir estado limpo
-              window.location.reload();
-            }
-          }}
-        >
-          <FileText size={16} />
-          Limpar
-        </button>
-        
         <button
           type="button"
           className="btn-form encerrar"
           onClick={() => {
-            if (confirm('Deseja encerrar e voltar à página inicial?')) {
-              resetChat();
-            }
+            alert('Banco de dados em atualização. Em breve será possível retomar mapeamentos anteriores.');
           }}
         >
           <ArrowLeft size={16} />
-          Encerrar
+          Retomar mapeamento
         </button>
-        
+
         <button
           type="button"
-          className={`btn-form gerar-pdf ${modoRevisao ? 'ativo' : ''}`}
-          disabled={camposPreenchidos < 5 || gerandoPDF}
-          data-qa="btn-gerar-pdf"
-          onClick={handleGerarPDF}
+          className="btn-form ver-preview"
+          disabled={camposPreenchidos < 1}
+          onClick={() => setShowPreview(true)}
         >
-          {gerandoPDF ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
-          {gerandoPDF ? 'Gerando...' : 'Gerar PDF'}
+          <Eye size={16} />
+          Visualizar POP
+        </button>
+
+        <button
+          type="button"
+          className="btn-form limpar"
+          onClick={() => {
+            if (confirm('Tem certeza que deseja reiniciar? Isso irá limpar o formulário e a conversa atual.')) {
+              setFormData({});
+              setValidacoes({});
+              resetChat();
+              window.location.href = '/pop/chat';
+            }
+          }}
+        >
+          <FileText size={16} />
+          Reiniciar mapeamento
         </button>
       </div>
+
+      {/* Modal Preview */}
+      {showPreview && (
+        <div className="preview-overlay" onClick={() => setShowPreview(false)}>
+          <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="preview-header">
+              <h2>Preview do POP</h2>
+              <button className="preview-close" onClick={() => setShowPreview(false)} type="button">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="preview-body">
+              {/* Identificação */}
+              <div className="preview-section">
+                <h3>Identificação do Processo</h3>
+                <div className="preview-grid">
+                  {[
+                    ['Código', formData.codigo_processo],
+                    ['Área', formData.area],
+                    ['Macroprocesso', formData.macroprocesso],
+                    ['Processo', formData.processo_especifico],
+                    ['Subprocesso', formData.subprocesso],
+                    ['Atividade', formData.nome_processo],
+                  ].map(([label, valor]) => (
+                    <div key={label as string} className="preview-field">
+                      <span className="preview-label">{label as string}</span>
+                      <span className={`preview-value ${valor ? '' : 'pendente'}`}>
+                        {typeof valor === 'object' && valor !== null && 'codigo' in valor
+                          ? `${(valor as any).codigo} - ${(valor as any).nome}`
+                          : (valor as string) || 'Pendente'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Campos textuais */}
+              {[
+                ['1. Entrega Esperada', formData.entrega_esperada],
+                ['2. Sistemas Utilizados', formData.sistemas],
+                ['3. Dispositivos Normativos', formData.dispositivos_normativos],
+                ['4. Operadores', formData.operadores],
+                ['5. Entrada do Processo', formData.fluxos_entrada],
+              ].map(([titulo, valor]) => {
+                const valorStr = Array.isArray(valor)
+                  ? valor.join(', ')
+                  : typeof valor === 'string' ? valor : '';
+                return (
+                  <div key={titulo as string} className="preview-section">
+                    <h3>{titulo as string}</h3>
+                    <p className={valorStr ? '' : 'pendente'}>
+                      {valorStr || 'Pendente'}
+                    </p>
+                  </div>
+                );
+              })}
+
+              {/* Etapas */}
+              <div className="preview-section">
+                <h3>6. Tarefas/Etapas</h3>
+                {Array.isArray(formData.etapas) && formData.etapas.length > 0 ? (
+                  formData.etapas.map((etapa: any, idx: number) => (
+                    <div key={idx} className="preview-etapa">
+                      <strong>Etapa {etapa.numero || idx + 1}:</strong> {etapa.descricao || JSON.stringify(etapa)}
+                      {etapa.operador_nome && <div className="preview-detalhe">Operador: {etapa.operador_nome}</div>}
+                      {etapa.sistemas?.length > 0 && <div className="preview-detalhe">Sistemas: {etapa.sistemas.join(', ')}</div>}
+                      {etapa.tempo_estimado && <div className="preview-detalhe">Tempo: {etapa.tempo_estimado}</div>}
+                    </div>
+                  ))
+                ) : (
+                  <p className="pendente">Pendente</p>
+                )}
+              </div>
+
+              {/* Saída */}
+              <div className="preview-section">
+                <h3>7. Saída do Processo</h3>
+                <p className={formData.fluxos_saida ? '' : 'pendente'}>
+                  {Array.isArray(formData.fluxos_saida) ? formData.fluxos_saida.join(', ') : (formData.fluxos_saida as string) || 'Pendente'}
+                </p>
+              </div>
+
+              {/* Documentos */}
+              <div className="preview-section">
+                <h3>8. Documentos</h3>
+                {Array.isArray(formData.documentos_utilizados) && formData.documentos_utilizados.length > 0 ? (
+                  formData.documentos_utilizados.map((doc: any, idx: number) => (
+                    <div key={idx} className="preview-etapa">
+                      <strong>{doc.tipo_documento || 'Documento'}:</strong> {doc.descricao || JSON.stringify(doc)}
+                    </div>
+                  ))
+                ) : (
+                  <p className="pendente">Pendente</p>
+                )}
+              </div>
+
+              {/* Pontos de Atenção */}
+              <div className="preview-section">
+                <h3>9. Pontos de Atenção</h3>
+                <p className={formData.pontos_atencao ? '' : 'pendente'}>
+                  {(formData.pontos_atencao as string) || 'Pendente'}
+                </p>
+              </div>
+            </div>
+
+            <div className="preview-footer">
+              <div className="preview-progress">
+                {camposPreenchidos} de {todosCampos.length} campos preenchidos ({Math.round(porcentagemPreenchimento)}%)
+              </div>
+              <div className="preview-actions">
+                <button
+                  className="btn-preview-fechar"
+                  onClick={() => setShowPreview(false)}
+                  type="button"
+                >
+                  Fechar
+                </button>
+                <button
+                  className="btn-preview-pdf"
+                  onClick={() => { setShowPreview(false); handleGerarPDF(); }}
+                  disabled={camposPreenchidos < 5 || gerandoPDF}
+                  type="button"
+                >
+                  {gerandoPDF ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
+                  {gerandoPDF ? 'Gerando...' : 'Gerar PDF'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {erroPDF && (
         <div style={{ padding: '0.5rem 1rem', background: '#f8d7da', color: '#721c24', borderRadius: '6px', marginTop: '0.5rem', fontSize: '0.85rem' }}>
           {erroPDF}

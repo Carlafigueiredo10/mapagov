@@ -110,8 +110,8 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
           isDescricaoTextoLivre = false;
         }
       } else {
-        // Texto puro (não-JSON) e longo
-        isDescricaoTextoLivre = texto.trim().length > 20;
+        // Texto puro (não-JSON) — mínimo alinhado com backend (10 chars)
+        isDescricaoTextoLivre = texto.trim().length >= 10;
       }
 
       console.log('🔍 [FALLBACK DEBUG] Detecção de descrição inicial:', {
@@ -137,49 +137,121 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
                                   mostrarMensagemUsuario;
 
       if (isDescricaoInicial) {
-        // Mostrar quadro roxo animado com descrição
-        console.log('🎨 Mostrando LoadingAnaliseAtividade para descrição inicial:', texto.substring(0, 50));
+        // Mostrar card educativo "Entenda como sua atividade é classificada"
+        console.log('📘 Mostrando card educativo para descrição inicial:', texto.substring(0, 50));
 
         // Limpar flag (descrição foi enviada)
         sessionStorage.removeItem(`aguardando_descricao_${sessionId}`);
 
+        // Reset da flag antes de mostrar card
+        useChatStore.getState().resetEntendeuClassificacao();
+
         loadingId = adicionarMensagemRapida('helena', '', {
           loading: true,
           interface: {
-            tipo: 'loading_analise_atividade',
-            dados: { descricao: texto.trim() }
+            tipo: 'explicacao_classificacao',
+            dados: {}
           }
         });
+
+        // Fazer request ao backend em paralelo
+        const request: ChatRequest = {
+          message: texto,
+          contexto,
+          session_id: sessionId,
+          nome_usuario: useChatStore.getState().dadosPOP.nome_usuario,
+        };
+
+        let respostaBackend: ChatResponse | null = null;
+        let backendErro: unknown = null;
+
+        // Promise do backend
+        const backendDone = (contexto === 'gerador_pop'
+          ? chatHelena(request)
+          : chatAjuda(request)
+        ).then((res) => {
+          respostaBackend = res;
+        }).catch((err) => {
+          backendErro = err;
+        });
+
+        // Promise do "Entendi" — subscribe no store
+        const userEntendeu = new Promise<void>((resolve) => {
+          // Se já clicou (improvável mas seguro)
+          if (useChatStore.getState().entendeuClassificacao) {
+            resolve();
+            return;
+          }
+          const unsub = useChatStore.subscribe((state) => {
+            if (state.entendeuClassificacao) {
+              unsub();
+              resolve();
+            }
+          });
+        });
+
+        // Se o usuário clicar "Entendi" antes do backend, trocar para loading simples
+        userEntendeu.then(() => {
+          if (!respostaBackend && !backendErro) {
+            const store = useChatStore.getState();
+            store.removeMessage(loadingId);
+            loadingId = adicionarMensagemRapida('helena', 'Quase lá...', { loading: true });
+          }
+        });
+
+        // Aguardar AMBOS
+        await Promise.all([backendDone, userEntendeu]);
+
+        // Re-throw se backend deu erro
+        if (backendErro) {
+          const store = useChatStore.getState();
+          store.removeMessage(loadingId);
+          throw backendErro;
+        }
+
+        // "Last write wins"
+        const store = useChatStore.getState();
+        if (requestId !== lastRequestId) {
+          store.removeMessage(loadingId);
+          console.warn(`⚠️ [RACE] Ignorando resposta antiga: ${requestId} (atual: ${lastRequestId})`);
+          return;
+        }
+
+        // Remover card educativo/loading e usar resposta guardada
+        store.removeMessage(loadingId);
+        // Continua com snap = respostaBackend abaixo
+        var snap = respostaBackend!;
+
       } else {
         // Loading simples com frase humanizada para todos os outros casos
         // (sistemas, áreas, dropdowns, confirmações, etc.)
         loadingId = adicionarMensagemRapida('helena', obterFraseAleatoria(), { loading: true });
-      }
 
-      // Fazer request
-      const request: ChatRequest = {
-        message: texto,
-        contexto,
-        session_id: sessionId,
-        nome_usuario: useChatStore.getState().dadosPOP.nome_usuario,
-      };
+        // Fazer request
+        const request: ChatRequest = {
+          message: texto,
+          contexto,
+          session_id: sessionId,
+          nome_usuario: useChatStore.getState().dadosPOP.nome_usuario,
+        };
 
-      const response: ChatResponse = contexto === 'gerador_pop'
-        ? await chatHelena(request)
-        : await chatAjuda(request);
+        const response: ChatResponse = contexto === 'gerador_pop'
+          ? await chatHelena(request)
+          : await chatAjuda(request);
 
-      const snap = response;
+        var snap = response;
 
-      // "Last write wins" — ignora respostas antigas (race condition)
-      const store = useChatStore.getState();
-      if (requestId !== lastRequestId) {
+        // "Last write wins" — ignora respostas antigas (race condition)
+        const store = useChatStore.getState();
+        if (requestId !== lastRequestId) {
+          store.removeMessage(loadingId);
+          console.warn(`⚠️ [RACE] Ignorando resposta antiga: ${requestId} (atual: ${lastRequestId})`);
+          return;
+        }
+
+        // Remover loading
         store.removeMessage(loadingId);
-        console.warn(`⚠️ [RACE] Ignorando resposta antiga: ${requestId} (atual: ${lastRequestId})`);
-        return;
       }
-
-      // Remover loading
-      store.removeMessage(loadingId);
 
       const iface = (snap as any).interface as { tipo: string; dados: Record<string, unknown> } | null;
       const temInterface = !!iface?.tipo;
@@ -210,6 +282,15 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         console.log('🔵 [useChat] dados_extraidos:', Object.keys(snap.dados_extraidos));
         updateDadosPOP(snap.dados_extraidos);
       }
+
+      // ✅ Atualizar estado atual da máquina de estados (stepper)
+      const progressoDetalhado = snap.metadados?.progresso_detalhado as { estado_atual?: string } | undefined;
+      if (progressoDetalhado?.estado_atual) {
+        useChatStore.getState().setEstadoAtual(progressoDetalhado.estado_atual);
+      }
+
+      // ✅ Espelhar modo ajuda do backend
+      useChatStore.getState().setModoAjudaAtivo(Boolean(snap.metadados?.em_modo_duvidas));
 
       // Atualizar progresso
       if (snap.progresso) {
@@ -284,7 +365,7 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         }, delay);
       }
 
-      return response;
+      return snap;
 
     } catch (err: unknown) {
       // --- Diagnóstico: logar detalhes reais do erro ---

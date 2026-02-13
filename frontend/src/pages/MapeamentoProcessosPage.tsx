@@ -32,7 +32,11 @@ const TODOS_CAMPOS = [
   'fluxos_entrada', 'fluxos_saida', 'pontos_atencao'
 ] as const;
 
-const MapeamentoProcessosPage: React.FC = () => {
+interface MapeamentoProcessosPageProps {
+  startInChat?: boolean;
+}
+
+const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ startInChat }) => {
   const navigate = useNavigate();
   const requireAuth = useRequireAuth();
   const [popAberto, setPopAberto] = useState(false);
@@ -40,6 +44,13 @@ const MapeamentoProcessosPage: React.FC = () => {
 
   const { dadosPOP, viewMode, setViewMode, fullscreenChat } = useChatStore();
   const modoRevisao = viewMode === 'final_review';
+
+  // Se entrou via /pop/chat, garantir viewMode correto
+  useEffect(() => {
+    if (startInChat && viewMode === 'landing') {
+      setViewMode('chat_canvas');
+    }
+  }, [startInChat, viewMode, setViewMode]);
 
   // Contagem de campos preenchidos (mesma lógica de FormularioPOP)
   const camposPreenchidos = useMemo(() => {
@@ -109,11 +120,11 @@ const MapeamentoProcessosPage: React.FC = () => {
     setTimeout(() => setSalvoFeedback(false), 2000);
   }, []);
 
-  // Landing institucional
-  if (viewMode === 'landing') {
+  // Landing institucional (apenas em /pop, nunca em /pop/chat)
+  if (!startInChat && viewMode === 'landing') {
     return (
       <LandingShell onBack={() => navigate(-1)}>
-        <MapeamentoProcessosLanding onIniciar={() => { if (requireAuth()) setViewMode('chat_canvas'); }} />
+        <MapeamentoProcessosLanding onIniciar={() => { if (requireAuth()) { setViewMode('chat_canvas'); navigate('/pop/chat'); } }} />
       </LandingShell>
     );
   }

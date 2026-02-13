@@ -237,8 +237,8 @@ const InterfaceRevisaoFinal: React.FC<InterfaceRevisaoFinalProps> = ({ dados, on
 
       <style>{`
         .interface-revisao-final { background: white; border-radius: 12px; padding: 1.5rem; max-height: 75vh; overflow-y: auto; }
-        .rf-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e9ecef; }
-        .rf-title { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+        .rf-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e9ecef; text-align: center; }
+        .rf-title { display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 0.5rem; }
         .rf-title h2 { margin: 0; font-size: 1.4rem; color: #1B4F72; }
         .rf-icon-success { color: #28a745; }
         .rf-subtitle { margin: 0; color: #6c757d; font-size: 0.9rem; }

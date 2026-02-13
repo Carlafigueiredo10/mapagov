@@ -99,6 +99,7 @@ function App() {
 
         {/* Landings publicas — gate interno protege a ferramenta */}
         <Route path="/pop" element={<MapeamentoProcessosPage />} />
+        <Route path="/pop/chat" element={<MapeamentoProcessosPage startInChat />} />
         <Route path="/riscos" element={<AnaliseRiscosPage />} />
         <Route path="/fluxograma" element={<FluxogramaPage />} />
         <Route path="/plano" element={<ProtectedRoute><PlanoAcaoPage /></ProtectedRoute>} />

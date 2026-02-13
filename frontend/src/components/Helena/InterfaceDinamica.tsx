@@ -210,9 +210,10 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
       );
 
     case 'loading_analise_atividade':
+    case 'explicacao_classificacao':
       return (
         <LoadingAnaliseAtividade
-          descricao={dados?.descricao as string}
+          onEntendi={() => useChatStore.getState().sinalizarEntendi()}
         />
       );
 

@@ -76,6 +76,12 @@ interface ChatState {
   popUuid: string | null;
   integrityHash: string | null;
 
+  // Estado atual da máquina de estados (stepper)
+  estadoAtual: string;
+
+  // Modo ajuda (não persistido)
+  modoAjudaAtivo: boolean;
+
   // Actions básicas
   addMessage: (message: HelenaMessage) => void;
   removeMessage: (id: string) => void;
@@ -93,10 +99,17 @@ interface ChatState {
   updateDadosPOP: (dados: Partial<DadosPOP>) => void;
   setViewMode: (mode: ViewMode) => void;
   setPopIdentifiers: (id: number, uuid: string, hash: string) => void;
+  setEstadoAtual: (estado: string) => void;
+  setModoAjudaAtivo: (ativo: boolean) => void;
 
   // UI
   fullscreenChat: boolean;
   setFullscreenChat: (value: boolean) => void;
+
+  // Sincronização "Entendi" (card educativo)
+  entendeuClassificacao: boolean;
+  sinalizarEntendi: () => void;
+  resetEntendeuClassificacao: () => void;
 
   // Helpers
   adicionarMensagemRapida: (tipo: 'usuario' | 'helena', texto: string, opcoes?: Record<string, unknown>) => string;
@@ -117,6 +130,8 @@ export const useChatStore = create<ChatState>()(
       popId: null,
       popUuid: null,
       integrityHash: null,
+      estadoAtual: 'nome_usuario',
+      modoAjudaAtivo: false,
 
       // Actions básicas
       addMessage: (message) =>
@@ -143,10 +158,12 @@ export const useChatStore = create<ChatState>()(
           progresso: { atual: 0, total: 10, texto: 'Etapa 0 de 10 · Início do mapeamento' },
           dadosPOP: {},
           historicoCompleto: [],
-          viewMode: 'landing' as ViewMode,
+          viewMode: 'chat_canvas' as ViewMode,
           popId: null,
           popUuid: null,
           integrityHash: null,
+          estadoAtual: 'nome_usuario',
+          modoAjudaAtivo: false,
         }),
 
       carregarHistorico: (mensagens) => {
@@ -195,6 +212,14 @@ export const useChatStore = create<ChatState>()(
         popUuid: uuid,
         integrityHash: hash,
       }),
+
+      setEstadoAtual: (estado) => set({ estadoAtual: estado }),
+      setModoAjudaAtivo: (ativo) => set({ modoAjudaAtivo: ativo }),
+
+      // Sincronização "Entendi" (card educativo)
+      entendeuClassificacao: false,
+      sinalizarEntendi: () => set({ entendeuClassificacao: true }),
+      resetEntendeuClassificacao: () => set({ entendeuClassificacao: false }),
 
       // Helper para adicionar mensagem rapidamente
       adicionarMensagemRapida: (tipo, texto, opcoes = {}) => {

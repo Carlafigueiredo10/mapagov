@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Save, Pencil } from 'lucide-react';
+import { Send, Pencil, HelpCircle } from 'lucide-react';
+import { CHAT_CMD } from '../../constants/chatCommands';
 import MessageBubble from './MessageBubble';
 import ErrorMessage from './ErrorMessage';
-import SaveIndicator from './SaveIndicator';
 
 import { useChat } from '../../hooks/useChat';
 import { useAutoSave } from '../../hooks/useAutoSave';
@@ -10,6 +10,69 @@ import { useSyncHistorico } from '../../hooks/useSyncHistorico';
 import { useChatStore } from '../../store/chatStore';
 import { loadPOP } from '../../services/helenaApi';
 import './ChatContainer.css';
+
+// ── Stepper: 5 macro-fases do POP ──────────────────────────────────
+const FASES_POP = [
+  { label: 'Identificação', key: 'identificacao' },
+  { label: 'Classificação', key: 'classificacao' },
+  { label: 'Estrutura',     key: 'estrutura' },
+  { label: 'Etapas',        key: 'etapas' },
+  { label: 'Consolidação',  key: 'consolidacao' },
+] as const;
+
+const ESTADO_PARA_FASE: Record<string, number> = {
+  // 0 — Identificação
+  nome_usuario: 0,
+  escolha_tipo_explicacao: 0,
+  explicacao_longa: 0,
+  duvidas_explicacao: 0,
+  explicacao: 0,
+  pedido_compromisso: 0,
+  // 1 — Classificação
+  area_decipex: 1,
+  subarea_decipex: 1,
+  arquitetura: 1,
+  confirmacao_arquitetura: 1,
+  selecao_hierarquica: 1,
+  nome_processo: 1,
+  entrega_esperada: 1,
+  confirmacao_entrega: 1,
+  reconhecimento_entrega: 1,
+  // 2 — Estrutura
+  dispositivos_normativos: 2,
+  transicao_roadtrip: 2,
+  operadores: 2,
+  sistemas: 2,
+  fluxos: 2,
+  pontos_atencao: 2,
+  revisao_pre_delegacao: 2,
+  transicao_epica: 2,
+  selecao_edicao: 2,
+  // 3 — Etapas
+  delegacao_etapas: 3,
+  etapa_form: 3,
+  etapa_descricao: 3,
+  etapa_operador: 3,
+  etapa_sistemas: 3,
+  etapa_docs_requeridos: 3,
+  etapa_docs_gerados: 3,
+  etapa_tempo: 3,
+  etapa_condicional: 3,
+  etapa_tipo_condicional: 3,
+  etapa_antes_decisao: 3,
+  etapa_cenarios: 3,
+  etapa_subetapas_cenario: 3,
+  etapa_detalhes: 3,
+  etapa_mais: 3,
+  etapa_revisao: 3,
+  // 4 — Consolidação
+  revisao_final: 4,
+  finalizado: 4,
+};
+
+function getFaseAtual(estadoAtual: string): number {
+  return ESTADO_PARA_FASE[estadoAtual] ?? 0;
+}
 
 interface ChatContainerProps {
   className?: string;
@@ -69,13 +132,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
     messages,
     isProcessing,
     error,
-    progresso,
     dadosPOP,
     enviarMensagem,
     clearError,
   } = useChat(handleAutoSave);
 
-  const { updateDadosPOP } = useChatStore();
+  const { updateDadosPOP, estadoAtual, modoAjudaAtivo } = useChatStore();
   const nomeUsuario = dadosPOP.nome_usuario || '';
 
   // Abrir edição inline do nome
@@ -202,14 +264,16 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
       // Limpa qualquer estado persistido no localStorage
       localStorage.removeItem('chat-storage');
 
-      // Recarrega a página para garantir limpeza total
-      window.location.reload();
+      // Recarrega na rota do chat para garantir limpeza total
+      window.location.href = '/pop/chat';
     }
   };
 
 
   // Detectar se a última mensagem da Helena tem interface que espera clique (não texto)
   const interfaceBloqueiaInput = (() => {
+    // Modo ajuda ativo: input NUNCA bloqueia
+    if (modoAjudaAtivo) return false;
     if (messages.length === 0) return false;
     const ultima = messages[messages.length - 1];
     if (ultima.tipo !== 'helena') return false;
@@ -237,103 +301,115 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
     <div className={`chat-container ${className}`}>
       {/* Header */}
       <div className="chat-header-pop">
-        {/* Linha superior com botões de ação */}
-        <div className="header-top-bar">
-          <div className="header-left-buttons">
-            <button
-              className="header-btn start-btn"
-              onClick={reiniciarConversa}
-              title="Apagar chat e começar novo mapeamento de POP"
-              disabled={isProcessing}
-            >
-              🚀 Novo POP
-            </button>
-
-
-          </div>
-
-          {/* Área de salvamento - só mostra se houver mensagens */}
-          {messages.length > 0 && (
-            <div className="header-save-area">
-              <SaveIndicator status={saveStatus} ultimoSalvamento={ultimoSalvamento} />
-              <button
-                onClick={handleSalvarManual}
-                disabled={saveStatus === 'salvando'}
-                className="header-btn save-btn"
-                title="Salvar conversa manualmente"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  fontSize: '13px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  borderRadius: '8px',
-                  cursor: saveStatus === 'salvando' ? 'not-allowed' : 'pointer',
-                  opacity: saveStatus === 'salvando' ? 0.6 : 1,
-                  color: 'white'
-                }}
-              >
-                <Save size={14} />
-                Salvar
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Botões removidos do banner para reduzir altura */}
 
         <div className="header-content">
           <h2>POP — Mapeamento de Procedimento Operacional</h2>
-          <p>DECIPEX · Ministério da Gestão e da Inovação</p>
-          {(nomeUsuario || dadosPOP.codigo_cap) && (
-            <div className="header-meta-line">
-              {nomeUsuario && (
-                <span className="header-meta-item">
-                  <span className="meta-label">Responsável:</span>
-                  {editandoNome ? (
-                    <input
-                      ref={nomeInputRef}
-                      type="text"
-                      value={nomeTemp}
-                      onChange={(e) => setNomeTemp(e.target.value)}
-                      onBlur={confirmarNome}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') confirmarNome();
-                        if (e.key === 'Escape') setEditandoNome(false);
-                      }}
-                      className="nome-usuario-input"
-                      maxLength={40}
-                    />
-                  ) : (
-                    <span
-                      className="nome-usuario-label"
-                      onClick={iniciarEdicaoNome}
-                      title="Clique para alterar seu nome"
-                    >
-                      {nomeUsuario} <Pencil size={12} />
-                    </span>
-                  )}
-                </span>
-              )}
-              {dadosPOP.codigo_cap && (
-                <span className="header-meta-item">
-                  <span className="meta-label">Código CAP:</span>
-                  <span>{dadosPOP.codigo_cap}</span>
-                </span>
-              )}
-            </div>
-          )}
+          <div className="header-meta-line" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', fontSize: '13px', opacity: 0.9, padding: '0 16px' }}>
+            {nomeUsuario && (
+              <span className="header-meta-item">
+                <span className="meta-label">Responsável:</span>
+                {editandoNome ? (
+                  <input
+                    ref={nomeInputRef}
+                    type="text"
+                    value={nomeTemp}
+                    onChange={(e) => setNomeTemp(e.target.value)}
+                    onBlur={confirmarNome}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') confirmarNome();
+                      if (e.key === 'Escape') setEditandoNome(false);
+                    }}
+                    className="nome-usuario-input"
+                    maxLength={40}
+                  />
+                ) : (
+                  <span
+                    className="nome-usuario-label"
+                    onClick={iniciarEdicaoNome}
+                    title="Clique para alterar seu nome"
+                  >
+                    {nomeUsuario} <Pencil size={12} />
+                  </span>
+                )}
+              </span>
+            )}
+            {dadosPOP.codigo_cap && (
+              <span className="header-meta-item">
+                <span className="meta-label">Código CAP:</span>
+                <span>{dadosPOP.codigo_cap}</span>
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Barra de Progresso */}
-        <div className="progress-container">
-          <div
-            className="progress-bar"
-            style={{ width: `${(progresso.atual / progresso.total) * 100}%` }}
-          />
-        </div>
-        <div className="progress-text">{progresso.texto}</div>
+        {/* Progresso removido do banner — já aparece no FormularioPOP lateral */}
       </div>
+
+      {/* Stepper: 5 macro-fases */}
+      {(() => {
+        const faseIdx = getFaseAtual(estadoAtual);
+        return (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0',
+            padding: '8px 16px',
+            background: '#f8f9fa',
+            borderBottom: '1px solid #e0e0e0',
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+          }}>
+            {FASES_POP.map((fase, idx) => {
+              const isCompleted = idx < faseIdx;
+              const isActive = idx === faseIdx;
+              return (
+                <React.Fragment key={fase.key}>
+                  {idx > 0 && (
+                    <div style={{
+                      width: '24px',
+                      height: '2px',
+                      background: isCompleted || isActive ? '#1351B4' : '#ccc',
+                      flexShrink: 0,
+                    }} />
+                  )}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    flexShrink: 0,
+                  }}>
+                    <div style={{
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      background: isCompleted ? '#1351B4' : isActive ? '#1351B4' : '#ccc',
+                      border: isActive ? '2px solid #1351B4' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '10px',
+                      color: '#fff',
+                      fontWeight: 600,
+                      boxShadow: isActive ? '0 0 0 3px rgba(19,81,180,0.2)' : 'none',
+                    }}>
+                      {isCompleted ? '✓' : idx + 1}
+                    </div>
+                    <span style={{
+                      fontSize: '12px',
+                      fontWeight: isActive ? 600 : 400,
+                      color: isCompleted ? '#1351B4' : isActive ? '#1351B4' : '#888',
+                    }}>
+                      {fase.label}
+                    </span>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Banner de conflito */}
       {conflictDetected && (
@@ -389,13 +465,58 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
       {/* Input Section */}
       <form onSubmit={handleSubmit} className="input-section">
         <div className="input-group">
+          {/* Botão Ajuda / Voltar ao mapeamento */}
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const cmd = modoAjudaAtivo ? CHAT_CMD.SAIR_DUVIDAS : CHAT_CMD.ENTRAR_DUVIDAS;
+                enviarMensagem(cmd, 'gerador_pop', false);
+              }}
+              disabled={isProcessing}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '8px 14px',
+                border: modoAjudaAtivo ? '1px solid #1351B4' : '1px solid #ccc',
+                borderRadius: '20px',
+                background: modoAjudaAtivo ? '#1351B4' : 'transparent',
+                color: modoAjudaAtivo ? '#fff' : '#1351B4',
+                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                fontSize: '13px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                opacity: isProcessing ? 0.5 : 1,
+                transition: 'all 0.2s ease',
+                flexShrink: 0,
+              }}
+              title={modoAjudaAtivo ? 'Sair do modo ajuda e voltar ao mapeamento' : 'Tirar dúvidas com a Helena'}
+            >
+              {modoAjudaAtivo ? (
+                <span>Voltar ao mapeamento</span>
+              ) : (
+                <>
+                  <HelpCircle size={15} />
+                  <span>Ajuda</span>
+                </>
+              )}
+            </button>
+          )}
+
           <input
             ref={inputRef}
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={interfaceBloqueiaInput ? "Use os botões acima para responder" : "Digite sua mensagem..."}
+            placeholder={
+              modoAjudaAtivo
+                ? "Escreva sua dúvida..."
+                : interfaceBloqueiaInput
+                  ? "Use os botões acima para responder"
+                  : "Digite sua mensagem..."
+            }
             maxLength={2000}
             disabled={isProcessing || interfaceBloqueiaInput}
             className="message-input"

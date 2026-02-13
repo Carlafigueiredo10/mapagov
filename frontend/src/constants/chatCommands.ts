@@ -11,6 +11,8 @@ export const CHAT_CMD = {
   CANCELAR: "__CANCELAR__",
   SEGUIR: "__SEGUIR__",
   PULAR: "__PULAR__",
+  ENTRAR_DUVIDAS: "__entrar_duvidas__",
+  SAIR_DUVIDAS: "__sair_duvidas__",
 } as const;
 
 export type ChatCommand = typeof CHAT_CMD[keyof typeof CHAT_CMD];

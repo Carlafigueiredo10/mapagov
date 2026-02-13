@@ -16,7 +16,6 @@ interface InterfaceNormasProps {
 const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) => {
   const [normasSelecionadas, setNormasSelecionadas] = useState<string[]>([]);
   const [categoriaAberta, setCategoriaAberta] = useState<string | null>(null);
-  const [mostrarNormasManuais, setMostrarNormasManuais] = useState(false);
   const [normasManuais, setNormasManuais] = useState<string[]>([]);
   const [normaManualInput, setNormaManualInput] = useState<string>('');
   const [termoBusca, setTermoBusca] = useState<string>('');
@@ -247,51 +246,54 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           )}
         </div>
 
-        {/* 2. ADICIONAR MANUALMENTE */}
-        <div className="section-card section-manual">
-          <div className="section-header">
-            <h3>Adicionar norma manualmente</h3>
-            <p className="section-desc">Informe normas que nao constam na lista acima.</p>
+        {/* 2. NORMAS ADICIONADAS MANUALMENTE */}
+        {normasManuais.length > 0 && (
+          <div className="normas-digitadas">
+            <div className="normas-digitadas-label">
+              📝 Normas adicionadas manualmente:
+            </div>
+            <div className="normas-digitadas-lista">
+              {normasManuais.map((norma, idx) => (
+                <div key={idx} className="norma-digitada-card">
+                  <span className="norma-digitada-nome">{norma}</span>
+                  <button
+                    className="btn-remover"
+                    onClick={() => removerNormaManual(norma)}
+                    title="Remover"
+                    type="button"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
+        )}
 
-          {!mostrarNormasManuais ? (
+        {/* 3. CAMPO DE INCLUSÃO MANUAL */}
+        <div className="campo-manual">
+          <div className="campo-manual-label">
+            Não achou alguma norma? ✍️ Digite manualmente no campo abaixo.
+          </div>
+          <div className="campo-manual-input-group">
+            <input
+              type="text"
+              className="campo-manual-input"
+              placeholder="Ex: Art. 34 da IN SGP n. 97/2022"
+              value={normaManualInput}
+              onChange={(e) => setNormaManualInput(e.target.value)}
+              onKeyDown={handleKeyPressNormaManual}
+              maxLength={300}
+            />
             <button
-              className="btn-adicionar-manual"
-              onClick={() => setMostrarNormasManuais(true)}
+              className="btn-adicionar"
+              onClick={adicionarNormaManual}
+              disabled={!normaManualInput.trim()}
               type="button"
             >
-              + Adicionar norma manualmente
+              + Adicionar
             </button>
-          ) : (
-            <div className="campo-manual">
-              <div className="campo-manual-input-group">
-                <input
-                  type="text"
-                  className="campo-manual-input"
-                  placeholder="Ex: Art. 34 da IN SGP n. 97/2022"
-                  value={normaManualInput}
-                  onChange={(e) => setNormaManualInput(e.target.value)}
-                  onKeyDown={handleKeyPressNormaManual}
-                  maxLength={300}
-                />
-                <button
-                  className="btn-add"
-                  onClick={adicionarNormaManual}
-                  disabled={!normaManualInput.trim()}
-                  type="button"
-                >
-                  + Adicionar
-                </button>
-              </div>
-              <button
-                className="btn-cancelar-manual"
-                onClick={() => setMostrarNormasManuais(false)}
-                type="button"
-              >
-                Fechar
-              </button>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* 3. SIGEPE LEGIS IA */}
@@ -313,19 +315,17 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
 
       {/* Rodape */}
       <div className="footer-actions">
-        <button className="btn-interface btn-secondary" onClick={() => onConfirm('nenhuma')}>
-          Registrar depois
-        </button>
         <button
           className="btn-interface btn-primary"
           onClick={handleConfirm}
+          disabled={totalNormas === 0}
         >
-          {totalNormas > 0 ? `Confirmar (${totalNormas})` : 'Confirmar sem normas'}
+          Confirmar ({totalNormas})
         </button>
       </div>
       {totalNormas === 0 && (
-        <p style={{ textAlign: 'center', color: '#6c757d', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-          É possível continuar sem registrar normas neste momento.
+        <p style={{ textAlign: 'center', color: '#d32f2f', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+          Selecione ou adicione ao menos uma norma para continuar.
         </p>
       )}
 
@@ -449,9 +449,6 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           border-left: 4px solid #1351B4;
         }
 
-        .section-manual {
-          border-left: 4px solid #28a745;
-        }
 
         .section-legis {
           border-left: 4px solid #667eea;
@@ -609,30 +606,81 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           margin-top: 0.25rem;
         }
 
-        /* ========== CAMPO MANUAL ========== */
-        .btn-adicionar-manual {
-          width: 100%;
-          padding: 0.9rem;
-          background: white;
-          color: #28a745;
-          border: 2px dashed #28a745;
+        /* ========== NORMAS DIGITADAS (CHIPS VERDES) ========== */
+        .normas-digitadas {
+          margin: 20px 0;
+          padding: 16px;
+          background: #e8f5e9;
           border-radius: 8px;
-          font-size: 0.9rem;
+          border: 2px solid #4caf50;
+        }
+
+        .normas-digitadas-label {
+          margin-bottom: 12px;
+          font-size: 14px;
+          color: #2e7d32;
           font-weight: 600;
+        }
+
+        .normas-digitadas-lista {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .norma-digitada-card {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: white;
+          border: 2px solid #4caf50;
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #2e7d32;
+        }
+
+        .norma-digitada-nome {
+          flex: 1;
+        }
+
+        .btn-remover {
+          width: 20px;
+          height: 20px;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f44336;
+          color: white;
+          border: none;
+          border-radius: 50%;
           cursor: pointer;
+          font-size: 12px;
+          line-height: 1;
           transition: all 0.2s;
         }
 
-        .btn-adicionar-manual:hover {
-          background: #28a745;
-          color: white;
-          border-style: solid;
+        .btn-remover:hover {
+          background: #d32f2f;
+          transform: scale(1.1);
         }
 
+        /* ========== CAMPO MANUAL (CAIXA AMARELA) ========== */
         .campo-manual {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
+          margin: 24px 0;
+          padding: 20px;
+          background: #fff9e6;
+          border-radius: 8px;
+          border: 2px dashed #ffc107;
+        }
+
+        .campo-manual-label {
+          margin-bottom: 12px;
+          font-size: 14px;
+          color: #856404;
+          font-weight: 500;
         }
 
         .campo-manual-input-group {
@@ -655,7 +703,7 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           background: #f8f9fa;
         }
 
-        .btn-add {
+        .btn-adicionar {
           padding: 10px 20px;
           background: #28a745;
           color: white;
@@ -664,31 +712,18 @@ const InterfaceNormas: React.FC<InterfaceNormasProps> = ({ dados, onConfirm }) =
           cursor: pointer;
           font-size: 14px;
           font-weight: 500;
+          transition: all 0.2s;
           white-space: nowrap;
         }
 
-        .btn-add:hover:not(:disabled) {
+        .btn-adicionar:hover:not(:disabled) {
           background: #218838;
         }
 
-        .btn-add:disabled {
+        .btn-adicionar:disabled {
           background: #6c757d;
           cursor: not-allowed;
           opacity: 0.5;
-        }
-
-        .btn-cancelar-manual {
-          padding: 0.5rem;
-          background: transparent;
-          color: #6c757d;
-          border: 1px solid #dee2e6;
-          border-radius: 6px;
-          font-size: 0.85rem;
-          cursor: pointer;
-        }
-
-        .btn-cancelar-manual:hover {
-          background: #f8f9fa;
         }
 
         /* ========== LEGIS ========== */

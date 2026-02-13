@@ -539,7 +539,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
               color: '#856404',
               marginBottom: '0.75rem',
             }}>
-              Defina os cenarios possiveis. A Helena vai detalhar as sub-etapas de cada caminho depois.
+              Defina as possibilidades dessa etapa: ex: se completo, aprovado; se incompleto, solicitar mais documentos.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

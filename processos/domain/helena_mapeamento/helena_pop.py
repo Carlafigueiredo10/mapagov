@@ -186,6 +186,7 @@ class POPStateMachine:
         self.em_modo_duvidas = False
         self.contexto_duvidas = None
         self.estado_helena_mapeamento = None  # Estado interno do Helena Mapeamento
+        self.estado_antes_duvidas = None  # Estado de retorno após sair do modo ajuda
         # ✅ FIX: Persistir interface entre requests (resolve bug de 3 cliques)
         self.tipo_interface = None
         self.dados_interface = {}
@@ -212,6 +213,7 @@ class POPStateMachine:
             'em_modo_duvidas': self.em_modo_duvidas,
             'contexto_duvidas': self.contexto_duvidas,
             'estado_helena_mapeamento': self.estado_helena_mapeamento,
+            'estado_antes_duvidas': self.estado_antes_duvidas.value if self.estado_antes_duvidas else None,
             # ✅ FIX: Persistir interface entre requests (resolve bug de 3 cliques)
             'tipo_interface': self.tipo_interface,
             'dados_interface': self.dados_interface,
@@ -258,6 +260,9 @@ class POPStateMachine:
         sm.em_modo_duvidas = data.get('em_modo_duvidas', False)
         sm.contexto_duvidas = data.get('contexto_duvidas')
         sm.estado_helena_mapeamento = data.get('estado_helena_mapeamento')
+        # Estado de retorno do modo ajuda (backward compat: None se não existir)
+        _ead = data.get('estado_antes_duvidas')
+        sm.estado_antes_duvidas = EstadoPOP(_ead) if _ead else None
         # ✅ FIX: Recuperar interface entre requests (resolve bug de 3 cliques)
         sm.tipo_interface = data.get('tipo_interface')
         sm.dados_interface = data.get('dados_interface', {})
@@ -454,8 +459,38 @@ class HelenaPOP(BaseHelena):
         metadados_arquitetura = None
         metadados_extra = None
 
+        # ── Interceptores universais: modo ajuda ──────────────────────
+        msg_lower = mensagem.lower().strip()
+
+        if msg_lower == '__entrar_duvidas__':
+            if sm.em_modo_duvidas:
+                # Idempotente: já está em modo ajuda
+                resposta = f"Você já está no modo ajuda, {sm.nome_usuario}. Pode fazer sua pergunta!"
+                novo_sm = sm
+            else:
+                sm.estado_antes_duvidas = sm.estado
+                sm.em_modo_duvidas = True
+                sm.contexto_duvidas = sm.estado.value
+                sm.estado = EstadoPOP.DUVIDAS_EXPLICACAO
+                sm.tipo_interface = None
+                sm.dados_interface = {}
+                resposta = f"Modo ajuda ativado. Pode fazer sua pergunta, {sm.nome_usuario}!"
+                novo_sm = sm
+            # Pular dispatch normal → ir direto pro post-processor
+        elif msg_lower == '__sair_duvidas__' and sm.em_modo_duvidas:
+            estado_retorno = sm.estado_antes_duvidas or sm.estado
+            sm.em_modo_duvidas = False
+            sm.estado = estado_retorno
+            sm.estado_antes_duvidas = None
+            sm.estado_helena_mapeamento = None  # Limpar estado do agente de ajuda
+            sm.tipo_interface = None
+            sm.dados_interface = {}
+            resposta = f"Voltando ao mapeamento, {sm.nome_usuario}..."
+            novo_sm = sm
+            # Pular dispatch normal → post-processor remonta interface pelo estado
+
         # Processar de acordo com o estado
-        if sm.estado == EstadoPOP.NOME_USUARIO:
+        elif sm.estado == EstadoPOP.NOME_USUARIO:
             resposta, novo_sm = self._processar_nome_usuario(mensagem, sm)
 
         elif sm.estado == EstadoPOP.ESCOLHA_TIPO_EXPLICACAO:
@@ -595,6 +630,7 @@ class HelenaPOP(BaseHelena):
             metadados_extra = {}
 
         metadados_extra['progresso_detalhado'] = progresso_detalhado
+        metadados_extra['em_modo_duvidas'] = bool(novo_sm.em_modo_duvidas)
 
         # Transição automática para HelenaEtapas (somente fluxo legado)
         if not ETAPAS_INLINE and novo_sm.concluido:
@@ -666,13 +702,10 @@ class HelenaPOP(BaseHelena):
             }
 
         elif novo_sm.estado == EstadoPOP.EXPLICACAO_LONGA:
-            # 🆕 Interface após explicação longa: Sim entendi / Não, tenho dúvidas
             tipo_interface = 'confirmacao_dupla'
             dados_interface = {
-                'botao_confirmar': '🔹 Continuar',
-                'botao_editar': '🔹 Dúvidas',
+                'botao_confirmar': 'Continuar',
                 'valor_confirmar': 'sim',
-                'valor_editar': 'não'
             }
 
         elif novo_sm.estado == EstadoPOP.AREA_DECIPEX:
@@ -1086,7 +1119,7 @@ class HelenaPOP(BaseHelena):
                 f"Procedimento Operacional Padrão (POP).\n\n"
                 f"A seguir, explico rapidamente como o processo funciona.\n"
                 f"Se preferir, você pode pular esta introdução e iniciar o mapeamento agora.\n\n"
-                f"*Seu nome aparece no cabeçalho. Se estiver incorreto, "
+                f"✏️ *Seu nome aparece no cabeçalho. Se estiver incorreto, "
                 f"você pode editá-lo a qualquer momento.*"
             )
             return resposta, sm
@@ -1149,9 +1182,7 @@ class HelenaPOP(BaseHelena):
             sm.tipo_interface = 'confirmacao_dupla'
             sm.dados_interface = {
                 'botao_confirmar': 'Continuar',
-                'botao_editar': 'Tenho dúvidas',
                 'valor_confirmar': 'sim',
-                'valor_editar': 'duvidas'
             }
             return resposta, sm
 
@@ -1207,100 +1238,120 @@ class HelenaPOP(BaseHelena):
             )
             return resposta, sm
 
-        # Ainda tem dúvidas - ativar Helena Mapeamento internamente
-        elif self._detectar_intencao(msg_lower, 'negacao') or self._detectar_intencao(msg_lower, 'duvidas'):
-            sm.estado = EstadoPOP.DUVIDAS_EXPLICACAO
-            # Flag para indicar que está em modo dúvidas (Helena Mapeamento ativo)
-            sm.em_modo_duvidas = True
-            sm.contexto_duvidas = "explicacao_pop"  # Contexto: está tirando dúvidas sobre explicação do POP
-
-            resposta = (
-                f"Sem problemas, {sm.nome_usuario}! 😊\n\n"
-                f"Pode me fazer qualquer pergunta sobre o processo. "
-                f"Estou aqui para te ajudar a entender melhor!"
-            )
-            return resposta, sm
-
-        # Fallback
+        # Fallback: qualquer outra resposta (negação, texto livre)
         else:
             resposta = (
-                f"Por favor, me diga:\n"
-                f"🔹 **Continuar** - para seguir\n"
-                f"🔹 **Dúvidas** - para eu te explicar melhor"
+                f"Quando estiver pronto, clique em **Continuar** para seguir.\n\n"
+                f"Se tiver dúvidas, use o botão **Ajuda** na barra do chat."
             )
             return resposta, sm
+
+    def _construir_contexto_ajuda(self, sm: POPStateMachine) -> str:
+        """
+        Constrói string de contexto dinâmico para o modo ajuda.
+        Inclui: campo atual + dados já coletados no POP.
+        """
+        from processos.domain.helena_mapeamento.helena_mapeamento import CONTEXTO_ESTADOS
+
+        partes = []
+
+        # Campo atual
+        estado_desc = CONTEXTO_ESTADOS.get(
+            sm.contexto_duvidas,
+            sm.contexto_duvidas or 'Não identificado'
+        )
+        partes.append(f"O usuário está no campo: {estado_desc}")
+
+        if sm.nome_usuario:
+            partes.append(f"Nome do usuário: {sm.nome_usuario}")
+
+        # Dados já coletados (resumo)
+        dados = sm.dados_coletados or {}
+        resumo = []
+
+        if sm.atividade_selecionada:
+            resumo.append(f"- Atividade: {sm.atividade_selecionada}")
+        if dados.get('nome_processo'):
+            resumo.append(f"- Nome do processo: {dados['nome_processo']}")
+        if dados.get('entrega_esperada'):
+            resumo.append(f"- Entrega esperada: {dados['entrega_esperada']}")
+        if sm.area_selecionada:
+            if isinstance(sm.area_selecionada, dict):
+                area_nome = sm.area_selecionada.get('nome', str(sm.area_selecionada))
+            else:
+                area_nome = str(sm.area_selecionada)
+            resumo.append(f"- Área: {area_nome}")
+        if sm.macro_selecionado:
+            resumo.append(f"- Macroprocesso: {sm.macro_selecionado}")
+        if sm.processo_selecionado:
+            resumo.append(f"- Processo: {sm.processo_selecionado}")
+        if sm.subprocesso_selecionado:
+            resumo.append(f"- Subprocesso: {sm.subprocesso_selecionado}")
+        if dados.get('operadores'):
+            resumo.append(f"- Operadores: {', '.join(dados['operadores'])}")
+        if dados.get('sistemas'):
+            resumo.append(f"- Sistemas: {', '.join(dados['sistemas'])}")
+
+        n_etapas = len(sm.etapas_coletadas) if sm.etapas_coletadas else 0
+        if n_etapas > 0:
+            resumo.append(f"- Etapas já registradas: {n_etapas}")
+
+        if resumo:
+            partes.append("Dados já preenchidos no POP:")
+            partes.extend(resumo)
+
+        return "\n".join(partes)
 
     def _processar_duvidas_explicacao(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """
-        Processa dúvidas sobre a explicação delegando para Helena Mapeamento.
+        Processa dúvidas delegando para Helena Mapeamento (LLM).
 
-        Fluxo:
-        1. Instancia Helena Mapeamento
-        2. Delega mensagem para Helena Mapeamento
-        3. Helena Mapeamento responde livremente com DOIS botões
-        4. "Ok, já entendi" → vai para PEDIDO_COMPROMISSO
-        5. "Tenho mais uma pergunta" → continua com Helena Mapeamento
+        Injeta contexto do campo atual + dados coletados + histórico recente.
+        Saída do modo ajuda é exclusivamente pelo interceptor __sair_duvidas__
+        (botão frontend).
         """
-        msg_lower = mensagem.lower().strip()
-
-        # 🔥 Tratar cliques nos botões da interface anterior
-        if msg_lower in ['ok_entendi', 'ok', 'entendi', 'ja entendi', 'já entendi']:
-            # Usuário clicou em "Ok, já entendi" → sair do modo dúvidas
-            sm.em_modo_duvidas = False
-            sm.estado = EstadoPOP.PEDIDO_COMPROMISSO
-
-            resposta = (
-                f"{sm.nome_usuario}, antes de continuar, é importante esclarecer alguns pontos.\n\n"
-                f"• É comum surgirem dúvidas durante o mapeamento. Ao final do processo, será possível revisar e ajustar todas as informações registradas, inclusive com apoio de outras pessoas da equipe.\n\n"
-                f"• O registro cuidadoso das atividades contribui para reduzir retrabalho nas etapas seguintes.\n\n"
-                f"Quando estiver pronto, podemos prosseguir."
-            )
-
-            sm.tipo_interface = 'confirmacao_dupla'
-            sm.dados_interface = {
-                'botao_confirmar': 'Clique aqui pra fechar nosso acordo',
-                'botao_editar': 'Tenho mais dúvidas',
-                'valor_confirmar': 'sim',
-                'valor_editar': 'duvidas'
-            }
-            return resposta, sm
-
-        elif msg_lower in ['mais_pergunta', 'mais', 'pergunta', 'tenho mais']:
-            # Usuário clicou em "Tenho mais uma pergunta" → solicitar a pergunta
-            sm.tipo_interface = None
-            sm.dados_interface = {}
-
-            resposta = f"Claro, {sm.nome_usuario}! Pode fazer sua pergunta que vou te ajudar. 😊"
-            return resposta, sm
-
         from processos.domain.helena_mapeamento.helena_mapeamento import HelenaMapeamento
 
-        # Instanciar Helena Mapeamento se ainda não existe
-        helena_map = HelenaMapeamento()
+        # Construir contexto dinâmico do campo atual + dados coletados
+        contexto = self._construir_contexto_ajuda(sm)
+
+        # Instanciar Helena Mapeamento com contexto
+        helena_map = HelenaMapeamento(contexto_campo=contexto)
 
         # Inicializar estado de Helena Mapeamento se necessário
         if sm.estado_helena_mapeamento is None:
             sm.estado_helena_mapeamento = helena_map.inicializar_estado()
-            # Contexto: usuário está tirando dúvidas sobre explicação do POP
             sm.estado_helena_mapeamento['contexto'] = sm.contexto_duvidas
             sm.estado_helena_mapeamento['nome_usuario'] = sm.nome_usuario
 
+        # Incluir histórico recente para continuidade (chain é recriada a cada chamada)
+        historico = sm.estado_helena_mapeamento.get('historico_mensagens', [])
+        if historico:
+            ultimas = historico[-6:]  # Últimas 3 trocas (user+assistant)
+            resumo_hist = "\n".join([
+                f"{'Usuário' if m['role'] == 'user' else 'Helena'}: {m['content']}"
+                for m in ultimas
+            ])
+            mensagem_llm = f"[Histórico recente da conversa de ajuda]\n{resumo_hist}\n\n[Pergunta atual do usuário]\n{mensagem}"
+        else:
+            mensagem_llm = mensagem
+
         # Delegar processamento para Helena Mapeamento
-        resultado = helena_map.processar(mensagem, sm.estado_helena_mapeamento)
+        resultado = helena_map.processar(mensagem_llm, sm.estado_helena_mapeamento)
+
+        # Corrigir histórico: salvar mensagem original (sem histórico prepended)
+        hist = resultado['novo_estado'].get('historico_mensagens', [])
+        if len(hist) >= 2 and hist[-2]['role'] == 'user':
+            hist[-2]['content'] = mensagem
 
         # Atualizar estado de Helena Mapeamento
         sm.estado_helena_mapeamento = resultado['novo_estado']
 
-        # 🔥 SEMPRE retornar interface de confirmação dupla após resposta da Helena Mapeamento
         resposta = resultado['resposta']
 
-        sm.tipo_interface = 'confirmacao_dupla'
-        sm.dados_interface = {
-            'botao_confirmar': 'Continuar',
-            'botao_editar': 'Tenho mais uma pergunta',
-            'valor_confirmar': 'ok_entendi',
-            'valor_editar': 'mais_pergunta'
-        }
+        # Modo ajuda: respostas sem interface (input fica livre, saída pelo botão do frontend)
+        sm.tipo_interface = None
+        sm.dados_interface = {}
 
         return resposta, sm
 
@@ -1331,9 +1382,7 @@ class HelenaPOP(BaseHelena):
             sm.tipo_interface = 'confirmacao_dupla'
             sm.dados_interface = {
                 'botao_confirmar': 'Continuar',
-                'botao_editar': 'Tenho dúvidas',
                 'valor_confirmar': 'sim',
-                'valor_editar': 'duvidas'
             }
         else:
             resposta = f"Tudo bem! Só posso seguir quando você me disser 'sim', {sm.nome_usuario}. Quando quiser continuar, é só digitar."
@@ -1348,27 +1397,14 @@ class HelenaPOP(BaseHelena):
         """
         msg_lower = mensagem.lower().strip()
 
-        # 🔥 Tratar clique no botão "Tenho mais dúvidas"
-        if msg_lower in ['duvidas', 'dúvidas', 'mais duvidas', 'mais dúvidas', 'tenho duvidas', 'tenho dúvidas']:
-            # Voltar para modo dúvidas
-            sm.em_modo_duvidas = True
-            sm.estado = EstadoPOP.DUVIDAS_EXPLICACAO
-            sm.contexto_duvidas = 'compromisso'
-
-            sm.tipo_interface = None
-            sm.dados_interface = {}
-
-            resposta = f"Sem problemas, {sm.nome_usuario}! Pode fazer sua pergunta que vou te ajudar. 😊"
-            return resposta, sm
-
-        # Aceita qualquer resposta positiva (ambas opções levam para o mesmo lugar)
+        # Aceita qualquer resposta positiva
         if self._detectar_intencao(msg_lower, 'confirmacao'):
             sm.estado = EstadoPOP.AREA_DECIPEX
 
             resposta = (
-                f"{sm.nome_usuario}, o registro do processo foi iniciado.\n\n"
-                f"A partir deste ponto, o mapeamento da atividade será conduzido de forma estruturada.\n\n"
-                f"O detalhamento das informações ao longo do processo contribui para reduzir dúvidas futuras e retrabalho, beneficiando a equipe e a gestão."
+                f"{sm.nome_usuario}, o registro foi iniciado.\n\n"
+                f"Se precisar de apoio durante o preenchimento, utilize o botão **Ajuda** ao lado do campo de mensagem. "
+                f"Ao acioná-lo, você entra em modo ajuda, sem sair do mapeamento, e pode esclarecer dúvidas sobre qualquer parte do POP."
             )
             return resposta, sm
         else:
@@ -2504,16 +2540,6 @@ class HelenaPOP(BaseHelena):
 
             # Ir para PONTOS_ATENCAO (fluxo completo: PONTOS → REVISAO → TRANSICAO_EPICA)
             sm.estado = EstadoPOP.PONTOS_ATENCAO
-            sm.tipo_interface = 'texto_com_alternativa'
-            sm.dados_interface = {
-                'placeholder': 'Descreva os pontos de atenção...',
-                'hint': 'Prazo crítico, documentos sensíveis, etapas que geram dúvidas, etc.',
-                'botao_alternativo': {
-                    'label': 'Nenhum ponto de atenção',
-                    'acao': 'nenhum',
-                },
-            }
-
             nome = sm.nome_usuario or "você"
 
             resposta = (
@@ -2523,7 +2549,7 @@ class HelenaPOP(BaseHelena):
                 f"• Prazo crítico que não pode atrasar\n"
                 f"• Documentos que devem ter atenção redobrada\n"
                 f"• Etapas que costumam gerar dúvidas\n\n"
-                f"Digite os pontos de atenção ou clique no botão abaixo."
+                f"Digite os pontos de atenção ou 'nenhum'."
             )
 
         return resposta, sm
@@ -2539,14 +2565,6 @@ class HelenaPOP(BaseHelena):
 
         # Mostrar exemplos comuns e permanecer no estado
         if msg_lower == 'ver_exemplos':
-            sm.tipo_interface = 'texto_com_alternativa'
-            sm.dados_interface = {
-                'placeholder': 'Descreva os pontos de atenção...',
-                'botao_alternativo': {
-                    'label': 'Nenhum ponto de atenção',
-                    'acao': 'nenhum',
-                },
-            }
             resposta = (
                 f"Aqui estão alguns exemplos comuns de pontos de atenção:\n\n"
                 f"• Verificar se há legado da centralização\n"
@@ -2554,7 +2572,7 @@ class HelenaPOP(BaseHelena):
                 f"• Verificar se exigências devem ser feitas todas de uma vez\n"
                 f"• Verificar se não há outro processo com o mesmo tema\n"
                 f"• Em acerto de contas, sempre fazer batimento de devido x recebido\n\n"
-                f"Se algum desses se aplica, digite o ponto de atenção ou clique no botão abaixo."
+                f"Se algum desses se aplica, digite o ponto de atenção ou 'nenhum'."
             )
             return resposta, sm
 
@@ -3779,7 +3797,7 @@ class HelenaPOP(BaseHelena):
     def _calcular_progresso(self, sm: POPStateMachine) -> str:
         """Calcula progresso da coleta baseado em campos preenchidos.
 
-        Peso: pré-etapas = 30%, etapas = 70%.
+        Peso: pré-etapas = 50%, etapas = 50%.
         """
         d = sm.dados_coletados
         campos_pre = [
@@ -3801,9 +3819,9 @@ class HelenaPOP(BaseHelena):
         total_pre = len(campos_pre)
         tem_etapas = bool(sm.etapas_coletadas)
 
-        # Percentual ponderado: pré-etapas = 30%, etapas = 70%
-        pct_pre = int((pre_preenchidos / total_pre) * 30) if total_pre else 0
-        pct_etapas = 70 if tem_etapas else 0
+        # Percentual ponderado: pré-etapas = 50%, etapas = 50%
+        pct_pre = int((pre_preenchidos / total_pre) * 50) if total_pre else 0
+        pct_etapas = 50 if tem_etapas else 0
         pct_total = pct_pre + pct_etapas
 
         return f"{pct_total}/100"
@@ -3811,7 +3829,7 @@ class HelenaPOP(BaseHelena):
     def obter_progresso(self, sm: POPStateMachine) -> dict:
         """Retorna detalhes completos do progresso atual.
 
-        Peso: pré-etapas = 30%, etapas = 70%.
+        Peso: pré-etapas = 50%, etapas = 50%.
         """
         d = sm.dados_coletados
         campos_pre = [
@@ -3834,9 +3852,9 @@ class HelenaPOP(BaseHelena):
         total_pre = len(campos_pre)
         tem_etapas = bool(sm.etapas_coletadas)
 
-        # Percentual ponderado: pré-etapas = 30%, etapas = 70%
-        pct_pre = int((pre_preenchidos / total_pre) * 30) if total_pre else 0
-        pct_etapas = 70 if tem_etapas else 0
+        # Percentual ponderado: pré-etapas = 50%, etapas = 50%
+        pct_pre = int((pre_preenchidos / total_pre) * 50) if total_pre else 0
+        pct_etapas = 50 if tem_etapas else 0
         percentual = pct_pre + pct_etapas
 
         if not tem_etapas:

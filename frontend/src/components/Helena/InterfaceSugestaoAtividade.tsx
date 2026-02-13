@@ -120,7 +120,7 @@ const InterfaceSugestaoAtividade: React.FC<Props> = ({
             {!podeEditar && (
                 <div className="aviso-nao-editavel">
                     <span className="icone-lock">🔒</span>
-                    <span>Esta atividade está no catálogo oficial e não pode ser editada</span>
+                    <span>Esta atividade pertence ao catálogo oficial e não pode ser editada.<br/><br/>Se ela não corresponde ao que você descreveu, selecione <strong>Atividade incorreta</strong> e informe o que deve ser mapeado.</span>
                 </div>
             )}
 
