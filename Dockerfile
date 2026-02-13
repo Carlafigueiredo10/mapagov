@@ -14,7 +14,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 
 # Instalar dependências (incluindo devDependencies para o build)
-RUN npm ci || echo "WARN: npm ci failed, frontend may not work"
+RUN npm ci
 
 # Copiar código fonte do frontend
 COPY frontend/ ./
@@ -59,7 +59,7 @@ RUN mkdir -p staticfiles media logs backups chroma_db
 # Coletar arquivos estáticos (permite SQLite temporário só para collectstatic)
 # O banco real (PostgreSQL) será usado no runtime via variáveis de ambiente
 ENV SKIP_DB_CHECK=1
-RUN python manage.py collectstatic --noinput || echo "WARN: collectstatic failed"
+RUN python manage.py collectstatic --noinput
 ENV SKIP_DB_CHECK=0
 
 # Criar usuário não-root para segurança
