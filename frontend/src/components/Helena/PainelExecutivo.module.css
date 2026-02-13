@@ -1,0 +1,282 @@
+/**
+ * PainelExecutivo.module.css
+ * Visão consolidada do Painel de Gestão MapaGov
+ * Artefato de acompanhamento institucional — sem ranking, sem cor valorativa
+ */
+
+/* ===== CONTAINER ===== */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ===== TOP BAR ===== */
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.backButton {
+  padding: 8px 16px;
+  background: #6b7280;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1B4F72;
+  margin: 0;
+  flex: 1;
+}
+
+/* ===== BANNER DE ATUALIZAÇÃO ===== */
+.freshnessBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 20px;
+  background: #F0F4F8;
+  border: 1px solid #D4DDE6;
+  border-radius: 6px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  color: #4A5568;
+  line-height: 1.5;
+}
+
+.freshnessIcon {
+  flex-shrink: 0;
+  font-size: 15px;
+  margin-top: 1px;
+}
+
+.freshnessText {
+  font-size: 13px;
+  color: #4A5568;
+}
+
+.freshnessMeta {
+  font-size: 12px;
+  color: #636363;
+  margin-top: 4px;
+}
+
+/* ===== GRID DE RESUMO (4 cards) ===== */
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.summaryCard {
+  padding: 20px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.summaryCardTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1351B4;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 14px 0;
+}
+
+.summaryKpiRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.summaryKpi {
+  text-align: center;
+  flex: 1;
+}
+
+.summaryKpiValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333333;
+  line-height: 1.1;
+}
+
+.summaryKpiLabel {
+  font-size: 11px;
+  color: #636363;
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+/* ===== TABELA POR ÁREA ===== */
+.tableSection {
+  margin-bottom: 28px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tableSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #FAFAFA;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.tableSectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1351B4;
+  margin: 0;
+}
+
+.tableSectionMeta {
+  font-size: 12px;
+  color: #636363;
+}
+
+.areaTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.areaTable thead th {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4A5568;
+  border-bottom: 2px solid #E2E8F0;
+  background: #FAFCFE;
+}
+
+.areaTable thead th:not(:first-child) {
+  text-align: right;
+}
+
+.areaTable tbody td {
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #333333;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.areaTable tbody td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.areaTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.areaSigla {
+  font-weight: 600;
+  color: #1B4F72;
+}
+
+.noData {
+  color: #999999;
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* ===== TOTAIS ===== */
+.areaTable tfoot td {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1B4F72;
+  border-top: 2px solid #E2E8F0;
+  background: #FAFCFE;
+}
+
+.areaTable tfoot td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== DISCLAIMER ===== */
+.disclaimer {
+  margin-top: 32px;
+  padding: 20px 24px;
+  background: #F8F8F8;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.disclaimerTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333333;
+  margin: 0 0 8px 0;
+}
+
+.disclaimerText {
+  font-size: 13px;
+  color: #636363;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.disclaimerLink {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #1351B4;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-weight: 500;
+}
+
+/* ===== RESPONSIVO ===== */
+@media (max-width: 1024px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryKpiValue {
+    font-size: 20px;
+  }
+
+  .tableSection {
+    overflow-x: auto;
+  }
+
+  .areaTable {
+    min-width: 600px;
+  }
+
+  .topBar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

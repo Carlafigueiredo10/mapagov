@@ -59,6 +59,7 @@ import CatalogoAreaPage from './pages/CatalogoAreaPage'
 import CatalogoPOPDetailPage from './pages/CatalogoPOPDetailPage'
 import FuncionalidadesPage from './pages/FuncionalidadesPage'
 import LegalPage from './pages/LegalPage'
+import PainelGestaoPage from './pages/PainelGestaoPage'
 
 function App() {
   return (
@@ -103,6 +104,7 @@ function App() {
         <Route path="/riscos" element={<AnaliseRiscosPage />} />
         <Route path="/fluxograma" element={<FluxogramaPage />} />
         <Route path="/plano" element={<ProtectedRoute><PlanoAcaoPage /></ProtectedRoute>} />
+        <Route path="/painel" element={<PainelGestaoPage />} />
 
         {/* Planejamento Estrategico */}
         <Route path="/planejamento-estrategico" element={<ProtectedRoute><HelenaPEModerna /></ProtectedRoute>} />

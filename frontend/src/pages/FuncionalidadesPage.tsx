@@ -37,7 +37,7 @@ export default function FuncionalidadesPage() {
             <div className={styles.productCard}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productName}>Gerador de Fluxograma</h3>
-                <Link to="/fluxograma" className={styles.tagDisponivel}>Pronto</Link>
+                <Link to="/fluxograma" className={styles.tagDesenvolvimento}>Em homologação</Link>
               </div>
               <h4 className={styles.subHeading}>O que é</h4>
               <p className={styles.subText}>Ferramenta para representação visual estruturada de processos.</p>
@@ -76,7 +76,7 @@ export default function FuncionalidadesPage() {
             <div className={styles.productCard}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productName}>Planejamento Estratégico</h3>
-                <Link to="/planejamento-estrategico" className={styles.tagDisponivel}>Pronto</Link>
+                <Link to="/planejamento-estrategico" className={styles.tagDesenvolvimento}>Em homologação</Link>
               </div>
               <h4 className={styles.subHeading}>O que é</h4>
               <p className={styles.subText}>Ferramenta para organizar objetivos, metas e diretrizes conforme orientações do MGI.</p>
@@ -116,7 +116,7 @@ export default function FuncionalidadesPage() {
             <div className={styles.productCard}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productName}>Painel Executivo</h3>
-                <span className={styles.tagPlanejado}>Em desenvolvimento</span>
+                <Link to="/painel" className={styles.tagDesenvolvimento}>Em homologação</Link>
               </div>
               <h4 className={styles.subHeading}>O que é</h4>
               <p className={styles.subText}>Interface consolidada de indicadores e status das iniciativas registradas na plataforma.</p>

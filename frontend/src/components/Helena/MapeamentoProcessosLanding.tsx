@@ -6,9 +6,13 @@
  */
 import React from 'react';
 import styles from './MapeamentoProcessosLanding.module.css';
+import PopHubSection from './PopHubSection';
 
 interface MapeamentoProcessosLandingProps {
   onIniciar: () => void;
+  onRetomar: (uuid: string) => void;
+  onRevisar: (uuid: string) => void;
+  onVerVersoes: (uuid: string) => void;
 }
 
 const HELENA_CAPABILITIES = [
@@ -39,7 +43,12 @@ const USE_CASES = [
   'apoiar iniciativas de governança e melhoria de processos.',
 ];
 
-const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({ onIniciar }) => {
+const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
+  onIniciar,
+  onRetomar,
+  onRevisar,
+  onVerVersoes,
+}) => {
   return (
     <div className={styles.container}>
       {/* Cabeçalho */}
@@ -59,6 +68,14 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
           e a melhoria dos processos de trabalho.
         </p>
       </section>
+
+      {/* Hub de gestão documental */}
+      <PopHubSection
+        onCriarNovo={onIniciar}
+        onRetomar={onRetomar}
+        onRevisar={onRevisar}
+        onVerVersoes={onVerVersoes}
+      />
 
       {/* Card Helena */}
       <section className={styles.helenaCard}>

@@ -95,6 +95,14 @@ class POPViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = POP.objects.filter(is_deleted=False).select_related('area')
 
+        # Filtro mine=true — retorna apenas POPs do usuario autenticado
+        # Exige login: retorna 403 se nao autenticado (frontend trata)
+        if self.request.query_params.get('mine') == 'true':
+            if not self.request.user.is_authenticated:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('Autenticacao necessaria para listar seus POPs.')
+            qs = qs.filter(created_by=self.request.user)
+
         # Filtro por area slug
         area_slug = self.request.query_params.get('area')
         if area_slug:

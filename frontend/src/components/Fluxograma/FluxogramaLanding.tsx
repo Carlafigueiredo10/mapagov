@@ -49,6 +49,7 @@ const FluxogramaLanding: React.FC<FluxogramaLandingProps> = ({ onIniciar }) => {
       {/* Cabeçalho */}
       <header className={styles.header}>
         <h1 className={styles.title}>Gerador de Fluxogramas</h1>
+        <span className={styles.badgeDesenvolvimento}>Em homologação</span>
       </header>
 
       {/* Texto institucional */}

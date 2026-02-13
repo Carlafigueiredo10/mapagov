@@ -1,0 +1,302 @@
+/**
+ * PopHubSection.module.css
+ * Hub de gestão documental do módulo POP na landing.
+ * Padrão Gov.br: #1351B4 (institucional), #1B4F72 (títulos).
+ */
+
+/* ===== CONTAINER ===== */
+.hub {
+  margin-bottom: 32px;
+  padding: 28px 32px;
+  background: #FFFFFF;
+  border: 1px solid #CCCCCC;
+  border-radius: 8px;
+}
+
+.hubTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1B4F72;
+  margin: 0 0 24px 0;
+}
+
+/* ===== CARD CRIAR NOVO ===== */
+.criarNovo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #FFFFFF;
+  border: 2px solid #1351B4;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s ease;
+  margin-bottom: 28px;
+}
+
+.criarNovo:hover {
+  background: #F0F4FA;
+}
+
+.criarNovoIcone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #1351B4;
+  color: #FFFFFF;
+  flex-shrink: 0;
+}
+
+.criarNovoTexto {
+  flex: 1;
+}
+
+.criarNovoLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1351B4;
+  margin: 0;
+}
+
+.criarNovoDesc {
+  font-size: 13px;
+  color: #636363;
+  margin: 2px 0 0 0;
+}
+
+/* ===== GRUPOS (Em andamento / Consolidados) ===== */
+.grupo {
+  margin-bottom: 24px;
+}
+
+.grupo:last-child {
+  margin-bottom: 0;
+}
+
+.grupoHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.grupoIcone {
+  color: #1351B4;
+  flex-shrink: 0;
+}
+
+.grupoTitulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1351B4;
+  margin: 0;
+}
+
+.grupoContagem {
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: #1351B4;
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+/* ===== LISTA DE POPs ===== */
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ===== CARD POP INDIVIDUAL ===== */
+.popCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: #FAFAFA;
+  border: 1px solid #E0E0E0;
+  border-radius: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.popCard:hover {
+  border-color: #1351B4;
+}
+
+.popInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.popNome {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333333;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popMeta {
+  font-size: 12px;
+  color: #636363;
+  margin: 2px 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.popSeparador {
+  color: #CCCCCC;
+}
+
+.popAcoes {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btnAcao {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #1351B4;
+  background: #FFFFFF;
+  color: #1351B4;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btnAcao:hover {
+  background: #1351B4;
+  color: #FFFFFF;
+}
+
+.btnAcaoSecundario {
+  border-color: #CCCCCC;
+  color: #636363;
+}
+
+.btnAcaoSecundario:hover {
+  background: #636363;
+  color: #FFFFFF;
+  border-color: #636363;
+}
+
+/* ===== ESTADO VAZIO ===== */
+.vazio {
+  font-size: 14px;
+  color: #999999;
+  font-style: italic;
+  padding: 12px 0;
+  margin: 0;
+}
+
+/* ===== LOADING ===== */
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton {
+  height: 52px;
+  background: linear-gradient(90deg, #F0F0F0 25%, #E8E8E8 50%, #F0F0F0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===== NÃO AUTENTICADO ===== */
+.naoAutenticado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #F0F4FA;
+  border: 1px solid #C5D4E8;
+  border-radius: 6px;
+  color: #1351B4;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.naoAutenticado p {
+  margin: 0;
+}
+
+/* ===== ERRO ===== */
+.erro {
+  font-size: 14px;
+  color: #CC0000;
+  padding: 12px 0;
+  margin: 0;
+}
+
+/* ===== BADGE STATUS ===== */
+.badgeStatus {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.badgeDraft {
+  background: #FFF3CD;
+  color: #856404;
+}
+
+.badgePublished {
+  background: #D4EDDA;
+  color: #155724;
+}
+
+/* ===== RESPONSIVO ===== */
+@media (max-width: 768px) {
+  .hub {
+    padding: 20px 16px;
+  }
+
+  .popCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .popAcoes {
+    width: 100%;
+  }
+
+  .btnAcao {
+    flex: 1;
+    text-align: center;
+  }
+
+  .popMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .popSeparador {
+    display: none;
+  }
+}

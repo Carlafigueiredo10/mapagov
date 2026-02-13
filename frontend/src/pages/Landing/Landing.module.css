@@ -354,6 +354,30 @@
   text-decoration: none;
 }
 
+.tagDesenvolvimento {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #ffe0b2;
+  color: #e65100;
+  padding: 0.2rem 0.6rem;
+  border-radius: 10px;
+  white-space: nowrap;
+  margin-left: auto;
+  text-decoration: none;
+}
+
+.tagHomologacao {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #fff3cd;
+  color: #856404;
+  padding: 0.2rem 0.6rem;
+  border-radius: 10px;
+  white-space: nowrap;
+  margin-left: auto;
+  text-decoration: none;
+}
+
 .tagPlanejado {
   font-size: 0.7rem;
   font-weight: 600;
@@ -604,6 +628,11 @@
 
 .productCompleted {
   color: var(--process-green);
+  font-weight: 600;
+}
+
+.productHomologacao {
+  color: #E65100;
   font-weight: 600;
 }
 

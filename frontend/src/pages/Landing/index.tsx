@@ -112,15 +112,6 @@ export default function Landing() {
               <span className={styles.productBtnAcessar}>Acessar produto</span>
             </Link>
 
-            <Link to="/fluxograma" className={styles.productCard}>
-              <div className={styles.productHeader}>
-                <h3 className={styles.productName}>Gerador de Fluxograma</h3>
-                <span className={styles.tagDisponivel}>Disponível</span>
-              </div>
-              <p className={styles.productEntrega}>Fluxograma visual do processo (imagem ou PDF).</p>
-              <span className={styles.productBtnAcessar}>Acessar produto</span>
-            </Link>
-
             <Link to="/riscos" className={styles.productCard}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productName}>Análise de Riscos</h3>
@@ -130,23 +121,41 @@ export default function Landing() {
               <span className={styles.productBtnAcessar}>Acessar produto</span>
             </Link>
 
+            <Link to="/fluxograma" className={styles.productCard}>
+              <div className={styles.productHeader}>
+                <h3 className={styles.productName}>Gerador de Fluxograma</h3>
+                <span className={styles.tagDesenvolvimento}>Em homologação</span>
+              </div>
+              <p className={styles.productEntrega}>Fluxograma visual do processo (imagem ou PDF).</p>
+              <span className={styles.productBtnAcessar}>Acessar produto</span>
+            </Link>
+
             <Link to="/planejamento-estrategico" className={styles.productCard}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productName}>Planejamento Estratégico</h3>
-                <span className={styles.tagDisponivel}>Disponível</span>
+                <span className={styles.tagDesenvolvimento}>Em homologação</span>
               </div>
               <p className={styles.productEntrega}>Plano estratégico estruturado em documento formal.</p>
               <span className={styles.productBtnAcessar}>Acessar produto</span>
             </Link>
+
+            <Link to="/painel" className={styles.productCard}>
+              <div className={styles.productHeader}>
+                <h3 className={styles.productName}>Painel Executivo</h3>
+                <span className={styles.tagHomologacao}>Em desenvolvimento</span>
+              </div>
+              <p className={styles.productEntrega}>Painel consolidado com indicadores e status das iniciativas.</p>
+              <span className={styles.productBtnAcessar}>Acessar produto</span>
+            </Link>
           </div>
 
-          {/* ── Em desenvolvimento ── */}
-          <h3 className={styles.productsBlockTitle}>Em desenvolvimento</h3>
+          {/* ── Previstos ── */}
+          <h3 className={styles.productsBlockTitle}>Previstos</h3>
           <div className={styles.productsGridPlanejado}>
             <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productNamePlanejado}>Plano de Ação e Acompanhamento</h3>
-                <span className={styles.tagPlanejado}>Em desenvolvimento</span>
+                <span className={styles.tagPlanejado}>Previsto</span>
               </div>
               <p className={styles.productEntregaPlanejado}>Plano de ação com responsáveis, prazos e status de execução.</p>
               <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
@@ -154,17 +163,8 @@ export default function Landing() {
 
             <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
-                <h3 className={styles.productNamePlanejado}>Painel Executivo</h3>
-                <span className={styles.tagPlanejado}>Em desenvolvimento</span>
-              </div>
-              <p className={styles.productEntregaPlanejado}>Painel consolidado com indicadores e status das iniciativas.</p>
-              <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
-            </div>
-
-            <div className={styles.productCardPlanejado}>
-              <div className={styles.productHeader}>
                 <h3 className={styles.productNamePlanejado}>Dossiê Consolidado de Governança</h3>
-                <span className={styles.tagPlanejado}>Em desenvolvimento</span>
+                <span className={styles.tagPlanejado}>Previsto</span>
               </div>
               <p className={styles.productEntregaPlanejado}>Dossiê completo reunindo todos os documentos e análises gerados.</p>
               <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
@@ -173,7 +173,7 @@ export default function Landing() {
             <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productNamePlanejado}>Relatório Técnico Consolidado</h3>
-                <span className={styles.tagPlanejado}>Em desenvolvimento</span>
+                <span className={styles.tagPlanejado}>Previsto</span>
               </div>
               <p className={styles.productEntregaPlanejado}>Relatório técnico com histórico completo do processo.</p>
               <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
@@ -182,7 +182,7 @@ export default function Landing() {
             <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productNamePlanejado}>Relatório de Conformidade</h3>
-                <span className={styles.tagPlanejado}>Em desenvolvimento</span>
+                <span className={styles.tagPlanejado}>Previsto</span>
               </div>
               <p className={styles.productEntregaPlanejado}>Verificação de aderência ao POP e prazos definidos.</p>
               <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
@@ -191,7 +191,7 @@ export default function Landing() {
             <div className={styles.productCardPlanejado}>
               <div className={styles.productHeader}>
                 <h3 className={styles.productNamePlanejado}>Revisão e Adequação de Documentos</h3>
-                <span className={styles.tagPlanejado}>Em desenvolvimento</span>
+                <span className={styles.tagPlanejado}>Previsto</span>
               </div>
               <p className={styles.productEntregaPlanejado}>Documento revisado conforme linguagem simples e padrões institucionais.</p>
               <Link to="/funcionalidades" className={styles.productLinkSaberMais}>Saber mais →</Link>
@@ -247,14 +247,14 @@ export default function Landing() {
                 </li>
                 <li className={styles.productCompleted}>
                   <span className={styles.productIcon}>✅</span>
-                  <span>Gerador de Fluxograma</span>
-                </li>
-                <li className={styles.productCompleted}>
-                  <span className={styles.productIcon}>✅</span>
                   <span>Análise de Riscos</span>
                 </li>
-                <li className={styles.productCompleted}>
-                  <span className={styles.productIcon}>✅</span>
+                <li className={styles.productHomologacao}>
+                  <span className={styles.productIcon}>🟠</span>
+                  <span>Gerador de Fluxograma</span>
+                </li>
+                <li className={styles.productHomologacao}>
+                  <span className={styles.productIcon}>🟠</span>
                   <span>Planejamento Estratégico</span>
                 </li>
               </ul>
@@ -265,8 +265,8 @@ export default function Landing() {
               <div className={styles.phaseBadge}><span>Fase 2</span><br />Execução e Qualificação</div>
               <p className={styles.phaseTimeline}>2º trimestre de 2026</p>
               <ul className={styles.productList}>
-                <li>
-                  <span className={styles.productIcon}>📅</span>
+                <li className={styles.productInProgress}>
+                  <span className={styles.productIcon}>🟡</span>
                   <span>Painel Executivo</span>
                 </li>
                 <li>

@@ -17,12 +17,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../store/chatStore';
+import type { DadosPOP } from '../store/chatStore';
 import { useRequireAuth } from '../hooks/useRequireAuth';
 import { X, FileText, ArrowLeft, Save, Download } from 'lucide-react';
 import MapeamentoProcessosLanding from '../components/Helena/MapeamentoProcessosLanding';
 import ChatContainer from '../components/Helena/ChatContainer';
 import FormularioPOP from '../components/Helena/FormularioPOP';
 import LandingShell from '../components/ui/LandingShell';
+import { loadPOP, buscarMensagensV2 } from '../services/helenaApi';
 import './MapeamentoProcessosPage.css';
 
 const TODOS_CAMPOS = [
@@ -42,7 +44,10 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
   const [popAberto, setPopAberto] = useState(false);
   const [salvoFeedback, setSalvoFeedback] = useState(false);
 
-  const { dadosPOP, viewMode, setViewMode, fullscreenChat } = useChatStore();
+  const {
+    dadosPOP, viewMode, setViewMode, fullscreenChat,
+    resetChat, updateDadosPOP, setPopIdentifiers, carregarHistorico,
+  } = useChatStore();
   const modoRevisao = viewMode === 'final_review';
 
   // Se entrou via /pop/chat, garantir viewMode correto
@@ -120,11 +125,76 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
     setTimeout(() => setSalvoFeedback(false), 2000);
   }, []);
 
+  // --- Hub handlers ---
+
+  // Criar novo POP: reset completo + sessão limpa
+  const handleCriarNovo = useCallback(() => {
+    if (!requireAuth()) return;
+    resetChat();
+    setViewMode('chat_canvas');
+    navigate('/pop/chat');
+  }, [requireAuth, resetChat, setViewMode, navigate]);
+
+  // Retomar draft: carrega POP + histórico do backend
+  const handleRetomar = useCallback(async (uuid: string) => {
+    if (!requireAuth()) return;
+    try {
+      const result = await loadPOP(uuid);
+      if (!result.success || !result.pop) {
+        console.error('[MapeamentoProcessosPage] Erro ao carregar POP:', result.error);
+        return;
+      }
+      const { pop } = result;
+
+      // Restaurar identidade do documento no store
+      setPopIdentifiers(pop.id, pop.uuid, pop.integrity_hash);
+      updateDadosPOP(pop.dados as Partial<DadosPOP>);
+
+      // Restaurar histórico de mensagens se houver sessão associada
+      if (pop.session_id) {
+        try {
+          const hist = await buscarMensagensV2(pop.session_id);
+          if (hist.mensagens?.length > 0) {
+            carregarHistorico(hist.mensagens);
+          }
+        } catch {
+          console.warn('[MapeamentoProcessosPage] Sem historico de mensagens para sessao:', pop.session_id);
+        }
+      }
+
+      setViewMode('chat_canvas');
+      navigate('/pop/chat');
+    } catch (err) {
+      console.error('[MapeamentoProcessosPage] Falha ao retomar POP:', err);
+    }
+  }, [requireAuth, setPopIdentifiers, updateDadosPOP, carregarHistorico, setViewMode, navigate]);
+
+  // Revisar POP publicado (stub — será implementado como view readonly)
+  const handleRevisar = useCallback((uuid: string) => {
+    if (!requireAuth()) return;
+    console.info('[MapeamentoProcessosPage] Revisar POP:', uuid);
+    // TODO: implementar view review_readonly
+    navigate(`/pop?revisar=${uuid}`);
+  }, [requireAuth, navigate]);
+
+  // Ver versões (stub — será implementado como view version_history)
+  const handleVerVersoes = useCallback((uuid: string) => {
+    if (!requireAuth()) return;
+    console.info('[MapeamentoProcessosPage] Ver versoes POP:', uuid);
+    // TODO: implementar view version_history
+    navigate(`/pop?versoes=${uuid}`);
+  }, [requireAuth, navigate]);
+
   // Landing institucional (apenas em /pop, nunca em /pop/chat)
   if (!startInChat && viewMode === 'landing') {
     return (
       <LandingShell onBack={() => navigate(-1)}>
-        <MapeamentoProcessosLanding onIniciar={() => { if (requireAuth()) { setViewMode('chat_canvas'); navigate('/pop/chat'); } }} />
+        <MapeamentoProcessosLanding
+          onIniciar={handleCriarNovo}
+          onRetomar={handleRetomar}
+          onRevisar={handleRevisar}
+          onVerVersoes={handleVerVersoes}
+        />
       </LandingShell>
     );
   }

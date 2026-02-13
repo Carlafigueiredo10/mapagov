@@ -1,7 +1,7 @@
 /**
- * FluxogramaLanding.module.css
- * Estilos da página inicial institucional do Gerador de Fluxogramas
- * Seguindo padrão documentado em landing-pattern.md
+ * PlanejamentoLanding.module.css
+ * Estilos da página inicial institucional de Planejamento Estratégico
+ * Seguindo padrões Gov.br - Grid 12 colunas, sem animações
  */
 
 /* ===== CONTAINER PRINCIPAL ===== */
@@ -38,7 +38,7 @@
   border-radius: 100px;
 }
 
-/* ===== CONTEXTO INSTITUCIONAL (card destacado) ===== */
+/* ===== CONTEXTO INSTITUCIONAL ===== */
 .contextCard {
   font-size: 15px;
   font-weight: 400;
@@ -155,25 +155,17 @@
   margin: 0 0 16px 0;
 }
 
-.sectionNote {
-  font-size: 14px;
-  font-style: italic;
-  color: #636363;
-  margin: 16px 0 0 0;
-  line-height: 1.5;
-}
-
-/* ===== LISTA GENÉRICA COM BULLET ===== */
-.bulletList {
+/* ===== LISTA DE ITENS ===== */
+.itemList {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0 0 16px 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.bulletList li {
+.itemList li {
   position: relative;
   padding-left: 24px;
   font-size: 15px;
@@ -181,7 +173,7 @@
   line-height: 1.5;
 }
 
-.bulletList li::before {
+.itemList li::before {
   content: "\2022";
   position: absolute;
   left: 8px;
@@ -189,7 +181,14 @@
   font-weight: bold;
 }
 
-/* ===== ETAPAS COMO FUNCIONA ===== */
+.itemNote {
+  font-size: 14px;
+  font-style: italic;
+  color: #636363;
+  margin: 0;
+}
+
+/* ===== ETAPAS ===== */
 .stepsList {
   list-style: none;
   padding: 0;

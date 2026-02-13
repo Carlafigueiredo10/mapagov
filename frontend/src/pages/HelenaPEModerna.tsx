@@ -7,9 +7,7 @@
 
 import React, { useState, useEffect, useRef, CSSProperties } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import Badge from '../components/ui/Badge';
 import helenaPEService from '../services/helenaPESimples';
 import { WorkspaceSWOT } from '../components/Helena/workspaces/WorkspaceSWOT';
 import { WorkspaceOKR } from '../components/Helena/workspaces/WorkspaceOKR';
@@ -18,6 +16,9 @@ import { Workspace5W2H } from '../components/Helena/workspaces/Workspace5W2H';
 import { WorkspaceHoshin } from '../components/Helena/workspaces/WorkspaceHoshin';
 import { ModeloInfoDrawer } from '../components/Helena/ModeloInfoDrawer';
 import { MessageBubbleRich } from '../components/Helena/MessageBubbleRich';
+import { PEDiagnostico } from '../components/Helena/PEDiagnostico';
+import { PEModeloGrid } from '../components/Helena/PEModeloGrid';
+import { PEChatIntro } from '../components/Helena/PEChatIntro';
 import DashboardCard from '../components/Helena/DashboardCard';
 import DashboardAreas from '../components/Helena/DashboardAreas';
 import DashboardDiretor from '../components/Helena/DashboardDiretor';
@@ -36,7 +37,6 @@ export const HelenaPEModerna: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [estado, setEstado] = useState<EstadoFluxo>('inicial');
-  const [hover, setHover] = useState<string | null>(null);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [inputTexto, setInputTexto] = useState('');
   const [loading, setLoading] = useState(false);
@@ -180,13 +180,6 @@ export const HelenaPEModerna: React.FC = () => {
     setMensagens((prev) => [...prev, { tipo, texto }]);
   };
 
-  // Inicia diagnóstico
-  const iniciarDiagnostico = () => {
-    setPerguntaAtual(0);
-    setRespostasDiagnostico({});
-    setEstado('diagnostico');
-  };
-
   // Responde pergunta do diagnóstico
   const responderPerguntaDiagnostico = async (opcaoSelecionada: string) => {
     const pergunta = PERGUNTAS_DIAGNOSTICO[perguntaAtual];
@@ -263,36 +256,73 @@ export const HelenaPEModerna: React.FC = () => {
     }
   };
 
-  // 🆕 Função que INICIA O AGENTE diretamente (sem confirmação)
+  // Inicia agente diretamente (sem confirmação)
   const iniciarAgente = async () => {
     if (!modeloSelecionado) return;
 
     try {
       setLoading(true);
-      setMostrarCardIntro(false); // Remove card de intro
+      setMostrarCardIntro(false);
 
-      // Tenta conectar ao backend
       try {
-        // 🎯 Inicia modelo diretamente
         const confirmacao = await helenaPEService.iniciarModeloDireto(modeloSelecionado);
         setSessionData(confirmacao.session_data);
 
-        // 🔥 JÁ CONFIRMA E ATIVA O AGENTE (sem esperar confirmação do usuário)
         const response = await helenaPEService.confirmarModelo(confirmacao.session_data);
         setSessionData(response.session_data);
 
-        // Adiciona primeira mensagem do agente
         adicionarMensagem('helena', response.resposta);
       } catch (backendError) {
         console.warn('Backend não disponível, mas workspace continua funcionando:', backendError);
-        // Adiciona mensagem explicativa
-        adicionarMensagem('helena', `Olá! 👋 Vou te ajudar a construir seu ${MODELOS[modeloSelecionado as keyof typeof MODELOS].nome}.\n\n⚠️ O servidor está offline, mas você pode usar o workspace ao lado para começar a estruturar seu planejamento.`);
+        adicionarMensagem('helena', `Olá! Vou te ajudar a construir seu ${MODELOS[modeloSelecionado as keyof typeof MODELOS].nome}.\n\n⚠️ O servidor está offline, mas você pode usar o workspace ao lado para começar a estruturar seu planejamento.`);
       }
     } catch (error) {
       console.error('Erro ao iniciar agente:', error);
       adicionarMensagem('helena', '⚠️ Erro ao iniciar o agente. Tente novamente.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Inicia agente e pede exemplos
+  const verExemplos = async () => {
+    if (!modeloSelecionado) return;
+    setMostrarCardIntro(false);
+    try {
+      const confirmacao = await helenaPEService.iniciarModeloDireto(modeloSelecionado);
+      setSessionData(confirmacao.session_data);
+      adicionarMensagem('helena', '**Vou te mostrar alguns exemplos práticos de como este método funciona.**');
+      adicionarMensagem('user', 'Me mostre exemplos');
+      const response = await helenaPEService.confirmarModelo(confirmacao.session_data);
+      setSessionData(response.session_data);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const respExemplos = await helenaPEService.enviarMensagem('exemplos', response.session_data);
+      setSessionData(respExemplos.session_data);
+      adicionarMensagem('helena', respExemplos.resposta);
+    } catch (error) {
+      console.error('Erro ao mostrar exemplos:', error);
+      adicionarMensagem('helena', '⚠️ Erro ao carregar exemplos. Tente novamente.');
+    }
+  };
+
+  // Inicia agente e explica o método
+  const entenderMetodo = async () => {
+    if (!modeloSelecionado) return;
+    setMostrarCardIntro(false);
+    try {
+      const confirmacao = await helenaPEService.iniciarModeloDireto(modeloSelecionado);
+      setSessionData(confirmacao.session_data);
+      adicionarMensagem('helena', '**Vou te explicar como este método funciona.**');
+      adicionarMensagem('user', 'Como funciona este método?');
+      const response = await helenaPEService.confirmarModelo(confirmacao.session_data);
+      setSessionData(response.session_data);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const respAjuda = await helenaPEService.enviarMensagem('o que é ' + modeloSelecionado, response.session_data);
+      setSessionData(respAjuda.session_data);
+      adicionarMensagem('helena', respAjuda.resposta);
+    } catch (error) {
+      console.error('Erro ao explicar método:', error);
+      adicionarMensagem('helena', '⚠️ Erro ao carregar explicação. Tente novamente.');
     }
   };
 
@@ -340,13 +370,13 @@ export const HelenaPEModerna: React.FC = () => {
 
   const containerStyle: CSSProperties = {
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #f8fbff 0%, #e8f4fd 100%)',
+    background: estado === 'inicial' ? '#FFFFFF' : 'linear-gradient(135deg, #f8fbff 0%, #e8f4fd 100%)',
     color: '#2C3E50',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: '40px 20px',
+    justifyContent: estado === 'inicial' ? 'flex-start' : 'center',
+    padding: estado === 'inicial' ? '0' : '40px 20px',
     position: 'relative',
     overflow: 'hidden'
   };
@@ -365,19 +395,11 @@ export const HelenaPEModerna: React.FC = () => {
     `
   };
 
-  const renderInicial = () => {
-    return (
-      <PlanejamentoLanding
-        onNavigate={navigate}
-        onAbrirDashboardAreas={() => setDashboardAberto('areas')}
-        onAbrirDashboardDiretor={() => setDashboardAberto('diretor')}
-        estatisticas={estatisticas ? {
-          total_projetos: estatisticas.total_projetos,
-          total_pedidos: estatisticas.total_pedidos
-        } : undefined}
-      />
-    );
-  };
+  const renderInicial = () => (
+    <PlanejamentoLanding
+      onIniciar={() => navigate('/planejamento-estrategico/painel')}
+    />
+  );
 
   const renderPainel = () => (
     <div style={{ maxWidth: '1200px', width: '100%', zIndex: 1 }}>
@@ -408,193 +430,31 @@ export const HelenaPEModerna: React.FC = () => {
     </div>
   );
 
-  const renderDiagnostico = () => {
-    const pergunta = PERGUNTAS_DIAGNOSTICO[perguntaAtual];
-
-    return (
-      <div style={{ maxWidth: '800px', width: '100%', zIndex: 1 }}>
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <div style={{ fontSize: '64px', marginBottom: '24px' }}>🩺</div>
-          <h1 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '16px' }}>
-            Diagnóstico Guiado
-          </h1>
-          <p style={{ fontSize: '18px', opacity: 0.9 }}>
-            Pergunta {perguntaAtual + 1} de {PERGUNTAS_DIAGNOSTICO.length}
-          </p>
-        </div>
-
-        <Card variant="glass" style={{ marginBottom: '32px', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '32px', lineHeight: 1.5 }}>
-            {pergunta.texto}
-          </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {pergunta.opcoes.map((opcao) => (
-              <Button
-                key={opcao.valor}
-                variant="outline"
-                onClick={() => responderPerguntaDiagnostico(opcao.valor)}
-                disabled={loading}
-                size="lg"
-                style={{
-                  fontSize: '16px',
-                  padding: '20px 24px',
-                  textAlign: 'left',
-                  justifyContent: 'flex-start',
-                  opacity: loading ? 0.6 : 1
-                }}
-              >
-                {opcao.texto}
-              </Button>
-            ))}
-          </div>
-        </Card>
-
-        {loading && (
-          <div style={{ textAlign: 'center', fontSize: '18px', marginBottom: '24px' }}>
-            ⏳ Processando diagnóstico...
-          </div>
-        )}
-
-        {/* Barra de Progresso */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '12px',
-          height: '8px',
-          overflow: 'hidden',
-          marginBottom: '24px'
-        }}>
-          <div style={{
-            background: 'linear-gradient(90deg, #3498DB, #27AE60)',
-            height: '100%',
-            width: `${((perguntaAtual + 1) / PERGUNTAS_DIAGNOSTICO.length) * 100}%`,
-            transition: 'width 0.3s ease'
-          }} />
-        </div>
-
-        <div style={{ textAlign: 'center' }}>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setPerguntaAtual(0);
-              setRespostasDiagnostico({});
-              navigate('/planejamento-estrategico');
-            }}
-            size="md"
-            disabled={loading}
-          >
-            ← Cancelar
-          </Button>
-        </div>
-      </div>
-    );
-  };
+  const renderDiagnostico = () => (
+    <PEDiagnostico
+      perguntas={PERGUNTAS_DIAGNOSTICO}
+      perguntaAtual={perguntaAtual}
+      loading={loading}
+      onResponder={responderPerguntaDiagnostico}
+      onCancelar={() => {
+        setPerguntaAtual(0);
+        setRespostasDiagnostico({});
+        navigate('/planejamento-estrategico');
+      }}
+    />
+  );
 
   const renderModelos = () => (
-    <div style={{ maxWidth: '1400px', width: '100%', zIndex: 1 }}>
-      <h1 style={{ fontSize: '42px', fontWeight: 'bold', marginBottom: '20px', textAlign: 'center' }}>
-        Escolha seu modelo de planejamento
-      </h1>
-      <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '56px', textAlign: 'center' }}>
-        Cada modelo foi criado para um tipo diferente de desafio.
-      </p>
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '36px',
-        marginBottom: '48px'
-      }}>
-        {Object.values(MODELOS).map((modelo) => (
-          <div key={modelo.id} style={{ position: 'relative' }}>
-            <Card
-              variant="glass"
-              onClick={() => selecionarModelo(modelo.id)}
-              style={{
-                cursor: loading ? 'wait' : 'pointer',
-                transform: hover === modelo.id ? 'scale(1.06) translateY(-8px)' : 'scale(1)',
-                transition: 'all 0.35s ease',
-                boxShadow: hover === modelo.id ? '0 24px 48px rgba(0,0,0,0.35)' : '0 10px 20px rgba(0,0,0,0.25)',
-                minHeight: '280px',
-                opacity: loading ? 0.6 : 1
-              }}
-              onMouseEnter={() => !loading && setHover(modelo.id)}
-              onMouseLeave={() => setHover(null)}
-            >
-              {/* Botão de Info - disponível para modelos com conteúdo */}
-              {(modelo.id === 'okr' || modelo.id === 'swot' || modelo.id === 'bsc' ||
-                modelo.id === 'tradicional' || modelo.id === 'cenarios' || modelo.id === '5w2h' || modelo.id === 'hoshin') && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setModeloInfoAtual(modelo.id);
-                    setModalInfoAberto(true);
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: '16px',
-                    right: '16px',
-                    background: 'rgba(52, 152, 219, 0.9)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '36px',
-                    height: '36px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: '18px',
-                    color: '#ffffff',
-                    boxShadow: '0 4px 12px rgba(52, 152, 219, 0.4)',
-                    transition: 'all 0.2s ease',
-                    zIndex: 10
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                    e.currentTarget.style.background = 'rgba(52, 152, 219, 1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.background = 'rgba(52, 152, 219, 0.9)';
-                  }}
-                  title={`Saiba mais sobre ${modelo.nome}`}
-                >
-                  ℹ️
-                </button>
-              )}
-
-              <div style={{ fontSize: '64px', marginBottom: '20px' }}>{modelo.icone}</div>
-              <h3 style={{ fontSize: '26px', fontWeight: 'bold', marginBottom: '12px' }}>
-                {modelo.nome}
-              </h3>
-              <p style={{ fontSize: '15px', opacity: 0.9, marginBottom: '20px', minHeight: '70px' }}>
-                {modelo.descricao}
-              </p>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                {modelo.tags.map((tag) => (
-                  <Badge key={tag} variant="outline">{tag}</Badge>
-                ))}
-              </div>
-              <div style={{ fontSize: '13px', opacity: 0.75, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '12px' }}>
-                📊 {modelo.complexidade} | ⏱️ {modelo.prazo}
-              </div>
-            </Card>
-          </div>
-        ))}
-      </div>
-
-      {loading && (
-        <div style={{ textAlign: 'center', marginBottom: '24px', fontSize: '18px' }}>
-          ⏳ Iniciando sessão com Helena...
-        </div>
-      )}
-
-      <div style={{ textAlign: 'center' }}>
-        <Button variant="outline" onClick={() => navigate('/planejamento-estrategico')} size="lg" disabled={loading}>
-          ← Voltar
-        </Button>
-      </div>
-    </div>
+    <PEModeloGrid
+      modelos={MODELOS}
+      loading={loading}
+      onSelecionarModelo={selecionarModelo}
+      onAbrirInfo={(modeloId) => {
+        setModeloInfoAtual(modeloId);
+        setModalInfoAberto(true);
+      }}
+      onVoltar={() => navigate('/planejamento-estrategico')}
+    />
   );
 
   const renderWorkspace = () => {
@@ -718,180 +578,15 @@ export const HelenaPEModerna: React.FC = () => {
           flexDirection: 'column',
           gap: '16px'
         }}>
-          {/* 🆕 Card de Introdução Fixo */}
           {mostrarCardIntro && modelo && (
-            <div style={{
-              alignSelf: 'flex-start',
-              maxWidth: '85%'
-            }}>
-              <div style={{
-                padding: '24px',
-                borderRadius: '16px',
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)',
-                backdropFilter: 'blur(10px)',
-                border: '2px solid rgba(27, 79, 114, 0.3)',
-                boxShadow: '0 8px 24px rgba(27, 79, 114, 0.15)',
-                fontSize: '15px',
-                lineHeight: 1.7,
-                color: '#2C3E50'
-              }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px', textAlign: 'center' }}>
-                  {modelo.icone}
-                </div>
-                <h3 style={{
-                  fontSize: '22px',
-                  fontWeight: 'bold',
-                  marginBottom: '12px',
-                  color: '#1B4F72',
-                  textAlign: 'center'
-                }}>
-                  Bem-vindo ao {modelo.nome}!
-                </h3>
-                <p style={{ marginBottom: '16px', textAlign: 'center', opacity: 0.9 }}>
-                  {modelo.descricao}
-                </p>
-
-                <div style={{
-                  background: 'rgba(27, 79, 114, 0.08)',
-                  padding: '16px',
-                  borderRadius: '12px',
-                  marginBottom: '20px'
-                }}>
-                  <p style={{ fontWeight: 600, marginBottom: '8px', color: '#1B4F72' }}>
-                    Como funciona:
-                  </p>
-                  <ul style={{
-                    margin: 0,
-                    paddingLeft: '20px',
-                    listStyleType: 'disc'
-                  }}>
-                    <li>Vou fazer perguntas para entender seu contexto</li>
-                    <li>Você responde de forma livre e natural</li>
-                    <li>Juntos, vamos construir seu planejamento estratégico</li>
-                    <li>Use o workspace ao lado para visualizar o progresso</li>
-                  </ul>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                  alignItems: 'center'
-                }}>
-                  <Button
-                    onClick={iniciarAgente}
-                    disabled={loading}
-                    style={{
-                      background: loading ? '#ccc' : 'linear-gradient(135deg, #1B4F72 0%, #2874A6 100%)',
-                      color: '#fff',
-                      padding: '14px 40px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      fontWeight: 700,
-                      fontSize: '17px',
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 4px 12px rgba(27, 79, 114, 0.3)',
-                      width: '100%',
-                      maxWidth: '300px'
-                    }}
-                  >
-                    {loading ? '⏳ Iniciando...' : '🚀 Começar Construção'}
-                  </Button>
-
-                  <div style={{
-                    display: 'flex',
-                    gap: '8px',
-                    flexWrap: 'wrap',
-                    justifyContent: 'center'
-                  }}>
-                    <Button
-                      onClick={async () => {
-                        setMostrarCardIntro(false);
-                        try {
-                          const confirmacao = await helenaPEService.iniciarModeloDireto(modeloSelecionado!);
-                          setSessionData(confirmacao.session_data);
-                          adicionarMensagem('helena', '💡 **Vou te mostrar alguns exemplos práticos de como este método funciona.**');
-                          adicionarMensagem('user', 'Me mostre exemplos');
-                          const response = await helenaPEService.confirmarModelo(confirmacao.session_data);
-                          setSessionData(response.session_data);
-                          await new Promise(resolve => setTimeout(resolve, 300));
-                          const respExemplos = await helenaPEService.enviarMensagem('exemplos', response.session_data);
-                          setSessionData(respExemplos.session_data);
-                          adicionarMensagem('helena', respExemplos.resposta);
-                        } catch (error) {
-                          console.error('Erro ao mostrar exemplos:', error);
-                          adicionarMensagem('helena', '⚠️ Erro ao carregar exemplos. Tente novamente.');
-                        }
-                      }}
-                      disabled={loading}
-                      style={{
-                        background: 'rgba(27, 79, 114, 0.1)',
-                        color: '#1B4F72',
-                        padding: '10px 20px',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(27, 79, 114, 0.3)',
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        cursor: loading ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      📊 Ver Exemplos
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        setMostrarCardIntro(false);
-                        try {
-                          const confirmacao = await helenaPEService.iniciarModeloDireto(modeloSelecionado!);
-                          setSessionData(confirmacao.session_data);
-                          adicionarMensagem('helena', '📖 **Vou te explicar como este método funciona.**');
-                          adicionarMensagem('user', 'Como funciona este método?');
-                          const response = await helenaPEService.confirmarModelo(confirmacao.session_data);
-                          setSessionData(response.session_data);
-                          await new Promise(resolve => setTimeout(resolve, 300));
-                          const respAjuda = await helenaPEService.enviarMensagem('o que é ' + modeloSelecionado, response.session_data);
-                          setSessionData(respAjuda.session_data);
-                          adicionarMensagem('helena', respAjuda.resposta);
-                        } catch (error) {
-                          console.error('Erro ao explicar método:', error);
-                          adicionarMensagem('helena', '⚠️ Erro ao carregar explicação. Tente novamente.');
-                        }
-                      }}
-                      disabled={loading}
-                      style={{
-                        background: 'rgba(27, 79, 114, 0.1)',
-                        color: '#1B4F72',
-                        padding: '10px 20px',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(27, 79, 114, 0.3)',
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        cursor: loading ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      💡 Entender Método
-                    </Button>
-                  </div>
-
-                  <Button
-                    onClick={() => navigate('/planejamento-estrategico/modelos')}
-                    disabled={loading}
-                    style={{
-                      background: 'transparent',
-                      color: '#6b7280',
-                      padding: '8px 20px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      fontWeight: 500,
-                      fontSize: '14px',
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      marginTop: '8px'
-                    }}
-                  >
-                    ← Escolher outro modelo
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <PEChatIntro
+              modelo={modelo}
+              loading={loading}
+              onIniciarAgente={iniciarAgente}
+              onVerExemplos={verExemplos}
+              onEntenderMetodo={entenderMetodo}
+              onVoltar={() => navigate('/planejamento-estrategico/modelos')}
+            />
           )}
 
           {mensagens.map((msg, idx) => (
