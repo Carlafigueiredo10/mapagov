@@ -4,6 +4,8 @@ import json
 import openai
 import os
 import logging
+import time
+import uuid as uuid_mod
 from dotenv import load_dotenv
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -41,6 +43,11 @@ from .utils import (
 def chat_api_view(request):
     """API para conversa com Helena - Sistema Multi-Produto com Sessão Persistente"""
 
+    # --- Diagnóstico: req_id + timing ---
+    req_id = str(uuid_mod.uuid4())[:8]
+    t0 = time.monotonic()
+    body_len = len(request.body) if request.body else 0
+
     try:
         load_dotenv()
 
@@ -51,8 +58,21 @@ def chat_api_view(request):
         dados_atuais = data.get('dados_atuais', {})
         session_id = data.get('session_id', 'default')
 
-        # DEBUG removido - causava OSError no Windows
-        logger.debug(f"[VIEWS] Mensagem recebida: '{user_message[:50]}...' contexto={contexto}")
+        # Contagem de etapas no payload (diagnóstico bug 7-etapas)
+        n_etapas = 0
+        try:
+            msg_parsed = json.loads(user_message) if user_message.strip().startswith('{') else None
+            if isinstance(msg_parsed, dict):
+                etapas_list = msg_parsed.get('etapas', [])
+                if isinstance(etapas_list, list):
+                    n_etapas = len(etapas_list)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        logger.info(
+            "[DIAG] req=%s body=%dB ctx=%s n_etapas=%d sid=...%s",
+            req_id, body_len, contexto, n_etapas, str(session_id)[-6:]
+        )
         
         # Validação de entrada com segurança
         valido, msg_erro = validar_entrada_helena(user_message)
@@ -363,14 +383,29 @@ def chat_api_view(request):
             }, status=400)
             
     except Exception as e:
-        logger.exception(f"[ERROR] Erro na API Helena: {e}")
+        elapsed = time.monotonic() - t0
+        logger.exception(
+            "[ERROR] req=%s body=%dB elapsed=%.2fs | Erro na API Helena: %s",
+            req_id, body_len, elapsed, e
+        )
 
-        return JsonResponse({
+        error_payload = {
             'resposta': 'Desculpe, ocorreu um erro técnico. Pode repetir a pergunta?',
             'dados_extraidos': {},
             'conversa_completa': False,
-            'erro': str(e)
-        }, status=500)
+            'erro': str(e),
+        }
+
+        # Em DEBUG, incluir contexto para diagnóstico no frontend
+        if settings.DEBUG:
+            error_payload['_diag'] = {
+                'req_id': req_id,
+                'body_bytes': body_len,
+                'elapsed_s': round(elapsed, 2),
+                'exception': f"{type(e).__name__}: {e}",
+            }
+
+        return JsonResponse(error_payload, status=500)
 
 # ============================================================================
 # NOVAS APIs - PDF PROFISSIONAL PARA POP (MODIFICADO)

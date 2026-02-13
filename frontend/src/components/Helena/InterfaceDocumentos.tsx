@@ -26,13 +26,18 @@ const InterfaceDocumentos: React.FC<InterfaceDocumentosProps> = ({ onConfirm }) 
   const [sistema, setSistema] = useState<string>("");
 
   const tiposDocumento = [
-    "Formulário",
     "Despacho",
-    "Ofício",
+    "Documentos",
+    "Ficha / Relatório",
+    "Formulário",
+    "Memória de cálculo",
     "Nota Informativa",
     "Nota Técnica",
+    "Ofício",
+    "Portaria",
+    "Registro em sistema",
     "Tela de sistema",
-    "Documentos Pessoais"
+    "Termo",
   ];
 
   const adicionarDocumento = () => {

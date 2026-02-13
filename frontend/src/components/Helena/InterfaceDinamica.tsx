@@ -669,7 +669,7 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
                 </div>
                 <button
                   className="btn-interface btn-secondary-outline"
-                  onClick={() => handleConfirm('USAR_DROPDOWNS')}
+                  onClick={() => handleConfirm(botaoAlternativo.acao)}
                 >
                   {botaoAlternativo.label}
                 </button>

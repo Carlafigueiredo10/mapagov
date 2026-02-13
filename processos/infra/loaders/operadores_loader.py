@@ -49,7 +49,7 @@ def carregar_operadores() -> List[str]:
 
         # FALLBACK: Dados hardcoded (segurança)
         return [
-            "Técnico Especializado",
+            "Analista",
             "Coordenador-Geral",
             "Coordenador",
             "Apoio-gabinete",

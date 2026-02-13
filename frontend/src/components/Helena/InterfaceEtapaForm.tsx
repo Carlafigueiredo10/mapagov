@@ -27,6 +27,8 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
   const tiposDocsRequeridos = (dados?.tipos_documentos_requeridos as TipoDocumento[]) || [];
   const tiposDocsGerados = (dados?.tipos_documentos_gerados as TipoDocumento[]) || [];
 
+  const etapasSumario = (dados?.etapas_sumario as Array<{ numero: string; acao_principal: string }>) || [];
+
   // Pre-fill para edicao (Step 11 — dados.etapa_preenchida)
   const prefill = (dados?.etapa_preenchida as Record<string, unknown>) || {};
 
@@ -37,8 +39,18 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
 
   // ── Bloco 2 — Verificacoes (lista incremental) ──
   const prefillVerificacoes = (prefill.verificacoes as string[]) || (prefill.detalhes as string[]) || [];
+  // Separar observações já existentes (formato "texto; (obs)")
+  const parseVerifObs = (v: string) => {
+    const sepIdx = v.indexOf('; (');
+    if (sepIdx >= 0) return { texto: v.substring(0, sepIdx), obs: v.substring(sepIdx + 3).replace(/\)$/, '') };
+    return { texto: v, obs: '' };
+  };
+  const parsedPrefill = prefillVerificacoes.map(parseVerifObs);
   const [verificacoes, setVerificacoes] = useState<string[]>(
-    prefillVerificacoes.length > 0 ? prefillVerificacoes : ['']
+    parsedPrefill.length > 0 ? parsedPrefill.map(p => p.texto) : ['']
+  );
+  const [observacoes, setObservacoes] = useState<string[]>(
+    parsedPrefill.length > 0 ? parsedPrefill.map(p => p.obs) : ['']
   );
 
   // ── Bloco 3 — Encerramento / Caminhos (default: Sim, usuario marca Nao) ──
@@ -116,13 +128,19 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
     setVerificacoes(prev => prev.map((v, i) => i === idx ? valor : v));
   };
 
+  const atualizarObservacao = (idx: number, valor: string) => {
+    setObservacoes(prev => prev.map((o, i) => i === idx ? valor : o));
+  };
+
   const adicionarVerificacao = () => {
     setVerificacoes(prev => [...prev, '']);
+    setObservacoes(prev => [...prev, '']);
   };
 
   const removerVerificacao = (idx: number) => {
     if (verificacoes.length <= 1) return;
     setVerificacoes(prev => prev.filter((_, i) => i !== idx));
+    setObservacoes(prev => prev.filter((_, i) => i !== idx));
   };
 
   // ── Handlers: Cenarios ──
@@ -223,7 +241,12 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
     setErro('');
 
     const verificacoesLimpas = verificacoes
-      .map(v => v.trim())
+      .map((v, idx) => {
+        const texto = v.trim();
+        const obs = (observacoes[idx] || '').trim();
+        if (!texto) return '';
+        return obs ? `${texto}; (${obs})` : texto;
+      })
       .filter(v => v.length > 0);
 
     // descricao: se editou manualmente usa manual, senao gera sintese
@@ -317,6 +340,56 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
         {prefill.id ? `Editar Etapa ${numeroEtapa}` : `Etapa ${numeroEtapa}`}
       </div>
 
+      {/* Sumário de etapas (navegação tipo e-CAC) */}
+      {etapasSumario.length > 0 && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.35rem',
+          marginBottom: '0.75rem',
+          padding: '0.5rem',
+          background: '#f8f9fa',
+          borderRadius: '6px',
+          border: '1px solid #dee2e6',
+        }}>
+          {etapasSumario.map((e) => {
+            const isAtual = String(e.numero) === String(numeroEtapa);
+            return (
+              <div
+                key={e.numero}
+                title={e.acao_principal || `Etapa ${e.numero}`}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '4px',
+                  fontSize: '0.72rem',
+                  fontWeight: isAtual ? 700 : 500,
+                  background: isAtual ? '#1351B4' : '#28a745',
+                  color: 'white',
+                  cursor: 'default',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '120px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {e.numero}. {e.acao_principal || '...'}
+              </div>
+            );
+          })}
+          <div style={{
+            padding: '0.25rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            background: '#1351B4',
+            color: 'white',
+            border: '2px solid #0d3f8f',
+          }}>
+            {numeroEtapa} ← atual
+          </div>
+        </div>
+      )}
+
       <div style={{
         padding: '0.5rem 0.75rem',
         background: '#e8f4fd',
@@ -326,7 +399,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
         marginBottom: '1rem',
         lineHeight: 1.4,
       }}>
-        Todos os campos sao obrigatorios. Preencha cada secao antes de confirmar.
+        Todos os campos são obrigatórios. Preencha cada seção antes de confirmar.
       </div>
 
       {erro && (
@@ -338,10 +411,10 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
       {/* ════════════════════════════════════════════
           BLOCO 1 — ACAO PRINCIPAL
           ════════════════════════════════════════════ */}
-      <div style={blocoHeaderStyle}>O que e feito</div>
+      <div style={blocoHeaderStyle}>1. O que é feito</div>
 
       <div id="ef-bloco-acao" style={sectionStyle}>
-        <label style={labelStyle}>O que e feito nesta etapa? *</label>
+        <label style={labelStyle}>O que é feito nesta etapa? *</label>
         <input
           type="text"
           value={acaoPrincipal}
@@ -358,37 +431,48 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
       {/* ════════════════════════════════════════════
           BLOCO 2 — VERIFICACOES
           ════════════════════════════════════════════ */}
-      <div style={blocoHeaderStyle}>O que e verificado / conferido</div>
+      <div style={blocoHeaderStyle}>2. O que é verificado / conferido</div>
 
       <div id="ef-bloco-verificacoes" style={sectionStyle}>
-        <label style={labelStyle}>Quais verificacoes sao feitas nesta etapa? *</label>
+        <label style={labelStyle}>Quais verificações são feitas nesta etapa? *</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           {verificacoes.map((v, idx) => (
-            <div key={idx} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-              <span style={{ color: '#6c757d', fontSize: '0.8rem', minWidth: '1.2rem' }}>{idx + 1}.</span>
-              <input
-                type="text"
-                value={v}
-                onChange={(e) => atualizarVerificacao(idx, e.target.value)}
-                placeholder={idx === 0 ? 'Conferir dados no sistema' : 'Outra verificacao...'}
-                style={{ ...inputStyle, flex: 1 }}
-              />
-              {verificacoes.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removerVerificacao(idx)}
-                  style={{
-                    ...miniButtonStyle,
-                    background: 'transparent',
-                    color: '#dc3545',
-                    fontSize: '1rem',
-                    padding: '0.1rem 0.4rem',
-                  }}
-                  title="Remover"
-                >
-                  ×
-                </button>
-              )}
+            <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                <span style={{ color: '#6c757d', fontSize: '0.8rem', minWidth: '1.2rem' }}>{idx + 1}.</span>
+                <input
+                  type="text"
+                  value={v}
+                  onChange={(e) => atualizarVerificacao(idx, e.target.value)}
+                  placeholder={idx === 0 ? 'Conferir dados no sistema' : 'Outra verificação...'}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                {verificacoes.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removerVerificacao(idx)}
+                    style={{
+                      ...miniButtonStyle,
+                      background: 'transparent',
+                      color: '#dc3545',
+                      fontSize: '1rem',
+                      padding: '0.1rem 0.4rem',
+                    }}
+                    title="Remover"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginLeft: '1.6rem' }}>
+                <input
+                  type="text"
+                  value={observacoes[idx] || ''}
+                  onChange={(e) => atualizarObservacao(idx, e.target.value)}
+                  placeholder="Observação (opcional). Ex: não será aceita CNH"
+                  style={{ ...inputStyle, flex: 1, fontSize: '0.78rem', padding: '0.3rem 0.5rem', background: '#f8f9fa', border: '1px dashed #ced4da' }}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -413,7 +497,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
       {/* ════════════════════════════════════════════
           BLOCO 3 — ENCERRAMENTO / CAMINHOS
           ════════════════════════════════════════════ */}
-      <div style={blocoHeaderStyle}>Encerramento da etapa</div>
+      <div style={blocoHeaderStyle}>3. Encerramento da etapa</div>
 
       <div id="ef-bloco-cenarios" style={sectionStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
@@ -652,7 +736,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
                 tipos={tiposDocsRequeridos}
                 value={docsRequeridos}
                 onChange={setDocsRequeridos}
-                titulo="O que e consultado ou recebido nesta etapa? *"
+                titulo="O que é consultado ou recebido nesta etapa? *"
               />
               <div style={helperStyle}>
                 Marque os documentos ou dados usados como entrada para executar a etapa.
@@ -679,7 +763,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
                 tipos={tiposDocsGerados}
                 value={docsGerados}
                 onChange={setDocsGerados}
-                titulo="O que e gerado como resultado desta etapa? *"
+                titulo="O que é gerado como resultado desta etapa? *"
               />
               <div style={helperStyle}>
                 Marque os documentos ou registros produzidos como resultado da execucao.

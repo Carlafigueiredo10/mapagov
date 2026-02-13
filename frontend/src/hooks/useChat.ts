@@ -286,17 +286,37 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
 
       return response;
 
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      
+    } catch (err: unknown) {
+      // --- Diagnóstico: logar detalhes reais do erro ---
+      const axiosErr = err as { response?: { status?: number; data?: Record<string, unknown> }; message?: string };
+      const status = axiosErr?.response?.status;
+      const data = axiosErr?.response?.data;
+      const msg = axiosErr?.message || (err instanceof Error ? err.message : 'Erro desconhecido');
+
+      console.error('🔴 [useChat] Erro na request:', { status, data, msg, err });
+
+      setError(msg);
+
       // ✅ Remover loading em caso de erro
       const store = useChatStore.getState();
       const loadingMsg = store.messages.find(m => m.loading);
       if (loadingMsg) {
         store.removeMessage(loadingMsg.id);
       }
-      
-      adicionarMensagemRapida('helena', '❌ Erro de conexão. Tente novamente.');
+
+      // Mostrar mensagem real se backend retornou detalhes (_diag em DEBUG)
+      const diag = data?._diag as { req_id?: string; elapsed_s?: number; exception?: string } | undefined;
+      const backendErro = data?.erro || data?.error;
+      let userMsg = 'Erro de conexão. Tente novamente.';
+      if (diag) {
+        userMsg = `Erro técnico (req=${diag.req_id}, ${diag.elapsed_s}s): ${diag.exception || backendErro || msg}`;
+      } else if (backendErro) {
+        userMsg = `Erro: ${backendErro}`;
+      } else if (status) {
+        userMsg = `Erro ${status}: ${msg}`;
+      }
+
+      adicionarMensagemRapida('helena', `❌ ${userMsg}`);
       throw err;
     } finally {
       // ✅ FIX: Respeitar holdProcessing - só libera se não for auto_continue

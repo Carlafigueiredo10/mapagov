@@ -28,8 +28,8 @@ import './MapeamentoProcessosPage.css';
 const TODOS_CAMPOS = [
   'area', 'codigo_processo', 'macroprocesso', 'processo_especifico',
   'subprocesso', 'nome_processo', 'entrega_esperada', 'dispositivos_normativos',
-  'sistemas', 'operadores', 'etapas', 'documentos_utilizados', 'pontos_atencao',
-  'fluxos_entrada', 'fluxos_saida'
+  'sistemas', 'operadores', 'etapas',
+  'fluxos_entrada', 'fluxos_saida', 'pontos_atencao'
 ] as const;
 
 const MapeamentoProcessosPage: React.FC = () => {

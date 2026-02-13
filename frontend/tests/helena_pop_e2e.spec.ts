@@ -155,7 +155,7 @@ test.describe('Helena POP - Fluxo Completo E2E', () => {
     await page.locator('.badge-trofeu button, .badge-trofeu [role="button"]').first().click();
 
     // Verificar badge expandido
-    await expect(page.locator('.badge-trofeu')).toContainText('Parabéns');
+    await expect(page.locator('.badge-trofeu')).toContainText('Marco alcançado');
 
     // Continuar
     await clicarBotao(page, 'Continuar');

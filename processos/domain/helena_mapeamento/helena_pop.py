@@ -625,13 +625,13 @@ class HelenaPOP(BaseHelena):
             dados_interface = interface_info.get('dados', {})
             logger.debug(f"[FIX] Extraído de metadados_extra: tipo_interface={tipo_interface}")
 
-        # Badge de conquista na transição épica
+        # Badge de checkpoint na transição épica
         if novo_sm.estado == EstadoPOP.TRANSICAO_EPICA:
             metadados_extra['badge'] = {
                 'tipo': 'fase_previa_completa',
-                'emoji': '🏆',
+                'emoji': '✔',
                 'titulo': 'Fase Prévia Concluída!',
-                'descricao': 'Você mapeou toda a estrutura básica do processo',
+                'descricao': 'Primeiro trecho do percurso concluído. Seguimos para o próximo.',
                 'mostrar_animacao': True
             }
 
@@ -2580,11 +2580,11 @@ class HelenaPOP(BaseHelena):
             f"Caso queira alterar algum dado desta fase, a revisão final estará disponível ao concluir o mapeamento."
         )
 
-        # Badge troféu — celebrar conclusão da Fase 1
+        # Badge checkpoint — marco da Fase 1
         sm.tipo_interface = 'badge_cartografo'
         sm.dados_interface = {
             'titulo': 'Fase 1 concluída!',
-            'emoji': '🏆',
+            'emoji': '✔',
             'descricao': 'Os dados principais do seu POP foram registrados com sucesso.',
         }
 
@@ -2594,7 +2594,7 @@ class HelenaPOP(BaseHelena):
         """
         REVISÃO 2 - Pré-delegação
 
-        Badge troféu da Fase 1 → clique mostra introdução pré-etapas (café, etc.)
+        Badge checkpoint da Fase 1 → clique mostra introdução pré-etapas (café, etc.)
         com botões "Vamos começar" / "Salvar e continuar depois".
         """
         nome = sm.nome_usuario or "você"
@@ -3370,8 +3370,18 @@ class HelenaPOP(BaseHelena):
 
     def _montar_dados_etapa_form(self, sm: POPStateMachine, numero: int) -> dict:
         """Monta dados_interface para o form de etapa."""
+        # Sumário de etapas já mapeadas (para navegação no topo do form)
+        etapas_sumario = [
+            {
+                'numero': e.get('numero', str(i + 1)),
+                'acao_principal': e.get('acao_principal', e.get('descricao', ''))[: 40],
+            }
+            for i, e in enumerate(sm.etapas_coletadas)
+        ]
         return {
             'numero_etapa': numero,
+            'total_etapas': len(sm.etapas_coletadas),
+            'etapas_sumario': etapas_sumario,
             'operadores': sm.dados_coletados.get('operadores', []),
             'sistemas': carregar_sistemas(),
             'tipos_documentos_requeridos': carregar_tipos_documentos_requeridos(),
@@ -3767,9 +3777,12 @@ class HelenaPOP(BaseHelena):
             return False
 
     def _calcular_progresso(self, sm: POPStateMachine) -> str:
-        """Calcula progresso da coleta baseado em campos preenchidos."""
+        """Calcula progresso da coleta baseado em campos preenchidos.
+
+        Peso: pré-etapas = 30%, etapas = 70%.
+        """
         d = sm.dados_coletados
-        campos = [
+        campos_pre = [
             sm.nome_usuario,
             d.get('area_decipex'),
             d.get('macroprocesso'),
@@ -3784,16 +3797,24 @@ class HelenaPOP(BaseHelena):
             d.get('documentos_entrada') or d.get('documentos_saida'),
             d.get('fluxos_entrada') or d.get('fluxos_saida'),
         ]
-        preenchidos = sum(1 for c in campos if c)
-        # Incluir etapas no progresso se existirem
-        if sm.etapas_coletadas:
-            return f"{preenchidos + 1}/{len(campos) + 1}"
-        return f"{preenchidos}/{len(campos) + 1}"
+        pre_preenchidos = sum(1 for c in campos_pre if c)
+        total_pre = len(campos_pre)
+        tem_etapas = bool(sm.etapas_coletadas)
+
+        # Percentual ponderado: pré-etapas = 30%, etapas = 70%
+        pct_pre = int((pre_preenchidos / total_pre) * 30) if total_pre else 0
+        pct_etapas = 70 if tem_etapas else 0
+        pct_total = pct_pre + pct_etapas
+
+        return f"{pct_total}/100"
 
     def obter_progresso(self, sm: POPStateMachine) -> dict:
-        """Retorna detalhes completos do progresso atual."""
+        """Retorna detalhes completos do progresso atual.
+
+        Peso: pré-etapas = 30%, etapas = 70%.
+        """
         d = sm.dados_coletados
-        campos = [
+        campos_pre = [
             ('Nome do usuário', sm.nome_usuario),
             ('Área DECIPEX', d.get('area_decipex')),
             ('Macroprocesso', d.get('macroprocesso')),
@@ -3807,12 +3828,19 @@ class HelenaPOP(BaseHelena):
             ('Sistemas', d.get('sistemas')),
             ('Documentos', d.get('documentos_entrada') or d.get('documentos_saida')),
             ('Fluxos', d.get('fluxos_entrada') or d.get('fluxos_saida')),
-            ('Etapas', sm.etapas_coletadas if sm.etapas_coletadas else None),
         ]
-        preenchidos = sum(1 for _, v in campos if v)
-        faltantes = [nome for nome, v in campos if not v]
-        total = len(campos)
-        percentual = int((preenchidos / total) * 100)
+        pre_preenchidos = sum(1 for _, v in campos_pre if v)
+        faltantes = [nome for nome, v in campos_pre if not v]
+        total_pre = len(campos_pre)
+        tem_etapas = bool(sm.etapas_coletadas)
+
+        # Percentual ponderado: pré-etapas = 30%, etapas = 70%
+        pct_pre = int((pre_preenchidos / total_pre) * 30) if total_pre else 0
+        pct_etapas = 70 if tem_etapas else 0
+        percentual = pct_pre + pct_etapas
+
+        if not tem_etapas:
+            faltantes.append('Etapas')
 
         # Detalhe de etapas em andamento
         etapa_info = ""
@@ -3821,8 +3849,8 @@ class HelenaPOP(BaseHelena):
             etapa_info = f" (coletando etapa {n_etapas + 1})"
 
         return {
-            "campos_preenchidos": preenchidos,
-            "total_campos": total,
+            "campos_preenchidos": pre_preenchidos + (1 if tem_etapas else 0),
+            "total_campos": total_pre + 1,
             "percentual": percentual,
             "estado_atual": sm.estado.value,
             "campos_faltantes": faltantes,

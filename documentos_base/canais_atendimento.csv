@@ -1,5 +1,6 @@
 codigo,nome,descricao,ativo
 SOUGOV,SouGov.br,Portal de serviços do governo federal,true
+GOVBR,Gov.br,Portal de serviços digitais do governo federal,true
 CENTRAL_TEL,Central de Atendimento Telefônico,Atendimento por telefone (call center),true
 ATEND_PRES,Atendimento Presencial,Atendimento em balcão/guichê,true
 PROTOCOLO_DIG,Protocolo Digital,Sistema de protocolo eletrônico,true

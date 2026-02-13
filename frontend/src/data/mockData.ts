@@ -56,7 +56,7 @@ nome_curto: 'Decreto 9.739/2019',
 
 export const mockOperadoresData = {
   opcoes: [
-    'Técnico Especializado',
+    'Analista',
     'Coordenador',
     'Apoio-Gabinete', 
     'Analista Sênior',

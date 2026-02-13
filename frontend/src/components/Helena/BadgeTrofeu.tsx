@@ -10,8 +10,8 @@ interface BadgeTrofeuProps {
 
 export default function BadgeTrofeu({
   nomeBadge = "Cartógrafo(a) de Processos – Nível 1",
-  emoji = "🏆",
-  descricao = "Você acaba de registrar etapas fundamentais do seu processo. 💪",
+  emoji = "✔",
+  descricao = "Primeiro trecho do percurso concluído. Seguimos para o próximo.",
   onContinuar
 }: BadgeTrofeuProps) {
   const [showConfetti, setShowConfetti] = useState(false);
@@ -40,7 +40,7 @@ export default function BadgeTrofeu({
               setBadgeClicada(true);
             }}
             role="button"
-            aria-label="Clique para visualizar troféu de reconhecimento"
+            aria-label="Clique para visualizar marco de percurso"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -50,16 +50,16 @@ export default function BadgeTrofeu({
             }}
           >
             <span className={styles.trofeu}>{emoji}</span>
-            <span className={styles.btnTexto}>🎁 Ver presente</span>
+            <span className={styles.btnTexto}>Ver marco do percurso</span>
           </div>
         ) : (
           <>
             <div className={styles.trofeuExibido}>
               <span className={styles.trofeu}>{emoji}</span>
             </div>
-            <h3 className={styles.titulo}>Parabéns!</h3>
+            <h3 className={styles.titulo}>Marco alcançado!</h3>
             <p className={styles.texto}>
-              Badge desbloqueada: <strong>{nomeBadge}</strong> <br />
+              <strong>{nomeBadge}</strong> <br />
               {descricao}
             </p>
 
@@ -78,15 +78,15 @@ export default function BadgeTrofeu({
 
       {showConfetti && (
         <div className={styles.confettiContainer}>
-          {[...Array(40)].map((_, i) => (
+          {[...Array(15)].map((_, i) => (
             <div
               key={i}
               className={styles.confetti}
               style={{
                 left: `${Math.random() * 100}%`,
                 animationDelay: `${Math.random() * 0.5}s`,
-                backgroundColor: ["#FFD700", "#1351B4", "#50C878", "#FF69B4"][
-                  Math.floor(Math.random() * 4)
+                backgroundColor: ["#1351B4", "#50C878", "#4ecdc4"][
+                  Math.floor(Math.random() * 3)
                 ],
               }}
             />

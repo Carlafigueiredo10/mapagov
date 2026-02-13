@@ -37,21 +37,21 @@ const InterfaceCaixinhaReconhecimento: React.FC<InterfaceCaixinhaReconhecimentoP
           </div>
         ) : (
           <div className="trofeu-container">
-            <div className="trofeu">🏆</div>
-            <div className="trofeu-label">Parabéns!</div>
+            <div className="trofeu">✔</div>
+            <div className="trofeu-label">Marco alcançado!</div>
           </div>
         )}
 
         {mostrarConfetes && (
           <div className="confetes-container">
-            {[...Array(50)].map((_, i) => (
+            {[...Array(15)].map((_, i) => (
               <div
                 key={i}
                 className="confete"
                 style={{
                   left: `${Math.random() * 100}%`,
                   animationDelay: `${Math.random() * 0.5}s`,
-                  background: ['#ff6b6b', '#4ecdc4', '#ffe66d', '#a8e6cf', '#ffd93d'][Math.floor(Math.random() * 5)]
+                  background: ['#1351B4', '#50C878', '#4ecdc4'][Math.floor(Math.random() * 3)]
                 }}
               />
             ))}
@@ -144,20 +144,9 @@ const InterfaceCaixinhaReconhecimento: React.FC<InterfaceCaixinhaReconhecimentoP
 
         .trofeu {
           font-size: 8rem;
-          animation: girar 1s ease-out;
-          filter: drop-shadow(0 8px 16px rgba(255, 215, 0, 0.4));
-        }
-
-        @keyframes girar {
-          0% {
-            transform: rotate(-180deg) scale(0);
-          }
-          50% {
-            transform: rotate(20deg) scale(1.2);
-          }
-          100% {
-            transform: rotate(0deg) scale(1);
-          }
+          animation: aparecer 0.6s ease-out;
+          filter: drop-shadow(0 4px 12px rgba(19, 81, 180, 0.3));
+          color: #2e7d32;
         }
 
         .trofeu-label {
