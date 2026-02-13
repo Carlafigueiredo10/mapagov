@@ -2540,6 +2540,8 @@ class HelenaPOP(BaseHelena):
 
             # Ir para PONTOS_ATENCAO (fluxo completo: PONTOS → REVISAO → TRANSICAO_EPICA)
             sm.estado = EstadoPOP.PONTOS_ATENCAO
+            sm.tipo_interface = None
+            sm.dados_interface = {}
             nome = sm.nome_usuario or "você"
 
             resposta = (
