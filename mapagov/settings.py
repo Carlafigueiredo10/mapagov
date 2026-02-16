@@ -1,9 +1,10 @@
 # mapagov/settings.py - CORRIGIDO PARA RENDER + COMPLETO
 
 import os
+import sys
 from pathlib import Path
-from dotenv import load_dotenv  # ← importa aqui
-from urllib.parse import urlparse
+from dotenv import load_dotenv
+import dj_database_url
 
 # Carregar variáveis do .env
 load_dotenv()
@@ -147,60 +148,50 @@ TEMPLATES = [
 WSGI_APPLICATION = 'mapagov.wsgi.application'
 
 # ============================================================================
-# DATABASE CONFIGURATION: Suporta Render, Google Cloud SQL e local
+# DATABASE: Render (Neon PostgreSQL) + SQLite local
 # ============================================================================
-DATABASE_URL = os.getenv('DATABASE_URL')
-CLOUD_SQL_CONNECTION_NAME = os.getenv('CLOUD_SQL_CONNECTION_NAME')  # formato: project:region:instance
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
-if CLOUD_SQL_CONNECTION_NAME:
-    # Google Cloud SQL via Unix socket
-    print(f"[DATABASE] Usando Cloud SQL: {CLOUD_SQL_CONNECTION_NAME}")
+# Deteccao de testes: manage.py test, pytest, CI
+RUNNING_TESTS = (
+    "test" in sys.argv
+    or (sys.argv[0].endswith("pytest") if sys.argv else False)
+    or os.getenv("PYTEST_CURRENT_TEST") is not None
+)
+FORCE_TEST_SQLITE = os.getenv("DJANGO_TEST_SQLITE", "0") == "1"
+
+if RUNNING_TESTS and FORCE_TEST_SQLITE:
+    # Testes isolados em SQLite em memoria — nunca toca Neon
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'mapagov'),
-            'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': f'/cloudsql/{CLOUD_SQL_CONNECTION_NAME}',  # Unix socket
-            'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
         }
     }
 elif DATABASE_URL:
-    # Render ou qualquer PostgreSQL via URL
-    parsed = urlparse(DATABASE_URL)
-    print(f"[DATABASE] Usando PostgreSQL: {parsed.hostname}")
+    # Postgres via URL (Neon/Render)
+    ssl_require = os.getenv("DB_SSL_REQUIRE", "1") == "1"
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': parsed.path.lstrip('/'),
-            'USER': parsed.username,
-            'PASSWORD': parsed.password,
-            'HOST': parsed.hostname,
-            'PORT': parsed.port or '5432',
-            'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
-            'OPTIONS': {
-                'sslmode': os.getenv('DB_SSLMODE', 'prefer')
-            } if os.getenv('DB_REQUIRE_SSL', 'false').lower() == 'true' else {}
-        }
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=int(os.getenv("DB_CONN_MAX_AGE", "60")),
+            ssl_require=ssl_require,
+        )
     }
 else:
-    # Desenvolvimento local com SQLite
-    print("[DATABASE] Usando SQLite (desenvolvimento local)")
+    # Dev local com SQLite
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
 
-# 🔥 FASE 1: Forçar PostgreSQL em produção (segurança + escalabilidade)
-# Permite SQLite apenas durante collectstatic no Docker build (SKIP_DB_CHECK=1)
-SKIP_DB_CHECK = os.getenv('SKIP_DB_CHECK', '0') == '1'
-if not DEBUG and not SKIP_DB_CHECK and DATABASES['default']['ENGINE'].endswith('sqlite3'):
+# Fail-safe: nao permitir SQLite em producao
+SKIP_DB_CHECK = os.getenv("SKIP_DB_CHECK", "0") == "1"
+if not DEBUG and not SKIP_DB_CHECK and DATABASES["default"]["ENGINE"].endswith("sqlite3"):
     raise RuntimeError(
-        "❌ PRODUÇÃO COM SQLITE DETECTADA! SQLite não suporta concorrência e não escala.\n"
-        "Defina DATABASE_URL para PostgreSQL: export DATABASE_URL='postgresql://user:pass@host:5432/dbname'\n"
-        "Veja MIGRATION_POSTGRES.md para instruções completas."
+        "SQLite nao e permitido com DEBUG=False. Configure DATABASE_URL."
     )
 
 # Password validation
@@ -472,7 +463,6 @@ if not DEBUG:
         from sentry_sdk.integrations.django import DjangoIntegration
         from sentry_sdk.integrations.logging import LoggingIntegration
     except ImportError:
-        print("[WARNING] sentry-sdk não instalado. Sentry desabilitado.")
         sentry_sdk = None
 
     SENTRY_DSN = os.getenv('SENTRY_DSN') if 'sentry_sdk' in locals() and sentry_sdk else None
@@ -511,13 +501,10 @@ if not DEBUG:
             ) else None,
         )
 
-        print("[OK] Sentry configurado para monitoramento de erros")
     else:
-        print("[WARNING] SENTRY_DSN nao configurado. Configure para monitoramento em producao.")
-        print("    Obtenha seu DSN em: https://sentry.io/settings/projects/")
-        print("    Depois: export SENTRY_DSN='https://...@sentry.io/...'")
+        pass
 else:
-    print("[DEBUG] Modo DEBUG ativo - Sentry desabilitado")
+    pass
 
 
 # ============================================================================
@@ -528,13 +515,6 @@ else:
 
 HELENA_LITE_MODE = os.getenv('HELENA_LITE_MODE', 'False').lower() in ('true', '1', 'yes')
 
-if HELENA_LITE_MODE:
-    print("[LITE MODE] Helena em modo economico - produtos pesados desabilitados")
-    print("    Habilitados: POP basico, Mapeamento, Recepcao")
-    print("    Desabilitados: Analise de Riscos avancada, Fluxograma com IA")
-    print("    Para habilitar todos: export HELENA_LITE_MODE=False")
-else:
-    print("[FULL MODE] Todos os produtos Helena habilitados")
 
 
 # ============================================================================
@@ -581,15 +561,10 @@ try:
             "TIMEOUT": 900,  # 15 minutos (padrão)
         }
     }
-    print(f"[REDIS] Conectado em {REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
-
-except Exception as e:
-    print(f"[REDIS] Indisponível ({e}). Usando cache em memória (modo degradado)")
-    print("    Para produção, instale: pip install redis django-redis")
-    print(f"    E configure: export REDIS_HOST={REDIS_HOST} REDIS_PORT={REDIS_PORT}")
+except Exception:
     if not DEBUG:
         import logging
         logging.getLogger('mapagov.startup').warning(
-            "Rate limiting não distribuído — cache LocMemCache ativo em produção. "
-            "Configure REDIS_HOST para proteção efetiva."
+            "Redis indisponivel. Cache LocMemCache ativo em producao. "
+            "Configure REDIS_HOST para rate limiting distribuido."
         )
