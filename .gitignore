@@ -10,6 +10,9 @@ venv/
 .env
 .DS_Store
 
+# Log files
+*.log
+
 # Backups e dados locais
 backups/
 chroma_db/
