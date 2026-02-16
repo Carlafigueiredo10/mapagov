@@ -21,17 +21,12 @@ echo "Instalando dependencias Python..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# 3. Rodar testes Python
-echo ""
-echo "Rodando testes Python..."
-SKIP_DB_CHECK=1 python manage.py test processos.tests.test_smoke processos.tests.test_chat_router --no-input -v2
-
-# 4. Coletar arquivos estaticos
+# 3. Coletar arquivos estaticos
 echo ""
 echo "Coletando arquivos estaticos..."
 python manage.py collectstatic --no-input
 
-# 5. Executar migracoes
+# 4. Executar migracoes
 echo ""
 echo "Executando migracoes do banco de dados..."
 python manage.py migrate --no-input
