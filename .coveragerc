@@ -1,0 +1,19 @@
+[run]
+source = processos
+omit =
+    */migrations/*
+    */tests/*
+    */admin.py
+    manage.py
+    */wsgi.py
+    */asgi.py
+    venv/*
+
+[report]
+show_missing = True
+skip_empty = True
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if __name__ == .__main__
+    raise NotImplementedError

@@ -19,17 +19,39 @@ steps:
     id: 'build-image'
 
   # ============================================================================
-  # STEP 2: Push da imagem para Container Registry
+  # STEP 2: Rodar testes dentro da imagem (falha = bloqueia deploy)
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'run'
+      - '--rm'
+      - '-e'
+      - 'SKIP_DB_CHECK=1'
+      - '-e'
+      - 'DEBUG=True'
+      - 'gcr.io/$PROJECT_ID/mapagov:$COMMIT_SHA'
+      - 'python'
+      - 'manage.py'
+      - 'test'
+      - 'processos.tests.test_smoke'
+      - 'processos.tests.test_chat_router'
+      - '--no-input'
+      - '-v2'
+    id: 'run-tests'
+    waitFor: ['build-image']
+
+  # ============================================================================
+  # STEP 3: Push da imagem para Container Registry
   # ============================================================================
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - 'gcr.io/$PROJECT_ID/mapagov:$COMMIT_SHA'
     id: 'push-image'
-    waitFor: ['build-image']
+    waitFor: ['run-tests']
 
   # ============================================================================
-  # STEP 3: Deploy no Cloud Run
+  # STEP 4: Deploy no Cloud Run
   # ============================================================================
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud

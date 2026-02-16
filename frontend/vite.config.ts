@@ -5,8 +5,14 @@ import react from '@vitejs/plugin-react'
 import vitePluginEslint from 'vite-plugin-eslint'
 
 export default defineConfig(({ mode }) => ({
-  // Adicione o plugin aqui
-  plugins: [react()], // ESLint temporariamente desabilitado
+  plugins: [react()],
+
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.ts',
+    include: ['src/**/*.test.{ts,tsx}'],
+  },
 
   // Base URL para assets em produção (Django WhiteNoise)
   // Em dev: '/' (raiz - Vite serve assets de /public)
