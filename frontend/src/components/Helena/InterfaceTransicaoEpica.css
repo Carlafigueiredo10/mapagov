@@ -52,18 +52,6 @@
   box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 
-/* Secundário — amarelo (igual btn-editar) */
-.btn-transicao-secundario {
-  background: #ffc107;
-  color: #212529;
-}
-
-.btn-transicao-secundario:hover {
-  background: #e0a800;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
-}
-
 .btn-transicao:active {
   transform: translateY(0);
 }

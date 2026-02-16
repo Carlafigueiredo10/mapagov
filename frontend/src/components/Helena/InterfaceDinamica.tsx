@@ -41,6 +41,7 @@ import InterfaceSugestaoAtividade from './InterfaceSugestaoAtividade';
 import InterfaceSelecaoManualHierarquica from './InterfaceSelecaoManualHierarquica';
 import InterfaceRagPerguntaAtividade from './InterfaceRagPerguntaAtividade';
 import InterfaceSugestaoEntregaEsperada from './InterfaceSugestaoEntregaEsperada';
+import TransitionLoadingState from './TransitionLoadingState';
 import LoadingAnaliseAtividade from './LoadingAnaliseAtividade';
 import InterfaceFallback from './InterfaceFallback';
 import InterfaceRevisaoFinal from './InterfaceRevisaoFinal';
@@ -247,6 +248,15 @@ Se você concorda com minhas sugestões, me dê o OK que preencho todos os campo
         <InterfaceRagPerguntaAtividade
           hierarquiaHerdada={dados?.hierarquia_herdada as any}
           onEnviar={(descricao) => handleConfirm(JSON.stringify({ acao: 'enviar_descricao', descricao }))}
+        />
+      );
+
+    case 'transition_loading':
+      return (
+        <TransitionLoadingState
+          title={(dados?.title as string) || 'Processando...'}
+          subtitle={(dados?.subtitle as string) || 'Aguarde um momento.'}
+          skeleton={(dados?.skeleton as 'sugestao_entrega' | 'lista' | 'card') || 'card'}
         />
       );
 

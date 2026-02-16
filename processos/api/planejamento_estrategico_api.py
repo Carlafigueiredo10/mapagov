@@ -14,7 +14,6 @@ Endpoints:
 import logging
 import json
 from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import api_view, permission_classes
@@ -37,7 +36,6 @@ logger = logging.getLogger(__name__)
 # ENDPOINTS PRINCIPAIS
 # ============================================================================
 
-@csrf_exempt
 @api_view(['POST'])
 def iniciar_planejamento(request):
     """
@@ -100,7 +98,6 @@ def iniciar_planejamento(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@csrf_exempt
 @api_view(['POST'])
 def processar_mensagem(request):
     """
@@ -174,7 +171,6 @@ def processar_mensagem(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@csrf_exempt
 @api_view(['POST'])
 @require_internal_key
 def salvar_planejamento(request):
@@ -341,7 +337,6 @@ def obter_planejamento(request, planejamento_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@csrf_exempt
 @api_view(['POST'])
 @require_internal_key
 def aprovar_planejamento(request, planejamento_id):
@@ -393,7 +388,6 @@ def aprovar_planejamento(request, planejamento_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@csrf_exempt
 @api_view(['POST'])
 @require_internal_key
 def criar_revisao(request, planejamento_id):
@@ -559,7 +553,6 @@ def obter_diagnostico(request):
     }, status=status.HTTP_200_OK)
 
 
-@csrf_exempt
 @api_view(['POST'])
 def iniciar_modelo_direto(request):
     """
@@ -635,7 +628,6 @@ Deseja confirmar e começar?"""
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@csrf_exempt
 @api_view(['POST'])
 def confirmar_modelo(request):
     """
@@ -692,7 +684,6 @@ def confirmar_modelo(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@csrf_exempt
 @api_view(['POST'])
 @require_internal_key
 def calcular_recomendacao(request):

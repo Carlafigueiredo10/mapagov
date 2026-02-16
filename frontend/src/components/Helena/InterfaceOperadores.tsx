@@ -27,6 +27,8 @@ const OPERADORES_INFO: Record<string, { icone: string; categoria: string }> = {
 
 const InterfaceOperadores: React.FC<InterfaceOperadoresProps> = ({ dados, onConfirm }) => {
   const [operadoresSelecionados, setOperadoresSelecionados] = useState<string[]>([]);
+  const [operadoresDigitados, setOperadoresDigitados] = useState<string[]>([]);
+  const [operadorManual, setOperadorManual] = useState<string>('');
 
   // Extrair lista de operadores do backend
   const listaOperadores = useMemo(() => {
@@ -38,6 +40,14 @@ const InterfaceOperadores: React.FC<InterfaceOperadoresProps> = ({ dados, onConf
     return [];
   }, [dados]);
 
+  // Filtrar "Outros (especificar)" — substituído pelo campo manual
+  const listaExibicao = useMemo(() =>
+    listaOperadores.filter(op => op.toLowerCase() !== 'outros (especificar)'),
+    [listaOperadores]
+  );
+
+  const todosOperadoresSelecionados = [...operadoresSelecionados, ...operadoresDigitados];
+
   const toggleOperador = (operador: string) => {
     setOperadoresSelecionados(prev =>
       prev.includes(operador)
@@ -47,18 +57,34 @@ const InterfaceOperadores: React.FC<InterfaceOperadoresProps> = ({ dados, onConf
   };
 
   const selecionarTodos = () => {
-    if (operadoresSelecionados.length === listaOperadores.length) {
-      // Desselecionar todos
+    if (operadoresSelecionados.length === listaExibicao.length) {
       setOperadoresSelecionados([]);
     } else {
-      // Selecionar todos
-      setOperadoresSelecionados([...listaOperadores]);
+      setOperadoresSelecionados([...listaExibicao]);
+    }
+  };
+
+  const adicionarOperadorManual = () => {
+    const operador = operadorManual.trim();
+    if (operador && !todosOperadoresSelecionados.includes(operador)) {
+      setOperadoresDigitados([...operadoresDigitados, operador]);
+      setOperadorManual('');
+    }
+  };
+
+  const removerOperadorDigitado = (operador: string) => {
+    setOperadoresDigitados(operadoresDigitados.filter(o => o !== operador));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      adicionarOperadorManual();
     }
   };
 
   const handleConfirm = () => {
-    const resposta = operadoresSelecionados.length > 0
-      ? JSON.stringify(operadoresSelecionados)
+    const resposta = todosOperadoresSelecionados.length > 0
+      ? JSON.stringify(todosOperadoresSelecionados)
       : 'nenhum';
 
     console.log('📤 InterfaceOperadores enviando:', resposta);
@@ -79,21 +105,22 @@ const InterfaceOperadores: React.FC<InterfaceOperadoresProps> = ({ dados, onConf
         <>
           <div className="selecao-info">
             <span className="contador-selecao">
-              {operadoresSelecionados.length} de {listaOperadores.length} selecionados
+              {todosOperadoresSelecionados.length} operador(es) selecionado(s)
+              {operadoresDigitados.length > 0 && ` (${operadoresDigitados.length} manual)`}
             </span>
             <button
               className="btn-selecionar-todos"
               onClick={selecionarTodos}
               type="button"
             >
-              {operadoresSelecionados.length === listaOperadores.length
+              {operadoresSelecionados.length === listaExibicao.length
                 ? 'Desmarcar Todos'
                 : 'Selecionar Todos'}
             </button>
           </div>
 
           <div className="operadores-grid">
-            {listaOperadores.map((operador, idx) => {
+            {listaExibicao.map((operador, idx) => {
               const info = getOperadorInfo(operador);
               const isSelected = operadoresSelecionados.includes(operador);
 
@@ -122,12 +149,61 @@ const InterfaceOperadores: React.FC<InterfaceOperadoresProps> = ({ dados, onConf
         </div>
       )}
 
+      {/* Operadores adicionados manualmente (chips) */}
+      {operadoresDigitados.length > 0 && (
+        <div className="operadores-digitados">
+          <div className="operadores-digitados-label">
+            📝 Operadores adicionados manualmente:
+          </div>
+          <div className="operadores-digitados-lista">
+            {operadoresDigitados.map((operador, idx) => (
+              <div key={idx} className="operador-digitado-chip">
+                <span>{operador}</span>
+                <button
+                  className="btn-remover-operador"
+                  onClick={() => removerOperadorDigitado(operador)}
+                  title="Remover"
+                  type="button"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Campo de entrada manual */}
+      <div className="campo-manual-operador">
+        <div className="campo-manual-operador-label">
+          Outro operador? ✍️ Digite manualmente abaixo.
+        </div>
+        <div className="campo-manual-operador-group">
+          <input
+            type="text"
+            className="campo-manual-operador-input"
+            placeholder="Ex: Estagiário, Terceirizado TI, etc."
+            value={operadorManual}
+            onChange={(e) => setOperadorManual(e.target.value)}
+            onKeyPress={handleKeyPress}
+          />
+          <button
+            className="btn-adicionar-operador"
+            onClick={adicionarOperadorManual}
+            disabled={!operadorManual.trim()}
+            type="button"
+          >
+            + Adicionar
+          </button>
+        </div>
+      </div>
+
       <div className="action-buttons">
         <button className="btn-interface btn-secondary" onClick={() => onConfirm('nao sei')}>
           Não Sei
         </button>
         <button className="btn-interface btn-primary" onClick={handleConfirm}>
-          Confirmar
+          Confirmar ({todosOperadoresSelecionados.length})
         </button>
       </div>
 
@@ -270,9 +346,126 @@ const InterfaceOperadores: React.FC<InterfaceOperadoresProps> = ({ dados, onConf
           margin: 1rem 0;
         }
 
+        .operadores-digitados {
+          margin: 1rem 0;
+          padding: 1rem;
+          background: #e8f5e9;
+          border-radius: 8px;
+          border: 2px solid #4caf50;
+        }
+
+        .operadores-digitados-label {
+          margin-bottom: 0.75rem;
+          font-size: 0.875rem;
+          color: #2e7d32;
+          font-weight: 600;
+        }
+
+        .operadores-digitados-lista {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .operador-digitado-chip {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 0.75rem;
+          background: white;
+          border: 2px solid #4caf50;
+          border-radius: 20px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #2e7d32;
+        }
+
+        .btn-remover-operador {
+          width: 20px;
+          height: 20px;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f44336;
+          color: white;
+          border: none;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 12px;
+          line-height: 1;
+          transition: all 0.2s;
+        }
+
+        .btn-remover-operador:hover {
+          background: #d32f2f;
+          transform: scale(1.1);
+        }
+
+        .campo-manual-operador {
+          margin: 1.5rem 0;
+          padding: 1.25rem;
+          background: #fff9e6;
+          border-radius: 8px;
+          border: 2px dashed #ffc107;
+        }
+
+        .campo-manual-operador-label {
+          margin-bottom: 0.75rem;
+          font-size: 0.875rem;
+          color: #856404;
+          font-weight: 500;
+        }
+
+        .campo-manual-operador-group {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .campo-manual-operador-input {
+          flex: 1;
+          padding: 0.625rem 0.875rem;
+          border: 2px solid #ddd;
+          border-radius: 6px;
+          font-size: 0.875rem;
+          transition: all 0.2s;
+        }
+
+        .campo-manual-operador-input:focus {
+          outline: none;
+          border-color: #1351B4;
+          background: #f8f9fa;
+        }
+
+        .btn-adicionar-operador {
+          padding: 0.625rem 1.25rem;
+          background: #28a745;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 0.875rem;
+          font-weight: 500;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .btn-adicionar-operador:hover:not(:disabled) {
+          background: #218838;
+        }
+
+        .btn-adicionar-operador:disabled {
+          background: #6c757d;
+          cursor: not-allowed;
+          opacity: 0.5;
+        }
+
         @media (max-width: 768px) {
           .operadores-grid {
             grid-template-columns: 1fr;
+          }
+          .campo-manual-operador-group {
+            flex-direction: column;
           }
         }
 

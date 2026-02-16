@@ -1,19 +1,20 @@
 # processos/views.py - Sistema Multi-Produto Helena com LangChain + PDF + Sessão Persistente
 
 import json
-import openai
 import os
 import logging
 import time
 import uuid as uuid_mod
 from dotenv import load_dotenv
 from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
 import pypdf
-from datetime import datetime
 from django.utils import timezone
+
+# Limite de upload PDF: 20MB
+MAX_PDF_SIZE = 20 * 1024 * 1024
+PDF_MAGIC_BYTES = b'%PDF'
 
 from .models import POP, PopDraft
 
@@ -38,7 +39,6 @@ from .utils import (
 # APIs - CHAT COM HELENA (SISTEMA MULTI-PRODUTO) - VERSÃO COM SESSÃO PERSISTENTE
 # ============================================================================
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def chat_api_view(request):
     """API para conversa com Helena - Sistema Multi-Produto com Sessão Persistente"""
@@ -197,19 +197,6 @@ def chat_api_view(request):
                         }
                     )
                     logger.info(f"[POP-DRAFT] Draft criado (VAMOS) sid=...{sid_tail}")
-                elif user_message.strip().lower() in ('pausa', 'pausar', 'depois', 'mais tarde', 'salvar'):
-                    # PAUSA → salvar estado atual como rascunho
-                    PopDraft.objects.update_or_create(
-                        session_id=session_id,
-                        defaults={
-                            'user': request.user if request.user.is_authenticated else None,
-                            'area': novo_session_data.get('area_selecionada', ''),
-                            'process_code': novo_session_data.get('codigo_cap', ''),
-                            'etapa_atual': estado_atual,
-                            'payload_json': novo_session_data,
-                        }
-                    )
-                    logger.info(f"[POP-DRAFT] Draft salvo (PAUSA) sid=...{sid_tail}")
             except Exception as e:
                 logger.warning(f"[POP-DRAFT] Falha ao salvar draft: {e}")
 
@@ -382,6 +369,10 @@ def chat_api_view(request):
                 'erro': 'CONTEXTO_INVALIDO'
             }, status=400)
             
+    except json.JSONDecodeError:
+        logger.warning("[CHAT] req=%s | JSON inválido no body (%dB)", req_id, body_len)
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except Exception as e:
         elapsed = time.monotonic() - t0
         logger.exception(
@@ -393,7 +384,7 @@ def chat_api_view(request):
             'resposta': 'Desculpe, ocorreu um erro técnico. Pode repetir a pergunta?',
             'dados_extraidos': {},
             'conversa_completa': False,
-            'erro': str(e),
+            'erro': 'ERRO_INTERNO',
         }
 
         # Em DEBUG, incluir contexto para diagnóstico no frontend
@@ -411,7 +402,6 @@ def chat_api_view(request):
 # NOVAS APIs - PDF PROFISSIONAL PARA POP (MODIFICADO)
 # ============================================================================
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def helena_mapeamento_api(request):
     """
@@ -447,15 +437,17 @@ def helena_mapeamento_api(request):
             'success': True
         })
         
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except Exception as e:
         logger.exception(f"[ERROR] Erro na Helena Mapeamento: {e}")
 
         return JsonResponse({
-            'resposta': f'Erro ao processar mensagem: {str(e)}',
+            'resposta': 'Erro ao processar mensagem.',
             'success': False
         }, status=500)
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def helena_ajuda_arquitetura(request):
     """
@@ -479,10 +471,7 @@ def helena_ajuda_arquitetura(request):
         from .domain.helena_mapeamento.helena_ajuda_inteligente import analisar_atividade_com_helena, validar_sugestao_contra_csv
         from .dados_decipex import ArquiteturaDecipex
 
-        print(f"\n[HELENA-AJUDA] Analisando atividade...")
-        print(f"   Descrição: {descricao[:100]}...")
-        print(f"   Nível atual: {nivel_atual}")
-        print(f"   Contexto: {contexto}")
+        logger.info("[HELENA-AJUDA] Analisando atividade: %s... nivel=%s", descricao[:100], nivel_atual)
 
         # Chamar Helena Ajuda Inteligente
         resultado = analisar_atividade_com_helena(
@@ -513,12 +502,12 @@ def helena_ajuda_arquitetura(request):
             }
         )
 
-        print(f"[HELENA-AJUDA] Sugestão gerada com sucesso!")
-        print(f"   Macroprocesso: {resultado['sugestao']['macroprocesso']}")
-        print(f"   Processo: {resultado['sugestao']['processo']}")
-        print(f"   Subprocesso: {resultado['sugestao']['subprocesso']}")
-        print(f"   Atividade: {resultado['sugestao']['atividade']}")
-        print(f"   Confiança: {resultado.get('confianca', 'media')}")
+        logger.info(
+            "[HELENA-AJUDA] Sugestão gerada: macro=%s processo=%s confianca=%s",
+            resultado['sugestao']['macroprocesso'],
+            resultado['sugestao']['processo'],
+            resultado.get('confianca', 'media'),
+        )
 
         return JsonResponse({
             'success': True,
@@ -528,17 +517,17 @@ def helena_ajuda_arquitetura(request):
             'validacao': validacao
         })
 
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except Exception as e:
-        print(f"[ERROR] Erro na Helena Ajuda Arquitetura: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("[HELENA-AJUDA] Erro ao processar análise")
 
         return JsonResponse({
             'success': False,
-            'error': f'Erro ao processar análise: {str(e)}'
+            'error': 'Erro ao processar análise.'
         }, status=500)
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def gerar_pdf_pop(request):
     """API para gerar PDF profissional do POP"""
@@ -603,7 +592,7 @@ def gerar_pdf_pop(request):
             }
         )
         
-        print(f"[OK] PDF gerado com sucesso: {pdf_path}")
+        logger.info("[gerar_pdf_pop] PDF gerado: %s", pdf_path)
         
         # Retornar sucesso com URLs
         return JsonResponse({
@@ -614,50 +603,17 @@ def gerar_pdf_pop(request):
             'message': 'PDF gerado com sucesso!'
         })
         
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except Exception as e:
-        import traceback
-        logger.error(f"[gerar_pdf_pop] Erro ao gerar PDF: {e}\n{traceback.format_exc()}")
+        logger.exception("[gerar_pdf_pop] Erro ao gerar PDF")
 
         return JsonResponse({
-            'error': f'Erro ao gerar PDF: {str(e)}',
+            'error': 'Erro ao gerar PDF.',
             'success': False
         }, status=500)
 
-@csrf_exempt
-@require_http_methods(["GET"])
-def preview_pdf(request, nome_arquivo):
-    """API para preview HTML do PDF antes do download"""
-    try:
-        # Validar nome do arquivo
-        if not nome_arquivo.endswith('.pdf'):
-            return JsonResponse({'error': 'Arquivo inválido'}, status=400)
-        
-        # Caminho seguro do arquivo
-        pdf_path = os.path.join(settings.MEDIA_ROOT, 'pdfs', nome_arquivo)
-        
-        if not os.path.exists(pdf_path):
-            return JsonResponse({'error': 'Arquivo não encontrado'}, status=404)
-        
-        # Recuperar dados do PDF da sessão (se disponível)
-        session_key = 'helena_pop_state'
-        dados_pop = {}
-        
-        if session_key in request.session:
-            state = request.session[session_key]
-            dados_pop = state.get('dados', {})
-        
-        # Renderizar template de preview
-        return render(request, 'preview_pdf.html', {
-            'pdf_url': f'/api/download-pdf/{nome_arquivo}',
-            'nome_arquivo': nome_arquivo,
-            'dados_pop': dados_pop,
-            'pode_editar': True
-        })
-        
-    except Exception as e:
-        return JsonResponse({'error': f'Erro no preview: {str(e)}'}, status=500)
-
-@csrf_exempt
 @require_http_methods(["GET"])
 def download_pdf(request, nome_arquivo):
     """API para download do PDF gerado"""
@@ -679,9 +635,9 @@ def download_pdf(request, nome_arquivo):
             return response
             
     except Exception as e:
-        return JsonResponse({'error': f'Erro no download: {str(e)}'}, status=500)
+        logger.exception("[download_pdf] Erro no download")
+        return JsonResponse({'error': 'Erro no download.'}, status=500)
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def validar_dados_pop(request):
     """API para validar dados do POP em tempo real"""
@@ -712,14 +668,17 @@ def validar_dados_pop(request):
             'campo': campo
         })
         
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except Exception as e:
+        logger.exception("[validar_dados_pop] Erro na validação")
         return JsonResponse({
             'valido': False,
-            'mensagem': f'Erro na validação: {str(e)}',
-            'campo': campo
+            'mensagem': 'Erro na validação.',
+            'campo': ''
         })
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def consultar_rag_sugestoes(request):
     """API para consultar RAG e obter sugestões contextuais"""
@@ -763,14 +722,17 @@ def consultar_rag_sugestoes(request):
                 'sugestoes': []
             })
             
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except Exception as e:
+        logger.exception("[consultar_rag] Erro ao consultar RAG")
         return JsonResponse({
             'success': False,
-            'message': f'Erro ao consultar RAG: {str(e)}',
+            'message': 'Erro ao consultar RAG.',
             'sugestoes': []
         })
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def reiniciar_conversa_helena(request):
     """API para reiniciar conversa com Helena - LIMPA TODAS AS SESSÕES"""
@@ -800,7 +762,7 @@ def reiniciar_conversa_helena(request):
             dados={"sessoes_limpas": session_keys}
         )
         
-        print("[RESET] Conversa reiniciada - Todas as sessoes foram limpas")
+        logger.info("[RESET] Conversa reiniciada - Todas as sessoes foram limpas")
         
         return JsonResponse({
             'success': True,
@@ -808,28 +770,37 @@ def reiniciar_conversa_helena(request):
         })
         
     except Exception as e:
+        logger.exception("[reiniciar_helena] Erro ao reiniciar")
         return JsonResponse({
             'success': False,
-            'message': f'Erro ao reiniciar: {str(e)}'
+            'message': 'Erro ao reiniciar.'
         })
 
 # ============================================================================
 # APIs - ANÁLISE DE RISCOS E PDF (MANTIDAS)
 # ============================================================================
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def extract_pdf_text(request):
     """API para extrair texto e informações de POP em PDF"""
-    
+
     if 'pdf_file' not in request.FILES:
         return JsonResponse({'error': 'Nenhum arquivo enviado'}, status=400)
-    
+
     pdf_file = request.FILES['pdf_file']
-    
+
     if not pdf_file.name.endswith('.pdf'):
         return JsonResponse({'error': 'Arquivo deve ser PDF'}, status=400)
-    
+
+    if pdf_file.size > MAX_PDF_SIZE:
+        return JsonResponse({'error': 'Arquivo excede o limite de 20MB.'}, status=400)
+
+    # Validar magic bytes
+    header = pdf_file.read(4)
+    pdf_file.seek(0)
+    if header[:4] != PDF_MAGIC_BYTES:
+        return JsonResponse({'error': 'Arquivo não é um PDF válido.'}, status=400)
+
     try:
         reader = pypdf.PdfReader(pdf_file)
         text = ""
@@ -853,9 +824,9 @@ def extract_pdf_text(request):
         })
         
     except Exception as e:
-        return JsonResponse({'error': f'Erro ao processar PDF: {str(e)}'}, status=500)
+        logger.exception("[extract_pdf_text] Erro ao processar PDF")
+        return JsonResponse({'error': 'Erro ao processar PDF.'}, status=500)
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def fluxograma_from_pdf(request):
     """API para gerar fluxograma a partir de PDF de POP - Upload e Chat"""
@@ -863,10 +834,19 @@ def fluxograma_from_pdf(request):
         if 'pdf_file' in request.FILES:
             # FASE 1: Upload e extração
             pdf_file = request.FILES['pdf_file']
-            
+
             if not pdf_file.name.endswith('.pdf'):
                 return JsonResponse({'error': 'Arquivo deve ser PDF'}, status=400)
-            
+
+            if pdf_file.size > MAX_PDF_SIZE:
+                return JsonResponse({'error': 'Arquivo excede o limite de 20MB.'}, status=400)
+
+            # Validar magic bytes
+            header = pdf_file.read(4)
+            pdf_file.seek(0)
+            if header[:4] != PDF_MAGIC_BYTES:
+                return JsonResponse({'error': 'Arquivo não é um PDF válido.'}, status=400)
+
             reader = pypdf.PdfReader(pdf_file)
             text = ""
             
@@ -916,9 +896,13 @@ def fluxograma_from_pdf(request):
 
             return JsonResponse(resultado)
 
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except Exception as e:
+        logger.exception("[fluxograma_from_pdf] Erro ao processar")
         return JsonResponse({
-            'error': f'Erro ao processar: {str(e)}',
+            'error': 'Erro ao processar.',
             'resposta': 'Desculpe, ocorreu um erro técnico.'
         }, status=500)
 
@@ -931,7 +915,6 @@ def _build_labeled_steps(etapas):
     ]
 
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def fluxograma_steps_api(request):
     """
@@ -1007,10 +990,13 @@ def fluxograma_steps_api(request):
             'new_step_id': new_step_id,
         })
 
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except Exception as e:
-        logger.error(f"[fluxograma_steps_api] Erro: {e}", exc_info=True)
+        logger.exception("[fluxograma_steps_api] Erro")
         return JsonResponse(
-            {'ok': False, 'mensagem': f'Erro interno: {str(e)}'},
+            {'ok': False, 'mensagem': 'Erro interno.'},
             status=500,
         )
 
@@ -1144,14 +1130,11 @@ def analyze_pop_content(text):
     info['normativos'] = info['normativos'][:3]
     info['operadores'] = list(set(info['operadores']))[:3]
 
-    # LOG de debug
-    print(f"\n{'='*80}")
-    print("[ANALYSIS] ANALISE DE POP CONCLUIDA")
-    print(f"   Título: {info['titulo'][:50]}...")
-    print(f"   Código: {info['codigo']}")
-    print(f"   Sistemas encontrados ({len(info['sistemas'])}): {info['sistemas']}")
-    print(f"   Formato detectado: {'NOVO (helena_pop)' if is_new_format else 'ANTIGO'}")
-    print(f"{'='*80}\n")
+    logger.info(
+        "[ANALYSIS] POP analisado: titulo=%s codigo=%s sistemas=%d formato=%s",
+        info['titulo'][:50], info['codigo'], len(info['sistemas']),
+        'NOVO' if is_new_format else 'ANTIGO',
+    )
 
     return info
 
@@ -1159,7 +1142,6 @@ def analyze_pop_content(text):
 # HELENA RECEPCIONISTA (LANDING PAGE) - MANTIDA
 # ============================================================================
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def chat_recepcao_api(request):
     """API para Helena Recepcionista - Landing Page"""
@@ -1208,14 +1190,15 @@ def chat_recepcao_api(request):
             'acao': resultado.get('acao'),
         }, json_dumps_params={'ensure_ascii': False})
 
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except Exception as e:
-        logger.error(f"[CHAT RECEPCAO] ERRO: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("[CHAT RECEPCAO] Erro")
 
         return JsonResponse({
             'resposta': 'Desculpe, tive um problema técnico.',
-            'error': str(e),
+            'error': 'ERRO_INTERNO',
             'success': False
         }, status=500)
 
@@ -1224,7 +1207,6 @@ def chat_recepcao_api(request):
 # API DE AUTO-SAVE - FASE 2
 # ============================================================================
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def autosave_pop(request):
     """
@@ -1416,14 +1398,13 @@ def autosave_pop(request):
         }, status=400)
 
     except Exception as e:
-        logger.exception(f"[AUTO-SAVE] Erro: {e}")
+        logger.exception("[AUTO-SAVE] Erro")
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': 'Erro ao salvar.'
         }, status=500)
 
 
-@csrf_exempt
 @require_http_methods(["GET"])
 def get_pop(request, identifier):
     """
@@ -1472,10 +1453,10 @@ def get_pop(request, identifier):
         })
 
     except Exception as e:
-        logger.exception(f"[GET-POP] Erro: {e}")
+        logger.exception("[GET-POP] Erro")
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': 'Erro ao carregar POP.'
         }, status=500)
 
 
@@ -1483,7 +1464,6 @@ def get_pop(request, identifier):
 # APIs POP DRAFT - Rascunho do wizard (PAUSA / retomada)
 # ============================================================================
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def pop_draft_save(request):
     """
@@ -1530,15 +1510,17 @@ def pop_draft_save(request):
             'created': created,
         })
 
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except Exception as e:
-        logger.exception(f"[POP-DRAFT] Erro ao salvar: {e}")
+        logger.exception("[POP-DRAFT] Erro ao salvar")
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': 'Erro ao salvar rascunho.'
         }, status=500)
 
 
-@csrf_exempt
 @require_http_methods(["GET"])
 def pop_draft_load(request, session_id):
     """
@@ -1569,8 +1551,8 @@ def pop_draft_load(request, session_id):
         })
 
     except Exception as e:
-        logger.exception(f"[POP-DRAFT] Erro ao carregar: {e}")
+        logger.exception("[POP-DRAFT] Erro ao carregar")
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': 'Erro ao carregar rascunho.'
         }, status=500)

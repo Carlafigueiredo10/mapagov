@@ -89,7 +89,7 @@ class ReceptionAgent:
     )
 
     def __init__(self, llm: ChatOpenAI | None = None):
-        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.3, request_timeout=30)
 
     # =========================================================================
     # INTERFACE COM ORQUESTRADOR

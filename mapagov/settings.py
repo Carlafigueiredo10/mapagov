@@ -17,9 +17,23 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-ol5&1dnbx!nzm!4hl6!yk1aah8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-# MVP sem autenticação - API pública para desenvolvimento/demo
-# Em produção, defina PUBLIC_MVP_MODE=0 para ativar autenticação
-PUBLIC_MVP_MODE = os.getenv("PUBLIC_MVP_MODE", "1") == "1"
+# --- FAIL-FAST: SECRET_KEY insegura em produção ---
+if not DEBUG and 'django-insecure' in SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY insegura detectada em produção. "
+        "Defina a variável de ambiente SECRET_KEY com um valor seguro."
+    )
+
+# MVP sem autenticação - API pública apenas para desenvolvimento/demo
+# Default: desativado (autenticação obrigatória)
+PUBLIC_MVP_MODE = os.getenv("PUBLIC_MVP_MODE", "0") == "1"
+
+# --- FAIL-FAST: PUBLIC_MVP_MODE em produção ---
+if not DEBUG and PUBLIC_MVP_MODE:
+    raise RuntimeError(
+        "PUBLIC_MVP_MODE=1 não é permitido em produção (DEBUG=False). "
+        "Remova PUBLIC_MVP_MODE ou defina PUBLIC_MVP_MODE=0."
+    )
 
 # --- ALLOWED HOSTS: Render + Google Cloud ---
 ALLOWED_HOSTS = [
@@ -85,7 +99,7 @@ INSTALLED_APPS = [
 
     # Pacotes externos
     'rest_framework',
-    # 'import_export',  # Temporariamente desabilitado
+    'import_export',
     'corsheaders',  # CORS para React
 
     # Apps locais
@@ -335,6 +349,11 @@ if DEBUG:
 # 🔥 FASE 1: LOGGING ESTRUTURADO COM NÍVEIS
 # ============================================================================
 
+# Windows + DEBUG: RotatingFileHandler falha por file-locking no runserver
+# (dois processos — reloader + real — disputam os.rename no mesmo arquivo).
+# Em dev no Windows, console é suficiente. Em produção (Linux), rotação normal.
+ENABLE_FILE_LOGS = not (DEBUG and os.name == 'nt')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -370,54 +389,30 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file_info': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'info.log',
-            'maxBytes': 10 * 1024 * 1024,  # 10MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'file_error': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'error.log',
-            'maxBytes': 10 * 1024 * 1024,  # 10MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'file_helena': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'helena.log',
-            'maxBytes': 10 * 1024 * 1024,  # 10MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file_error'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['file_error'],
+            'handlers': ['console'],
             'level': 'ERROR',
             'propagate': False,
         },
         'processos': {
-            'handlers': ['console', 'file_info', 'file_error'],
+            'handlers': ['console'],
             'level': 'DEBUG' if DEBUG else 'INFO',
             'propagate': False,
         },
         'processos.views': {
-            'handlers': ['console', 'file_helena', 'file_error'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'processos.helena_produtos': {
-            'handlers': ['console', 'file_helena', 'file_error'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -428,9 +423,42 @@ LOGGING = {
     },
 }
 
-# Criar diretório de logs se não existir
-LOGS_DIR = BASE_DIR / 'logs'
-LOGS_DIR.mkdir(exist_ok=True)
+# Adicionar file handlers apenas quando seguro (Linux ou produção)
+if ENABLE_FILE_LOGS:
+    LOGGING['handlers']['file_info'] = {
+        'level': 'INFO',
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': BASE_DIR / 'logs' / 'info.log',
+        'maxBytes': 10 * 1024 * 1024,  # 10MB
+        'backupCount': 5,
+        'formatter': 'verbose',
+    }
+    LOGGING['handlers']['file_error'] = {
+        'level': 'ERROR',
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': BASE_DIR / 'logs' / 'error.log',
+        'maxBytes': 10 * 1024 * 1024,  # 10MB
+        'backupCount': 5,
+        'formatter': 'verbose',
+    }
+    LOGGING['handlers']['file_helena'] = {
+        'level': 'INFO',
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': BASE_DIR / 'logs' / 'helena.log',
+        'maxBytes': 10 * 1024 * 1024,  # 10MB
+        'backupCount': 5,
+        'formatter': 'verbose',
+    }
+    LOGGING['loggers']['django']['handlers'].append('file_error')
+    LOGGING['loggers']['django.request']['handlers'].append('file_error')
+    LOGGING['loggers']['processos']['handlers'].extend(['file_info', 'file_error'])
+    LOGGING['loggers']['processos.views']['handlers'].extend(['file_helena', 'file_error'])
+    LOGGING['loggers']['processos.helena_produtos']['handlers'].extend(['file_helena', 'file_error'])
+
+# Criar diretório de logs apenas se file logging ativo
+if ENABLE_FILE_LOGS:
+    LOGS_DIR = BASE_DIR / 'logs'
+    LOGS_DIR.mkdir(exist_ok=True)
 
 
 # ============================================================================
@@ -559,3 +587,9 @@ except Exception as e:
     print(f"[REDIS] Indisponível ({e}). Usando cache em memória (modo degradado)")
     print("    Para produção, instale: pip install redis django-redis")
     print(f"    E configure: export REDIS_HOST={REDIS_HOST} REDIS_PORT={REDIS_PORT}")
+    if not DEBUG:
+        import logging
+        logging.getLogger('mapagov.startup').warning(
+            "Rate limiting não distribuído — cache LocMemCache ativo em produção. "
+            "Configure REDIS_HOST para proteção efetiva."
+        )

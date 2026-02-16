@@ -1,0 +1,159 @@
+/* ── TransitionLoadingState ─────────────────────────────────────── */
+
+.transition-loading-container {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f1f8ff 100%);
+  border: 2px solid #90caf9;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 16px 0;
+  max-width: 700px;
+}
+
+/* Header: spinner + text */
+.transition-loading-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.transition-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #bbdefb;
+  border-top-color: #1565C0;
+  border-radius: 50%;
+  animation: tls-spin 0.8s linear infinite;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.transition-loading-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transition-loading-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1565C0;
+}
+
+.transition-loading-subtitle {
+  font-size: 13px;
+  color: #616161;
+  line-height: 1.4;
+  transition: opacity 0.3s ease;
+}
+
+/* ── Skeleton card (matches InterfaceSugestaoEntregaEsperada) ── */
+
+.transition-skeleton-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  border-left: 4px solid #e0e0e0;
+}
+
+.transition-skeleton-label {
+  width: 120px;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  animation: tls-shimmer 1.5s ease-in-out infinite;
+}
+
+.transition-skeleton-value {
+  width: 100%;
+  height: 20px;
+  background: #e8eaf6;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  animation: tls-shimmer 1.5s ease-in-out infinite;
+  animation-delay: 0.15s;
+}
+
+.transition-skeleton-question {
+  width: 70%;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin: 0 auto 20px;
+  animation: tls-shimmer 1.5s ease-in-out infinite;
+  animation-delay: 0.3s;
+}
+
+.transition-skeleton-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.transition-skeleton-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 8px;
+  animation: tls-shimmer 1.5s ease-in-out infinite;
+  animation-delay: 0.45s;
+}
+
+.transition-skeleton-btn-primary {
+  background: #c8e6c9;
+}
+
+.transition-skeleton-btn-secondary {
+  background: #ffe0b2;
+}
+
+/* ── Skeleton list variant ── */
+
+.transition-skeleton-line {
+  width: 100%;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  animation: tls-shimmer 1.5s ease-in-out infinite;
+}
+
+.transition-skeleton-line-short {
+  width: 60%;
+}
+
+/* ── Animations ── */
+
+@keyframes tls-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes tls-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Acessibilidade: desliga animações para quem prefere ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .transition-loading-spinner {
+    animation: none;
+    border-color: #1565C0;
+    border-top-color: transparent;
+  }
+
+  .transition-skeleton-label,
+  .transition-skeleton-value,
+  .transition-skeleton-question,
+  .transition-skeleton-btn,
+  .transition-skeleton-line {
+    animation: none;
+  }
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .transition-skeleton-buttons {
+    flex-direction: column;
+  }
+}

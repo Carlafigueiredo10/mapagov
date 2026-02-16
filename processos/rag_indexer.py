@@ -1,12 +1,15 @@
 # processos/rag_indexer.py - Sistema RAG para indexação de documentos
 
 import os
+import logging
 from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.docstore.document import Document
 import pypdf
+
+logger = logging.getLogger(__name__)
 
 class RAGIndexer:
     """Sistema de indexação e recuperação de documentos (RAG)"""
@@ -20,14 +23,19 @@ class RAGIndexer:
             separators=["\n\n", "\n", ". ", " ", ""]
         )
         
-        # Carregar ou criar vectorstore
+        # Carregar vectorstore persistido ou desabilitar
         if os.path.exists(persist_directory):
             self.vectorstore = Chroma(
                 persist_directory=persist_directory,
                 embedding_function=self.embeddings
             )
+            logger.info(f"ChromaDB carregado de {persist_directory}")
         else:
             self.vectorstore = None
+            logger.warning(
+                f"ChromaDB desabilitado — diretório {persist_directory} não existe. "
+                "Busca RAG retornará resultados vazios."
+            )
     
     def indexar_pdf(self, pdf_path: str, metadata: dict = None):
         """Indexa um PDF no sistema RAG"""

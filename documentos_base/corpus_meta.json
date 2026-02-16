@@ -2,19 +2,19 @@
   {
     "idx": 0,
     "numero": "1.1.1.1",
-    "texto": "Gestão de Benefícios Previdenciários Gestão de Aposentadorias Concessão de aposentadorias Conceder benefício estatutário geral",
+    "texto": "Gestão de Benefícios Previdenciários Gestão de Aposentadorias Análise de aposentadoria Analisar requerimento de aposentadoria",
     "macroprocesso": "Gestão de Benefícios Previdenciários",
     "processo": "Gestão de Aposentadorias",
-    "subprocesso": "Concessão de aposentadorias",
-    "atividade": "Conceder benefício estatutário geral"
+    "subprocesso": "Análise de aposentadoria",
+    "atividade": "Analisar requerimento de aposentadoria"
   },
   {
     "idx": 1,
     "numero": "1.1.1.2",
-    "texto": "Gestão de Benefícios Previdenciários Gestão de Aposentadorias Concessão de aposentadorias Implantar benefício de aposentadoria no SIAPE",
+    "texto": "Gestão de Benefícios Previdenciários Gestão de Aposentadorias Análise de aposentadoria Implantar benefício de aposentadoria no SIAPE",
     "macroprocesso": "Gestão de Benefícios Previdenciários",
     "processo": "Gestão de Aposentadorias",
-    "subprocesso": "Concessão de aposentadorias",
+    "subprocesso": "Análise de aposentadoria",
     "atividade": "Implantar benefício de aposentadoria no SIAPE"
   },
   {
@@ -110,11 +110,11 @@
   {
     "idx": 12,
     "numero": "1.2.1.1",
-    "texto": "Gestão de Benefícios Previdenciários Gestão de Pensões Concessão de pensões Conceder pensão (cônjuge, companheiro, filhos, pais, tutelados etc.)",
+    "texto": "Gestão de Benefícios Previdenciários Gestão de Pensões Análise de pensão Analisar requerimento de pensão",
     "macroprocesso": "Gestão de Benefícios Previdenciários",
     "processo": "Gestão de Pensões",
-    "subprocesso": "Concessão de pensões",
-    "atividade": "Conceder pensão (cônjuge, companheiro, filhos, pais, tutelados etc.)"
+    "subprocesso": "Análise de pensão",
+    "atividade": "Analisar requerimento de pensão"
   },
   {
     "idx": 13,
@@ -172,33 +172,6 @@
   },
   {
     "idx": 19,
-    "numero": "1.3.1.1",
-    "texto": "Gestão de Benefícios Previdenciários Gestão de Demandas Judiciais (COBEN) Gestão de Demandas Judiciais Cumprir parecer de força executória",
-    "macroprocesso": "Gestão de Benefícios Previdenciários",
-    "processo": "Gestão de Demandas Judiciais (COBEN)",
-    "subprocesso": "Gestão de Demandas Judiciais",
-    "atividade": "Cumprir parecer de força executória"
-  },
-  {
-    "idx": 20,
-    "numero": "1.3.1.2",
-    "texto": "Gestão de Benefícios Previdenciários Gestão de Demandas Judiciais (COBEN) Gestão de Demandas Judiciais Prestar subsídios judiciais",
-    "macroprocesso": "Gestão de Benefícios Previdenciários",
-    "processo": "Gestão de Demandas Judiciais (COBEN)",
-    "subprocesso": "Gestão de Demandas Judiciais",
-    "atividade": "Prestar subsídios judiciais"
-  },
-  {
-    "idx": 21,
-    "numero": "1.4.1.1",
-    "texto": "Gestão de Benefícios Previdenciários Gestão de Demandas de Órgãos de Controle (COBEN) Gestão de Demandas de Controle Cumprir determinações do TCU",
-    "macroprocesso": "Gestão de Benefícios Previdenciários",
-    "processo": "Gestão de Demandas de Órgãos de Controle (COBEN)",
-    "subprocesso": "Gestão de Demandas de Controle",
-    "atividade": "Cumprir determinações do TCU"
-  },
-  {
-    "idx": 22,
     "numero": "1.5.1.1",
     "texto": "Gestão de Benefícios Previdenciários Gestão da Compensação Previdenciária (CGBEN) Viabilidade de compensação Analisar processos/reqs COMPREV",
     "macroprocesso": "Gestão de Benefícios Previdenciários",
@@ -207,7 +180,7 @@
     "atividade": "Analisar processos/reqs COMPREV"
   },
   {
-    "idx": 23,
+    "idx": 20,
     "numero": "1.5.2.1",
     "texto": "Gestão de Benefícios Previdenciários Gestão da Compensação Previdenciária (CGBEN) Gestão financeira Executar pagamento via SIAFI",
     "macroprocesso": "Gestão de Benefícios Previdenciários",
@@ -216,7 +189,7 @@
     "atividade": "Executar pagamento via SIAFI"
   },
   {
-    "idx": 24,
+    "idx": 21,
     "numero": "1.5.2.2",
     "texto": "Gestão de Benefícios Previdenciários Gestão da Compensação Previdenciária (CGBEN) Gestão financeira Controlar orçamento e pagamentos",
     "macroprocesso": "Gestão de Benefícios Previdenciários",
@@ -225,52 +198,43 @@
     "atividade": "Controlar orçamento e pagamentos"
   },
   {
-    "idx": 25,
+    "idx": 22,
     "numero": "1.6.1.1",
-    "texto": "Gestão de Benefícios Previdenciários Gestão da Reparação Econômica à Anistiados Gestão da Reparação Econômica Implantar nova reparação (parcela única/mensal)",
+    "texto": "Gestão de Benefícios Previdenciários Gestão da Reparação Econômica à Anistiados Gestão da Reparação Econômica Analisar requerimento de reparação econômica",
     "macroprocesso": "Gestão de Benefícios Previdenciários",
     "processo": "Gestão da Reparação Econômica à Anistiados",
     "subprocesso": "Gestão da Reparação Econômica",
-    "atividade": "Implantar nova reparação (parcela única/mensal)"
+    "atividade": "Analisar requerimento de reparação econômica"
   },
   {
-    "idx": 26,
-    "numero": "1.6.1.2",
-    "texto": "Gestão de Benefícios Previdenciários Gestão da Reparação Econômica à Anistiados Gestão da Reparação Econômica Tratar demandas judiciais de anistiados",
-    "macroprocesso": "Gestão de Benefícios Previdenciários",
-    "processo": "Gestão da Reparação Econômica à Anistiados",
-    "subprocesso": "Gestão da Reparação Econômica",
-    "atividade": "Tratar demandas judiciais de anistiados"
-  },
-  {
-    "idx": 27,
+    "idx": 23,
     "numero": "2.1.1.1",
-    "texto": "Gestão de Auxílios Gestão de Auxílio Funeral Gestão de Auxílio Funeral Processar auxílio funeral",
+    "texto": "Gestão de Auxílios Gestão de Auxílio Funeral Gestão de Auxílio Funeral Analisar requerimento de auxílio funeral",
     "macroprocesso": "Gestão de Auxílios",
     "processo": "Gestão de Auxílio Funeral",
     "subprocesso": "Gestão de Auxílio Funeral",
-    "atividade": "Processar auxílio funeral"
+    "atividade": "Analisar requerimento de auxílio funeral"
   },
   {
-    "idx": 28,
+    "idx": 24,
     "numero": "2.2.1.1",
-    "texto": "Gestão de Auxílios Gestão de Isenção de IRPF Gestão de Isenção de IRPF Processar isenção de IRPF",
+    "texto": "Gestão de Auxílios Gestão de Isenção de IRPF Gestão de Isenção de IRPF Analisar requerimento de isenção de IRPF",
     "macroprocesso": "Gestão de Auxílios",
     "processo": "Gestão de Isenção de IRPF",
     "subprocesso": "Gestão de Isenção de IRPF",
-    "atividade": "Processar isenção de IRPF"
+    "atividade": "Analisar requerimento de isenção de IRPF"
   },
   {
-    "idx": 29,
+    "idx": 25,
     "numero": "2.3.1.1",
-    "texto": "Gestão de Auxílios Gestão dos Benefícios de Assistência à Saúde Suplementar Gestão de Assistência à Saúde Processar benefícios de saúde suplementar",
+    "texto": "Gestão de Auxílios Gestão dos Benefícios de Assistência à Saúde Suplementar Gestão de Assistência à Saúde Analisar requerimento de assistência à saúde",
     "macroprocesso": "Gestão de Auxílios",
     "processo": "Gestão dos Benefícios de Assistência à Saúde Suplementar",
     "subprocesso": "Gestão de Assistência à Saúde",
-    "atividade": "Processar benefícios de saúde suplementar"
+    "atividade": "Analisar requerimento de assistência à saúde"
   },
   {
-    "idx": 30,
+    "idx": 26,
     "numero": "3.1.1.1",
     "texto": "Gestão de Folhas de Pagamento Pagamentos de Pessoal Civil e Militar Pagamentos de Pessoal Processar folha de pessoal civil",
     "macroprocesso": "Gestão de Folhas de Pagamento",
@@ -279,7 +243,7 @@
     "atividade": "Processar folha de pessoal civil"
   },
   {
-    "idx": 31,
+    "idx": 27,
     "numero": "3.1.1.2",
     "texto": "Gestão de Folhas de Pagamento Pagamentos de Pessoal Civil e Militar Pagamentos de Pessoal Processar folha de pessoal militar",
     "macroprocesso": "Gestão de Folhas de Pagamento",
@@ -288,7 +252,7 @@
     "atividade": "Processar folha de pessoal militar"
   },
   {
-    "idx": 32,
+    "idx": 28,
     "numero": "3.2.1.1",
     "texto": "Gestão de Folhas de Pagamento Pagamentos de Anistiados Políticos Pagamentos de Anistiados Processar folha de anistiados políticos",
     "macroprocesso": "Gestão de Folhas de Pagamento",
@@ -297,26 +261,8 @@
     "atividade": "Processar folha de anistiados políticos"
   },
   {
-    "idx": 33,
+    "idx": 29,
     "numero": "3.3.1.1",
-    "texto": "Gestão de Folhas de Pagamento Demandas Judiciais e Órgãos de Controle (COPAG) Demandas Judiciais e Controle Atender demandas judiciais de folha",
-    "macroprocesso": "Gestão de Folhas de Pagamento",
-    "processo": "Demandas Judiciais e Órgãos de Controle (COPAG)",
-    "subprocesso": "Demandas Judiciais e Controle",
-    "atividade": "Atender demandas judiciais de folha"
-  },
-  {
-    "idx": 34,
-    "numero": "3.3.1.2",
-    "texto": "Gestão de Folhas de Pagamento Demandas Judiciais e Órgãos de Controle (COPAG) Demandas Judiciais e Controle Atender demandas de órgãos de controle",
-    "macroprocesso": "Gestão de Folhas de Pagamento",
-    "processo": "Demandas Judiciais e Órgãos de Controle (COPAG)",
-    "subprocesso": "Demandas Judiciais e Controle",
-    "atividade": "Atender demandas de órgãos de controle"
-  },
-  {
-    "idx": 35,
-    "numero": "3.4.1.1",
     "texto": "Gestão de Folhas de Pagamento Gestão de Obrigações de Pagamento Obrigações de Pagamento Gerir obrigações de pagamento",
     "macroprocesso": "Gestão de Folhas de Pagamento",
     "processo": "Gestão de Obrigações de Pagamento",
@@ -324,7 +270,7 @@
     "atividade": "Gerir obrigações de pagamento"
   },
   {
-    "idx": 36,
+    "idx": 30,
     "numero": "4.1.1.1",
     "texto": "Gestão da Execução Orçamentária-Financeira de Folhas Gestão do Orçamento Gestão do Orçamento Planejar e gerir orçamento",
     "macroprocesso": "Gestão da Execução Orçamentária-Financeira de Folhas",
@@ -333,7 +279,7 @@
     "atividade": "Planejar e gerir orçamento"
   },
   {
-    "idx": 37,
+    "idx": 31,
     "numero": "4.2.1.1",
     "texto": "Gestão da Execução Orçamentária-Financeira de Folhas Execução Orçamentária-Financeira Execução Orçamentária-Financeira Executar orçamento de folhas DECIPEX-DF",
     "macroprocesso": "Gestão da Execução Orçamentária-Financeira de Folhas",
@@ -342,7 +288,7 @@
     "atividade": "Executar orçamento de folhas DECIPEX-DF"
   },
   {
-    "idx": 38,
+    "idx": 32,
     "numero": "4.2.1.2",
     "texto": "Gestão da Execução Orçamentária-Financeira de Folhas Execução Orçamentária-Financeira Execução Orçamentária-Financeira Executar orçamento de folhas Ex-Territórios",
     "macroprocesso": "Gestão da Execução Orçamentária-Financeira de Folhas",
@@ -351,7 +297,7 @@
     "atividade": "Executar orçamento de folhas Ex-Territórios"
   },
   {
-    "idx": 39,
+    "idx": 33,
     "numero": "4.3.1.1",
     "texto": "Gestão da Execução Orçamentária-Financeira de Folhas Gestão do Pagamento de Auxílio Funeral Pagamento Auxílio Funeral Executar pagamento de auxílio funeral",
     "macroprocesso": "Gestão da Execução Orçamentária-Financeira de Folhas",
@@ -360,7 +306,7 @@
     "atividade": "Executar pagamento de auxílio funeral"
   },
   {
-    "idx": 40,
+    "idx": 34,
     "numero": "4.4.1.1",
     "texto": "Gestão da Execução Orçamentária-Financeira de Folhas Gestão Conformidade de Gestão-SIAFI Conformidade SIAFI Garantir conformidade SIAFI",
     "macroprocesso": "Gestão da Execução Orçamentária-Financeira de Folhas",
@@ -369,7 +315,7 @@
     "atividade": "Garantir conformidade SIAFI"
   },
   {
-    "idx": 41,
+    "idx": 35,
     "numero": "4.5.1.1",
     "texto": "Gestão da Execução Orçamentária-Financeira de Folhas Gestão Orçamentária-Financeira COMPREV Gestão COMPREV Gerir orçamento COMPREV",
     "macroprocesso": "Gestão da Execução Orçamentária-Financeira de Folhas",
@@ -378,7 +324,7 @@
     "atividade": "Gerir orçamento COMPREV"
   },
   {
-    "idx": 42,
+    "idx": 36,
     "numero": "5.1.1.1",
     "texto": "Gestão de Acervos Funcionais Gestão de Documentos Físicos e Digitais Gestão de Documentos Organizar e manter acervo físico",
     "macroprocesso": "Gestão de Acervos Funcionais",
@@ -387,7 +333,7 @@
     "atividade": "Organizar e manter acervo físico"
   },
   {
-    "idx": 43,
+    "idx": 37,
     "numero": "5.1.1.2",
     "texto": "Gestão de Acervos Funcionais Gestão de Documentos Físicos e Digitais Gestão de Documentos Organizar e manter acervo digital",
     "macroprocesso": "Gestão de Acervos Funcionais",
@@ -396,7 +342,7 @@
     "atividade": "Organizar e manter acervo digital"
   },
   {
-    "idx": 44,
+    "idx": 38,
     "numero": "5.2.1.1",
     "texto": "Gestão de Acervos Funcionais Atendimento à solicitação de documentos Atendimento de Documentos Atender solicitações de documentos",
     "macroprocesso": "Gestão de Acervos Funcionais",
@@ -405,7 +351,7 @@
     "atividade": "Atender solicitações de documentos"
   },
   {
-    "idx": 45,
+    "idx": 39,
     "numero": "5.3.1.1",
     "texto": "Gestão de Acervos Funcionais Digitalização e disponibilização de documentos AFD Digitalização AFD Digitalizar documentos",
     "macroprocesso": "Gestão de Acervos Funcionais",
@@ -414,7 +360,7 @@
     "atividade": "Digitalizar documentos"
   },
   {
-    "idx": 46,
+    "idx": 40,
     "numero": "5.3.1.2",
     "texto": "Gestão de Acervos Funcionais Digitalização e disponibilização de documentos AFD Digitalização AFD Disponibilizar documentos digitalizados",
     "macroprocesso": "Gestão de Acervos Funcionais",
@@ -423,7 +369,7 @@
     "atividade": "Disponibilizar documentos digitalizados"
   },
   {
-    "idx": 47,
+    "idx": 41,
     "numero": "6.1.1.1",
     "texto": "Gestão do Atendimento e Relacionamento Gestão de Atendimentos Gestão de Atendimentos Gerir atendimentos",
     "macroprocesso": "Gestão do Atendimento e Relacionamento",
@@ -432,16 +378,34 @@
     "atividade": "Gerir atendimentos"
   },
   {
-    "idx": 48,
+    "idx": 42,
     "numero": "6.2.1.1",
-    "texto": "Gestão do Atendimento e Relacionamento Prestação de Atendimentos Prestação de Atendimentos Prestar atendimento aos usuários",
+    "texto": "Gestão do Atendimento e Relacionamento Prestação de Atendimentos Prestação de Atendimentos Prestar atendimento por telefone",
     "macroprocesso": "Gestão do Atendimento e Relacionamento",
     "processo": "Prestação de Atendimentos",
     "subprocesso": "Prestação de Atendimentos",
-    "atividade": "Prestar atendimento aos usuários"
+    "atividade": "Prestar atendimento por telefone"
   },
   {
-    "idx": 49,
+    "idx": 43,
+    "numero": "6.2.1.2",
+    "texto": "Gestão do Atendimento e Relacionamento Prestação de Atendimentos Prestação de Atendimentos Prestar atendimento por e-mail",
+    "macroprocesso": "Gestão do Atendimento e Relacionamento",
+    "processo": "Prestação de Atendimentos",
+    "subprocesso": "Prestação de Atendimentos",
+    "atividade": "Prestar atendimento por e-mail"
+  },
+  {
+    "idx": 44,
+    "numero": "6.2.1.3",
+    "texto": "Gestão do Atendimento e Relacionamento Prestação de Atendimentos Prestação de Atendimentos Prestar atendimento presencial",
+    "macroprocesso": "Gestão do Atendimento e Relacionamento",
+    "processo": "Prestação de Atendimentos",
+    "subprocesso": "Prestação de Atendimentos",
+    "atividade": "Prestar atendimento presencial"
+  },
+  {
+    "idx": 45,
     "numero": "6.3.1.1",
     "texto": "Gestão do Atendimento e Relacionamento Gestão de Canais de Atendimentos Gestão de Canais Gerir canais de atendimento",
     "macroprocesso": "Gestão do Atendimento e Relacionamento",
@@ -450,7 +414,7 @@
     "atividade": "Gerir canais de atendimento"
   },
   {
-    "idx": 50,
+    "idx": 46,
     "numero": "6.4.1.1",
     "texto": "Gestão do Atendimento e Relacionamento Gestão do Relacionamento Gestão do Relacionamento Gerir relacionamento com stakeholders",
     "macroprocesso": "Gestão do Atendimento e Relacionamento",
@@ -459,7 +423,7 @@
     "atividade": "Gerir relacionamento com stakeholders"
   },
   {
-    "idx": 51,
+    "idx": 47,
     "numero": "7.1.1.1",
     "texto": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle Cumprimentos de Demandas Judiciais Demandas Judiciais Cumprir demandas judiciais",
     "macroprocesso": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle",
@@ -468,7 +432,7 @@
     "atividade": "Cumprir demandas judiciais"
   },
   {
-    "idx": 52,
+    "idx": 48,
     "numero": "7.2.1.1",
     "texto": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle Subsídios para Demandas Judiciais Subsídios Judiciais Fornecer subsídios para demandas judiciais",
     "macroprocesso": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle",
@@ -477,7 +441,7 @@
     "atividade": "Fornecer subsídios para demandas judiciais"
   },
   {
-    "idx": 53,
+    "idx": 49,
     "numero": "7.3.1.1",
     "texto": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle Gestão de Demandas Administrativas associadas ao Judicial Demandas Administrativas Judicial Gerir demandas administrativas associadas ao judicial",
     "macroprocesso": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle",
@@ -486,7 +450,7 @@
     "atividade": "Gerir demandas administrativas associadas ao judicial"
   },
   {
-    "idx": 54,
+    "idx": 50,
     "numero": "7.4.1.1",
     "texto": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle Gestão de Demandas Administrativas e de Órgãos de Controle Demandas Administrativas e Controle Gerir demandas administrativas",
     "macroprocesso": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle",
@@ -495,7 +459,7 @@
     "atividade": "Gerir demandas administrativas"
   },
   {
-    "idx": 55,
+    "idx": 51,
     "numero": "7.4.1.2",
     "texto": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle Gestão de Demandas Administrativas e de Órgãos de Controle Demandas Administrativas e Controle Gerir demandas de órgãos de controle",
     "macroprocesso": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle",
@@ -504,7 +468,25 @@
     "atividade": "Gerir demandas de órgãos de controle"
   },
   {
-    "idx": 56,
+    "idx": 52,
+    "numero": "7.4.1.3",
+    "texto": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle Gestão de Demandas Administrativas e de Órgãos de Controle Demandas Administrativas e Controle Tratar demandas da CGU",
+    "macroprocesso": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle",
+    "processo": "Gestão de Demandas Administrativas e de Órgãos de Controle",
+    "subprocesso": "Demandas Administrativas e Controle",
+    "atividade": "Tratar demandas da CGU"
+  },
+  {
+    "idx": 53,
+    "numero": "7.4.1.4",
+    "texto": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle Gestão de Demandas Administrativas e de Órgãos de Controle Demandas Administrativas e Controle Tratar demandas de acórdãos",
+    "macroprocesso": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle",
+    "processo": "Gestão de Demandas Administrativas e de Órgãos de Controle",
+    "subprocesso": "Demandas Administrativas e Controle",
+    "atividade": "Tratar demandas de acórdãos"
+  },
+  {
+    "idx": 54,
     "numero": "7.5.1.1",
     "texto": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle Tratamento de Indícios TCU e Recadastramento de Atos Indícios TCU Tratar indícios do TCU",
     "macroprocesso": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle",
@@ -513,7 +495,7 @@
     "atividade": "Tratar indícios do TCU"
   },
   {
-    "idx": 57,
+    "idx": 55,
     "numero": "7.5.2.1",
     "texto": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle Tratamento de Indícios TCU e Recadastramento de Atos Recadastramento de Atos Recadastrar atos",
     "macroprocesso": "Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle",
@@ -522,7 +504,7 @@
     "atividade": "Recadastrar atos"
   },
   {
-    "idx": 58,
+    "idx": 56,
     "numero": "8.1.1.1",
     "texto": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP) Atendimento ao Pessoal e Entidades Atendimento Ex-Territórios Atender pessoal dos ex-territórios",
     "macroprocesso": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP)",
@@ -531,7 +513,7 @@
     "atividade": "Atender pessoal dos ex-territórios"
   },
   {
-    "idx": 59,
+    "idx": 57,
     "numero": "8.1.1.2",
     "texto": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP) Atendimento ao Pessoal e Entidades Atendimento Ex-Territórios Atender entidades dos ex-territórios",
     "macroprocesso": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP)",
@@ -540,7 +522,7 @@
     "atividade": "Atender entidades dos ex-territórios"
   },
   {
-    "idx": 60,
+    "idx": 58,
     "numero": "8.2.1.1",
     "texto": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP) Gestão de Ativos Civis Ativos Civis Ex-Territórios Gerir ativos civis",
     "macroprocesso": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP)",
@@ -549,7 +531,7 @@
     "atividade": "Gerir ativos civis"
   },
   {
-    "idx": 61,
+    "idx": 59,
     "numero": "8.3.1.1",
     "texto": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP) Gestão de Militares Militares Ex-Territórios Gerir militares",
     "macroprocesso": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP)",
@@ -558,16 +540,25 @@
     "atividade": "Gerir militares"
   },
   {
-    "idx": 62,
+    "idx": 60,
     "numero": "8.4.1.1",
-    "texto": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP) Gestão de Demandas Judiciais Demandas Judiciais Ex-Territórios Gerir demandas judiciais ex-territórios",
+    "texto": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP) Gestão de Demandas Judiciais Demandas Judiciais Ex-Territórios Cumprir demandas judiciais - ex-territórios",
     "macroprocesso": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP)",
     "processo": "Gestão de Demandas Judiciais",
     "subprocesso": "Demandas Judiciais Ex-Territórios",
-    "atividade": "Gerir demandas judiciais ex-territórios"
+    "atividade": "Cumprir demandas judiciais - ex-territórios"
   },
   {
-    "idx": 63,
+    "idx": 61,
+    "numero": "8.4.1.2",
+    "texto": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP) Gestão de Demandas Judiciais Demandas Judiciais Ex-Territórios Prestar subsídios judiciais - ex-territórios",
+    "macroprocesso": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP)",
+    "processo": "Gestão de Demandas Judiciais",
+    "subprocesso": "Demandas Judiciais Ex-Territórios",
+    "atividade": "Prestar subsídios judiciais - ex-territórios"
+  },
+  {
+    "idx": 62,
     "numero": "8.5.1.1",
     "texto": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP) Gestão de Demandas de Órgãos de Controle Demandas Controle Ex-Territórios Gerir demandas de controle ex-territórios",
     "macroprocesso": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP)",
@@ -576,7 +567,7 @@
     "atividade": "Gerir demandas de controle ex-territórios"
   },
   {
-    "idx": 64,
+    "idx": 63,
     "numero": "8.6.1.1",
     "texto": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP) Apoio das DIGEPs à Folha de Pagamento Apoio Folha Ex-Territórios Apoiar folha de pagamento",
     "macroprocesso": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP)",
@@ -585,7 +576,7 @@
     "atividade": "Apoiar folha de pagamento"
   },
   {
-    "idx": 65,
+    "idx": 64,
     "numero": "8.7.1.1",
     "texto": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP) Coordenação das DIGEPs (CDGEP) Coordenação CDGEP Coordenar DIGEPs",
     "macroprocesso": "Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP)",
@@ -594,25 +585,25 @@
     "atividade": "Coordenar DIGEPs"
   },
   {
-    "idx": 66,
+    "idx": 65,
     "numero": "9.1.1.1",
-    "texto": "Gestão das Complementações de Folhas de Pagamento Concessões de Complementações de Aposentadorias e Pensões Concessão Complementações Conceder complementações de aposentadorias",
+    "texto": "Gestão das Complementações de Folhas de Pagamento Análise de Complementações de Aposentadorias e Pensões Análise de Complementações Analisar requerimento de complementação de aposentadoria",
     "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
-    "processo": "Concessões de Complementações de Aposentadorias e Pensões",
-    "subprocesso": "Concessão Complementações",
-    "atividade": "Conceder complementações de aposentadorias"
+    "processo": "Análise de Complementações de Aposentadorias e Pensões",
+    "subprocesso": "Análise de Complementações",
+    "atividade": "Analisar requerimento de complementação de aposentadoria"
+  },
+  {
+    "idx": 66,
+    "numero": "9.1.1.2",
+    "texto": "Gestão das Complementações de Folhas de Pagamento Análise de Complementações de Aposentadorias e Pensões Análise de Complementações Analisar requerimento de complementação de pensão",
+    "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
+    "processo": "Análise de Complementações de Aposentadorias e Pensões",
+    "subprocesso": "Análise de Complementações",
+    "atividade": "Analisar requerimento de complementação de pensão"
   },
   {
     "idx": 67,
-    "numero": "9.1.1.2",
-    "texto": "Gestão das Complementações de Folhas de Pagamento Concessões de Complementações de Aposentadorias e Pensões Concessão Complementações Conceder complementações de pensões",
-    "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
-    "processo": "Concessões de Complementações de Aposentadorias e Pensões",
-    "subprocesso": "Concessão Complementações",
-    "atividade": "Conceder complementações de pensões"
-  },
-  {
-    "idx": 68,
     "numero": "9.2.1.1",
     "texto": "Gestão das Complementações de Folhas de Pagamento Acertos Financeiros de Complementações Acertos Financeiros Realizar acertos financeiros de complementações",
     "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
@@ -621,7 +612,7 @@
     "atividade": "Realizar acertos financeiros de complementações"
   },
   {
-    "idx": 69,
+    "idx": 68,
     "numero": "9.3.1.1",
     "texto": "Gestão das Complementações de Folhas de Pagamento Pagamento de Resíduos Remuneratórios Resíduos Remuneratórios Pagar resíduos remuneratórios",
     "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
@@ -630,7 +621,7 @@
     "atividade": "Pagar resíduos remuneratórios"
   },
   {
-    "idx": 70,
+    "idx": 69,
     "numero": "9.4.1.1",
     "texto": "Gestão das Complementações de Folhas de Pagamento Execução de Folha de Pagamento (VIFER e RFSSA) Execução Folha Complementação Executar folha VIFER",
     "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
@@ -639,7 +630,7 @@
     "atividade": "Executar folha VIFER"
   },
   {
-    "idx": 71,
+    "idx": 70,
     "numero": "9.4.1.2",
     "texto": "Gestão das Complementações de Folhas de Pagamento Execução de Folha de Pagamento (VIFER e RFSSA) Execução Folha Complementação Executar folha RFSSA",
     "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
@@ -648,7 +639,7 @@
     "atividade": "Executar folha RFSSA"
   },
   {
-    "idx": 72,
+    "idx": 71,
     "numero": "9.5.1.1",
     "texto": "Gestão das Complementações de Folhas de Pagamento Emissão de Declarações e Certidões Declarações e Certidões Emitir declarações",
     "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
@@ -657,7 +648,7 @@
     "atividade": "Emitir declarações"
   },
   {
-    "idx": 73,
+    "idx": 72,
     "numero": "9.5.1.2",
     "texto": "Gestão das Complementações de Folhas de Pagamento Emissão de Declarações e Certidões Declarações e Certidões Emitir certidões",
     "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
@@ -666,17 +657,26 @@
     "atividade": "Emitir certidões"
   },
   {
-    "idx": 74,
+    "idx": 73,
     "numero": "9.6.1.1",
-    "texto": "Gestão das Complementações de Folhas de Pagamento Demandas Judiciais e Administrativas Demandas Complementações Atender demandas judiciais de complementações",
+    "texto": "Gestão das Complementações de Folhas de Pagamento Demandas Judiciais e Administrativas Demandas Complementações Cumprir demandas judiciais - complementações",
     "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
     "processo": "Demandas Judiciais e Administrativas",
     "subprocesso": "Demandas Complementações",
-    "atividade": "Atender demandas judiciais de complementações"
+    "atividade": "Cumprir demandas judiciais - complementações"
+  },
+  {
+    "idx": 74,
+    "numero": "9.6.1.2",
+    "texto": "Gestão das Complementações de Folhas de Pagamento Demandas Judiciais e Administrativas Demandas Complementações Prestar subsídios judiciais - complementações",
+    "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
+    "processo": "Demandas Judiciais e Administrativas",
+    "subprocesso": "Demandas Complementações",
+    "atividade": "Prestar subsídios judiciais - complementações"
   },
   {
     "idx": 75,
-    "numero": "9.6.1.2",
+    "numero": "9.6.1.3",
     "texto": "Gestão das Complementações de Folhas de Pagamento Demandas Judiciais e Administrativas Demandas Complementações Atender demandas administrativas de complementações",
     "macroprocesso": "Gestão das Complementações de Folhas de Pagamento",
     "processo": "Demandas Judiciais e Administrativas",

@@ -145,7 +145,12 @@ class HelenaCore:
         try:
             resultado = produto.processar(mensagem, estado_produto)
         except Exception as e:
-            logger.exception(f"Erro ao processar mensagem em {session.contexto_atual}: {e}")
+            logger.exception(
+                "[HELENA CORE] Erro ao processar mensagem | "
+                "session=%s contexto=%s req=%s erro_tipo=%s",
+                session_id, session.contexto_atual, req_uuid,
+                type(e).__name__
+            )
             return self._resposta_erro(
                 f"Desculpe, ocorreu um erro ao processar sua mensagem. "
                 f"Por favor, tente novamente.",

@@ -1,5 +1,6 @@
 import React from 'react';
 import { CHAT_CMD } from '../../constants/chatCommands';
+import { useChatStore } from '../../store/chatStore';
 
 interface InterfaceConfirmacaoDuplaProps {
   dados: {
@@ -14,6 +15,7 @@ interface InterfaceConfirmacaoDuplaProps {
 }
 
 const InterfaceConfirmacaoDupla: React.FC<InterfaceConfirmacaoDuplaProps> = ({ dados, onEnviar }) => {
+  const isProcessing = useChatStore((s) => s.isProcessing);
   const {
     botao_confirmar = 'Confirmar ✅',
     botao_editar = 'Editar ✏️',
@@ -49,6 +51,7 @@ const InterfaceConfirmacaoDupla: React.FC<InterfaceConfirmacaoDuplaProps> = ({ d
           <button
             className="btn-confirmacao btn-terceiro"
             onClick={handleTerceiro}
+            disabled={isProcessing}
           >
             {botao_terceiro}
           </button>
@@ -57,6 +60,7 @@ const InterfaceConfirmacaoDupla: React.FC<InterfaceConfirmacaoDuplaProps> = ({ d
           <button
             className="btn-confirmacao btn-editar"
             onClick={handleEditar}
+            disabled={isProcessing}
           >
             {botao_editar}
           </button>
@@ -64,6 +68,7 @@ const InterfaceConfirmacaoDupla: React.FC<InterfaceConfirmacaoDuplaProps> = ({ d
         <button
           className="btn-confirmacao btn-confirmar"
           onClick={handleConfirmar}
+          disabled={isProcessing}
         >
           {botao_confirmar}
         </button>
@@ -127,6 +132,13 @@ const InterfaceConfirmacaoDupla: React.FC<InterfaceConfirmacaoDuplaProps> = ({ d
 
         .btn-confirmacao:active {
           transform: translateY(0);
+        }
+
+        .btn-confirmacao:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
         }
 
         @media (max-width: 768px) {

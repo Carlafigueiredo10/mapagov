@@ -14,6 +14,7 @@ from processos.api.catalogo_search import search_pops
 from processos.api.catalogo_stats import stats_global, stats_area
 from processos.api import auth_api, admin_api  # Auth & Access Control
 from processos.infra import metrics  # FASE 3 - Prometheus Metrics
+from processos.infra.health import health_check  # Health check endpoint
 
 # DRF Router para CRUD de catalogo (Areas + POPs)
 # SimpleRouter (sem root view) para nao conflitar com o React SPA em /
@@ -102,8 +103,9 @@ urlpatterns = [
     path('api/analise-riscos/<uuid:analise_id>/exportar/', ar_export.exportar_analise, name='ar-exportar'),
 
     # ============================================================================
-    # OBSERVABILITY - FASE 3 📊
+    # OBSERVABILITY - FASE 3
     # ============================================================================
+    path('api/health/', health_check, name='health-check'),
     path('metrics/', metrics.metrics_view, name='prometheus-metrics'),  # Prometheus endpoint
 
     # APIs de autosave/snapshot/histórico

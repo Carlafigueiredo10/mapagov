@@ -48,7 +48,8 @@ interface InterfaceFluxosEntradaProps {
 
 const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, onConfirm }) => {
   const [origens, setOrigens] = useState<OrigemSelecionada[]>([]);
-  const [outrasOrigens, setOutrasOrigens] = useState('');
+  const [origensDigitadas, setOrigensDigitadas] = useState<string[]>([]);
+  const [origemManual, setOrigemManual] = useState('');
   const [mostrarEspecificacao, setMostrarEspecificacao] = useState<Record<string, boolean>>({});
   const [especificacoes, setEspecificacoes] = useState<Record<string, string>>({});
   const [areaDecipexSelecionada, setAreaDecipexSelecionada] = useState<Record<string, string[]>>({});
@@ -172,14 +173,33 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
     });
   };
 
+  const adicionarOrigemManual = () => {
+    const origem = origemManual.trim();
+    if (origem && !origensDigitadas.includes(origem)) {
+      setOrigensDigitadas([...origensDigitadas, origem]);
+      setOrigemManual('');
+    }
+  };
+
+  const removerOrigemDigitada = (origem: string) => {
+    setOrigensDigitadas(origensDigitadas.filter(o => o !== origem));
+  };
+
+  const handleKeyPressManual = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      adicionarOrigemManual();
+    }
+  };
+
   const handleConfirm = () => {
     // ✅ Proteção contra duplo clique
     if (isLoading) return;
     setIsLoading(true);
 
     try {
-      if (origens.length === 0 && !outrasOrigens.trim()) {
-        alert('Por favor, selecione ao menos uma origem ou descreva manualmente.');
+      if (origens.length === 0 && origensDigitadas.length === 0) {
+        alert('Por favor, selecione ao menos uma origem ou adicione manualmente.');
         setIsLoading(false);
         return;
       }
@@ -218,7 +238,8 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
           orgao_centralizado: o.orgao_centralizado || null,
           canais_atendimento: o.canais_atendimento || null
         })),
-        outras_origens: outrasOrigens.trim() || null
+        outras_origens: origensDigitadas.length > 0 ? origensDigitadas.join('; ') : null,
+        outras_origens_lista: origensDigitadas.length > 0 ? origensDigitadas : null
       };
 
       // Enviar como JSON string
@@ -455,24 +476,86 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
           ))}
         </div>
 
-        <div style={{ marginTop: '1.5rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#495057' }}>
-            📝 Ou descreva outras origens manualmente:
-          </label>
-          <textarea
-            value={outrasOrigens}
-            onChange={(e) => setOutrasOrigens(e.target.value)}
-            placeholder="Ex: Recebo processos vindos de outras fontes não listadas acima..."
-            rows={3}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: '1px solid #ced4da',
-              borderRadius: '6px',
-              fontSize: '0.95rem',
-              resize: 'vertical'
-            }}
-          />
+        {/* Origens adicionadas manualmente (chips) */}
+        {origensDigitadas.length > 0 && (
+          <div style={{
+            margin: '1rem 0',
+            padding: '1rem',
+            background: '#e8f5e9',
+            borderRadius: '8px',
+            border: '2px solid #4caf50'
+          }}>
+            <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', color: '#2e7d32', fontWeight: 600 }}>
+              📝 Origens adicionadas manualmente:
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {origensDigitadas.map((origem, idx) => (
+                <div key={idx} style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.5rem 0.75rem', background: 'white',
+                  border: '2px solid #4caf50', borderRadius: '20px',
+                  fontSize: '0.875rem', fontWeight: 500, color: '#2e7d32'
+                }}>
+                  <span>{origem}</span>
+                  <button
+                    onClick={() => removerOrigemDigitada(origem)}
+                    title="Remover"
+                    type="button"
+                    style={{
+                      width: '20px', height: '20px', padding: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: '#f44336', color: 'white', border: 'none',
+                      borderRadius: '50%', cursor: 'pointer', fontSize: '12px', lineHeight: 1
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Campo de entrada manual */}
+        <div style={{
+          margin: '1.5rem 0',
+          padding: '1.25rem',
+          background: '#fff9e6',
+          borderRadius: '8px',
+          border: '2px dashed #ffc107'
+        }}>
+          <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', color: '#856404', fontWeight: 500 }}>
+            Outra origem? ✍️ Digite manualmente abaixo.
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input
+              type="text"
+              placeholder="Ex: Recebo processos vindos de outras fontes não listadas acima..."
+              value={origemManual}
+              onChange={(e) => setOrigemManual(e.target.value)}
+              onKeyPress={handleKeyPressManual}
+              style={{
+                flex: 1, padding: '0.625rem 0.875rem',
+                border: '2px solid #ddd', borderRadius: '6px',
+                fontSize: '0.875rem'
+              }}
+            />
+            <button
+              onClick={adicionarOrigemManual}
+              disabled={!origemManual.trim()}
+              type="button"
+              style={{
+                padding: '0.625rem 1.25rem',
+                background: origemManual.trim() ? '#28a745' : '#6c757d',
+                color: 'white', border: 'none', borderRadius: '6px',
+                cursor: origemManual.trim() ? 'pointer' : 'not-allowed',
+                fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap',
+                opacity: origemManual.trim() ? 1 : 0.5
+              }}
+            >
+              + Adicionar
+            </button>
+          </div>
         </div>
 
         <div style={{

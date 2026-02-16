@@ -51,13 +51,15 @@ interface InterfaceFluxosSaidaProps {
     orgaos_centralizados?: OrgaoCentralizado[];
     canais_atendimento?: CanalAtendimento[];
     fluxos_entrada_estruturados?: OrigemEntrada[];
+    outras_origens_lista?: string[];
   };
   onConfirm: (resposta: string) => void;
 }
 
 const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onConfirm }) => {
   const [destinos, setDestinos] = useState<DestinoSelecionado[]>([]);
-  const [outrosDestinos, setOutrosDestinos] = useState('');
+  const [destinosDigitados, setDestinosDigitados] = useState<string[]>([]);
+  const [destinoManual, setDestinoManual] = useState('');
   const [mostrarEspecificacao, setMostrarEspecificacao] = useState<Record<string, boolean>>({});
   const [especificacoes, setEspecificacoes] = useState<Record<string, string>>({});
   const [areaDecipexSelecionada, setAreaDecipexSelecionada] = useState<Record<string, string[]>>({});
@@ -124,6 +126,30 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
     setAreaDecipexSelecionada(novasAreas);
     setOrgaoCentralizadoSelecionado(novosOrgaos);
     setCanaisSelecionados(novosCanais);
+
+    // Replicar origens manuais (chips) se existirem
+    if (dados?.outras_origens_lista && dados.outras_origens_lista.length > 0) {
+      setDestinosDigitados(dados.outras_origens_lista);
+    }
+  };
+
+  const adicionarDestinoManual = () => {
+    const destino = destinoManual.trim();
+    if (destino && !destinosDigitados.includes(destino)) {
+      setDestinosDigitados([...destinosDigitados, destino]);
+      setDestinoManual('');
+    }
+  };
+
+  const removerDestinoDigitado = (destino: string) => {
+    setDestinosDigitados(destinosDigitados.filter(d => d !== destino));
+  };
+
+  const handleKeyPressManual = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      adicionarDestinoManual();
+    }
   };
 
   const opcoesDestino: OpcaoDestino[] = [
@@ -229,8 +255,8 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
     if (isLoading) return; // Evitar duplo clique
 
     // Validação: pelo menos um destino ou campo livre
-    if (destinos.length === 0 && !outrosDestinos.trim()) {
-      alert('Por favor, selecione ao menos um destino ou descreva manualmente.');
+    if (destinos.length === 0 && destinosDigitados.length === 0) {
+      alert('Por favor, selecione ao menos um destino ou adicione manualmente.');
       return;
     }
 
@@ -257,7 +283,8 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
           canais_atendimento: o.canais_atendimento || null
         };
       }),
-      outros_destinos: outrosDestinos.trim() || null
+      outros_destinos: destinosDigitados.length > 0 ? destinosDigitados.join('; ') : null,
+      outros_destinos_lista: destinosDigitados.length > 0 ? destinosDigitados : null
     };
 
     // Enviar como JSON string
@@ -279,7 +306,7 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
           Para qual área você entrega ou encaminha?
         </p>
 
-        {fluxosEntradaEstruturados.length > 0 && (
+        {(fluxosEntradaEstruturados.length > 0 || (dados?.outras_origens_lista && dados.outras_origens_lista.length > 0)) && (
           <div style={{
             marginBottom: '1rem',
             padding: '0.75rem',
@@ -527,24 +554,86 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
           ))}
         </div>
 
-        <div style={{ marginTop: '1.5rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#495057' }}>
-            📝 Ou descreva outros destinos manualmente:
-          </label>
-          <textarea
-            value={outrosDestinos}
-            onChange={(e) => setOutrosDestinos(e.target.value)}
-            placeholder="Ex: Encaminho para a CGU, TCU, e também para outras coordenações dependendo do caso..."
-            rows={3}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: '1px solid #ced4da',
-              borderRadius: '6px',
-              fontSize: '0.95rem',
-              resize: 'vertical'
-            }}
-          />
+        {/* Destinos adicionados manualmente (chips) */}
+        {destinosDigitados.length > 0 && (
+          <div style={{
+            margin: '1rem 0',
+            padding: '1rem',
+            background: '#e8f5e9',
+            borderRadius: '8px',
+            border: '2px solid #4caf50'
+          }}>
+            <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', color: '#2e7d32', fontWeight: 600 }}>
+              📝 Destinos adicionados manualmente:
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {destinosDigitados.map((destino, idx) => (
+                <div key={idx} style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.5rem 0.75rem', background: 'white',
+                  border: '2px solid #4caf50', borderRadius: '20px',
+                  fontSize: '0.875rem', fontWeight: 500, color: '#2e7d32'
+                }}>
+                  <span>{destino}</span>
+                  <button
+                    onClick={() => removerDestinoDigitado(destino)}
+                    title="Remover"
+                    type="button"
+                    style={{
+                      width: '20px', height: '20px', padding: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: '#f44336', color: 'white', border: 'none',
+                      borderRadius: '50%', cursor: 'pointer', fontSize: '12px', lineHeight: 1
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Campo de entrada manual */}
+        <div style={{
+          margin: '1.5rem 0',
+          padding: '1.25rem',
+          background: '#fff9e6',
+          borderRadius: '8px',
+          border: '2px dashed #ffc107'
+        }}>
+          <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', color: '#856404', fontWeight: 500 }}>
+            Outro destino? ✍️ Digite manualmente abaixo.
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input
+              type="text"
+              placeholder="Ex: CGU, TCU, outra coordenação..."
+              value={destinoManual}
+              onChange={(e) => setDestinoManual(e.target.value)}
+              onKeyPress={handleKeyPressManual}
+              style={{
+                flex: 1, padding: '0.625rem 0.875rem',
+                border: '2px solid #ddd', borderRadius: '6px',
+                fontSize: '0.875rem'
+              }}
+            />
+            <button
+              onClick={adicionarDestinoManual}
+              disabled={!destinoManual.trim()}
+              type="button"
+              style={{
+                padding: '0.625rem 1.25rem',
+                background: destinoManual.trim() ? '#28a745' : '#6c757d',
+                color: 'white', border: 'none', borderRadius: '6px',
+                cursor: destinoManual.trim() ? 'pointer' : 'not-allowed',
+                fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap',
+                opacity: destinoManual.trim() ? 1 : 0.5
+              }}
+            >
+              + Adicionar
+            </button>
+          </div>
         </div>
 
         <div style={{

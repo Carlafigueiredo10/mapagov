@@ -413,7 +413,8 @@ class BaseHelena(ABC):
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=temperatura,
-                max_tokens=max_tokens
+                max_tokens=max_tokens,
+                request_timeout=30
             )
 
             return {

@@ -106,7 +106,7 @@ def criar_helena_mapeamento(contexto_campo: str = ""):
     from langchain.chains import LLMChain
     from langchain.memory import ConversationBufferMemory
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.4)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.4, request_timeout=30)
 
     # Carregar prompt base do .md
     system_text = carregar_prompt_ajuda()

@@ -10,41 +10,17 @@ interface BotaoPrincipal {
   valor_enviar: string;
 }
 
-interface BotaoSecundario {
-  texto: string;
-  classe: string;
-  posicao: string;
-  valor_enviar: string;
-}
-
 interface InterfaceTransicaoEpicaProps {
   dados: {
     botao_principal: BotaoPrincipal;
-    botao_secundario?: BotaoSecundario;
     mostrar_progresso?: boolean;
     progresso_texto?: string;
-    background_especial?: boolean;
   };
   onEnviar: (valor: string) => void;
 }
 
 const InterfaceTransicaoEpica: React.FC<InterfaceTransicaoEpicaProps> = ({ dados, onEnviar }) => {
-  const {
-    botao_principal,
-    botao_secundario,
-    mostrar_progresso,
-    progresso_texto,
-  } = dados;
-
-  const handleClickPrincipal = () => {
-    onEnviar(botao_principal.valor_enviar);
-  };
-
-  const handleClickSecundario = () => {
-    if (botao_secundario) {
-      onEnviar(botao_secundario.valor_enviar);
-    }
-  };
+  const { botao_principal, mostrar_progresso, progresso_texto } = dados;
 
   return (
     <div className="transicao-epica-container">
@@ -55,18 +31,9 @@ const InterfaceTransicaoEpica: React.FC<InterfaceTransicaoEpicaProps> = ({ dados
       )}
 
       <div className="botoes-transicao-dupla">
-        {botao_secundario && (
-          <button
-            className="btn-transicao btn-transicao-secundario"
-            onClick={handleClickSecundario}
-          >
-            {botao_secundario.texto}
-          </button>
-        )}
-
         <button
           className="btn-transicao btn-transicao-principal"
-          onClick={handleClickPrincipal}
+          onClick={() => onEnviar(botao_principal.valor_enviar)}
         >
           {botao_principal.texto}
         </button>

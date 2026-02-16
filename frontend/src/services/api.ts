@@ -44,6 +44,21 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // CSRF token ausente ou expirado — busca e retenta uma vez
+    if (
+      error.response?.status === 403 &&
+      !config._csrfRetry &&
+      !getCookie('csrftoken')
+    ) {
+      config._csrfRetry = true;
+      await api.get('/auth/csrf/');
+      const newToken = getCookie('csrftoken');
+      if (newToken) {
+        config.headers['X-CSRFToken'] = newToken;
+      }
+      return api(config);
+    }
+
     // Se foi timeout e ainda nao tentou retry
     if (error.code === 'ECONNABORTED' && !config._retry) {
       config._retry = true;

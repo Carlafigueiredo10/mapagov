@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useChatStore } from '../../store/chatStore';
 
 interface Sugestao {
   macroprocesso: string;
@@ -19,6 +20,7 @@ interface InterfaceConfirmacaoArquiteturaProps {
 }
 
 const InterfaceConfirmacaoArquitetura: React.FC<InterfaceConfirmacaoArquiteturaProps> = ({ dados, onConfirm }) => {
+  const isProcessing = useChatStore((s) => s.isProcessing);
   const sugestaoInicial = dados?.sugestao;
   const botoes = dados?.botoes || ['✅ Confirmar e Continuar', '✏️ Ajustar Manualmente'];
 
@@ -135,6 +137,7 @@ const InterfaceConfirmacaoArquitetura: React.FC<InterfaceConfirmacaoArquiteturaP
               <button
                 className="btn-interface btn-success"
                 onClick={handleConfirmarEdicao}
+                disabled={isProcessing}
               >
                 ✅ Salvar Alterações
               </button>
@@ -156,12 +159,14 @@ const InterfaceConfirmacaoArquitetura: React.FC<InterfaceConfirmacaoArquiteturaP
                   });
                   onConfirm(comando);
                 }}
+                disabled={isProcessing}
               >
                 {botoes[0]}
               </button>
               <button
                 className="btn-interface btn-secondary-outline"
                 onClick={() => setModoEdicao(true)}
+                disabled={isProcessing}
               >
                 {botoes[1]}
               </button>
@@ -331,6 +336,13 @@ const InterfaceConfirmacaoArquitetura: React.FC<InterfaceConfirmacaoArquiteturaP
           background: #667eea;
           color: white;
           transform: translateY(-1px);
+        }
+
+        .btn-interface:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
         }
       `}</style>
     </div>

@@ -746,7 +746,6 @@ class HelenaPOP(BaseHelena):
             }
 
         elif novo_sm.estado == EstadoPOP.TRANSICAO_EPICA:
-            # Interface épica com botões no padrão confirmacao_dupla
             tipo_interface = 'transicao_epica'
             dados_interface = {
                 'botao_principal': {
@@ -756,12 +755,6 @@ class HelenaPOP(BaseHelena):
                     'cor': '#28a745',
                     'animacao': '',
                     'valor_enviar': 'VAMOS'
-                },
-                'botao_secundario': {
-                    'texto': 'Salvar e continuar depois ✏️',
-                    'classe': 'btn-editar',
-                    'posicao': 'abaixo',
-                    'valor_enviar': 'PAUSA'
                 },
                 'mostrar_progresso': False,
                 'progresso_texto': '',
@@ -1064,6 +1057,76 @@ class HelenaPOP(BaseHelena):
             logger.error(f"[ENTREGA] Erro ao sugerir entrega: {e}")
 
         return None
+
+    # Sinais de texto que precisa de normalização (sem acento, erros comuns)
+    _SINAIS_TEXTO_SUJO = re.compile(
+        r'(?:nao |atencao|nã |prasos|documetos|atrazar|redobrad[ao]|'
+        r'[a-z]{4,}[^áéíóúâêîôûãõç\s]*$)',  # palavra longa sem acentos
+        re.IGNORECASE
+    )
+
+    def _precisa_normalizar(self, texto: str) -> bool:
+        """Heurística barata: só chama LLM se o texto parece ter problemas."""
+        # Texto curto demais — não vale o custo
+        if len(texto) < 10:
+            return False
+        # Sem nenhuma pontuação/acento — provavelmente digitado rápido
+        if not re.search(r'[áéíóúâêîôûãõç,.;:!?]', texto):
+            return True
+        # Padrões comuns de erro
+        if self._SINAIS_TEXTO_SUJO.search(texto):
+            return True
+        return False
+
+    def _normalizar_texto_livre(self, texto: str) -> str:
+        """
+        Normaliza texto livre do usuário: corrige ortografia/gramática
+        e formata como lista, sem alterar o sentido.
+
+        - Só chama LLM se heurística detectar sinais de texto "sujo"
+        - Trunca input em 500 chars para evitar custo excessivo
+        - Retorna o texto original em caso de falha
+        """
+        if not self._precisa_normalizar(texto):
+            logger.debug(f"[NORMALIZAR] Texto ok, pulando LLM ({len(texto)} chars)")
+            return texto
+
+        # Limitar tamanho do input
+        texto_input = texto[:500]
+
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Você é um revisor de texto técnico do serviço público brasileiro. "
+                            "Corrija ortografia e gramática do texto abaixo. "
+                            "Se houver múltiplos itens, formate cada um em uma linha separada. "
+                            "NÃO altere o sentido, NÃO adicione informações, NÃO remova conteúdo. "
+                            "Retorne SOMENTE o texto corrigido, sem explicações."
+                        )
+                    },
+                    {"role": "user", "content": texto_input}
+                ],
+                temperature=0.1,
+                max_tokens=300,
+                timeout=10
+            )
+
+            resultado = response.choices[0].message.content.strip()
+            if resultado:
+                logger.info(f"[NORMALIZAR] Texto normalizado ({len(texto)} -> {len(resultado)} chars)")
+                return resultado
+
+        except Exception as e:
+            logger.warning(f"[NORMALIZAR] Falha ao normalizar texto, usando original: {e}")
+
+        return texto
 
     # ========================================================================
     # PROCESSADORES DE ESTADO
@@ -1745,9 +1808,9 @@ class HelenaPOP(BaseHelena):
         if sm.dados_coletados.get('pular_busca'):
             logger.info("[HELENA POP] PULANDO BUSCA - Usuário digitou atividade final após rejeitar RAG")
 
-            # Salvar atividade digitada (usando hierarquia já definida pelo RAG ou dropdown)
-            sm.atividade_selecionada = descricao_usuario
+            # Salvar atividade digitada (normalizada) usando hierarquia já definida pelo RAG ou dropdown
             sm.dados_coletados['descricao_original'] = descricao_usuario
+            sm.atividade_selecionada = self._normalizar_texto_livre(descricao_usuario)
 
             # Gerar código CAP se ainda não tiver
             if not sm.codigo_cap or sm.codigo_cap == 'PROVISORIO':
@@ -2092,7 +2155,8 @@ class HelenaPOP(BaseHelena):
 
     def _processar_nome_processo(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """Processa coleta do nome do processo"""
-        sm.dados_coletados['nome_processo'] = mensagem.strip()
+        sm.dados_coletados['nome_processo_raw'] = mensagem.strip()
+        sm.dados_coletados['nome_processo'] = self._normalizar_texto_livre(mensagem.strip())
         sm.estado = EstadoPOP.ENTREGA_ESPERADA
 
         resposta = (
@@ -2115,6 +2179,8 @@ class HelenaPOP(BaseHelena):
         # Se o usuário clicou "Quero editar manualmente"
         elif msg_lower == 'editar_manual':
             sm.estado = EstadoPOP.ENTREGA_ESPERADA
+            sm.tipo_interface = None
+            sm.dados_interface = {}
             resposta = (
                 "Sem problemas! Qual é a **entrega esperada** dessa atividade?\n\n"
                 "Exemplo: 'Pensão concedida', 'Requerimento analisado', 'Cadastro atualizado'"
@@ -2122,7 +2188,8 @@ class HelenaPOP(BaseHelena):
             return resposta, sm
         # Se o usuário digitou uma entrega manualmente
         else:
-            sm.dados_coletados['entrega_esperada'] = mensagem.strip()
+            sm.dados_coletados['entrega_esperada_raw'] = mensagem.strip()
+            sm.dados_coletados['entrega_esperada'] = self._normalizar_texto_livre(mensagem.strip())
             sm.estado = EstadoPOP.CONFIRMACAO_ENTREGA
 
         # Gerar código CAP antecipadamente
@@ -2153,17 +2220,14 @@ class HelenaPOP(BaseHelena):
             f"• Subprocesso: {sm.subprocesso_selecionado}\n"
             f"• Atividade: {sm.atividade_selecionada}\n\n"
             f"**Entrega Final:**\n"
-            f"• {entrega_final}\n\n"
-            f"**Está correto, {nome}?**"
+            f"• {entrega_final}"
         )
 
-        # Interface com botões Confirmar/Editar
+        # Interface com botão Confirmar (sem Editar — a pessoa já editou até aqui)
         sm.tipo_interface = 'confirmacao_dupla'
         sm.dados_interface = {
             'botao_confirmar': 'Confirmar ✅',
-            'botao_editar': 'Editar ✏️',
             'valor_confirmar': 'CONFIRMAR',
-            'valor_editar': 'EDITAR'
         }
 
         return resposta, sm
@@ -2462,6 +2526,7 @@ class HelenaPOP(BaseHelena):
                 # Guardar dados estruturados originais para pré-preenchimento na saída
                 if dados_json and isinstance(dados_json, dict):
                     sm.dados_coletados['fluxos_entrada_estruturados'] = dados_json.get('origens_selecionadas', [])
+                    sm.dados_coletados['outras_origens_lista'] = dados_json.get('outras_origens_lista', [])
 
             # Carregar dados para interface de fluxos de SAÍDA
             try:
@@ -2481,7 +2546,8 @@ class HelenaPOP(BaseHelena):
                 'orgaos_centralizados': orgaos_centralizados,
                 'canais_atendimento': canais_atendimento,
                 'fluxos_entrada': sm.dados_coletados.get('fluxos_entrada', []),
-                'fluxos_entrada_estruturados': sm.dados_coletados.get('fluxos_entrada_estruturados', [])
+                'fluxos_entrada_estruturados': sm.dados_coletados.get('fluxos_entrada_estruturados', []),
+                'outras_origens_lista': sm.dados_coletados.get('outras_origens_lista', [])
             }
 
             resposta = f"Perfeito! Registrei {len(sm.dados_coletados['fluxos_entrada'])} origem(ns) de entrada. ✅"
@@ -2522,7 +2588,8 @@ class HelenaPOP(BaseHelena):
                             'orgaos_centralizados': orgaos_centralizados,
                             'canais_atendimento': canais_atendimento,
                             'fluxos_entrada': sm.dados_coletados.get('fluxos_entrada', []),
-                            'fluxos_entrada_estruturados': sm.dados_coletados.get('fluxos_entrada_estruturados', [])
+                            'fluxos_entrada_estruturados': sm.dados_coletados.get('fluxos_entrada_estruturados', []),
+                            'outras_origens_lista': sm.dados_coletados.get('outras_origens_lista', [])
                         }
                         resposta = "Por favor, selecione para onde vai o resultado do processo (destinos de saída)."
                         return resposta, sm
@@ -2582,7 +2649,9 @@ class HelenaPOP(BaseHelena):
         if msg_lower in ['não', 'nao', 'nenhum', 'não há', 'nao ha', 'não tem', 'nao tem', 'sem pontos', 'pular', 'skip']:
             sm.dados_coletados['pontos_atencao'] = "Não há pontos especiais de atenção."
         else:
-            sm.dados_coletados['pontos_atencao'] = mensagem.strip()
+            texto_raw = mensagem.strip()
+            sm.dados_coletados['pontos_atencao_raw'] = texto_raw
+            sm.dados_coletados['pontos_atencao'] = self._normalizar_texto_livre(texto_raw)
 
         # Ir para REVISAO_PRE_DELEGACAO
         sm.estado = EstadoPOP.REVISAO_PRE_DELEGACAO
@@ -2614,12 +2683,10 @@ class HelenaPOP(BaseHelena):
         """
         REVISÃO 2 - Pré-delegação
 
-        Badge checkpoint da Fase 1 → clique mostra introdução pré-etapas (café, etc.)
-        com botões "Vamos começar" / "Salvar e continuar depois".
+        Badge checkpoint da Fase 1 → introdução pré-etapas (café, etc.)
+        com botão "Vamos começar". Dados são salvos automaticamente.
         """
-        nome = sm.nome_usuario or "você"
 
-        # Clique no badge → introdução pré-etapas + botões
         sm.estado = EstadoPOP.TRANSICAO_EPICA
 
         resposta = (
@@ -2640,40 +2707,18 @@ class HelenaPOP(BaseHelena):
             f"🚻 Ir ao banheiro antes de iniciar\n"
             f"📂 Ter em mãos exemplos reais do processo\n\n"
             f"Caso queira alterar algum dado da fase anterior, a revisão final estará disponível ao concluir o mapeamento.\n\n"
-            f"Quando estiver pronto(a), clique em **Vamos começar** para iniciar.\n"
-            f"Se preferir continuar em outro momento, utilize a opção **Salvar e continuar depois**."
+            f"Quando estiver pronto(a), clique em **Vamos começar** para iniciar."
         )
 
         sm.tipo_interface = 'confirmacao_dupla'
         sm.dados_interface = {
             'opcao_a': 'Vamos começar',
-            'opcao_b': 'Salvar e continuar depois',
         }
 
         return resposta, sm
 
     def _processar_transicao_epica(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
-        """
-        Processa botões "Vamos começar" / "Salvar e continuar depois".
-        """
-        msg_lower = mensagem.lower().strip()
-        nome = sm.nome_usuario
-
-        if self._detectar_intencao(msg_lower, 'pausa') or self._detectar_intencao(msg_lower, 'negacao'):
-            resposta = (
-                f"Sem problema, {nome}! 😊\n\n"
-                "Entendo perfeitamente. Mapear processos requer concentração e tempo.\n\n"
-                "**✅ Seus dados foram salvos** e você pode continuar quando quiser.\n\n"
-                "📌 **Para retomar:** É só clicar em **Vamos começar**\n\n"
-                "Até breve! Estarei aqui quando você voltar. 👋"
-            )
-
-            sm.tipo_interface = 'confirmacao_dupla'
-            sm.dados_interface = {
-                'opcao_a': 'Vamos começar',
-                'opcao_b': 'Salvar e continuar depois',
-            }
-            return resposta, sm
+        """Processa clique em 'Vamos começar' na transição para etapas."""
 
         # Confirmação → direto pra etapas
         sm.estado = EstadoPOP.ETAPA_FORM
@@ -3243,7 +3288,8 @@ class HelenaPOP(BaseHelena):
                     'orgaos_centralizados': orgaos,
                     'canais_atendimento': canais,
                     'fluxos_entrada': sm.dados_coletados.get('fluxos_entrada', []),
-                    'fluxos_entrada_estruturados': sm.dados_coletados.get('fluxos_entrada_estruturados', [])
+                    'fluxos_entrada_estruturados': sm.dados_coletados.get('fluxos_entrada_estruturados', []),
+                    'outras_origens_lista': sm.dados_coletados.get('outras_origens_lista', [])
                 }
                 return "Edite os fluxos de saída.", sm
 

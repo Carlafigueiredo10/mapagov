@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import type { ProductCode, PortalChatMessage } from '../../types/portal.types';
 import { chatRecepcao } from '../../services/helenaApi';
 import InterfaceDecisaoProduto from './InterfaceDecisaoProduto';
@@ -197,7 +198,7 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
                   {message.text}
                 </div>
               ) : (
-                <div dangerouslySetInnerHTML={{ __html: message.text }} />
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(message.text) }} />
               )}
 
               {/* Interface de decisao de produto */}

@@ -82,6 +82,10 @@ interface ChatState {
   // Modo ajuda (não persistido)
   modoAjudaAtivo: boolean;
 
+  // Transição com latência (não persistido) — feedback contextual durante LLM
+  pendingTransition: string | null;
+  setPendingTransition: (transition: string | null) => void;
+
   // Actions básicas
   addMessage: (message: HelenaMessage) => void;
   removeMessage: (id: string) => void;
@@ -132,6 +136,7 @@ export const useChatStore = create<ChatState>()(
       integrityHash: null,
       estadoAtual: 'nome_usuario',
       modoAjudaAtivo: false,
+      pendingTransition: null,
 
       // Actions básicas
       addMessage: (message) =>
@@ -164,6 +169,7 @@ export const useChatStore = create<ChatState>()(
           integrityHash: null,
           estadoAtual: 'nome_usuario',
           modoAjudaAtivo: false,
+          pendingTransition: null,
         }),
 
       carregarHistorico: (mensagens) => {
@@ -215,6 +221,7 @@ export const useChatStore = create<ChatState>()(
 
       setEstadoAtual: (estado) => set({ estadoAtual: estado }),
       setModoAjudaAtivo: (ativo) => set({ modoAjudaAtivo: ativo }),
+      setPendingTransition: (transition) => set({ pendingTransition: transition }),
 
       // Sincronização "Entendi" (card educativo)
       entendeuClassificacao: false,

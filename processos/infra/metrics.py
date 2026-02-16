@@ -12,6 +12,7 @@ Tipos de métricas:
 Dashboard recomendado: Grafana
 """
 
+import os
 from prometheus_client import Counter, Histogram, Gauge, Summary, CollectorRegistry
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from django.http import HttpResponse
@@ -295,6 +296,10 @@ def metrics_view(request):
 
     GET /metrics
 
+    Acesso:
+    - DEBUG=True: aberto (desenvolvimento)
+    - Produção: requer staff ou token via METRICS_AUTH_TOKEN
+
     Configuração no prometheus.yml:
     ```yaml
     scrape_configs:
@@ -303,8 +308,24 @@ def metrics_view(request):
           - targets: ['localhost:8000']
         metrics_path: '/metrics'
         scrape_interval: 15s
+        # Em produção, adicionar bearer_token ou basic_auth
     ```
     """
+    from django.conf import settings
+    from django.http import HttpResponseForbidden
+
+    if not settings.DEBUG:
+        # Em produção: exigir staff ou token de autenticação
+        metrics_token = getattr(settings, 'METRICS_AUTH_TOKEN', None) or \
+            os.environ.get('METRICS_AUTH_TOKEN')
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+
+        is_staff = hasattr(request, 'user') and request.user.is_staff
+        has_valid_token = metrics_token and auth_header == f'Bearer {metrics_token}'
+
+        if not (is_staff or has_valid_token):
+            return HttpResponseForbidden('Metrics access denied')
+
     metrics_output = generate_latest(registry)
     return HttpResponse(
         metrics_output,

@@ -1,6 +1,8 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useChatStore } from '../store/chatStore';
 import api from '../services/api';
+
+export type DraftStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface AutoSaveOptions {
   interval?: number; // Intervalo em ms (padrão: 30 segundos)
@@ -25,6 +27,8 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
   const { dadosPOP, sessionId, popId, popUuid, integrityHash, setPopIdentifiers } = useChatStore();
   const lastSaveRef = useRef<string>('');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [status, setStatus] = useState<DraftStatus>('idle');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // Salvar manualmente
   const saveNow = useCallback(async () => {
@@ -37,6 +41,8 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
       if (dadosSerializados === lastSaveRef.current) {
         return { success: true, skipped: true };
       }
+
+      setStatus('saving');
 
       const payload = {
         id: popId,
@@ -59,6 +65,8 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
         }
 
         lastSaveRef.current = dadosSerializados;
+        setStatus('saved');
+        setLastSaved(new Date());
 
         return {
           success: true,
@@ -67,6 +75,7 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
         };
       } else {
         console.error('[Auto-save] Falhou:', response.data.error);
+        setStatus('error');
         return { success: false, error: response.data.error };
       }
     } catch (error: unknown) {
@@ -74,6 +83,7 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
       const axiosErr = error as { response?: { status?: number; data?: { conflict?: Record<string, unknown> } } };
       if (axiosErr?.response?.status === 409) {
         console.warn('[Auto-save] Conflito detectado (409)');
+        setStatus('error');
         return {
           success: false,
           conflict: true,
@@ -82,6 +92,7 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
       }
 
       console.error('[Auto-save] Erro:', error);
+      setStatus('error');
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -125,6 +136,8 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
 
   return {
     saveNow,
+    status,
+    lastSaved,
     popId,
     popUuid,
   };

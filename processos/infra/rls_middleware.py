@@ -9,10 +9,9 @@ Para cada requisição:
 3. Configura app.current_orgao_id no PostgreSQL
 4. Configura app.is_superuser para auditores
 
-Benefícios:
-- RLS funciona automaticamente em todas as queries
-- Zero mudanças no código de negócio
-- Proteção a nível de banco de dados
+ESCOPO ATUAL (migração 0008):
+- Políticas RLS ativas apenas em: ChatSession, ChatMessage
+- Demais tabelas ainda não possuem políticas RLS
 """
 
 import logging

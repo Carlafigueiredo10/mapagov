@@ -14,7 +14,7 @@ class OKRNaturalAgent:
     """
 
     def __init__(self, llm: ChatOpenAI | None = None):
-        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.7, request_timeout=30)
         self.planner = HelenaSemanticPlanner()
 
     # =========================================================================

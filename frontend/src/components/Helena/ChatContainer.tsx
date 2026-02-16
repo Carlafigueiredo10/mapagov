@@ -80,8 +80,6 @@ interface ChatContainerProps {
 
 const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
   const [inputValue, setInputValue] = useState('');
-  const [saveStatus, setSaveStatus] = useState<'salvando' | 'salvo' | 'erro' | 'idle'>('idle');
-  const [ultimoSalvamento, setUltimoSalvamento] = useState<Date | undefined>(undefined);
   const [mostrarSeta, setMostrarSeta] = useState(false);
   const [conflictDetected, setConflictDetected] = useState(false);
   const [editandoNome, setEditandoNome] = useState(false);
@@ -90,24 +88,6 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Auto-save automático com callback para atualizar status
-  const handleAutoSave = async () => {
-    setSaveStatus('salvando');
-    const result = await saveNow();
-
-    if (result.success) {
-      setSaveStatus('salvo');
-      setUltimoSalvamento(new Date());
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    } else if ((result as { conflict?: boolean }).conflict) {
-      setConflictDetected(true);
-      setSaveStatus('erro');
-    } else {
-      setSaveStatus('erro');
-      setTimeout(() => setSaveStatus('idle'), 5000);
-    }
-  };
 
   // Recarregar dados do servidor após conflito
   const reloadFromServer = async () => {
@@ -121,7 +101,6 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
         updateDadosPOP(res.pop.dados as Record<string, unknown>);
         setPopIdentifiers(res.pop.id, res.pop.uuid, res.pop.integrity_hash);
         setConflictDetected(false);
-        setSaveStatus('idle');
       }
     } catch {
       // fallback: manter estado local
@@ -135,7 +114,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
     dadosPOP,
     enviarMensagem,
     clearError,
-  } = useChat(handleAutoSave);
+  } = useChat(async () => { await saveNow(); });
 
   const { updateDadosPOP, estadoAtual, modoAjudaAtivo } = useChatStore();
   const nomeUsuario = dadosPOP.nome_usuario || '';
@@ -182,8 +161,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-save automático
-  const { saveNow } = useAutoSave({ interval: 30000, enabled: true });
+  // Auto-save automático (30s debounce)
+  const { saveNow, status: saveStatus, lastSaved } = useAutoSave({ interval: 30000, enabled: true });
 
   // Auto-scroll inteligente: se última mensagem tem interface, rola para o início da mensagem
   useEffect(() => {
@@ -280,21 +259,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
     const iface = typeof ultima.interface === 'object' ? ultima.interface : null;
     if (!iface?.tipo) return false;
     // Tipos que esperam digitação no input do chat — liberar
-    const tiposPermitemDigitacao = ['texto_livre', 'texto_com_exemplos', 'texto'];
+    const tiposPermitemDigitacao = ['texto_livre', 'texto_com_exemplos', 'texto', 'rag_pergunta_atividade'];
     return !tiposPermitemDigitacao.includes(iface.tipo);
   })();
 
   const handleSalvarManual = async () => {
-    setSaveStatus('salvando');
-    const result = await saveNow();
-    if (result.success) {
-      setSaveStatus('salvo');
-      setUltimoSalvamento(new Date());
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    } else {
-      setSaveStatus('erro');
-      setTimeout(() => setSaveStatus('idle'), 5000);
-    }
+    await saveNow();
   };
 
   return (
@@ -340,6 +310,38 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ className = '' }) => {
                 <span>{dadosPOP.codigo_cap}</span>
               </span>
             )}
+
+            {/* Indicador de auto-save */}
+            <span className="header-meta-item" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {saveStatus === 'saving' && (
+                <span style={{ color: 'rgba(255,255,255,0.7)', fontStyle: 'italic' }}>Salvando...</span>
+              )}
+              {saveStatus === 'saved' && lastSaved && (
+                <span style={{ color: '#8fefb0' }}>
+                  Salvo às {lastSaved.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+              {saveStatus === 'error' && (
+                <span style={{ color: '#ff8a8a' }}>Erro ao salvar</span>
+              )}
+              <button
+                type="button"
+                onClick={handleSalvarManual}
+                disabled={saveStatus === 'saving'}
+                style={{
+                  padding: '2px 10px',
+                  fontSize: '12px',
+                  background: 'rgba(255,255,255,0.15)',
+                  border: '1px solid rgba(255,255,255,0.4)',
+                  borderRadius: '4px',
+                  cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
+                  color: 'rgba(255,255,255,0.9)',
+                  opacity: saveStatus === 'saving' ? 0.5 : 1,
+                }}
+              >
+                Salvar agora
+              </button>
+            </span>
           </div>
         </div>
 

@@ -223,9 +223,43 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         var snap = respostaBackend!;
 
       } else {
-        // Loading simples com frase humanizada para todos os outros casos
-        // (sistemas, áreas, dropdowns, confirmações, etc.)
-        loadingId = adicionarMensagemRapida('helena', obterFraseAleatoria(), { loading: true });
+        // ✅ Mapa de transições com latência — loading contextual em vez de frase genérica
+        const TRANSITION_CONFIGS: Record<string, { title: string; subtitle: string; skeleton: string }> = {
+          arquitetura: {
+            title: 'Analisando sua resposta',
+            subtitle: 'Estou processando o que você escreveu.',
+            skeleton: 'card',
+          },
+          confirmacao_arquitetura: {
+            title: 'Analisando sua resposta',
+            subtitle: 'Estou processando o que você escreveu.',
+            skeleton: 'card',
+          },
+          selecao_hierarquica: {
+            title: 'Analisando sua resposta',
+            subtitle: 'Estou processando o que você escreveu.',
+            skeleton: 'card',
+          },
+        };
+
+        const estadoAgora = useChatStore.getState().estadoAtual;
+        const transConfig = TRANSITION_CONFIGS[estadoAgora];
+
+        if (transConfig) {
+          // Loading contextual com skeleton
+          useChatStore.getState().setPendingTransition(estadoAgora);
+          loadingId = adicionarMensagemRapida('helena', '', {
+            loading: true,
+            interface: {
+              tipo: 'transition_loading',
+              dados: transConfig,
+            },
+          });
+        } else {
+          // Loading simples com frase humanizada
+          // (sistemas, áreas, dropdowns, confirmações, etc.)
+          loadingId = adicionarMensagemRapida('helena', obterFraseAleatoria(), { loading: true });
+        }
 
         // Fazer request
         const request: ChatRequest = {
@@ -252,6 +286,9 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         // Remover loading
         store.removeMessage(loadingId);
       }
+
+      // ✅ Limpar pendingTransition quando resposta chega
+      useChatStore.getState().setPendingTransition(null);
 
       const iface = (snap as any).interface as { tipo: string; dados: Record<string, unknown> } | null;
       const temInterface = !!iface?.tipo;
@@ -377,6 +414,8 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
       console.error('🔴 [useChat] Erro na request:', { status, data, msg, err });
 
       setError(msg);
+      const hadTransition = !!useChatStore.getState().pendingTransition;
+      useChatStore.getState().setPendingTransition(null);
 
       // ✅ Remover loading em caso de erro
       const store = useChatStore.getState();
@@ -385,19 +424,33 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
         store.removeMessage(loadingMsg.id);
       }
 
-      // Mostrar mensagem real se backend retornou detalhes (_diag em DEBUG)
-      const diag = data?._diag as { req_id?: string; elapsed_s?: number; exception?: string } | undefined;
-      const backendErro = data?.erro || data?.error;
-      let userMsg = 'Erro de conexão. Tente novamente.';
-      if (diag) {
-        userMsg = `Erro técnico (req=${diag.req_id}, ${diag.elapsed_s}s): ${diag.exception || backendErro || msg}`;
-      } else if (backendErro) {
-        userMsg = `Erro: ${backendErro}`;
-      } else if (status) {
-        userMsg = `Erro ${status}: ${msg}`;
-      }
+      // ✅ Fallback recuperável: se erro aconteceu durante transição com LLM,
+      // oferecer ação para manter o fluxo andando (sem beco sem saída)
+      if (hadTransition) {
+        adicionarMensagemRapida('helena',
+          'Não foi possível gerar a sugestão agora. Você pode informar a entrega esperada manualmente.',
+          {
+            interface: {
+              tipo: 'texto_livre',
+              dados: { placeholder: 'Ex: Processo analisado e parecer emitido' },
+            },
+          }
+        );
+      } else {
+        // Mostrar mensagem real se backend retornou detalhes (_diag em DEBUG)
+        const diag = data?._diag as { req_id?: string; elapsed_s?: number; exception?: string } | undefined;
+        const backendErro = data?.erro || data?.error;
+        let userMsg = 'Erro de conexão. Tente novamente.';
+        if (diag) {
+          userMsg = `Erro técnico (req=${diag.req_id}, ${diag.elapsed_s}s): ${diag.exception || backendErro || msg}`;
+        } else if (backendErro) {
+          userMsg = `Erro: ${backendErro}`;
+        } else if (status) {
+          userMsg = `Erro ${status}: ${msg}`;
+        }
 
-      adicionarMensagemRapida('helena', `❌ ${userMsg}`);
+        adicionarMensagemRapida('helena', `❌ ${userMsg}`);
+      }
       throw err;
     } finally {
       // ✅ FIX: Respeitar holdProcessing - só libera se não for auto_continue
@@ -408,6 +461,9 @@ export const useChat = (onAutoSave?: () => Promise<void>) => {
   }, [sessionId, isProcessing, dadosPOP, adicionarMensagemRapida, updateDadosPOP, updateProgresso, setViewMode, setProcessing]);
 
   const responderInterface = useCallback(async (resposta: string) => {
+    // ✅ Bloquear cliques duplicados em botões de interface durante processing
+    const state = useChatStore.getState();
+    if (state.isProcessing) return;
     // ✅ Não mostrar mensagem do usuário para respostas de interface (botões, dropdowns, etc)
     return enviarMensagem(resposta, 'gerador_pop', false);
   }, [enviarMensagem]);

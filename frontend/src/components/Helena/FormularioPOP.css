@@ -378,17 +378,6 @@
   transform: none;
 }
 
-/* Primário — Retomar mapeamento */
-.btn-form.encerrar {
-  background: #1351B4;
-  color: white;
-}
-
-.btn-form.encerrar:hover:not(:disabled) {
-  background: #0E4B99;
-  transform: translateY(-2px);
-}
-
 /* Secundário — Visualizar POP */
 .btn-form.ver-preview {
   background: white;

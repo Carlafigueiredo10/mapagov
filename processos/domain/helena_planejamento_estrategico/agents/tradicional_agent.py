@@ -31,7 +31,7 @@ class TradicionalAgent:
         Args:
             llm: Instância LangChain (opcional)
         """
-        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.7, request_timeout=30)
 
     def processar_mensagem(self, mensagem: str, estrutura_atual: dict) -> dict:
         """

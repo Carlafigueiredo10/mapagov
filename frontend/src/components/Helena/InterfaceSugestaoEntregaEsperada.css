@@ -104,6 +104,14 @@
     font-size: 18px;
 }
 
+.btn-concordar-entrega:disabled,
+.btn-editar-manual:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 @media (max-width: 768px) {
     .sugestao-entrega-acoes {
         flex-direction: column;

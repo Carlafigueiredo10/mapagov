@@ -264,14 +264,14 @@ class POPChangeLog(models.Model):
 
 class HelenaSession(models.Model):
     """
-    Armazena estado da conversa com Helena no banco de dados.
-    Substitui django.contrib.sessions para escalabilidade.
+    LEGADO (Fase 1) — Sessão de conversa simplificada.
 
-    Benefícios:
-    - Zero dependência de cookies/cache
-    - Estado persiste entre reinicializações do servidor
-    - Suporta múltiplos servidores (load balancing)
-    - Permite recuperação de sessões perdidas
+    Usado por: views.py (chat_api_view, pop_draft_save)
+    Substituto planejado: ChatSession (processos.models_new.chat_session)
+
+    ChatSession (Fase 2) é usado por HelenaCore/chat_v2 e possui
+    multi-tenancy por órgão, versionamento de agentes e estados JSONB
+    por produto. HelenaSession será removido quando chat_v1 for desativado.
     """
     session_id = models.CharField(
         max_length=255,

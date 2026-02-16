@@ -10,7 +10,8 @@ class HelenaLangChain:
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0.7,
-            api_key=os.getenv('OPENAI_API_KEY')
+            api_key=os.getenv('OPENAI_API_KEY'),
+            request_timeout=30,
         )
         
         # Memória da conversa

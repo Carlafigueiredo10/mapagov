@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useChatStore } from '../../store/chatStore';
-import { FileText, CheckCircle, AlertCircle, Download, ArrowLeft, Loader2, Eye, X } from 'lucide-react';
+import { FileText, CheckCircle, AlertCircle, Download, Loader2, Eye, X } from 'lucide-react';
 import { gerarPDF } from '../../services/helenaApi';
 import type { Etapa, Cenario } from '../../types/pop.types';
 import './FormularioPOP.css';
@@ -13,6 +13,8 @@ const FormularioPOP: React.FC = () => {
   const [formData, setFormData] = useState(dadosPOP);
   const [validacoes, setValidacoes] = useState<Record<string, 'valido' | 'invalido' | ''>>({});
   const [camposPreenchidos, setCamposPreenchidos] = useState(0);
+  const [regularesPreenchidos, setRegularesPreenchidos] = useState(0);
+  const [etapasValidasCount, setEtapasValidasCount] = useState(0);
   const [ultimoCampoPreenchido, setUltimoCampoPreenchido] = useState<string | null>(null);
   const [gerandoPDF, setGerandoPDF] = useState(false);
   const [erroPDF, setErroPDF] = useState<string | null>(null);
@@ -60,6 +62,19 @@ const FormularioPOP: React.FC = () => {
     'sistemas', 'operadores', 'etapas', 'pontos_atencao',
     'fluxos_entrada', 'fluxos_saida'
   ], []);
+
+  const MIN_ETAPAS = 5;
+
+  const camposRegulares = useMemo(() =>
+    todosCampos.filter(c => c !== 'etapas'),
+    [todosCampos]
+  );
+
+  function isEtapaValida(etapa: Etapa): boolean {
+    const acao = (etapa.acao_principal || etapa.descricao || '').trim();
+    const operador = (etapa.operador_nome || '').trim();
+    return acao.length >= 5 && operador.length >= 3;
+  }
 
   // Sync com store quando dados mudam
   useEffect(() => {
@@ -110,20 +125,29 @@ const FormularioPOP: React.FC = () => {
     }
   }, [dadosPOP, formData, ultimoCampoPreenchido]);
 
-  // Calcular campos preenchidos
+  // Calcular progresso ponderado (metadados 50% + etapas 50%)
   useEffect(() => {
-    const preenchidos = todosCampos.filter(campo => {
+    // Campos regulares (13 metadados, excluindo etapas)
+    const preenchidosRegulares = camposRegulares.filter(campo => {
       const valor = formData[campo as keyof typeof formData];
       if (Array.isArray(valor)) {
         return valor.length > 0;
       }
       if (typeof valor === 'object' && valor !== null) {
-        return Object.keys(valor).length > 0;
+        return Object.values(valor).some(v => v && String(v).trim().length > 0);
       }
-      return valor && String(valor).trim().length > 3;
-    });
-    setCamposPreenchidos(preenchidos.length);
-  }, [formData, todosCampos]);
+      const str = String(valor ?? '').trim();
+      return str.length > 3 && str !== 'Aguardando...';
+    }).length;
+
+    // Etapas válidas (acao_principal >= 5 chars + operador_nome >= 3 chars)
+    const etapas = Array.isArray(formData.etapas) ? formData.etapas as Etapa[] : [];
+    const validas = etapas.filter(isEtapaValida).length;
+
+    setRegularesPreenchidos(preenchidosRegulares);
+    setEtapasValidasCount(validas);
+    setCamposPreenchidos(preenchidosRegulares + (etapas.length > 0 ? 1 : 0));
+  }, [formData, camposRegulares]);
 
   const handleInputChange = (campo: string, valor: string) => {
     const novosDados = { ...formData, [campo]: valor };
@@ -200,7 +224,10 @@ const FormularioPOP: React.FC = () => {
     );
   };
 
-  const porcentagemPreenchimento = (camposPreenchidos / todosCampos.length) * 100;
+  // Progresso ponderado: metadados (50%) + etapas válidas (50%, cap em MIN_ETAPAS)
+  const progressoRegulares = (regularesPreenchidos / camposRegulares.length) * 50;
+  const progressoEtapas = (Math.min(etapasValidasCount, MIN_ETAPAS) / MIN_ETAPAS) * 50;
+  const porcentagemPreenchimento = progressoRegulares + progressoEtapas;
 
   return (
     <div className={`form-section ${modoRevisao ? 'modo-revisao' : ''}`}>
@@ -218,7 +245,9 @@ const FormularioPOP: React.FC = () => {
           </div>
           <div className="form-progress-text" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>{Math.round(porcentagemPreenchimento)}% concluído</span>
-            <span style={{ fontSize: '11px', opacity: 0.7 }}>{camposPreenchidos} de {todosCampos.length} campos</span>
+            <span style={{ fontSize: '11px', opacity: 0.7 }}>
+              Metadados: {regularesPreenchidos}/{camposRegulares.length} · Etapas válidas: {etapasValidasCount}/{MIN_ETAPAS}
+            </span>
           </div>
         </div>
       )}
@@ -381,6 +410,9 @@ const FormularioPOP: React.FC = () => {
               </div>
             )}
           </div>
+          <div style={{ fontSize: '12px', color: '#666', marginTop: '8px', fontStyle: 'italic' }}>
+            Etapas representam metade do progresso. Mínimo recomendado: {MIN_ETAPAS}.
+          </div>
         </div>
 
         {/* Saída do Processo */}
@@ -442,17 +474,6 @@ const FormularioPOP: React.FC = () => {
 
       {/* Actions — hierarquia: primário > secundário > destrutivo */}
       <div className="form-actions">
-        <button
-          type="button"
-          className="btn-form encerrar"
-          onClick={() => {
-            alert('Banco de dados em atualização. Em breve será possível retomar mapeamentos anteriores.');
-          }}
-        >
-          <ArrowLeft size={16} />
-          Retomar mapeamento
-        </button>
-
         <button
           type="button"
           className="btn-form ver-preview"
@@ -587,7 +608,7 @@ const FormularioPOP: React.FC = () => {
 
             <div className="preview-footer">
               <div className="preview-progress">
-                {camposPreenchidos} de {todosCampos.length} campos preenchidos ({Math.round(porcentagemPreenchimento)}%)
+                Metadados: {regularesPreenchidos}/{camposRegulares.length} · Etapas válidas: {etapasValidasCount}/{MIN_ETAPAS} ({Math.round(porcentagemPreenchimento)}%)
               </div>
               <div className="preview-actions">
                 <button

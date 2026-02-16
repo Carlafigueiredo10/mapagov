@@ -1,6 +1,6 @@
 Aba,Numero,Macroprocesso,Processo,Subprocesso,Atividade
-,1.1.1.1,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Concessão de aposentadorias,Conceder benefício estatutário geral
-,1.1.1.2,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Concessão de aposentadorias,Implantar benefício de aposentadoria no SIAPE
+,1.1.1.1,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Análise de aposentadoria,Analisar requerimento de aposentadoria
+,1.1.1.2,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Análise de aposentadoria,Implantar benefício de aposentadoria no SIAPE
 ,1.1.2.1,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Revisar base contributiva (PSS)
 ,1.1.2.2,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Revisar fundamentação legal
 ,1.1.2.3,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Descarte de contribuições (PSS)
@@ -11,30 +11,24 @@ Aba,Numero,Macroprocesso,Processo,Subprocesso,Atividade
 ,1.1.2.8,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Manutenção e revisão de aposentadorias,Cessar pagamento de aposentadorias cassadas
 ,1.1.3.1,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Cadastramento de atos,Cadastrar ato no e-Pessoal
 ,1.1.4.1,Gestão de Benefícios Previdenciários,Gestão de Aposentadorias,Recursos administrativos,Analisar recurso de aposentadoria
-,1.2.1.1,Gestão de Benefícios Previdenciários,Gestão de Pensões,Concessão de pensões,"Conceder pensão (cônjuge, companheiro, filhos, pais, tutelados etc.)"
+,1.2.1.1,Gestão de Benefícios Previdenciários,Gestão de Pensões,Análise de pensão,Analisar requerimento de pensão
 ,1.2.2.1,Gestão de Benefícios Previdenciários,Gestão de Pensões,Manutenção e revisão de pensões,Revisar fundamentação/cálculo/opção de acúmulo
 ,1.2.2.2,Gestão de Benefícios Previdenciários,Gestão de Pensões,Manutenção e revisão de pensões,Reversão/atualização de cotas
 ,1.2.2.3,Gestão de Benefícios Previdenciários,Gestão de Pensões,Manutenção e revisão de pensões,Restabelecer benefício
 ,1.2.2.4,Gestão de Benefícios Previdenciários,Gestão de Pensões,Manutenção e revisão de pensões,Apurar possível recebimento indevido
 ,1.2.3.1,Gestão de Benefícios Previdenciários,Gestão de Pensões,Cadastramento de atos,Cadastrar ato no e-Pessoal
 ,1.2.4.1,Gestão de Benefícios Previdenciários,Gestão de Pensões,Recursos administrativos,Analisar recurso de pensão
-,1.3.1.1,Gestão de Benefícios Previdenciários,Gestão de Demandas Judiciais (COBEN),Gestão de Demandas Judiciais,Cumprir parecer de força executória
-,1.3.1.2,Gestão de Benefícios Previdenciários,Gestão de Demandas Judiciais (COBEN),Gestão de Demandas Judiciais,Prestar subsídios judiciais
-,1.4.1.1,Gestão de Benefícios Previdenciários,Gestão de Demandas de Órgãos de Controle (COBEN),Gestão de Demandas de Controle,Cumprir determinações do TCU
 ,1.5.1.1,Gestão de Benefícios Previdenciários,Gestão da Compensação Previdenciária (CGBEN),Viabilidade de compensação,Analisar processos/reqs COMPREV
 ,1.5.2.1,Gestão de Benefícios Previdenciários,Gestão da Compensação Previdenciária (CGBEN),Gestão financeira,Executar pagamento via SIAFI
 ,1.5.2.2,Gestão de Benefícios Previdenciários,Gestão da Compensação Previdenciária (CGBEN),Gestão financeira,Controlar orçamento e pagamentos
-,1.6.1.1,Gestão de Benefícios Previdenciários,Gestão da Reparação Econômica à Anistiados,Gestão da Reparação Econômica,Implantar nova reparação (parcela única/mensal)
-,1.6.1.2,Gestão de Benefícios Previdenciários,Gestão da Reparação Econômica à Anistiados,Gestão da Reparação Econômica,Tratar demandas judiciais de anistiados
-,2.1.1.1,Gestão de Auxílios,Gestão de Auxílio Funeral,Gestão de Auxílio Funeral,Processar auxílio funeral
-,2.2.1.1,Gestão de Auxílios,Gestão de Isenção de IRPF,Gestão de Isenção de IRPF,Processar isenção de IRPF
-,2.3.1.1,Gestão de Auxílios,Gestão dos Benefícios de Assistência à Saúde Suplementar,Gestão de Assistência à Saúde,Processar benefícios de saúde suplementar
+,1.6.1.1,Gestão de Benefícios Previdenciários,Gestão da Reparação Econômica à Anistiados,Gestão da Reparação Econômica,Analisar requerimento de reparação econômica
+,2.1.1.1,Gestão de Auxílios,Gestão de Auxílio Funeral,Gestão de Auxílio Funeral,Analisar requerimento de auxílio funeral
+,2.2.1.1,Gestão de Auxílios,Gestão de Isenção de IRPF,Gestão de Isenção de IRPF,Analisar requerimento de isenção de IRPF
+,2.3.1.1,Gestão de Auxílios,Gestão dos Benefícios de Assistência à Saúde Suplementar,Gestão de Assistência à Saúde,Analisar requerimento de assistência à saúde
 ,3.1.1.1,Gestão de Folhas de Pagamento,Pagamentos de Pessoal Civil e Militar,Pagamentos de Pessoal,Processar folha de pessoal civil
 ,3.1.1.2,Gestão de Folhas de Pagamento,Pagamentos de Pessoal Civil e Militar,Pagamentos de Pessoal,Processar folha de pessoal militar
 ,3.2.1.1,Gestão de Folhas de Pagamento,Pagamentos de Anistiados Políticos,Pagamentos de Anistiados,Processar folha de anistiados políticos
-,3.3.1.1,Gestão de Folhas de Pagamento,Demandas Judiciais e Órgãos de Controle (COPAG),Demandas Judiciais e Controle,Atender demandas judiciais de folha
-,3.3.1.2,Gestão de Folhas de Pagamento,Demandas Judiciais e Órgãos de Controle (COPAG),Demandas Judiciais e Controle,Atender demandas de órgãos de controle
-,3.4.1.1,Gestão de Folhas de Pagamento,Gestão de Obrigações de Pagamento,Obrigações de Pagamento,Gerir obrigações de pagamento
+,3.3.1.1,Gestão de Folhas de Pagamento,Gestão de Obrigações de Pagamento,Obrigações de Pagamento,Gerir obrigações de pagamento
 ,4.1.1.1,Gestão da Execução Orçamentária-Financeira de Folhas,Gestão do Orçamento,Gestão do Orçamento,Planejar e gerir orçamento
 ,4.2.1.1,Gestão da Execução Orçamentária-Financeira de Folhas,Execução Orçamentária-Financeira,Execução Orçamentária-Financeira,Executar orçamento de folhas DECIPEX-DF
 ,4.2.1.2,Gestão da Execução Orçamentária-Financeira de Folhas,Execução Orçamentária-Financeira,Execução Orçamentária-Financeira,Executar orçamento de folhas Ex-Territórios
@@ -47,7 +41,9 @@ Aba,Numero,Macroprocesso,Processo,Subprocesso,Atividade
 ,5.3.1.1,Gestão de Acervos Funcionais,Digitalização e disponibilização de documentos AFD,Digitalização AFD,Digitalizar documentos
 ,5.3.1.2,Gestão de Acervos Funcionais,Digitalização e disponibilização de documentos AFD,Digitalização AFD,Disponibilizar documentos digitalizados
 ,6.1.1.1,Gestão do Atendimento e Relacionamento,Gestão de Atendimentos,Gestão de Atendimentos,Gerir atendimentos
-,6.2.1.1,Gestão do Atendimento e Relacionamento,Prestação de Atendimentos,Prestação de Atendimentos,Prestar atendimento aos usuários
+,6.2.1.1,Gestão do Atendimento e Relacionamento,Prestação de Atendimentos,Prestação de Atendimentos,Prestar atendimento por telefone
+,6.2.1.2,Gestão do Atendimento e Relacionamento,Prestação de Atendimentos,Prestação de Atendimentos,Prestar atendimento por e-mail
+,6.2.1.3,Gestão do Atendimento e Relacionamento,Prestação de Atendimentos,Prestação de Atendimentos,Prestar atendimento presencial
 ,6.3.1.1,Gestão do Atendimento e Relacionamento,Gestão de Canais de Atendimentos,Gestão de Canais,Gerir canais de atendimento
 ,6.4.1.1,Gestão do Atendimento e Relacionamento,Gestão do Relacionamento,Gestão do Relacionamento,Gerir relacionamento com stakeholders
 ,7.1.1.1,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Cumprimentos de Demandas Judiciais,Demandas Judiciais,Cumprir demandas judiciais
@@ -55,26 +51,30 @@ Aba,Numero,Macroprocesso,Processo,Subprocesso,Atividade
 ,7.3.1.1,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Gestão de Demandas Administrativas associadas ao Judicial,Demandas Administrativas Judicial,Gerir demandas administrativas associadas ao judicial
 ,7.4.1.1,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Gestão de Demandas Administrativas e de Órgãos de Controle,Demandas Administrativas e Controle,Gerir demandas administrativas
 ,7.4.1.2,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Gestão de Demandas Administrativas e de Órgãos de Controle,Demandas Administrativas e Controle,Gerir demandas de órgãos de controle
+,7.4.1.3,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Gestão de Demandas Administrativas e de Órgãos de Controle,Demandas Administrativas e Controle,Tratar demandas da CGU
+,7.4.1.4,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Gestão de Demandas Administrativas e de Órgãos de Controle,Demandas Administrativas e Controle,Tratar demandas de acórdãos
 ,7.5.1.1,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Tratamento de Indícios TCU e Recadastramento de Atos,Indícios TCU,Tratar indícios do TCU
 ,7.5.2.1,Gestão de Demandas Judiciais e Administrativas e Órgãos de Controle,Tratamento de Indícios TCU e Recadastramento de Atos,Recadastramento de Atos,Recadastrar atos
 ,8.1.1.1,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Atendimento ao Pessoal e Entidades,Atendimento Ex-Territórios,Atender pessoal dos ex-territórios
 ,8.1.1.2,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Atendimento ao Pessoal e Entidades,Atendimento Ex-Territórios,Atender entidades dos ex-territórios
 ,8.2.1.1,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Gestão de Ativos Civis,Ativos Civis Ex-Territórios,Gerir ativos civis
 ,8.3.1.1,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Gestão de Militares,Militares Ex-Territórios,Gerir militares
-,8.4.1.1,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Gestão de Demandas Judiciais,Demandas Judiciais Ex-Territórios,Gerir demandas judiciais ex-territórios
+,8.4.1.1,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Gestão de Demandas Judiciais,Demandas Judiciais Ex-Territórios,Cumprir demandas judiciais - ex-territórios
+,8.4.1.2,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Gestão de Demandas Judiciais,Demandas Judiciais Ex-Territórios,Prestar subsídios judiciais - ex-territórios
 ,8.5.1.1,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Gestão de Demandas de Órgãos de Controle,Demandas Controle Ex-Territórios,Gerir demandas de controle ex-territórios
 ,8.6.1.1,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Apoio das DIGEPs à Folha de Pagamento,Apoio Folha Ex-Territórios,Apoiar folha de pagamento
 ,8.7.1.1,Gestão das DIGEPs dos Ex-Territórios (RR/RO/AP),Coordenação das DIGEPs (CDGEP),Coordenação CDGEP,Coordenar DIGEPs
-,9.1.1.1,Gestão das Complementações de Folhas de Pagamento,Concessões de Complementações de Aposentadorias e Pensões,Concessão Complementações,Conceder complementações de aposentadorias
-,9.1.1.2,Gestão das Complementações de Folhas de Pagamento,Concessões de Complementações de Aposentadorias e Pensões,Concessão Complementações,Conceder complementações de pensões
+,9.1.1.1,Gestão das Complementações de Folhas de Pagamento,Análise de Complementações de Aposentadorias e Pensões,Análise de Complementações,Analisar requerimento de complementação de aposentadoria
+,9.1.1.2,Gestão das Complementações de Folhas de Pagamento,Análise de Complementações de Aposentadorias e Pensões,Análise de Complementações,Analisar requerimento de complementação de pensão
 ,9.2.1.1,Gestão das Complementações de Folhas de Pagamento,Acertos Financeiros de Complementações,Acertos Financeiros,Realizar acertos financeiros de complementações
 ,9.3.1.1,Gestão das Complementações de Folhas de Pagamento,Pagamento de Resíduos Remuneratórios,Resíduos Remuneratórios,Pagar resíduos remuneratórios
 ,9.4.1.1,Gestão das Complementações de Folhas de Pagamento,Execução de Folha de Pagamento (VIFER e RFSSA),Execução Folha Complementação,Executar folha VIFER
 ,9.4.1.2,Gestão das Complementações de Folhas de Pagamento,Execução de Folha de Pagamento (VIFER e RFSSA),Execução Folha Complementação,Executar folha RFSSA
 ,9.5.1.1,Gestão das Complementações de Folhas de Pagamento,Emissão de Declarações e Certidões,Declarações e Certidões,Emitir declarações
 ,9.5.1.2,Gestão das Complementações de Folhas de Pagamento,Emissão de Declarações e Certidões,Declarações e Certidões,Emitir certidões
-,9.6.1.1,Gestão das Complementações de Folhas de Pagamento,Demandas Judiciais e Administrativas,Demandas Complementações,Atender demandas judiciais de complementações
-,9.6.1.2,Gestão das Complementações de Folhas de Pagamento,Demandas Judiciais e Administrativas,Demandas Complementações,Atender demandas administrativas de complementações
+,9.6.1.1,Gestão das Complementações de Folhas de Pagamento,Demandas Judiciais e Administrativas,Demandas Complementações,Cumprir demandas judiciais - complementações
+,9.6.1.2,Gestão das Complementações de Folhas de Pagamento,Demandas Judiciais e Administrativas,Demandas Complementações,Prestar subsídios judiciais - complementações
+,9.6.1.3,Gestão das Complementações de Folhas de Pagamento,Demandas Judiciais e Administrativas,Demandas Complementações,Atender demandas administrativas de complementações
 ,9.7.1.1,Gestão das Complementações de Folhas de Pagamento,Prestação de Atendimento Direto,Atendimento Complementações,Prestar atendimento direto
 ,10.1.1.1,Gestão de Convênios e Inventariança de Órgãos Extintos,Atualização e Regularização Contábil de Convênios,Regularização Contábil,Atualizar convênios contabilmente
 ,10.1.1.2,Gestão de Convênios e Inventariança de Órgãos Extintos,Atualização e Regularização Contábil de Convênios,Regularização Contábil,Regularizar convênios contabilmente

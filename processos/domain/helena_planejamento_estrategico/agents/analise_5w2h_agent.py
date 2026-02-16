@@ -11,7 +11,7 @@ class Analise5W2HAgent:
     """Agente 5W2H (em desenvolvimento)"""
 
     def __init__(self, llm: ChatOpenAI = None):
-        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+        self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.7, request_timeout=30)
 
     def processar_mensagem(self, mensagem: str, estrutura_atual: dict) -> dict:
         return {

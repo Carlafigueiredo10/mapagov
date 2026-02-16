@@ -9,13 +9,16 @@ import uuid
 
 class ChatSession(models.Model):
     """
-    Representa uma sessão de conversação com Helena.
+    Sessão de conversação com Helena (Fase 2 — modelo ativo).
+
+    Usado por: HelenaCore, chat_v2, SessionManager
+    Modelo legado: HelenaSession (processos.models.HelenaSession)
 
     Características:
-    - Stateless: estado armazenado em JSONB
-    - Multi-tenancy: isolado por órgão
+    - Stateless: estado armazenado em JSONB por produto
+    - Multi-tenancy: isolado por órgão (FK Orgao)
     - Versionamento: rastreia versões dos agentes usados
-    - Cache: sincronizado com Redis
+    - Cache: sincronizado com Redis via SessionManager
     """
 
     # Identificação
