@@ -845,10 +845,8 @@ class BuscaAtividadePipeline:
             }
 
         except Exception as e:
-            logger.error(f"[PIPELINE] Erro ao processar resposta Camada 4: {e}")
-            import traceback
-            traceback.print_exc()
-            return {'sucesso': False, 'erro': str(e)}
+            logger.error(f"[PIPELINE] Erro ao processar resposta Camada 4: {e}", exc_info=True)
+            return {'sucesso': False, 'erro': 'Erro ao processar classificacao. Tente novamente.'}
 
     def _camada5_nova_atividade(
         self,

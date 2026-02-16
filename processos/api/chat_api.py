@@ -6,10 +6,10 @@ Integra:
 - SessionManager (Redis + PostgreSQL)
 - Produtos Helena (etapas, pop, fluxograma, etc.)
 """
+import json
 import uuid
 import logging
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from processos.app.helena_core import HelenaCore
@@ -55,7 +55,6 @@ def get_helena_core() -> HelenaCore:
     return _helena_core_instance
 
 
-@csrf_exempt  # Temporário - adicionar CSRF token no frontend depois
 @require_http_methods(["POST"])
 @rate_limit_user(limit=30, window=60)  # FASE 2: 30 mensagens/minuto por usuário
 # @login_required  # TEMPORÁRIO: comentado para testes sem autenticação
@@ -164,22 +163,22 @@ def chat_v2(request):
         # 3. Retornar resposta
         return JsonResponse(resultado, status=200)
 
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except ValueError as e:
-        logger.warning(f"Erro de validação: {e}")
+        logger.warning(f"Erro de validação no chat_v2: {e}")
         return JsonResponse({
-            'erro': str(e)
+            'erro': str(e),
+            'code': 'validation_error',
         }, status=400)
 
     except Exception as e:
-        import traceback
-        print("\n\n" + "="*80)
-        print("ERRO COMPLETO NO CHAT_V2:")
-        print("="*80)
-        traceback.print_exc()
-        print("="*80 + "\n\n")
-        logger.exception(f"Erro no chat_v2: {e}")
+        request_id = str(uuid.uuid4())[:8]
+        logger.exception(f"Erro no chat_v2 request_id={request_id}: {e}")
         return JsonResponse({
-            'erro': str(e)  # Retorna erro real pro frontend também
+            'erro': f'Erro interno do servidor. Tente novamente. (id: {request_id})',
+            'code': 'internal_error',
         }, status=500)
 
 
@@ -218,12 +217,16 @@ def mudar_contexto(request):
 
         return JsonResponse(resultado, status=200)
 
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     except ValueError as e:
-        return JsonResponse({'erro': str(e)}, status=400)
+        logger.warning(f"Erro de validação ao mudar contexto: {e}")
+        return JsonResponse({'erro': 'Dados inválidos para mudança de contexto.', 'code': 'validation_error'}, status=400)
 
     except Exception as e:
         logger.exception(f"Erro ao mudar contexto: {e}")
-        return JsonResponse({'erro': 'Erro interno'}, status=500)
+        return JsonResponse({'erro': 'Erro interno do servidor.', 'code': 'internal_error'}, status=500)
 
 
 @require_http_methods(["GET"])
@@ -288,7 +291,6 @@ def info_sessao(request, session_id):
         return JsonResponse({'erro': 'Erro interno'}, status=500)
 
 
-@csrf_exempt  # Temporário - adicionar CSRF token no frontend depois
 @require_http_methods(["GET"])
 # @login_required  # TEMPORÁRIO: comentado para testes sem autenticação
 def buscar_mensagens(request, session_id):
@@ -397,6 +399,9 @@ def finalizar_sessao(request):
             'mensagem': 'Sessão finalizada com sucesso',
             'session_id': session_id
         }, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
 
     except Exception as e:
         logger.exception(f"Erro ao finalizar sessão: {e}")

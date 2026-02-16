@@ -86,11 +86,11 @@ class HelenaRecepcaoOrchestrator:
         except Exception as e:
             logger.error(f"[processar] Erro: {e}", exc_info=True)
             return {
-                'resposta': "⚠️ Ops, tive um problema temporário. Pode tentar novamente?",
+                'resposta': "Ops, tive um problema temporario. Pode tentar novamente?",
                 'produto_direcionado': None,
                 'validacao_ok': False,
                 'acao': 'erro',
-                'erro': str(e)
+                'erro': 'Erro interno no processamento.'
             }
 
     def reset(self):

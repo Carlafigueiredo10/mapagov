@@ -134,7 +134,8 @@ Retorne APENAS um JSON válido:
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
-            max_tokens=800
+            max_tokens=800,
+            timeout=30
         )
 
         resposta_helena = response.choices[0].message.content.strip()
@@ -162,15 +163,17 @@ Retorne APENAS um JSON válido:
         }
 
     except json.JSONDecodeError as e:
+        logger.warning(f"JSON invalido na resposta da IA: {e}")
         return {
             'sucesso': False,
-            'erro': f'Erro ao processar resposta da IA: {str(e)}',
+            'erro': 'Erro ao processar resposta da IA. Tente novamente.',
             'resposta_bruta': resposta_helena if 'resposta_helena' in locals() else None
         }
     except Exception as e:
+        logger.error(f"Erro ao analisar atividade: {e}", exc_info=True)
         return {
             'sucesso': False,
-            'erro': f'Erro ao analisar atividade: {str(e)}'
+            'erro': 'Erro ao analisar atividade. Tente novamente.'
         }
 
 
@@ -419,13 +422,11 @@ def classificar_e_gerar_cap(descricao_usuario, area_codigo, contexto=None, autor
         }
 
     except Exception as e:
-        logger.error(f"❌ Erro em classificar_e_gerar_cap: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Erro em classificar_e_gerar_cap: {e}", exc_info=True)
 
         return {
             'sucesso': False,
-            'erro': str(e)
+            'erro': 'Erro ao classificar atividade. Tente novamente.'
         }
 
 

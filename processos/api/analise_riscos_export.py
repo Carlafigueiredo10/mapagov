@@ -2130,7 +2130,7 @@ def exportar_analise(request, analise_id):
 
     except ImportError as e:
         logger.exception("Biblioteca de exportacao nao instalada")
-        return Response({"erro": f"Biblioteca nao instalada: {str(e)}"}, status=500)
+        return Response({"erro": "Recurso de exportacao temporariamente indisponivel.", "code": "export_unavailable"}, status=500)
     except Exception as e:
         logger.exception("Erro ao exportar analise")
-        return Response({"erro": str(e)}, status=500)
+        return Response({"erro": "Erro ao gerar exportacao. Tente novamente.", "code": "internal_error"}, status=500)
