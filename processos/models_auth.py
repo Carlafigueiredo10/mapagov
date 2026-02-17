@@ -26,6 +26,14 @@ ACCESS_APPROVER_GROUP = 'ACCESS_APPROVER'
 REQUIRED_APPROVALS = 3
 REQUIRED_REJECTIONS = 2
 
+ROLE_CHOICES = [
+    ('operator', 'Operador'),
+    ('area_manager', 'Gestor de Area'),
+    ('general_manager', 'Gestor Geral'),
+    ('admin', 'Administrador'),
+]
+ROLE_HIERARCHY = ['operator', 'area_manager', 'general_manager', 'admin']
+
 
 def is_mgi_email(email: str) -> bool:
     """Verifica se o email pertence ao domínio MGI."""
@@ -34,14 +42,19 @@ def is_mgi_email(email: str) -> bool:
 
 def is_approver(user) -> bool:
     """
-    Verifica se o usuário é um aprovador autorizado.
-    Aprovador = superuser OR membro do grupo ACCESS_APPROVER.
+    Verifica se o usuario e um aprovador autorizado.
+    Aprovador = superuser OR role >= area_manager.
+    Mantém fallback para grupo ACCESS_APPROVER (compatibilidade).
     """
     if not user.is_active:
         return False
     if user.is_superuser:
         return True
-    return user.groups.filter(name=ACCESS_APPROVER_GROUP).exists()
+    try:
+        return user.profile.has_role('area_manager')
+    except (UserProfile.DoesNotExist, AttributeError):
+        # Fallback: grupo Django (compatibilidade com usuarios pre-migracao)
+        return user.groups.filter(name=ACCESS_APPROVER_GROUP).exists()
 
 
 def get_active_approvers_count() -> int:
@@ -98,6 +111,12 @@ class UserProfile(models.Model):
         choices=ACCESS_STATUS_CHOICES,
         default='pending',
     )
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='operator',
+        db_index=True,
+    )
     approved_at = models.DateTimeField(null=True, blank=True)
     rejected_at = models.DateTimeField(null=True, blank=True)
 
@@ -120,6 +139,12 @@ class UserProfile(models.Model):
     # Dados pessoais
     nome_completo = models.CharField(max_length=255, blank=True)
     cargo = models.CharField(max_length=255, blank=True)
+    setor_trabalho = models.CharField(
+        max_length=255, blank=True,
+        verbose_name='Setor de trabalho',
+        help_text='Informado por usuarios nao-Decipex no cadastro.',
+    )
+    is_decipex = models.BooleanField(default=False, verbose_name='Pertence a Decipex')
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -144,6 +169,22 @@ class UserProfile(models.Model):
     def can_access(self) -> bool:
         """Acesso liberado apenas se email verificado E status aprovado."""
         return self.email_verified and self.access_status == 'approved'
+
+    @property
+    def role_level(self) -> int:
+        """Retorna nivel hierarquico do role (0=operator, 3=admin)."""
+        try:
+            return ROLE_HIERARCHY.index(self.role)
+        except ValueError:
+            return 0
+
+    def has_role(self, minimum_role: str) -> bool:
+        """Verifica se o role do usuario e >= minimum_role."""
+        try:
+            required = ROLE_HIERARCHY.index(minimum_role)
+        except ValueError:
+            return False
+        return self.role_level >= required
 
     def approve(self):
         """Marca o perfil como aprovado."""
@@ -246,6 +287,29 @@ def process_vote(user_profile: UserProfile) -> str | None:
 
 
 # ============================================================================
+# HELPERS
+# ============================================================================
+
+def get_or_create_profile(user) -> 'UserProfile':
+    """
+    Retorna o UserProfile do usuario, criando com defaults consistentes se nao existir.
+    Usado por: signal post_save, fallback do /me/, e qualquer ponto que precise de profile.
+    """
+    try:
+        return user.profile
+    except UserProfile.DoesNotExist:
+        email = user.email.strip().lower() if user.email else ''
+        profile_type = 'mgi' if is_mgi_email(email) else 'externo'
+        access_status = 'approved' if profile_type == 'mgi' else 'pending'
+        return UserProfile.objects.create(
+            user=user,
+            profile_type=profile_type,
+            access_status=access_status,
+            role='operator',
+        )
+
+
+# ============================================================================
 # SIGNALS
 # ============================================================================
 
@@ -253,12 +317,4 @@ def process_vote(user_profile: UserProfile) -> str | None:
 def create_user_profile(sender, instance, created, **kwargs):
     """Cria UserProfile automaticamente ao criar User."""
     if created:
-        email = instance.email.strip().lower() if instance.email else ''
-        profile_type = 'mgi' if is_mgi_email(email) else 'externo'
-        access_status = 'approved' if profile_type == 'mgi' else 'pending'
-
-        UserProfile.objects.create(
-            user=instance,
-            profile_type=profile_type,
-            access_status=access_status,
-        )
+        get_or_create_profile(instance)

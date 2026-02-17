@@ -48,3 +48,10 @@ export async function getAuditLog() {
   const res = await api.get('/admin/audit-log/');
   return res.data;
 }
+
+export async function changeUserRole(userId: number, role: string, areaId?: number) {
+  const payload: { role: string; area_id?: number } = { role };
+  if (areaId !== undefined) payload.area_id = areaId;
+  const res = await api.patch(`/admin/users/${userId}/role/`, payload);
+  return res.data as { success: boolean; role: string; role_display: string; area: string | null };
+}

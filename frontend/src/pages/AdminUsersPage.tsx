@@ -1,12 +1,35 @@
 import { useEffect, useState } from 'react';
-import { listPendingUsers, castVote } from '../services/adminApi';
+import { listPendingUsers, castVote, changeUserRole } from '../services/adminApi';
 import type { PendingUser, VoteResult } from '../services/adminApi';
+import { useAuthStore } from '../store/authStore';
+import { hasRole } from '../services/authApi';
+import type { UserRole } from '../services/authApi';
+import api from '../services/api';
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  operator: 'Operador',
+  area_manager: 'Gestor de Area',
+  general_manager: 'Gestor Geral',
+  admin: 'Administrador',
+};
+
+interface AreaOption {
+  id: number;
+  codigo: string;
+  nome: string;
+}
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [votingId, setVotingId] = useState<number | null>(null);
   const [message, setMessage] = useState('');
+  const currentUser = useAuthStore((s) => s.user);
+  const canChangeRoles = hasRole(currentUser, 'admin') || currentUser?.is_superuser;
+
+  // Estado para seletor de area (area_manager)
+  const [areas, setAreas] = useState<AreaOption[]>([]);
+  const [pendingRole, setPendingRole] = useState<{ userId: number; role: UserRole } | null>(null);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -22,6 +45,14 @@ export default function AdminUsersPage() {
 
   useEffect(() => { loadUsers(); }, []);
 
+  // Carrega areas quando admin pode alterar roles
+  useEffect(() => {
+    if (!canChangeRoles) return;
+    api.get('/areas/?all=1').then(res => {
+      setAreas(res.data.map((a: any) => ({ id: a.id, codigo: a.codigo, nome: a.nome })));
+    }).catch(() => {});
+  }, [canChangeRoles]);
+
   const handleVote = async (userId: number, vote: 'approve' | 'reject') => {
     setVotingId(userId);
     setMessage('');
@@ -36,6 +67,27 @@ export default function AdminUsersPage() {
       setMessage(err.response?.data?.erro || 'Erro ao registrar voto.');
     } finally {
       setVotingId(null);
+    }
+  };
+
+  const handleRoleSelect = (userId: number, newRole: UserRole) => {
+    if (newRole === 'area_manager') {
+      // Mostra seletor de area antes de confirmar
+      setPendingRole({ userId, role: newRole });
+    } else {
+      handleRoleChange(userId, newRole);
+    }
+  };
+
+  const handleRoleChange = async (userId: number, newRole: UserRole, areaId?: number) => {
+    setMessage('');
+    setPendingRole(null);
+    try {
+      const result = await changeUserRole(userId, newRole, areaId);
+      setMessage(`Role alterado para ${result.role_display}${result.area ? ` (${result.area})` : ''}.`);
+      loadUsers();
+    } catch (err: any) {
+      setMessage(err.response?.data?.erro || 'Erro ao alterar role.');
     }
   };
 
@@ -87,7 +139,7 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
-              <div style={{ marginTop: 16, display: 'flex', gap: 12 }}>
+              <div style={{ marginTop: 16, display: 'flex', gap: 12, alignItems: 'center' }}>
                 <button
                   onClick={() => handleVote(user.id, 'approve')}
                   disabled={votingId === user.id}
@@ -108,6 +160,60 @@ export default function AdminUsersPage() {
                 >
                   Rejeitar
                 </button>
+
+                {canChangeRoles && (
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select
+                      defaultValue=""
+                      onChange={(e) => {
+                        if (e.target.value) handleRoleSelect(user.id, e.target.value as UserRole);
+                        e.target.value = '';
+                      }}
+                      style={{
+                        padding: '6px 10px',
+                        border: '1px solid #ccc', borderRadius: 4,
+                        fontSize: 13, color: '#333', cursor: 'pointer',
+                      }}
+                    >
+                      <option value="" disabled>Definir role...</option>
+                      {(Object.entries(ROLE_LABELS) as [UserRole, string][]).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+
+                    {pendingRole?.userId === user.id && (
+                      <>
+                        <select
+                          defaultValue=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleRoleChange(user.id, pendingRole.role, Number(e.target.value));
+                            }
+                          }}
+                          style={{
+                            padding: '6px 10px',
+                            border: '1px solid #1351B4', borderRadius: 4,
+                            fontSize: 13, color: '#333', cursor: 'pointer',
+                          }}
+                        >
+                          <option value="" disabled>Selecionar area...</option>
+                          {areas.map(a => (
+                            <option key={a.id} value={a.id}>{a.codigo}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => setPendingRole(null)}
+                          style={{
+                            padding: '4px 8px', background: 'transparent', color: '#666',
+                            border: '1px solid #ccc', borderRadius: 4, cursor: 'pointer', fontSize: 12,
+                          }}
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}

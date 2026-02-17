@@ -4,9 +4,11 @@ from django.db import transaction
 from django.db.models import Count, Q
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from processos.models import Area, POP, PopVersion
+from processos.permissions import IsAreaManagerOrAbove
 from .catalogo_serializers import (
     AreaSerializer,
     POPListSerializer,
@@ -121,7 +123,8 @@ class POPViewSet(viewsets.ModelViewSet):
         instance.save(update_fields=['is_deleted'])
 
     # ----- Etapa 3: Publish -----
-    @action(detail=True, methods=['post'], url_path='publish')
+    @action(detail=True, methods=['post'], url_path='publish',
+            permission_classes=[IsAuthenticated, IsAreaManagerOrAbove])
     def publish(self, request, uuid=None):
         """POST /api/pops/{uuid}/publish/ — cria PopVersion imutavel."""
         pop = self.get_object()
@@ -167,7 +170,8 @@ class POPViewSet(viewsets.ModelViewSet):
         })
 
     # ----- Etapa 3: Archive -----
-    @action(detail=True, methods=['post'], url_path='archive')
+    @action(detail=True, methods=['post'], url_path='archive',
+            permission_classes=[IsAuthenticated, IsAreaManagerOrAbove])
     def archive(self, request, uuid=None):
         """POST /api/pops/{uuid}/archive/"""
         pop = self.get_object()

@@ -66,6 +66,7 @@ export default function PasswordResetConfirmPage() {
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: 14 }}>Nova senha</label>
             <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} style={inputStyle} />
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>No mínimo 6 caracteres, com letra maiúscula, minúscula, número e símbolo.</p>
           </div>
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: 14 }}>Confirmar nova senha</label>

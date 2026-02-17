@@ -35,6 +35,7 @@ from processos.models_auth import (
     UserProfile,
     is_mgi_email,
     is_approver,
+    get_or_create_profile,
 )
 from processos.infra.rate_limiting import rate_limit_ip, get_client_ip
 
@@ -115,6 +116,36 @@ def _notify_approvers_new_registration(user):
             logger.error(f"Erro ao notificar aprovador {approver.email}: {e}")
 
 
+def _notify_authorization_email(user, profile):
+    """Envia solicitacao de autorizacao para mapagov.gestao@gmail.com."""
+    setor = profile.setor_trabalho or '(nao informado)'
+    area_nome = profile.area.nome_curto if profile.area else '(nao informada)'
+    vinculacao = 'Decipex' if profile.is_decipex else 'Externo'
+
+    frontend_url = _get_frontend_url()
+    admin_url = f"{frontend_url}/admin/usuarios"
+
+    try:
+        send_mail(
+            subject='[MapaGov] Solicitacao de acesso externo',
+            message=(
+                f'Nova solicitacao de cadastro no MapaGov.\n\n'
+                f'Nome: {profile.nome_completo}\n'
+                f'Email: {user.email}\n'
+                f'Vinculacao: {vinculacao}\n'
+                f'Area/Setor: {area_nome if profile.is_decipex else setor}\n'
+                f'Data: {profile.created_at.strftime("%d/%m/%Y %H:%M") if profile.created_at else "—"}\n\n'
+                f'Acesse o painel para aprovar ou rejeitar:\n{admin_url}'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=['mapagov.gestao@gmail.com'],
+            headers={'Reply-To': user.email},
+            fail_silently=True,
+        )
+    except Exception as e:
+        logger.error(f"Erro ao enviar email de autorizacao para mapagov.gestao: {e}")
+
+
 def models_Q_superuser_or_group():
     """Retorna Q filter para usuarios que sao superuser OU membros do grupo ACCESS_APPROVER."""
     from django.db.models import Q
@@ -188,8 +219,10 @@ def register(request):
     profile = user.profile
     profile.nome_completo = data['nome_completo']
     profile.cargo = data.get('cargo', '')
+    profile.is_decipex = data.get('is_decipex', False)
+    profile.setor_trabalho = data.get('setor_trabalho', '')
 
-    # Vincular area se fornecida
+    # Vincular area se fornecida (Decipex)
     if data.get('area_codigo'):
         from processos.models import Area
         area = Area.objects.filter(codigo=data['area_codigo'], ativo=True).first()
@@ -201,9 +234,10 @@ def register(request):
     # Enviar email de verificacao
     _send_verification_email(user)
 
-    # Se externo, notificar aprovadores
+    # Se externo, notificar aprovadores + enviar para mapagov.gestao@gmail.com
     if not is_mgi_email(email):
         _notify_approvers_new_registration(user)
+        _notify_authorization_email(user, profile)
 
     _log_audit(user, 'register', f'Novo cadastro: {email} ({profile.profile_type})', request)
 
@@ -308,7 +342,7 @@ def logout_view(request):
 @permission_classes([IsAuthenticated])
 def me(request):
     """Retorna info do usuario logado + status do perfil."""
-    profile = request.user.profile
+    profile = get_or_create_profile(request.user)
     data = UserProfileSerializer(profile).data
     data['can_access'] = profile.can_access
     data['is_approver'] = is_approver(request.user)
@@ -355,6 +389,17 @@ def password_reset(request):
         logger.error(f"Erro ao enviar email de reset: {e}")
 
     return Response({'mensagem': 'Se o email estiver cadastrado, voce recebera um link de recuperacao.'})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_areas(request):
+    """Lista areas ativas para formulario de cadastro (publico, sem autenticacao)."""
+    from processos.models import Area
+    areas = Area.objects.filter(ativo=True, area_pai__isnull=True).order_by('nome_curto').values(
+        'codigo', 'nome_curto',
+    )
+    return Response(list(areas))
 
 
 @api_view(['POST'])

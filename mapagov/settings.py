@@ -72,7 +72,8 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = False  # Cloud Run proxy já gerencia HTTPS
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SAMESITE = 'None'  # Necessário para CORS com cookies
+    SESSION_COOKIE_SAMESITE = 'Lax'   # Same-origin (WhiteNoise SPA) — Lax e suficiente
+    CSRF_COOKIE_SAMESITE = 'Lax'
 
     # HSTS (HTTP Strict Transport Security)
     SECURE_HSTS_SECONDS = 31536000  # 1 ano
@@ -197,9 +198,9 @@ if not DEBUG and not SKIP_DB_CHECK and DATABASES["default"]["ENGINE"].endswith("
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+     'OPTIONS': {'min_length': 6}},
+    {'NAME': 'processos.validators.GovBrPasswordValidator'},
 ]
 
 # Internationalization

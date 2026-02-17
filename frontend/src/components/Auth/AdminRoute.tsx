@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { hasRole } from '../../services/authApi';
 
 const PUBLIC_MVP = import.meta.env.VITE_PUBLIC_MVP_MODE === '1';
 
@@ -25,7 +26,8 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
     return <Navigate to="/login" replace />;
   }
 
-  if (!user?.is_approver && !user?.is_superuser) {
+  // AdminRoute: somente role=admin ou is_superuser
+  if (!hasRole(user, 'admin') && !user?.is_superuser) {
     return <Navigate to="/portal" replace />;
   }
 

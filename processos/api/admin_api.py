@@ -21,9 +21,11 @@ from processos.api.auth_serializers import PendingUserSerializer, VoteSerializer
 from processos.models_auth import (
     UserProfile,
     AccessApproval,
+    ROLE_CHOICES,
     is_approver,
     process_vote,
 )
+from processos.permissions import IsAdminRole, IsApprover
 from processos.infra.rate_limiting import get_client_ip
 
 logger = logging.getLogger('processos')
@@ -69,13 +71,9 @@ def _get_frontend_url():
 # ============================================================================
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsApprover])
 def list_pending(request):
     """Lista cadastros pendentes de aprovação."""
-    denied = _check_approver(request)
-    if denied:
-        return denied
-
     qs = UserProfile.objects.filter(
         access_status='pending',
         profile_type='externo',
@@ -96,13 +94,9 @@ def list_pending(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsApprover])
 def cast_vote(request, user_id):
     """Registra voto de aprovação/rejeição para um cadastro pendente."""
-    denied = _check_approver(request)
-    if denied:
-        return denied
-
     serializer = VoteSerializer(data=request.data)
     if not serializer.is_valid():
         return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -173,13 +167,9 @@ def cast_vote(request, user_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsApprover])
 def user_detail(request, user_id):
     """Detalhe de um usuario com historico de votos."""
-    denied = _check_approver(request)
-    if denied:
-        return denied
-
     try:
         profile = UserProfile.objects.select_related('user', 'area', 'orgao').get(id=user_id)
     except UserProfile.DoesNotExist:
@@ -192,15 +182,9 @@ def user_detail(request, user_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminRole])
 def audit_log(request):
-    """Lista eventos de auditoria de auth (somente superusers)."""
-    if not request.user.is_superuser:
-        return Response(
-            {'erro': 'Acesso restrito a superusers.'},
-            status=status.HTTP_403_FORBIDDEN,
-        )
-
+    """Lista eventos de auditoria de auth (admin ou superuser)."""
     try:
         from processos.models_new.audit_log import AuditLog
         logs = AuditLog.objects.filter(
@@ -223,6 +207,81 @@ def audit_log(request):
     except Exception as e:
         logger.error(f"Erro ao buscar audit log: {e}")
         return Response({'erro': 'Erro ao buscar logs.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def change_role(request, user_id):
+    """
+    PATCH /api/admin/users/<id>/role/
+    Payload: { "role": "area_manager", "area_id": 5 }  (area_id opcional)
+
+    Regras:
+    - Somente admin ou superuser pode alterar roles
+    - Nao pode alterar o proprio role
+    - area_manager exige area vinculada (existente ou via area_id no payload)
+    """
+    new_role = request.data.get('role', '').strip()
+    valid_roles = dict(ROLE_CHOICES)
+
+    if new_role not in valid_roles:
+        return Response(
+            {'erro': f'Role invalido. Opcoes: {", ".join(valid_roles.keys())}'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        profile = UserProfile.objects.select_related('user', 'area').get(user_id=user_id)
+    except UserProfile.DoesNotExist:
+        return Response({'erro': 'Usuario nao encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Nao pode alterar o proprio role
+    if profile.user == request.user:
+        return Response(
+            {'erro': 'Voce nao pode alterar seu proprio role.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Se recebeu area_id no payload, atualizar vinculo
+    area_id = request.data.get('area_id')
+    if area_id is not None:
+        from processos.models import Area
+        try:
+            area = Area.objects.get(id=int(area_id), ativo=True)
+            profile.area = area
+        except (Area.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {'erro': 'Area nao encontrada.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    # area_manager exige area vinculada
+    if new_role == 'area_manager' and not profile.area and not area_id:
+        return Response(
+            {'erro': 'Gestor de Area precisa ter uma area vinculada. Envie area_id no payload.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    old_role = profile.role
+    profile.role = new_role
+    update_fields = ['role', 'updated_at']
+    if area_id is not None:
+        update_fields.append('area')
+    profile.save(update_fields=update_fields)
+
+    _log_audit(
+        request.user, 'update',
+        f'Role alterado: {old_role} -> {new_role} para {profile.user.email}',
+        request,
+    )
+
+    return Response({
+        'success': True,
+        'user_id': user_id,
+        'role': new_role,
+        'role_display': valid_roles[new_role],
+        'area': profile.area.nome if profile.area else None,
+    })
 
 
 # ============================================================================

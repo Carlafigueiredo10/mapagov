@@ -12,6 +12,7 @@ from processos.api.catalogo_api import AreaViewSet, POPViewSet, pop_por_area_cod
 from processos.api.catalogo_pdf import gerar_pdf_catalogo
 from processos.api.catalogo_search import search_pops
 from processos.api.catalogo_stats import stats_global, stats_area
+from processos.api.produtos_busca_api import buscar_por_codigo  # Busca unificada SNI
 from processos.api import auth_api, admin_api  # Auth & Access Control
 from processos.infra import metrics  # FASE 3 - Prometheus Metrics
 from processos.infra.health import health_check  # Health check endpoint
@@ -166,6 +167,11 @@ urlpatterns = [
     path('api/stats/areas/<str:slug>/', stats_area, name='stats-area'),
 
     # ============================================================================
+    # BUSCA UNIFICADA SNI — CAP + CP em endpoint único
+    # ============================================================================
+    path('api/produtos/busca/', buscar_por_codigo, name='busca-codigo'),
+
+    # ============================================================================
     # AUTH API — Registro, Login, Verificação, Senha
     # ============================================================================
     path('api/auth/csrf/', auth_api.get_csrf, name='auth-csrf'),
@@ -176,12 +182,14 @@ urlpatterns = [
     path('api/auth/me/', auth_api.me, name='auth-me'),
     path('api/auth/password-reset/', auth_api.password_reset, name='auth-password-reset'),
     path('api/auth/password-reset-confirm/', auth_api.password_reset_confirm, name='auth-password-reset-confirm'),
+    path('api/auth/areas/', auth_api.public_areas, name='auth-public-areas'),
 
     # ============================================================================
     # ADMIN API — Aprovação de cadastros, auditoria
     # ============================================================================
     path('api/admin/pending-users/', admin_api.list_pending, name='admin-pending'),
     path('api/admin/users/<int:user_id>/vote/', admin_api.cast_vote, name='admin-vote'),
+    path('api/admin/users/<int:user_id>/role/', admin_api.change_role, name='admin-change-role'),
     path('api/admin/users/<int:user_id>/', admin_api.user_detail, name='admin-user-detail'),
     path('api/admin/audit-log/', admin_api.audit_log, name='admin-audit'),
 

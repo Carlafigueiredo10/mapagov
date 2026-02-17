@@ -6,11 +6,13 @@ from processos.models_auth import UserProfile, AccessApproval
 
 class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    password = serializers.CharField(write_only=True, min_length=8)
+    password = serializers.CharField(write_only=True, min_length=6)
     password_confirm = serializers.CharField(write_only=True)
     nome_completo = serializers.CharField(max_length=255)
-    cargo = serializers.CharField(max_length=255, required=False, default='')
-    area_codigo = serializers.CharField(max_length=50, required=False, default='')
+    cargo = serializers.CharField(max_length=255, required=False, default='', allow_blank=True)
+    is_decipex = serializers.BooleanField(required=False, default=False)
+    area_codigo = serializers.CharField(max_length=50, required=False, default='', allow_blank=True)
+    setor_trabalho = serializers.CharField(max_length=255, required=False, default='', allow_blank=True)
 
     def validate_email(self, value):
         email = value.strip().lower()
@@ -25,6 +27,16 @@ class RegisterSerializer(serializers.Serializer):
     def validate(self, data):
         if data['password'] != data['password_confirm']:
             raise serializers.ValidationError({'password_confirm': 'As senhas nao conferem.'})
+
+        is_decipex = data.get('is_decipex', False)
+        area_codigo = data.get('area_codigo', '').strip()
+        setor_trabalho = data.get('setor_trabalho', '').strip()
+
+        if is_decipex and not area_codigo:
+            raise serializers.ValidationError({'area_codigo': 'Selecione a area da Decipex.'})
+        if not is_decipex and not setor_trabalho:
+            raise serializers.ValidationError({'setor_trabalho': 'Informe o setor de trabalho.'})
+
         return data
 
 
@@ -46,6 +58,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'email', 'username', 'is_superuser',
             'profile_type', 'email_verified', 'access_status',
+            'role',
             'nome_completo', 'cargo',
             'orgao', 'area',
             'created_at',
@@ -104,7 +117,7 @@ class PasswordResetSerializer(serializers.Serializer):
 class PasswordResetConfirmSerializer(serializers.Serializer):
     uid = serializers.CharField()
     token = serializers.CharField()
-    password = serializers.CharField(write_only=True, min_length=8)
+    password = serializers.CharField(write_only=True, min_length=6)
 
     def validate_password(self, value):
         validate_password(value)
