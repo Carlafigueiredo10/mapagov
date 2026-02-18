@@ -118,6 +118,8 @@ def _notify_approvers_new_registration(user):
 
 def _notify_authorization_email(user, profile):
     """Envia solicitacao de autorizacao para mapagov.gestao@gmail.com."""
+    from django.core.mail import EmailMessage
+
     setor = profile.setor_trabalho or '(nao informado)'
     area_nome = profile.area.nome_curto if profile.area else '(nao informada)'
     vinculacao = 'Decipex' if profile.is_decipex else 'Externo'
@@ -126,9 +128,9 @@ def _notify_authorization_email(user, profile):
     admin_url = f"{frontend_url}/admin/usuarios"
 
     try:
-        send_mail(
+        msg = EmailMessage(
             subject='[MapaGov] Solicitacao de acesso externo',
-            message=(
+            body=(
                 f'Nova solicitacao de cadastro no MapaGov.\n\n'
                 f'Nome: {profile.nome_completo}\n'
                 f'Email: {user.email}\n'
@@ -138,10 +140,11 @@ def _notify_authorization_email(user, profile):
                 f'Acesse o painel para aprovar ou rejeitar:\n{admin_url}'
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=['mapagov.gestao@gmail.com'],
-            headers={'Reply-To': user.email},
-            fail_silently=True,
+            to=['mapagov.gestao@gmail.com'],
+            reply_to=[user.email],
         )
+        msg.send(fail_silently=False)
+        logger.info(f"Email de autorizacao enviado para mapagov.gestao@gmail.com (usuario: {user.email})")
     except Exception as e:
         logger.error(f"Erro ao enviar email de autorizacao para mapagov.gestao: {e}")
 
