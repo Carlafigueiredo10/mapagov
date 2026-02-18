@@ -17,7 +17,7 @@ const PASSWORD_RULES = [
 export default function RegisterPage() {
   const { register, isLoading, error, clearError } = useAuthStore();
   const [form, setForm] = useState({
-    email: '', password: '', password_confirm: '',
+    email: '@gestao.gov.br', password: '', password_confirm: '',
     nome_completo: '', cargo: '', area_codigo: '',
     setor_trabalho: '',
   });
