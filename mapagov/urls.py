@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 from django.views.static import serve
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('django-admin/', admin.site.urls),
     path('', include('processos.urls')),  # Inclui URLs do app processos na raiz
 ]
 
@@ -39,7 +39,7 @@ from django.views.generic import TemplateView
 # Servir index.html do React para todas as rotas do frontend
 # IMPORTANTE: Isso deve vir por último, depois de todas as URLs da API
 urlpatterns += [
-    re_path(r'^(?!(?:api|admin|static|media|assets|metrics)/).*$',
+    re_path(r'^(?!(?:api|django-admin|static|media|assets|metrics)/).*$',
             TemplateView.as_view(template_name='index.html'),
             name='react-frontend'),
 ]

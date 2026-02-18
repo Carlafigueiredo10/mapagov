@@ -80,6 +80,9 @@ export default function RegisterPage() {
           <p style={{ color: '#333', marginBottom: 8 }}>
             Verifique seu e-mail para liberar o acesso.
           </p>
+          <p style={{ color: '#888', fontSize: 13, marginBottom: 8 }}>
+            Caso nao encontre, verifique a pasta de spam.
+          </p>
           {profileType === 'externo' && (
             <p style={{ color: '#666', fontSize: 14 }}>
               Como seu e-mail não pertence ao MGI, seu cadastro ficará pendente de autorização.

@@ -122,3 +122,27 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def validate_password(self, value):
         validate_password(value)
         return value
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """Serializer completo para listagem de usuarios no painel admin."""
+    profile_id = serializers.IntegerField(source='id', read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    is_active = serializers.BooleanField(source='user.is_active', read_only=True)
+    is_superuser = serializers.BooleanField(source='user.is_superuser', read_only=True)
+    orgao_nome = serializers.CharField(source='orgao.nome', read_only=True, default=None)
+    area_codigo = serializers.CharField(source='area.codigo', read_only=True, default=None)
+    area_nome = serializers.CharField(source='area.nome', read_only=True, default=None)
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'profile_id', 'user_id', 'email', 'username', 'is_active', 'is_superuser',
+            'profile_type', 'access_status', 'email_verified', 'role',
+            'nome_completo', 'cargo', 'setor_trabalho', 'is_decipex',
+            'orgao', 'orgao_nome', 'area', 'area_codigo', 'area_nome',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = fields

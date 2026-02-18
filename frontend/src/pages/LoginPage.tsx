@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { hasRole } from '../services/authApi';
 import { loginSchema } from '../schemas/authSchemas';
 
 function getSafeRedirect(next: string | null): string {
-  if (!next || !next.startsWith('/') || next.startsWith('//')) return '/portal';
+  if (!next || !next.startsWith('/') || next.startsWith('//')) return '';
   return next;
 }
 
@@ -33,7 +34,13 @@ export default function LoginPage() {
 
     const success = await login(form.email, form.password);
     if (success) {
-      navigate(nextUrl);
+      if (nextUrl) {
+        navigate(nextUrl);
+      } else {
+        // Admin vai para home, demais para portal
+        const user = useAuthStore.getState().user;
+        navigate(hasRole(user, 'admin') || user?.is_superuser ? '/' : '/portal');
+      }
     }
   };
 

@@ -12,6 +12,7 @@ import PendingAccessPage from './pages/PendingAccessPage'
 import PasswordResetPage from './pages/PasswordResetPage'
 import PasswordResetConfirmPage from './pages/PasswordResetConfirmPage'
 import AdminUsersPage from './pages/AdminUsersPage'
+import AdminDashboardPage from './pages/AdminDashboardPage'
 
 // Pages
 import Landing from './pages/Landing'
@@ -89,8 +90,9 @@ function App() {
         <Route path="/nova-senha/:uid/:token" element={<PasswordResetConfirmPage />} />
 
         {/* ================================================================
-            ROTAS ADMIN — painel de aprovacao de usuarios
+            ROTAS ADMIN — painel administrativo + gestao de usuarios
             ================================================================ */}
+        <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
         <Route path="/admin/usuarios" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
 
         {/* ================================================================

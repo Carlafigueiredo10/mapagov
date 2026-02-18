@@ -3,12 +3,16 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../../components/Layout/Layout';
 import HelenaPublicDrawer from '../../components/Helena/HelenaPublicDrawer';
+import { useAuthStore } from '../../store/authStore';
+import { hasRole } from '../../services/authApi';
 import styles from './Landing.module.css';
 
 const AUTH_MODE = import.meta.env.VITE_PUBLIC_MVP_MODE !== '1';
 
 export default function Landing() {
   const [drawerAberto, setDrawerAberto] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = hasRole(user, 'admin') || !!user?.is_superuser;
 
   return (
     <Layout>
@@ -41,6 +45,14 @@ export default function Landing() {
                     </Link>
                     <span className={styles.heroBtnHint}>Saiba como a assistente virtual apoia o uso da plataforma.</span>
                   </div>
+                  {isAdmin && (
+                    <div className={styles.heroBtnGroup}>
+                      <Link to="/admin" className={styles.btn} style={{ background: '#1B4F72' }}>
+                        Painel do Administrador
+                      </Link>
+                      <span className={styles.heroBtnHint}>Gerencie usuarios, permissoes e acompanhe estatisticas do sistema.</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className={styles.heroButtons}>

@@ -185,9 +185,14 @@ urlpatterns = [
     path('api/auth/areas/', auth_api.public_areas, name='auth-public-areas'),
 
     # ============================================================================
-    # ADMIN API — Aprovação de cadastros, auditoria
+    # ADMIN API — Aprovacao, auditoria, CRUD de usuarios
     # ============================================================================
+    path('api/admin/stats/', admin_api.admin_stats, name='admin-stats'),
     path('api/admin/pending-users/', admin_api.list_pending, name='admin-pending'),
+    path('api/admin/users/', admin_api.list_all_users, name='admin-list-users'),
+    path('api/admin/users/create/', admin_api.create_user, name='admin-create-user'),
+    path('api/admin/users/<int:profile_id>/edit/', admin_api.edit_user, name='admin-edit-user'),
+    path('api/admin/users/<int:profile_id>/delete/', admin_api.delete_user, name='admin-delete-user'),
     path('api/admin/users/<int:user_id>/vote/', admin_api.cast_vote, name='admin-vote'),
     path('api/admin/users/<int:user_id>/role/', admin_api.change_role, name='admin-change-role'),
     path('api/admin/users/<int:user_id>/', admin_api.user_detail, name='admin-user-detail'),
