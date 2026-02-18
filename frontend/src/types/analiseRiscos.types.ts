@@ -304,18 +304,18 @@ export const DESCRICOES_ESTRATEGIA: Record<EstrategiaResposta, string> = {
 // Fonte: documentos_base/areas_organizacionais.csv
 // ⚠️ Manter sincronizado com o CSV
 export const AREAS_DECIPEX: Array<{ codigo: string; nome: string; prefixo: string }> = [
-  { prefixo: '1', codigo: 'CGBEN', nome: 'Benefícios' },
-  { prefixo: '2', codigo: 'CGPAG', nome: 'Pagamentos' },
-  { prefixo: '3', codigo: 'COATE', nome: 'Atendimento' },
-  { prefixo: '4', codigo: 'CGGAF', nome: 'Acervos Funcionais' },
-  { prefixo: '5', codigo: 'DIGEP', nome: 'Ex-Territórios' },
-  { prefixo: '5.1', codigo: 'DIGEP-RO', nome: 'Rondônia' },
-  { prefixo: '5.2', codigo: 'DIGEP-RR', nome: 'Roraima' },
-  { prefixo: '5.3', codigo: 'DIGEP-AP', nome: 'Amapá' },
-  { prefixo: '6', codigo: 'CGRIS', nome: 'Riscos e Controle' },
-  { prefixo: '7', codigo: 'CGCAF', nome: 'Complementação' },
-  { prefixo: '8', codigo: 'CGECO', nome: 'Extinção e Convênio' },
-  { prefixo: '9', codigo: 'COADM', nome: 'Apoio Administrativo' },
+  { prefixo: '01', codigo: 'CGBEN', nome: 'Benefícios' },
+  { prefixo: '02', codigo: 'CGPAG', nome: 'Pagamentos' },
+  { prefixo: '03', codigo: 'COATE', nome: 'Atendimento' },
+  { prefixo: '04', codigo: 'CGGAF', nome: 'Acervos Funcionais' },
+  { prefixo: '05', codigo: 'DIGEP', nome: 'Ex-Territórios' },
+  { prefixo: '05.01', codigo: 'DIGEP-RO', nome: 'Rondônia' },
+  { prefixo: '05.02', codigo: 'DIGEP-RR', nome: 'Roraima' },
+  { prefixo: '05.03', codigo: 'DIGEP-AP', nome: 'Amapá' },
+  { prefixo: '06', codigo: 'CGRIS', nome: 'Riscos e Controle' },
+  { prefixo: '07', codigo: 'CGCAF', nome: 'Complementação' },
+  { prefixo: '08', codigo: 'CGECO', nome: 'Extinção e Convênio' },
+  { prefixo: '09', codigo: 'COADM', nome: 'Apoio Administrativo' },
   { prefixo: '10', codigo: 'COGES', nome: 'Coordenação de Gestão' },
 ];
 

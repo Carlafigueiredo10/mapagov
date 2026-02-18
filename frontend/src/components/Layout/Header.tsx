@@ -17,8 +17,7 @@ export default function Header() {
           <li><Link to="/sobre">Sobre</Link></li>
           <li><Link to="/funcionalidades">Funcionalidades</Link></li>
           <li><Link to="/base-legal">Base Legal</Link></li>
-          <li><Link to="/roadmap">Roteiro de Desenvolvimento</Link></li>
-          <li><Link to="/portal">Acessar Plataforma</Link></li>
+          <li><Link to="/portal">Iniciar trabalho</Link></li>
         </ul>
       </nav>
     </header>

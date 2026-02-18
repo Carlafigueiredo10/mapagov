@@ -88,6 +88,7 @@ PALAVRAS_EDICAO = frozenset(['editar', 'edit', 'corrigir', 'alterar', 'mudar', '
 PALAVRAS_PAUSA = frozenset(['pausa', 'pausar', 'esperar', 'depois', 'mais tarde', 'aguardar', 'salvar'])
 PALAVRAS_CANCELAR = frozenset(['cancelar', 'voltar', 'sair', '__cancelar__'])
 PALAVRAS_MAIS_PERGUNTA = frozenset(['mais_pergunta', 'mais', 'pergunta', 'tenho mais'])
+PALAVRAS_EXEMPLO = frozenset(['exemplo', 'ver exemplo', 'exemplo de etapa', 'mostrar exemplo'])
 
 
 # ============================================================================
@@ -195,6 +196,8 @@ class POPStateMachine:
         self._etapa_sm = None  # EtapaStateMachine serializada (dict ou None)
         # Retorno para revisão final após edição de seção
         self.return_to: Optional[str] = None
+        # Exemplo obrigatório antes de iniciar etapas
+        self.exemplo_visualizado: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Serializa o state machine para JSON"""
@@ -222,6 +225,8 @@ class POPStateMachine:
             '_etapa_sm': self._etapa_sm,
             # Retorno para revisão final
             'return_to': self.return_to,
+            # Exemplo obrigatório
+            'exemplo_visualizado': self.exemplo_visualizado,
         }
 
     @classmethod
@@ -271,6 +276,8 @@ class POPStateMachine:
         sm._etapa_sm = data.get('_etapa_sm')
         # Retorno para revisão final
         sm.return_to = data.get('return_to')
+        # Exemplo obrigatório
+        sm.exemplo_visualizado = data.get('exemplo_visualizado', False)
         return sm
 
 
@@ -359,6 +366,7 @@ class HelenaPOP(BaseHelena):
             'pausa': PALAVRAS_PAUSA,
             'cancelar': PALAVRAS_CANCELAR,
             'mais_pergunta': PALAVRAS_MAIS_PERGUNTA,
+            'exemplo': PALAVRAS_EXEMPLO,
         }
         palavras = palavras_map.get(tipo, frozenset())
         return any(palavra in msg_norm for palavra in palavras)
@@ -747,19 +755,35 @@ class HelenaPOP(BaseHelena):
 
         elif novo_sm.estado == EstadoPOP.TRANSICAO_EPICA:
             tipo_interface = 'transicao_epica'
-            dados_interface = {
-                'botao_principal': {
-                    'texto': 'Vamos começar ✅',
-                    'classe': 'btn-confirmar',
-                    'tamanho': 'grande',
-                    'cor': '#28a745',
-                    'animacao': '',
-                    'valor_enviar': 'VAMOS'
-                },
-                'mostrar_progresso': False,
-                'progresso_texto': '',
-                'background_especial': False
-            }
+            # Se já viu exemplo, botão "Vamos começar"; senão, "Ver exemplo de etapa"
+            if getattr(novo_sm, 'exemplo_visualizado', False):
+                dados_interface = {
+                    'botao_principal': {
+                        'texto': 'Vamos começar ✅',
+                        'classe': 'btn-confirmar',
+                        'tamanho': 'grande',
+                        'cor': '#28a745',
+                        'animacao': '',
+                        'valor_enviar': 'VAMOS'
+                    },
+                    'mostrar_progresso': False,
+                    'progresso_texto': '',
+                    'background_especial': False
+                }
+            else:
+                dados_interface = {
+                    'botao_principal': {
+                        'texto': 'Ver exemplo de etapa 📋',
+                        'classe': 'btn-confirmar',
+                        'tamanho': 'grande',
+                        'cor': '#1351B4',
+                        'animacao': '',
+                        'valor_enviar': 'EXEMPLO'
+                    },
+                    'mostrar_progresso': False,
+                    'progresso_texto': '',
+                    'background_especial': False
+                }
 
         elif novo_sm.estado == EstadoPOP.RECONHECIMENTO_ENTREGA:
             # Gamificação após entrega esperada
@@ -2707,7 +2731,8 @@ class HelenaPOP(BaseHelena):
             f"🚻 Ir ao banheiro antes de iniciar\n"
             f"📂 Ter em mãos exemplos reais do processo\n\n"
             f"Caso queira alterar algum dado da fase anterior, a revisão final estará disponível ao concluir o mapeamento.\n\n"
-            f"Quando estiver pronto(a), clique em **Vamos começar** para iniciar."
+            f"Antes de iniciar, veja logo em seguida um exemplo de etapa preenchida.\n"
+            f"Ele demonstra o nível de detalhamento esperado."
         )
 
         sm.tipo_interface = 'confirmacao_dupla'
@@ -2718,9 +2743,83 @@ class HelenaPOP(BaseHelena):
         return resposta, sm
 
     def _processar_transicao_epica(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
-        """Processa clique em 'Vamos começar' na transição para etapas."""
+        """Processa transição pré-etapas: EXEMPLO → mostra exemplo inline, VAMOS → inicia etapas."""
+        # Guard: defesa em profundidade (roteamento já garante, mas protege contra refactor)
+        if sm.estado != EstadoPOP.TRANSICAO_EPICA:
+            logger.warning(f"[TRANSICAO_EPICA] Chamado fora do estado esperado: {sm.estado}")
+            return "Use o botão para continuar.", sm
 
-        # Confirmação → direto pra etapas
+        msg_lower = mensagem.strip().upper()
+
+        # ── Branch 1: Mostrar exemplo inline (permanece em TRANSICAO_EPICA) ──
+        if msg_lower == 'EXEMPLO' or self._detectar_intencao(mensagem.lower().strip(), 'exemplo'):
+            # Idempotência: se já viu, não reprinta
+            if sm.exemplo_visualizado:
+                resposta = "O exemplo já foi exibido acima. Quando estiver pronto(a), clique em **Vamos começar**."
+                return resposta, sm
+
+            sm.exemplo_visualizado = True
+            # Estado não muda — o override do processar() agora renderiza "Vamos começar"
+
+            resposta = (
+                "## 📋 Exemplo de Etapa — Padrão de Preenchimento\n\n"
+                "Este exemplo demonstra como estruturar uma etapa com clareza suficiente para orientar a execução.\n\n"
+                "Uma etapa é sempre composta por:\n"
+                "1. **Ação principal** — o que é feito\n"
+                "2. **Verificações** — o que é conferido\n"
+                "3. **Decisão ou continuidade** — se o resultado muda o caminho\n"
+                "4. **Responsável e registros** — quem faz, com quais sistemas e documentos\n\n"
+                "---\n\n"
+                "**Exemplo: análise de pedido de férias**\n\n"
+                "```\n"
+                "Etapa 1 — Analisar pedido de férias recebido pelo sistema\n"
+                "\n"
+                "  Verificações:\n"
+                "    1. Conferir saldo de férias disponível no sistema\n"
+                "    2. Verificar compatibilidade do período com outros afastamentos\n"
+                "    3. Confirmar ciência da chefia imediata no processo\n"
+                "\n"
+                "  Encerramento: Condicional (binário)\n"
+                "    Síntese: Consolidar resultado das verificações e definir encaminhamento\n"
+                "\n"
+                "    1.1  Se documentação completa e saldo disponível\n"
+                "         → Deferir o pedido e registrar no sistema\n"
+                "         1.1.1  Abrir processo no SEI\n"
+                "         1.1.2  Gerar despacho de deferimento\n"
+                "         1.1.3  Registrar período no SIAPE\n"
+                "         1.1.4  Notificar servidor e chefia\n"
+                "\n"
+                "    1.2  Se documentação incompleta ou sem saldo\n"
+                "         → Devolver ao servidor com despacho de pendência\n"
+                "         1.2.1  Gerar despacho de pendência no SEI\n"
+                "         1.2.2  Devolver processo ao servidor para correção\n"
+                "\n"
+                "  Operador:  Analista de Gestão de Pessoas\n"
+                "  Sistemas:  SEI, SIAPE\n"
+                "  Entrada:   Requerimento de férias, Escala de férias do setor\n"
+                "  Saída:     Despacho de deferimento ou pendência, Registro no SIAPE\n"
+                "  Tempo:     30 minutos\n"
+                "```\n\n"
+                "---\n\n"
+                "**O que coloco em cada campo?**\n\n"
+                "| Campo | Resposta rápida |\n"
+                "|-|-|\n"
+                "| **Ação principal** | Verbo no infinitivo. O que é feito. |\n"
+                "| **Verificações** | Cada conferência, uma por linha. |\n"
+                "| **Condicional** | Só marque Sim se existem caminhos com ações diferentes. |\n"
+                "| **Cenários** | Complete: \"Se [situação] → [o que acontece]\". |\n"
+                "| **Subetapas** | Os passos dentro de cada cenário. |\n"
+                "| **Operador** | Cargo ou função, nunca nome de pessoa. |\n"
+                "| **Sistemas** | Todo sistema que você abre na tela durante a etapa. |\n"
+                "| **Docs de entrada** | O que você precisa ter em mãos para começar. |\n"
+                "| **Docs de saída** | O que você produziu ao terminar. |\n"
+                "| **Tempo** | Quanto leva para fazer esta etapa UMA vez. |\n\n"
+                "Quando estiver pronto(a), clique em **Vamos começar**."
+            )
+
+            return resposta, sm
+
+        # ── Branch 2: Iniciar etapas (VAMOS ou confirmação) ──
         sm.estado = EstadoPOP.ETAPA_FORM
         sm._etapa_sm = None
 

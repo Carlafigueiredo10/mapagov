@@ -13,6 +13,20 @@ from processos.models_new import ControleIndices
 logger = logging.getLogger(__name__)
 
 
+def _carregar_prefixos_area() -> dict:
+    """Carrega prefixos do model Area (fonte de verdade). Fallback SNI se banco indisponível."""
+    try:
+        from processos.models import Area
+        return {a.codigo: a.prefixo for a in Area.objects.filter(ativo=True)}
+    except Exception:
+        return {
+            "CGBEN": "01", "CGPAG": "02", "COATE": "03", "CGGAF": "04",
+            "DIGEP": "05", "DIGEP-RO": "05.01", "DIGEP-RR": "05.02", "DIGEP-AP": "05.03",
+            "CGRIS": "06", "CGCAF": "07", "CGECO": "08",
+            "COADM": "09", "COGES": "10", "CDGEP": "11",
+        }
+
+
 def gerar_cap_provisorio_seguro(
     area_codigo: str,
     macroprocesso: str,
@@ -24,10 +38,10 @@ def gerar_cap_provisorio_seguro(
     """
     Gera CAP provisório com lock transacional para evitar race conditions.
 
-    Formato: PREFIXO_AREA.IDX_MACRO.IDX_PROCESSO.IDX_SUB.IDX_ATIVIDADE
+    Formato: AA.MM.PP.SS.III (SNI)
 
-    Exemplo: 1.02.03.04.108
-    - 1 = CGBEN
+    Exemplo: 01.02.03.04.108
+    - 01 = CGBEN
     - 02 = índice do macroprocesso
     - 03 = índice do processo
     - 04 = índice do subprocesso
@@ -42,16 +56,11 @@ def gerar_cap_provisorio_seguro(
         hierarquia_df: DataFrame com a arquitetura completa para indexação
 
     Returns:
-        CAP provisório único (ex: '1.02.03.04.108')
+        CAP provisório único (ex: '01.02.03.04.108')
     """
-    # Mapeamento de códigos de área para prefixos
-    PREFIXOS_AREA = {
-        "CGBEN": "1", "CGPAG": "2", "COATE": "3", "CGGAF": "4",
-        "DIGEP": "5", "DIGEP-RO": "5.1", "DIGEP-RR": "5.2", "DIGEP-AP": "5.3",
-        "CGRIS": "6", "CGCAF": "7", "CGECO": "8"
-    }
-
-    prefixo_area = PREFIXOS_AREA.get(area_codigo, "0")
+    from processos.domain.governanca.normalize import resolve_prefixo_cap
+    prefixos = _carregar_prefixos_area()
+    prefixo_area = resolve_prefixo_cap(area_codigo, prefixos)
 
     # Buscar numeração diretamente do CSV (coluna 'Numero')
     try:
@@ -64,7 +73,7 @@ def gerar_cap_provisorio_seguro(
         linha_encontrada = hierarquia_df[filtro]
 
         if not linha_encontrada.empty and 'Numero' in linha_encontrada.columns:
-            # Ler número hierárquico do CSV (ex: "1.1.1.1")
+            # Ler número hierárquico do CSV (ex: "01.01.01.001")
             numero_csv = str(linha_encontrada.iloc[0]['Numero'])
             partes = numero_csv.split('.')
 

@@ -10,6 +10,8 @@ from typing import Dict, Any
 
 import pandas as pd
 
+from processos.domain.governanca.normalize import normalize_area_prefix
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,12 +51,7 @@ def carregar_areas_organizacionais() -> Dict[int, Dict[str, Any]]:
         # Converter para dicionário no formato esperado
         areas_dict = {}
         for idx, row in df_ativas.iterrows():
-            # Tratar prefixo corretamente (remover .0 de inteiros, manter decimais)
-            prefixo_float = float(row['prefixo'])
-            if prefixo_float == int(prefixo_float):
-                prefixo_tratado = str(int(prefixo_float))
-            else:
-                prefixo_tratado = str(prefixo_float)
+            prefixo_tratado = normalize_area_prefix(str(row['prefixo']))
 
             area_info = {
                 "codigo": row['codigo'],
@@ -74,11 +71,7 @@ def carregar_areas_organizacionais() -> Dict[int, Dict[str, Any]]:
                 if not subareas.empty:
                     subareas_list = []
                     for _, sub in subareas.iterrows():
-                        sub_prefixo_float = float(sub['prefixo'])
-                        if sub_prefixo_float == int(sub_prefixo_float):
-                            sub_prefixo = str(int(sub_prefixo_float))
-                        else:
-                            sub_prefixo = str(sub_prefixo_float)
+                        sub_prefixo = normalize_area_prefix(str(sub['prefixo']))
 
                         subareas_list.append({
                             'codigo': sub['codigo'],
@@ -100,14 +93,14 @@ def carregar_areas_organizacionais() -> Dict[int, Dict[str, Any]]:
 
         # FALLBACK: Dados hardcoded (segurança)
         return {
-            1: {"codigo": "CGBEN", "sigla": "CGBEN", "nome": "Coordenação Geral de Benefícios", "prefixo": "1", "tem_subareas": False},
-            2: {"codigo": "CGPAG", "sigla": "CGPAG", "nome": "Coordenação Geral de Pagamentos", "prefixo": "2", "tem_subareas": False},
-            3: {"codigo": "COATE", "sigla": "COATE", "nome": "Coordenação de Atendimento", "prefixo": "3", "tem_subareas": False},
-            4: {"codigo": "CGGAF", "sigla": "CGGAF", "nome": "Coordenação Geral de Gestão de Acervos Funcionais", "prefixo": "4", "tem_subareas": False},
-            5: {"codigo": "DIGEP", "sigla": "DIGEP", "nome": "Divisão de Pessoal dos Ex-Territórios", "prefixo": "5", "tem_subareas": False},
-            6: {"codigo": "CGRIS", "sigla": "CGRIS", "nome": "Coordenação Geral de Riscos e Controle", "prefixo": "6", "tem_subareas": False},
-            7: {"codigo": "CGCAF", "sigla": "CGCAF", "nome": "Coordenação Geral de Gestão de Complementação da Folha", "prefixo": "7", "tem_subareas": False},
-            8: {"codigo": "CGECO", "sigla": "CGECO", "nome": "Coordenação Geral de Extinção e Convênio", "prefixo": "8", "tem_subareas": False}
+            1: {"codigo": "CGBEN", "sigla": "CGBEN", "nome": "Coordenação Geral de Benefícios", "prefixo": "01", "tem_subareas": False},
+            2: {"codigo": "CGPAG", "sigla": "CGPAG", "nome": "Coordenação Geral de Pagamentos", "prefixo": "02", "tem_subareas": False},
+            3: {"codigo": "COATE", "sigla": "COATE", "nome": "Coordenação de Atendimento", "prefixo": "03", "tem_subareas": False},
+            4: {"codigo": "CGGAF", "sigla": "CGGAF", "nome": "Coordenação Geral de Gestão de Acervos Funcionais", "prefixo": "04", "tem_subareas": False},
+            5: {"codigo": "DIGEP", "sigla": "DIGEP", "nome": "Divisão de Pessoal dos Ex-Territórios", "prefixo": "05", "tem_subareas": False},
+            6: {"codigo": "CGRIS", "sigla": "CGRIS", "nome": "Coordenação Geral de Riscos e Controle", "prefixo": "06", "tem_subareas": False},
+            7: {"codigo": "CGCAF", "sigla": "CGCAF", "nome": "Coordenação Geral de Gestão de Complementação da Folha", "prefixo": "07", "tem_subareas": False},
+            8: {"codigo": "CGECO", "sigla": "CGECO", "nome": "Coordenação Geral de Extinção e Convênio", "prefixo": "08", "tem_subareas": False}
         }
 
 

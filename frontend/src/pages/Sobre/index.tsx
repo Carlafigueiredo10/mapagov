@@ -1,8 +1,19 @@
 // Sobre/index.tsx - Página institucional do MapaGov
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../../components/Layout/Layout';
 import styles from './Sobre.module.css';
 
 export default function Sobre() {
+  const { hash } = useLocation();
+
+  useEffect(() => {
+    if (hash) {
+      const el = document.getElementById(hash.slice(1));
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [hash]);
+
   return (
     <Layout>
       <div className={styles.sobreContainer}>
@@ -44,9 +55,9 @@ export default function Sobre() {
         </section>
 
         {/* Helena */}
-        <section className={styles.section}>
+        <section id="helena" className={styles.section}>
           <div className={styles.container}>
-            <h2 className={styles.sectionTitle}>Helena</h2>
+            <h2 className={styles.sectionTitle}>Helena — Assistente da Plataforma MapaGov</h2>
             <p className={styles.sectionSubtitle}>Inteligência artificial a serviço da governança pública</p>
             <p className={styles.text}>
               No centro do MapaGov está <strong>Helena</strong>, módulo de inteligência artificial conversacional

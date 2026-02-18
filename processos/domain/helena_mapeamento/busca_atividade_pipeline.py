@@ -35,6 +35,8 @@ import pandas as pd
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
+from processos.domain.governanca.normalize import normalize_area_prefix, normalize_numero_csv, resolve_prefixo_cap
+
 logger = logging.getLogger(__name__)
 
 # ==============================================================================
@@ -180,13 +182,7 @@ class BuscaAtividadePipeline:
             # Remover .0 apenas se for inteiro (6.0 -> 6, mas manter 5.1 -> 5.1)
             self.areas_map = {}
             for codigo, prefixo in zip(df_areas['codigo'], df_areas['prefixo']):
-                prefixo_float = float(prefixo)
-                if prefixo_float == int(prefixo_float):
-                    # É inteiro: 6.0 -> "6"
-                    self.areas_map[codigo] = str(int(prefixo_float))
-                else:
-                    # Tem decimal: 5.1 -> "5.1"
-                    self.areas_map[codigo] = str(prefixo_float)
+                self.areas_map[codigo] = normalize_area_prefix(str(prefixo))
 
             logger.info(f"[PIPELINE] Mapa de áreas carregado: {len(self.areas_map)} áreas")
             logger.debug(f"[PIPELINE] Mapa de áreas: {self.areas_map}")
@@ -196,15 +192,18 @@ class BuscaAtividadePipeline:
 
     def _obter_prefixo_area(self, area_codigo: str) -> str:
         """
-        Converte código da área (ex: CGRIS) para prefixo numérico (ex: 6).
+        Converte código da área para prefixo SNI de 2 dígitos para composição de CAP.
+
+        Subáreas (ex: DIGEP-RO=05.01) retornam o prefixo da área pai (05),
+        porque CAP nunca embute subárea.
 
         Args:
-            area_codigo: Código da área (ex: CGRIS, CGBEN)
+            area_codigo: Código da área (ex: CGRIS, DIGEP-RO)
 
         Returns:
-            Prefixo numérico como string (ex: "6", "1")
+            Prefixo SNI 2 dígitos (ex: "01", "05")
         """
-        return self.areas_map.get(area_codigo, area_codigo)
+        return resolve_prefixo_cap(area_codigo, self.areas_map)
 
     def _carregar_mapeamento_macroprocesso(self):
         """
@@ -572,9 +571,9 @@ class BuscaAtividadePipeline:
             logger.info(f"[PIPELINE] Melhor match: score={best_score:.3f} {'(BOOSTED)' if foi_boosted else ''}")
             logger.info(f"[PIPELINE]   Atividade: {best_meta['atividade']}")
 
-            # Gerar CAP
+            # Gerar CAP (SNI: AA.MM.PP.SS.III)
             prefixo_area = self._obter_prefixo_area(area_codigo)
-            cap_completo = f"{prefixo_area}.{best_meta['numero']}"
+            cap_completo = f"{prefixo_area}.{normalize_numero_csv(best_meta['numero'])}"
 
             return {
                 'sucesso': True,
@@ -623,8 +622,8 @@ class BuscaAtividadePipeline:
             candidatos = []
             for score, idx in zip(top_results[0], top_results[1]):
                 row = self.df_csv.iloc[int(idx)]
-                # CAP = prefixo_area + numero_csv
-                cap_completo = f"{prefixo_area}.{str(row['Numero']).strip()}"
+                # CAP = prefixo_area + numero_csv (SNI padded)
+                cap_completo = f"{prefixo_area}.{normalize_numero_csv(str(row['Numero']).strip())}"
                 candidatos.append({
                     'score': float(score),
                     'cap': cap_completo,
@@ -676,11 +675,12 @@ class BuscaAtividadePipeline:
                 atividade = row['Atividade']
                 numero_csv = str(row['Numero']).strip()
 
-                # Gerar CAP: prefixo_area + numero_csv
+                # Gerar CAP: prefixo_area + numero_csv (SNI padded)
+                numero_norm = normalize_numero_csv(numero_csv)
                 if prefixo_area:
-                    cap = f"{prefixo_area}.{numero_csv}"
+                    cap = f"{prefixo_area}.{numero_norm}"
                 else:
-                    cap = numero_csv  # Sem área, usa só o número do CSV
+                    cap = numero_norm
 
                 # Criar estrutura aninhada
                 if macro not in hierarquia:
@@ -945,7 +945,7 @@ class BuscaAtividadePipeline:
         prefixo_area = self._obter_prefixo_area(area_codigo)
         numero = atividade.get('numero', '')
         if numero:
-            return f"{prefixo_area}.{numero}"
+            return f"{prefixo_area}.{normalize_numero_csv(numero)}"
 
         # Fallback: gerar provisório
         return self._gerar_cap_provisorio(atividade.get('macroprocesso', ''), area_codigo)
@@ -971,11 +971,11 @@ class BuscaAtividadePipeline:
             else:
                 idx_macro = 99  # Provisório
 
-            # Gerar número sequencial provisório (1 dígito, coerente com CSV)
+            # Gerar número sequencial provisório (formato SNI)
             import random
             seq = random.randint(1, 9)
 
-            return f"{prefixo_area}.{idx_macro}.XX.XX.{seq}"
+            return f"{prefixo_area}.{idx_macro:02d}.XX.XX.{seq:03d}"
 
         except Exception as e:
             logger.error(f"[PIPELINE] Erro ao gerar CAP provisório: {e}")
@@ -1051,7 +1051,7 @@ class BuscaAtividadePipeline:
             if atividades_subprocesso.empty:
                 logger.warning(f"[PIPELINE] Nenhuma atividade encontrada no subprocesso: {subprocesso}")
                 # Se não encontrou atividades, começar do índice 1
-                return f"{prefixo_area}.1.1.1.1"
+                return f"{prefixo_area}.01.01.01.001"
 
             # Extrair todos os CAPs do subprocesso
             caps_existentes = atividades_subprocesso['Numero'].tolist()
@@ -1060,22 +1060,22 @@ class BuscaAtividadePipeline:
 
             # Pegar o primeiro CAP como base para extrair a estrutura
             # IMPORTANTE: O CAP no CSV NÃO inclui o prefixo da área!
-            # Exemplo CSV: "8.1.1.1" (Macro.Processo.Subprocesso.Atividade)
-            # Mas queremos: "5.2.8.1.1.3" (Area.Macro.Processo.Subprocesso.Atividade)
+            # Exemplo CSV: "08.01.01.001" (MM.PP.SS.III — já normalizado)
+            # CAP final: "05.08.01.01.001" (AA.MM.PP.SS.III)
             ultimo_cap = caps_existentes[0]
 
-            # Extrair partes do CAP (ex: "8.1.1.1" → ["8", "1", "1", "1"])
+            # Extrair partes do Numero CSV (ex: "08.01.01.001" → ["08", "01", "01", "001"])
             partes = str(ultimo_cap).split('.')
 
             if len(partes) < 4:
                 logger.warning(f"[PIPELINE] Formato de CAP inválido no CSV: {ultimo_cap}")
-                return f"{prefixo_area}.1.1.1.1"
+                return f"{prefixo_area}.01.01.01.001"
 
-            # 🎯 O CAP no CSV tem formato: Macro.Processo.Subprocesso.Atividade
+            # O CAP no CSV tem formato: Macro.Processo.Subprocesso.Atividade
             # Precisamos adicionar o prefixo da área no início
-            macro = partes[0]
-            processo = partes[1]
-            subprocesso = partes[2]
+            macro = f"{int(partes[0]):02d}"
+            processo = f"{int(partes[1]):02d}"
+            subprocesso = f"{int(partes[2]):02d}"
             # partes[3] é a atividade, que vamos ignorar e calcular o próximo número
 
             estrutura_processo = f"{macro}.{processo}.{subprocesso}"
@@ -1115,7 +1115,7 @@ class BuscaAtividadePipeline:
             import traceback
             traceback.print_exc()
             # Fallback: gerar CAP genérico com área 99
-            return "99.99.99.99.1"
+            return "99.99.99.99.001"
 
     def _gerar_rastreabilidade(
         self,

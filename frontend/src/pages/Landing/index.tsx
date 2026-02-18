@@ -29,12 +29,18 @@ export default function Landing() {
 
               {AUTH_MODE ? (
                 <div className={styles.heroButtons}>
-                  <Link to="/login" className={styles.btn}>
-                    Entrar no Sistema
-                  </Link>
-                  <Link to="/sobre" className={`${styles.btn} ${styles.btnOutline}`}>
-                    Conhecer a Plataforma
-                  </Link>
+                  <div className={styles.heroBtnGroup}>
+                    <Link to="/login" className={styles.btn}>
+                      Acessar a Plataforma
+                    </Link>
+                    <span className={styles.heroBtnHint}>Faça login ou crie sua conta para utilizar as funcionalidades disponíveis.</span>
+                  </div>
+                  <div className={styles.heroBtnGroup}>
+                    <Link to="/sobre#helena" className={`${styles.btn} ${styles.btnOutline}`}>
+                      Conhecer Helena
+                    </Link>
+                    <span className={styles.heroBtnHint}>Saiba como a assistente virtual apoia o uso da plataforma.</span>
+                  </div>
                 </div>
               ) : (
                 <div className={styles.heroButtons}>
@@ -49,16 +55,16 @@ export default function Landing() {
 
               <div className={styles.heroStats}>
                 <div className={styles.statItem}>
-                  <span className={styles.statNumber}>AI</span>
-                  <span className={styles.statLabel}>Assistente Helena</span>
+                  <span className={styles.statTitle}>Conformidade com padrões Gov.br</span>
+                  <span className={styles.statDesc}>Interface alinhada ao Design System oficial.</span>
                 </div>
                 <div className={styles.statItem}>
-                  <span className={styles.statNumber}>10</span>
-                  <span className={styles.statLabel}>Produtos Planejados</span>
+                  <span className={styles.statTitle}>Produtos estruturados de governança</span>
+                  <span className={styles.statDesc}>Mapeamento, riscos e planejamento integrados.</span>
                 </div>
                 <div className={styles.statItem}>
-                  <span className={styles.statNumber}>100%</span>
-                  <span className={styles.statLabel}>Padrões Gov.br</span>
+                  <span className={styles.statTitle}>Assistente virtual de apoio</span>
+                  <span className={styles.statDesc}>Orientação guiada para uso da plataforma.</span>
                 </div>
               </div>
             </div>
@@ -72,11 +78,11 @@ export default function Landing() {
                 onKeyDown={(e) => { if (e.key === 'Enter') setDrawerAberto(true); }}
               >
                 <div className={styles.helenaAvatarSmall}>
-                  <img src="/helena_em_pe.png" alt="Helena — Assistente de Governança" />
+                  <img src="/helena_em_pe.png" alt="Helena — Assistente da Plataforma MapaGov" />
                 </div>
-                <h4 className={styles.helenaTitle}>Helena — Assistente de Governança</h4>
+                <h4 className={styles.helenaTitle}>Helena — Assistente da Plataforma MapaGov</h4>
                 <p className={styles.helenaDesc}>
-                  Assistente especializada em mapeamento de processos, riscos e conformidade no setor público.
+                  Assistente virtual para orientação sobre o funcionamento da plataforma e seus produtos de governança.
                 </p>
                 <div className={styles.helenaCards}>
                   <div className={styles.helenaCard}>Apoio conceitual em processos, riscos e controles</div>
@@ -84,8 +90,11 @@ export default function Landing() {
                   <div className={styles.helenaCard}>Construção progressiva do mapeamento, passo a passo</div>
                 </div>
                 <span className={styles.helenaLink}>
-                  Falar com a Helena
+                  Ver orientações disponíveis
                 </span>
+                <p className={styles.helenaDisclaimer}>
+                  As informações fornecidas têm caráter orientativo e não substituem normativos ou decisões administrativas do órgão.
+                </p>
               </div>
             </div>
           </div>

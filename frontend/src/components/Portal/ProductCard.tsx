@@ -8,14 +8,17 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, isActive, onClick }: ProductCardProps) {
+  const isDisabled = product.status === 'planejado';
+
   return (
     <div
-      className={`${styles.productCard} ${isActive ? styles.active : ''}`}
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      title={product.description} // Tooltip nativo ao passar o mouse
-      onKeyDown={(e) => {
+      className={`${styles.productCard} ${isActive ? styles.active : ''} ${isDisabled ? styles.disabled : ''}`}
+      onClick={isDisabled ? undefined : onClick}
+      role={isDisabled ? undefined : 'button'}
+      tabIndex={isDisabled ? -1 : 0}
+      title={product.description}
+      aria-disabled={isDisabled || undefined}
+      onKeyDown={isDisabled ? undefined : (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onClick();

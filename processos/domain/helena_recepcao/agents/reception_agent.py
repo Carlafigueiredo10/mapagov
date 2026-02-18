@@ -1,15 +1,20 @@
 """
-Helena Reception Agent — funil de decisao institucional.
+Helena Reception Agent — triagem assistiva.
 
-Papel: porta de entrada do sistema. Nao conversa, classifica e direciona.
-- Apresenta os 4 produtos disponiveis desde a primeira interacao
-- Max 2 respostas livres antes de forcar escolha
-- Usa LLM apenas para explicacoes curtas (max 80 palavras, temp 0.3)
+Papel: porta de entrada do sistema. Orienta, sugere e direciona.
+- Campo aberto sempre disponivel (permite_texto=True)
+- Menu de produtos como atalho, nao como portao
+- Deteccao simples de intencao por keywords (antes do LLM)
+- LLM para respostas assistivas (max 80 palavras, temp 0.3)
+- Estados: INICIO → ORIENTACAO → TRANSICAO
 """
 
 import copy
+import logging
 from typing import Dict, Any
 from langchain_openai import ChatOpenAI
+
+logger = logging.getLogger("helena_reception_agent")
 
 
 class ReceptionAgent:
@@ -50,43 +55,54 @@ class ReceptionAgent:
     }
 
     SYSTEM_PROMPT = (
-        "Você é Helena, recepcionista do MapaGov. "
-        "Seu papel é estritamente direcional.\n\n"
+        "Voce e Helena, assistente de recepcao do MapaGov. "
+        "Seu papel e orientar o usuario sobre a plataforma e direcionar para um dos produtos.\n\n"
         "Regras:\n"
-        "- Responda em no máximo 80 palavras.\n"
-        "- Seja institucional e direta.\n"
-        "- Não faça perguntas abertas.\n"
-        "- Sempre conclua orientando o usuário a escolher um dos produtos disponíveis.\n"
-        "- Não ofereça validação, diagnóstico ou julgamento.\n\n"
-        "Produtos disponíveis:\n"
+        "- Responda em no maximo 80 palavras.\n"
+        "- Tom institucional e direto.\n"
+        "- Se necessario, faca no maximo 1 pergunta objetiva para direcionar.\n"
+        "- Sempre ofereca um encaminhamento para um produto disponivel.\n"
+        "- Nao ofereca validacao, diagnostico ou julgamento.\n\n"
+        "Produtos disponiveis:\n"
         "1. Mapear processo (POP) — registro estruturado de atividades e documentos\n"
-        "2. Analisar riscos — identificação e avaliação de riscos com base no Guia MGI\n"
-        "3. Planejar estrategicamente — planejamento institucional com modelos de gestão\n"
-        "4. Criar fluxograma — representação visual de processos em BPMN"
+        "2. Analisar riscos — identificacao e avaliacao de riscos com base no Guia MGI\n"
+        "3. Planejar estrategicamente — planejamento institucional com modelos de gestao\n"
+        "4. Criar fluxograma — representacao visual de processos em BPMN"
     )
 
     TEXTO_BOAS_VINDAS = (
-        "Este sistema executa atividades de Governança, Riscos e Conformidade.\n\n"
-        "Para continuar, selecione o tipo de trabalho que você precisa realizar."
+        "Olá. Posso orientar você sobre o uso da plataforma ou ajudar a localizar "
+        "o produto adequado para sua necessidade.\n\n"
+        "Você pode selecionar um produto abaixo ou digitar sua pergunta."
     )
 
     TEXTO_COMPARACAO = (
-        "**Comparação rápida dos produtos disponíveis:**\n\n"
-        "- **Mapear processo (POP):** você tem um processo de trabalho e quer "
-        "documentar cada etapa, responsável e documento envolvido.\n\n"
-        "- **Analisar riscos:** você já tem um processo e quer identificar o que "
-        "pode dar errado e como tratar.\n\n"
-        "- **Planejar estrategicamente:** você precisa definir objetivos, metas "
-        "e indicadores para sua unidade.\n\n"
-        "- **Criar fluxograma:** você quer uma representação visual de um fluxo "
-        "de trabalho.\n\n"
-        "Selecione a opção que mais se aproxima da sua necessidade."
+        "<strong>Comparação rápida dos produtos disponíveis:</strong><br><br>"
+        "<strong>Mapear processo (POP)</strong> — você tem um processo de trabalho "
+        "e quer documentar cada etapa, responsável e documento envolvido.<br><br>"
+        "<strong>Analisar riscos</strong> — você já tem um processo e quer identificar "
+        "o que pode dar errado e como tratar.<br><br>"
+        "<strong>Planejar estrategicamente</strong> — você precisa definir objetivos, "
+        "metas e indicadores para sua unidade.<br><br>"
+        "<strong>Criar fluxograma</strong> — você quer uma representação visual "
+        "de um fluxo de trabalho."
     )
 
     TEXTO_TRANSICAO = (
         "Você está saindo da recepção e iniciando "
         "o fluxo de trabalho selecionado."
     )
+
+    # Keywords para sugestao de produto (deteccao simples, sem transicao direta)
+    KEYWORDS_PRODUTO = {
+        "pop": ("pop", "procedimento", "passo a passo", "mapear processo", "mapeamento"),
+        "riscos": ("risco", "riscos", "mitigar", "probabilidade", "impacto"),
+        "planejamento": ("planejamento", "metas", "indicadores", "estrategico", "objetivos"),
+        "fluxograma": ("fluxograma", "bpmn"),
+    }
+
+    # "fluxo" e generico — so sugere fluxograma se coocorrer com termo tecnico
+    _FLUXO_COOCORRENCIAS = ("processo", "bpmn", "diagrama", "visual", "etapa")
 
     def __init__(self, llm: ChatOpenAI | None = None):
         self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.3, request_timeout=30)
@@ -107,59 +123,36 @@ class ReceptionAgent:
                 "estado_recepcao", "INICIO"
             )
             estrutura_atual["interacoes"] = contexto.get("interacoes", 0)
+            estrutura_atual["boas_vindas_enviada"] = contexto.get(
+                "boas_vindas_enviada", False
+            )
 
         return self._to_orchestrator(bruto, contexto)
 
     # =========================================================================
-    # MAQUINA DE ESTADOS
+    # MAQUINA DE ESTADOS (INICIO → ORIENTACAO → TRANSICAO)
     # =========================================================================
 
     def processar(self, mensagem: str, contexto: Dict[str, Any]) -> Dict[str, Any]:
         contexto.setdefault("interacoes", 0)
         contexto["interacoes"] += 1
 
-        estado = contexto.get("estado_recepcao", "INICIO")
-
-        # Em qualquer estado: se a mensagem e uma chave de produto, transiciona
+        # Em qualquer estado: chave de produto → transicao direta
         produto = self._extrair_produto(mensagem)
         if produto:
             return self._transicao(produto, contexto)
 
-        # --- INICIO ---
-        if estado == "INICIO":
-            if contexto["interacoes"] == 1:
-                # Primeira interacao: welcome + menu
-                return self._resposta_menu(
-                    self.TEXTO_BOAS_VINDAS, "INICIO", permite_texto=True, contexto=contexto
-                )
-            else:
-                # Usuario digitou texto em vez de selecionar
-                contexto["estado_recepcao"] = "EXPLICACAO_CURTA"
-                return self._resposta_com_llm(mensagem, "EXPLICACAO_CURTA", contexto)
-
-        # --- EXPLICACAO_CURTA ---
-        if estado == "EXPLICACAO_CURTA":
-            if self._eh_ainda_nao_sei(mensagem):
-                return self._resposta_comparacao(contexto)
-            contexto["estado_recepcao"] = "DECISAO_OBRIGATORIA"
-            return self._resposta_com_llm(mensagem, "DECISAO_OBRIGATORIA", contexto)
-
-        # --- DECISAO_OBRIGATORIA ---
-        if estado == "DECISAO_OBRIGATORIA":
-            if self._eh_ainda_nao_sei(mensagem):
-                return self._resposta_comparacao(contexto)
-            # Qualquer texto nao reconhecido: reapresenta menu sem texto livre
+        # Guard: boas-vindas garantida mesmo se interacoes bugar
+        if not contexto.get("boas_vindas_enviada"):
+            contexto["boas_vindas_enviada"] = True
             return self._resposta_menu(
-                "Selecione uma das opções disponíveis para continuar.",
-                "DECISAO_OBRIGATORIA",
-                permite_texto=False,
-                contexto=contexto,
+                self.TEXTO_BOAS_VINDAS, "ORIENTACAO", True, contexto
             )
 
-        # Fallback
-        return self._resposta_menu(
-            self.TEXTO_BOAS_VINDAS, "INICIO", permite_texto=True, contexto=contexto
-        )
+        # ORIENTACAO (estado padrao apos boas-vindas)
+        if self._eh_ainda_nao_sei(mensagem):
+            return self._resposta_comparacao(contexto)
+        return self._resposta_com_llm(mensagem, "ORIENTACAO", contexto)
 
     # =========================================================================
     # RESPOSTAS
@@ -189,16 +182,30 @@ class ReceptionAgent:
     def _resposta_com_llm(
         self, mensagem: str, proximo_estado: str, contexto: Dict[str, Any]
     ) -> Dict[str, Any]:
-        permite_texto = proximo_estado != "DECISAO_OBRIGATORIA"
+        # Enriquecer com sugestao de produto se detectada por keywords
+        sugestao = self._sugerir_produto(mensagem)
+        prompt_usuario = mensagem
+        if sugestao:
+            nome = self.PRODUTOS[sugestao]["nome"]
+            prompt_usuario = (
+                f"{mensagem}\n\n"
+                f"[[SISTEMA: o usuario parece querer '{nome}'. "
+                f"Sugira esse produto de forma natural.]]"
+            )
+            logger.info(
+                "recepcao_produto_sugerido produto=%s", sugestao
+            )
 
         try:
             resposta = self.llm.invoke(
                 [
                     {"role": "system", "content": self.SYSTEM_PROMPT},
-                    {"role": "user", "content": mensagem},
+                    {"role": "user", "content": prompt_usuario},
                 ]
             )
             texto = resposta.content if hasattr(resposta, "content") else str(resposta)
+            # Converter newlines do LLM para HTML
+            texto = texto.replace("\n\n", "<br><br>").replace("\n", "<br>")
         except Exception:
             texto = (
                 "Não foi possível processar sua pergunta no momento. "
@@ -213,14 +220,14 @@ class ReceptionAgent:
                 "tipo_interface": "decisao_produto",
                 "dados_interface": {
                     "produtos": self._lista_produtos(),
-                    "permite_texto": permite_texto,
+                    "permite_texto": True,
                     "estado": proximo_estado,
                 },
             },
         }
 
     def _resposta_comparacao(self, contexto: Dict[str, Any]) -> Dict[str, Any]:
-        contexto["estado_recepcao"] = "DECISAO_OBRIGATORIA"
+        contexto["estado_recepcao"] = "ORIENTACAO"
         return {
             "acao": "menu_produtos",
             "texto": self.TEXTO_COMPARACAO,
@@ -228,8 +235,8 @@ class ReceptionAgent:
                 "tipo_interface": "decisao_produto",
                 "dados_interface": {
                     "produtos": self._lista_produtos(),
-                    "permite_texto": False,
-                    "estado": "DECISAO_OBRIGATORIA",
+                    "permite_texto": True,
+                    "estado": "ORIENTACAO",
                 },
             },
         }
@@ -239,6 +246,7 @@ class ReceptionAgent:
     ) -> Dict[str, Any]:
         produto = self.PRODUTOS[produto_key]
         contexto["estado_recepcao"] = "TRANSICAO"
+        logger.info("recepcao_transicao_produto produto=%s", produto_key)
         return {
             "acao": "transicao_produto",
             "texto": self.TEXTO_TRANSICAO,
@@ -262,6 +270,17 @@ class ReceptionAgent:
         chave = mensagem.strip().lower()
         if chave in self.PRODUTOS:
             return chave
+        return None
+
+    def _sugerir_produto(self, mensagem: str) -> str | None:
+        """Deteccao simples de intencao por keywords. Retorna chave ou None."""
+        msg = mensagem.strip().lower()
+        for key, keywords in self.KEYWORDS_PRODUTO.items():
+            if any(kw in msg for kw in keywords):
+                return key
+        # "fluxo" sozinho e generico — so sugere se coocorrer com termo tecnico
+        if "fluxo" in msg and any(co in msg for co in self._FLUXO_COOCORRENCIAS):
+            return "fluxograma"
         return None
 
     def _eh_ainda_nao_sei(self, mensagem: str) -> bool:

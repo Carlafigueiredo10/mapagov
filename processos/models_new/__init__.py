@@ -20,6 +20,7 @@ from processos.models_new.planejamento_estrategico import (
     MedicaoIndicador,
     ComentarioPlanejamento
 )
+from processos.models_new.controle_indices_produto import ControleIndicesProduto
 
 __all__ = [
     'Orgao',
@@ -34,5 +35,6 @@ __all__ = [
     'PlanejamentoEstrategico',
     'IndicadorEstrategico',
     'MedicaoIndicador',
-    'ComentarioPlanejamento'
+    'ComentarioPlanejamento',
+    'ControleIndicesProduto',
 ]

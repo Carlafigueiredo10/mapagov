@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import type { ProductCode, PortalChatMessage } from '../../types/portal.types';
@@ -50,20 +50,15 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
 
   const messagesAreaRef = useRef<HTMLDivElement>(null);
 
-  // Derivar se o input esta desabilitado pelo estado da ultima mensagem
-  const inputDesabilitado = useMemo(() => {
-    const lastHelena = [...messages]
-      .reverse()
-      .find((m) => m.sender === 'helena' && m.dados_interface);
-    const estado = (lastHelena?.dados_interface as Record<string, unknown>)?.estado;
-    return estado === 'DECISAO_OBRIGATORIA';
-  }, [messages]);
+  const inputDesabilitado = isTransitioning;
 
   // Mensagem inicial institucional com menu de produtos
   useEffect(() => {
     const welcomeMessage: PortalChatMessage = {
       id: 'welcome',
-      text: 'Este sistema executa atividades de Governança, Riscos e Conformidade.<br><br>Para continuar, selecione o tipo de trabalho que você precisa realizar.',
+      text: 'Olá. Posso orientar você sobre o uso da plataforma ou ajudar a localizar '
+        + 'o produto adequado para sua necessidade.<br><br>'
+        + 'Você pode selecionar um produto abaixo ou digitar sua pergunta.',
       sender: 'helena',
       timestamp: new Date(),
       tipo_interface: 'decisao_produto',
@@ -172,8 +167,8 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
           <img src="/helena_avatar.png" alt="Helena" />
         </div>
         <div className={styles.headerInfo}>
-          <h2>Helena - Recepção</h2>
-          <p>Governança, Riscos e Conformidade</p>
+          <h2>Iniciar trabalho</h2>
+          <p>Selecione um produto ou tire dúvidas com a assistente.</p>
         </div>
       </div>
 
@@ -232,9 +227,9 @@ export default function PortalChat({ selectedProduct }: PortalChatProps) {
 
       {/* Input Area */}
       <div className={styles.inputArea}>
-        {inputDesabilitado || isTransitioning ? (
+        {inputDesabilitado ? (
           <div className={styles.inputDisabledMessage}>
-            Selecione uma das opções acima para continuar.
+            Redirecionando para o produto selecionado...
           </div>
         ) : (
           <div className={styles.inputWrapper}>

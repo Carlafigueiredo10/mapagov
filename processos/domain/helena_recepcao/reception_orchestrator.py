@@ -47,12 +47,9 @@ class HelenaRecepcaoOrchestrator:
             }
         """
         try:
-            # Inicializa session_data se vazio
-            if not session_data:
-                session_data = {
-                    'interacoes': 0,
-                    'historico': []
-                }
+            # Inicializa session_data in-place (preserva referencia do dict da view)
+            session_data.setdefault('interacoes', 0)
+            session_data.setdefault('historico', [])
 
             # Processa com agente
             resultado = self.agent.processar_mensagem(mensagem, session_data)

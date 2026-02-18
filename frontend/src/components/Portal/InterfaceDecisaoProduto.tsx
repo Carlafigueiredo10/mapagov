@@ -18,8 +18,8 @@ interface InterfaceDecisaoProdutoProps {
 export default function InterfaceDecisaoProduto({ dados, onConfirm }: InterfaceDecisaoProdutoProps) {
   const [selecionado, setSelecionado] = useState<string | null>(null);
 
-  const { produtos, estado } = dados;
-  const mostrarAindaNaoSei = estado === 'DECISAO_OBRIGATORIA';
+  const { produtos } = dados;
+  const mostrarAindaNaoSei = true;
 
   const handleConfirm = () => {
     if (!selecionado) return;
@@ -30,7 +30,7 @@ export default function InterfaceDecisaoProduto({ dados, onConfirm }: InterfaceD
     <div className="decisao-produto-container">
       <fieldset className="decisao-fieldset">
         <legend className="decisao-legend">
-          Selecione o tipo de trabalho que você precisa realizar:
+          Selecione um produto para iniciar ou digite sua dúvida no chat:
         </legend>
 
         <div className="decisao-opcoes">

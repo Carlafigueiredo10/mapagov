@@ -1,6 +1,6 @@
 // Tipos para o Portal MapaGov
 
-export type ProductStatus = 'disponivel' | 'desenvolvimento' | 'planejado';
+export type ProductStatus = 'disponivel' | 'homologacao' | 'desenvolvimento' | 'planejado';
 
 export type ProductCode =
   | 'geral'

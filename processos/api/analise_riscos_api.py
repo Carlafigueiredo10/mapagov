@@ -269,6 +269,10 @@ def atualizar_questionario(request, analise_id):
 
         analise.save()
 
+        # Atribuir CP se área disponível e ainda não tem
+        from processos.domain.governanca.cp_generator import atribuir_cp_se_necessario
+        atribuir_cp_se_necessario(analise, analise.area_decipex)
+
         return resposta_sucesso(
             resposta="Questionario atualizado",
             dados={"id": str(analise.id), "etapa_atual": analise.etapa_atual},
@@ -765,12 +769,21 @@ def salvar_contexto_v2(request, analise_id):
         analise.etapa_atual = max(analise.etapa_atual, 1)  # Avanca para etapa 1 se estava em 0
         analise.save()
 
+        # Atribuir CP se área disponível no contexto e ainda não tem
+        from processos.domain.governanca.cp_generator import atribuir_cp_se_necessario
+        area = (
+            analise.area_decipex
+            or (contexto_merged.get("bloco_a") or {}).get("area_decipex", "")
+        )
+        atribuir_cp_se_necessario(analise, area)
+
         return resposta_sucesso(
             resposta="Contexto salvo com sucesso",
             dados={
                 "id": str(analise.id),
                 "etapa_atual": analise.etapa_atual,
                 "contexto_estruturado": analise.contexto_estruturado,
+                "codigo_cp": analise.codigo_cp,
             },
         )
     except Exception as e:

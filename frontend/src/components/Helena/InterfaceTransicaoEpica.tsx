@@ -33,6 +33,7 @@ const InterfaceTransicaoEpica: React.FC<InterfaceTransicaoEpicaProps> = ({ dados
       <div className="botoes-transicao-dupla">
         <button
           className="btn-transicao btn-transicao-principal"
+          style={botao_principal.cor ? { backgroundColor: botao_principal.cor } : undefined}
           onClick={() => onEnviar(botao_principal.valor_enviar)}
         >
           {botao_principal.texto}

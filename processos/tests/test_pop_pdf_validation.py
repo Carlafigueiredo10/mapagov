@@ -61,7 +61,7 @@ test("01_vazio", {
 test("02_linear", {
     "nome_processo": "Concessao de Licenca Capacitacao",
     "area": "CGBEN",
-    "codigo_cap": "2.3.3.1",
+    "codigo_cap": "02.03.03.01.001",
     "macroprocesso": "Gestao de Pessoas",
     "processo_especifico": "Capacitacao",
     "subprocesso": "Licenca Capacitacao",
@@ -107,7 +107,7 @@ test("02_linear", {
 test("03_condicional", {
     "nome_processo": "Ressarcimento de Plano de Saude",
     "area": "CGBEN",
-    "codigo_cap": "2.1.1.3",
+    "codigo_cap": "02.01.01.01.003",
     "macroprocesso": "Gestao de Pessoas",
     "processo_especifico": "Beneficios",
     "subprocesso": "Assistencia a Saude",

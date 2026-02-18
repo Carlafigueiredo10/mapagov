@@ -211,6 +211,10 @@ def salvar_planejamento(request):
         # Retorna planejamento salvo
         planejamento = PlanejamentoEstrategico.objects.get(id=planejamento_id)
 
+        # Atribuir CP se unidade (área) disponível e ainda não tem
+        from processos.domain.governanca.cp_generator import atribuir_cp_se_necessario
+        atribuir_cp_se_necessario(planejamento, planejamento.unidade)
+
         return Response({
             'sucesso': True,
             'planejamento_id': planejamento_id,

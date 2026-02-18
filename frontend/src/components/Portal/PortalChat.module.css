@@ -238,7 +238,7 @@
   border-radius: 4px;
 }
 
-/* Input desabilitado (DECISAO_OBRIGATORIA) */
+/* Input desabilitado (durante transicao) */
 .inputDisabledMessage {
   text-align: center;
   padding: 14px 18px;

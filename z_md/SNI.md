@@ -1,357 +1,256 @@
-# Método CAP - Código na Arquitetura de Processos
+# Sistema de Numeração Institucional (SNI) — MapaGov
 
-## Visão Geral
+## 1. Numeração de Áreas
 
-O **CAP (Código na Arquitetura de Processos)** é o identificador único e hierárquico de cada atividade mapeada na DECIPEX. Funciona como o "CPF da atividade", permitindo rastreamento, versionamento e governança completa do catálogo de processos.
+Prefixo de área: **sempre 2 dígitos**.
+Subárea: `AA.BB` (ex: `05.01`).
 
-## Formato do Código
+| Código | Nome | Prefixo |
+|--------|------|---------|
+| CGBEN | Coordenação Geral de Benefícios | 01 |
+| CGPAG | Coordenação Geral de Pagamentos | 02 |
+| COATE | Coordenação de Atendimento | 03 |
+| CGGAF | Coordenação Geral de Gestão de Acervos Funcionais | 04 |
+| DIGEP | Divisão de Pessoal dos Ex-Territórios | 05 |
+| DIGEP-RO | DIGEP Rondônia | 05.01 |
+| DIGEP-RR | DIGEP Roraima | 05.02 |
+| DIGEP-AP | DIGEP Amapá | 05.03 |
+| CGRIS | Coordenação Geral de Riscos e Controle | 06 |
+| CGCAF | Coordenação Geral de Complementação da Folha | 07 |
+| CGECO | Coordenação Geral de Extinção e Convênio | 08 |
+| COADM | Coordenação de Apoio Administrativo | 09 |
+| COGES | Coordenação de Gestão | 10 |
+| CDGEP | Coordenação Geral dos Ex-Territórios | 11 |
+
+Regras:
+- Nunca usar `5.1` — sempre `05.01`
+- Fonte de verdade: `documentos_base/areas_organizacionais.csv`
+- Backend normaliza via `normalize_area_prefix()` em `processos/domain/governanca/normalize.py`
+
+---
+
+## 2. CAP — Código de Atividade (POP)
+
+Formato:
 
 ```
-PREFIXO_AREA.IDX_MACRO.IDX_PROCESSO.IDX_SUB.IDX_ATIVIDADE
+AA.MM.PP.SS.III
 ```
 
-### Exemplo Real
+| Segmento | Significado | Dígitos |
+|----------|-------------|---------|
+| AA | Área (prefixo) | 2 |
+| MM | Macroprocesso | 2 |
+| PP | Processo | 2 |
+| SS | Subprocesso | 2 |
+| III | Índice da atividade | 3 |
+
+Exemplo:
 
 ```
-1.02.03.04.108
-│ │  │  │  └── Índice da Atividade (108 = primeira atividade nova da área)
-│ │  │  └──── Índice do Subprocesso (04)
-│ │  └─────── Índice do Processo (03)
-│ └────────── Índice do Macroprocesso (02)
-└──────────── Prefixo da Área (1 = CGBEN)
+01.02.03.04.108
+│  │  │  │  └── Atividade 108 (primeira nova da área)
+│  │  │  └──── Subprocesso 04
+│  │  └─────── Processo 03
+│  └────────── Macroprocesso 02
+└──────────── Área 01 (CGBEN)
 ```
 
-## Prefixos de Área
+### Tipos de CAP
 
-| Código | Nome da Área | Prefixo |
-|--------|--------------|---------|
-| CGBEN  | Coordenação Geral de Benefícios | 1 |
-| CGPAG  | Coordenação Geral de Pagamentos | 2 |
-| COATE  | Coordenação de Atendimento | 3 |
-| CGGAF  | Coordenação Geral de Gestão de Acervos Funcionais | 4 |
-| DIGEP  | Diretoria de Pessoal dos Ex-Territórios | 5 |
-| CGRIS  | Coordenação Geral de Riscos e Controle | 6 |
-| CGCAF  | Coordenação Geral de Gestão de Complementação da Folha | 7 |
-| CGECO  | Coordenação Geral de Extinção e Convênio | 8 |
+| Tipo | Origem | Faixa |
+|------|--------|-------|
+| Oficial | CSV `Arquitetura_DECIPEX_mapeada.csv` | 001–107 |
+| Provisório | Gerado com lock transacional | 108+ |
 
-## Tipos de CAP
+### Composição em runtime
 
-### 1. CAP Oficial
-- Atividades das **107 já mapeadas** no catálogo oficial (CSV)
-- Extraído diretamente do arquivo `Arquitetura_DECIPEX_mapeada.csv`
-- Exemplo: `1.02.03.04.001` a `1.02.03.04.107`
+O CSV de arquitetura contém `Numero` = `1.1.1.1` (macro.processo.sub.atividade, sem padding).
+O pipeline normaliza e concatena com o prefixo da área:
 
-### 2. CAP Provisório
-- Novas atividades **sugeridas pela IA** ou pelos usuários
-- Gerado automaticamente com **lock transacional** (evita duplicação)
-- Inicia em `108` para cada área
-- Exemplo: `1.02.03.04.108`, `1.02.03.04.109`, etc.
-- **Status**: Aguardando validação do gestor
+```python
+from processos.domain.governanca.normalize import normalize_numero_csv, resolve_prefixo_cap
 
-### 3. CAP Oficial (após aprovação)
-- CAP Provisório se torna **CAP Oficial** após validação do gestor
-- Atividade é injetada no CSV oficial
-- Nova versão do CSV é criada automaticamente
+# numero_csv = "1.1.1.1" (do CSV, sem padding)
+prefixo = resolve_prefixo_cap("DIGEP-RO", areas_map)  # "05" (área pai, nunca "05.01")
+numero = normalize_numero_csv(numero_csv)               # "01.01.01.001"
+cap = f"{prefixo}.{numero}"                             # "05.01.01.01.001"
+```
 
-## Geração de CAP - Sistema de Locks
+Regras:
+- `normalize_numero_csv()` converte `1.1.1.1` → `01.01.01.001` (MM.PP.SS.III)
+- `resolve_prefixo_cap()` retorna área pai se subárea (DIGEP-RO → `05`, não `05.01`)
+- CAP nunca embute subárea — subárea fica em campo separado (`area_codigo`)
 
-Para evitar **race conditions** (dois usuários gerando o mesmo CAP ao mesmo tempo), implementamos controle transacional:
+---
 
-### Tabela `controle_indices`
+## 3. CP — Código de Produto (não-POP)
+
+Formato:
+
+```
+AA.PR.III        (área simples)
+AA.BB.PR.III     (subárea)
+```
+
+Regex: `^\d{2}(?:\.\d{2})?\.\d{2}\.\d{3}$`
+
+| Segmento | Significado | Dígitos |
+|----------|-------------|---------|
+| AA | Área (prefixo) | 2 |
+| BB | Subárea (opcional) | 2 |
+| PR | Código do produto | 2 |
+| III | Sequência | 3 |
+
+### Catálogo de produtos
+
+| Produto | Código (PR) | Model |
+|---------|-------------|-------|
+| Análise de Riscos | 01 | `AnaliseRiscos` |
+| Planejamento Estratégico | 02 | `PlanejamentoEstrategico` |
+
+### Diferença CP vs CAP
+
+| | CAP | CP |
+|---|---|---|
+| Subárea | Nunca embutida (usa área pai) | Incluída no prefixo |
+| `resolve_prefixo_cap("DIGEP-RO")` | `"05"` | — |
+| `resolve_prefixo_cp("DIGEP-RO")` | — | `"05.01"` |
+
+### Composição em runtime
+
+```python
+from processos.domain.governanca.cp_generator import gerar_cp
+
+gerar_cp("COATE", "01")     # "03.01.001"
+gerar_cp("DIGEP-RO", "03")  # "05.01.03.001"
+```
+
+### Geração idempotente
+
+1. Objeto criado com `codigo_cp=None`
+2. CP gerado via `gerar_cp(area_codigo, produto_codigo)` com lock transacional
+3. Aplicado com update atômico: `filter(pk=pk, codigo_cp__isnull=True).update(codigo_cp=cp)`
+4. Request duplicado não gera segundo CP (idempotência)
+
+Helper: `atribuir_cp_se_necessario(obj, area_codigo)` — em `cp_generator.py`.
+
+### Controle transacional
+
+Tabela `controle_indices_produto` (separada do CAP):
+
+```python
+with transaction.atomic():
+    controle, _ = ControleIndicesProduto.objects.select_for_update().get_or_create(
+        area_codigo=area_codigo,
+        produto_codigo=produto_codigo,
+        defaults={'ultimo_indice': 0}
+    )
+    seq = controle.ultimo_indice + 1
+    controle.ultimo_indice = seq
+    controle.save()
+```
+
+### UniqueConstraints
+
+- **AnaliseRiscos**: `UNIQUE(codigo_cp) WHERE codigo_cp IS NOT NULL AND codigo_cp != ''`
+- **PlanejamentoEstrategico**: `UNIQUE(codigo_cp) WHERE codigo_cp IS NOT NULL AND codigo_cp != '' AND status != 'cancelado'`
+
+PE cancelado mantém CP no registro (auditoria), mas libera o código para reutilização.
+
+### Endpoint de busca unificado
+
+```
+GET /api/produtos/busca/?codigo=03.01.001
+```
+
+Identifica formato automaticamente (CAP 5 segmentos vs CP 3-4 segmentos).
+Retorna tipo, id, area_codigo, status, nome. Erros: 400 (formato inválido), 404 (não encontrado).
+
+CAP e CP **nunca se misturam**:
+- CAP identifica atividade institucional (POP)
+- CP identifica produto institucional (não-POP)
+
+---
+
+## 4. Regras de Geração
+
+- Todo registro tem **UUID técnico** (chave primária no banco)
+- Códigos humanos (CAP, CP) são **Business Keys**
+- Geração de CAP provisório usa `select_for_update()` para evitar race conditions
+- Índice sequencial por área, iniciando em 108
+
+---
+
+## 5. Controle Transacional
+
+Tabela `controle_indices`:
 
 ```sql
 CREATE TABLE controle_indices (
     area_codigo VARCHAR(10) PRIMARY KEY,
-    ultimo_indice INTEGER DEFAULT 107,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ultimo_indice INTEGER DEFAULT 107
 );
 ```
 
-### Algoritmo de Geração
+Algoritmo:
 
 ```python
-# 1. Lock transacional (evita race condition)
 with transaction.atomic():
-    controle = ControleIndices.objects.select_for_update().get(
-        area_codigo='CGBEN'
-    )
-
-    proximo_indice = controle.ultimo_indice + 1  # 108, 109, 110...
-    controle.ultimo_indice = proximo_indice
+    controle = ControleIndices.objects.select_for_update().get(area_codigo='CGBEN')
+    proximo = controle.ultimo_indice + 1  # 108, 109, ...
+    controle.ultimo_indice = proximo
     controle.save()
 
-# 2. Montar CAP hierárquico
-cap = f"{prefixo_area}.{idx_macro:02d}.{idx_processo:02d}.{idx_sub:02d}.{idx_ativ:03d}"
-# Exemplo: 1.02.03.04.108
+cap = f"{prefixo_area}.{idx_macro:02d}.{idx_processo:02d}.{idx_sub:02d}.{proximo:03d}"
 ```
 
-### Por que `select_for_update()`?
+---
 
-Sem lock transacional:
-```
-Usuário A lê ultimo_indice = 107
-Usuário B lê ultimo_indice = 107  ❌ Race condition!
-Usuário A grava 108
-Usuário B grava 108  ❌ CAP duplicado!
-```
+## 6. Governança e Versionamento
 
-Com lock transacional:
+### Ciclo de vida
+
 ```
-Usuário A bloqueia a linha (SELECT FOR UPDATE)
-Usuário A lê ultimo_indice = 107
-Usuário A grava 108
-Usuário A libera lock ✅
-Usuário B bloqueia a linha
-Usuário B lê ultimo_indice = 108
-Usuário B grava 109 ✅
+Sugerida → Validada → Publicada (injetada no CSV oficial)
+                   → Rejeitada
 ```
 
-## Ciclo de Vida de uma Nova Atividade
+### Versionamento CSV
 
-### Fluxo Completo
-
-```mermaid
-graph TD
-    A[Usuário descreve atividade] --> B{Busca no CSV}
-    B -->|Score >= 0.85| C[CAP Oficial encontrado]
-    B -->|Score < 0.85| D[IA sugere nova atividade]
-
-    D --> E[Gera CAP Provisório com lock]
-    E --> F[Detecta duplicatas TF-IDF]
-    F --> G[Salva no banco com rastreabilidade]
-
-    G --> H{Gestor valida?}
-    H -->|Sim| I[Injeta no CSV oficial]
-    H -->|Não| J[Status: rejeitada]
-
-    I --> K[CAP Provisório → CAP Oficial]
-    K --> L[Cria versão CSV com SHA256]
-    L --> M[Atualiza changelog]
-```
-
-### Estados no Banco de Dados
-
-| Status | Descrição |
-|--------|-----------|
-| `sugerida` | Aguardando validação do gestor |
-| `validada` | Aprovada pelo gestor, pronta para publicação |
-| `rejeitada` | Rejeitada pelo gestor (não será publicada) |
-| `publicada` | Injetada no CSV oficial e disponível para todos |
-
-## Rastreabilidade Completa
-
-Cada CAP Provisório registra:
-
-### Dados do Autor
-```python
-{
-    "autor_cpf": "12345678900",
-    "autor_nome": "João Silva",
-    "autor_area": "CGBEN",
-    "data_sugestao_utc": "2025-10-26T23:45:00Z"
-}
-```
-
-### Dados da Validação
-```python
-{
-    "validador_cpf": "98765432100",
-    "validador_nome": "Maria Santos",
-    "validador_cargo": "Gestor CGBEN",
-    "data_validacao_utc": "2025-10-27T10:30:00Z",
-    "comentario_validacao": "Aprovado - atividade relevante"
-}
-```
-
-### Detecção de Duplicatas
-```python
-{
-    "hash_sugestao": "a3f8d9e2...",  # SHA256 (anti-duplicata)
-    "score_similaridade": 0.73,       # Score máximo encontrado
-    "sugestoes_similares": [           # Atividades similares (score > 0.8)
-        {
-            "cap": "1.02.03.04.110",
-            "atividade": "Analisar requerimento...",
-            "score": 0.85,
-            "autor": "Pedro Costa"
-        }
-    ],
-    "scores_similares_todos": [0.85, 0.73, 0.42, ...]  # Todos os scores
-}
-```
-
-### Origem do Fluxo
-- `match_exato` - Encontrado no CSV com score >= 0.95
-- `match_fuzzy` - Encontrado no CSV com score >= 0.85
-- `nova_atividade_ia` - Sugerida pela IA (score < 0.85)
-- `selecao_manual` - Selecionada via dropdowns hierárquicos
-
-## Versionamento do CSV
-
-Cada vez que uma atividade é injetada no CSV, uma nova versão é criada:
-
-### Formato de Versão
 ```
 Arquitetura_DECIPEX_vYYYYMMDD_HHMMSS_NNN.csv
 ```
 
-Exemplo:
-```
-Arquitetura_DECIPEX_v20251026_234500_001.csv
-Arquitetura_DECIPEX_v20251027_103000_002.csv
-```
+Cada versão tem hash SHA256 e changelog JSON.
 
-### Changelog (JSON)
-```json
-{
-  "versoes": [
-    {
-      "versao": "Arquitetura_DECIPEX_v20251026_234500_001.csv",
-      "hash_sha256": "a3f8d9e2c4b5...",
-      "timestamp_utc": "2025-10-26T23:45:00Z",
-      "motivo": "Injeção de atividade validada: 1.02.03.04.108",
-      "atividades_adicionadas": [
-        {
-          "cap": "1.02.03.04.108",
-          "macroprocesso": "Gestão de Benefícios",
-          "processo": "Concessão de Aposentadorias",
-          "subprocesso": "Análise de Requerimentos",
-          "atividade": "Analisar pedido de reconsideração",
-          "autor": "João Silva",
-          "validador": "Maria Santos",
-          "data_sugestao": "2025-10-26T23:45:00Z",
-          "data_validacao": "2025-10-27T10:30:00Z"
-        }
-      ],
-      "total_atividades": 1
-    }
-  ]
-}
-```
+### Normalização
 
-## Benefícios do Método CAP
+Funções em `processos/domain/governanca/normalize.py`:
+- `normalize_area_prefix()` — normaliza prefixo de área
+- `normalize_cap()` — normaliza primeiro segmento de um CAP
+- `normalize_numero_csv()` — normaliza Numero do CSV para SNI
+- `resolve_prefixo_cap()` — prefixo para CAP (área pai se subárea)
+- `resolve_prefixo_cp()` — prefixo para CP (inclui subárea, fail-fast)
 
-### 1. **Unicidade Garantida**
-- Cada atividade tem um identificador único
-- Impossível criar duplicatas (lock transacional)
-
-### 2. **Rastreabilidade Total**
-- Quem sugeriu (autor)
-- Quem validou (gestor)
-- Quando foi criada/validada (UTC)
-- Por que foi criada (descrição original)
-
-### 3. **Governança Rigorosa**
-- Todas as sugestões passam por validação
-- Histórico completo de mudanças (audit trail)
-- CSV versionado com hash SHA256
-
-### 4. **Detecção de Duplicatas**
-- Algoritmo TF-IDF + Cosine Similarity
-- Alerta quando há atividades similares
-- Scores salvos para análise futura
-
-### 5. **Evolução Controlada**
-- CSV oficial cresce de forma organizada
-- Novas atividades não sobrescrevem antigas
-- Versionamento permite rollback se necessário
-
-### 6. **Multi-Área**
-- Mesma atividade pode existir em áreas diferentes
-- Cada área tem seu próprio contador (107 → 108 → 109...)
-- CAPs diferentes mesmo com descrição similar
-
-## Exemplo Prático
-
-### Cenário: Nova Atividade Sugerida
-
-1. **Usuário descreve**: "Analisar pedido de reconsideração de aposentadoria"
-
-2. **Sistema busca no CSV** (107 atividades mapeadas)
-   - Score: 0.72 (< 0.85) ❌ Não encontrado
-
-3. **IA sugere nova arquitetura**:
-   ```
-   Macroprocesso: Gestão de Benefícios Previdenciários
-   Processo: Gestão de Aposentadorias
-   Subprocesso: Recursos e Reconsiderações
-   Atividade: Analisar pedido de reconsideração
-   ```
-
-4. **Sistema gera CAP Provisório**:
-   ```python
-   # Lock transacional
-   controle = ControleIndices.objects.select_for_update().get(area_codigo='CGBEN')
-   # CGBEN estava em 107, agora vai para 108
-   cap_provisorio = "1.02.03.04.108"
-   ```
-
-5. **Sistema detecta similares**:
-   - Busca atividades similares já sugeridas
-   - Encontra: `1.02.03.05.109` - "Analisar recurso administrativo" (score: 0.82)
-   - Alerta usuário sobre a similaridade
-
-6. **Sistema salva com rastreabilidade**:
-   ```python
-   AtividadeSugerida.objects.create(
-       cap_provisorio="1.02.03.04.108",
-       status="sugerida",
-       area_codigo="CGBEN",
-       autor_cpf="12345678900",
-       autor_nome="João Silva",
-       hash_sugestao="a3f8d9e2...",
-       score_similaridade=0.82,
-       origem_fluxo="nova_atividade_ia",
-       # ... mais campos
-   )
-   ```
-
-7. **Gestor valida**:
-   - Acessa interface de gestão
-   - Aprova a sugestão
-   - Sistema injeta no CSV
-   - CAP Provisório `1.02.03.04.108` → CAP Oficial `1.02.03.04.108`
-
-8. **Nova versão do CSV**:
-   ```
-   Arquitetura_DECIPEX_v20251027_103000_002.csv
-   Hash: b7c4e1f3...
-   Total de atividades: 108 (107 + 1)
-   ```
-
-## Consultas Úteis
-
-### Listar todas as atividades sugeridas pendentes
-```python
-pendentes = AtividadeSugerida.objects.filter(status='sugerida')
-for ativ in pendentes:
-    print(f"{ativ.cap_provisorio}: {ativ.atividade} (por {ativ.autor_nome})")
-```
-
-### Verificar próximo índice de uma área
-```python
-controle = ControleIndices.objects.get(area_codigo='CGBEN')
-print(f"Próximo CAP: 1.02.03.04.{controle.ultimo_indice + 1}")
-```
-
-### Histórico de uma atividade
-```python
-atividade = AtividadeSugerida.objects.get(cap_provisorio='1.02.03.04.108')
-historico = HistoricoAtividade.objects.filter(atividade=atividade)
-for evento in historico:
-    print(f"{evento.tipo_evento} - {evento.data_evento_utc} - {evento.usuario_nome}")
-```
-
-## Referências
-
-- Implementação: [`processos/domain/helena_produtos/helena_pop.py`](../processos/domain/helena_produtos/helena_pop.py)
-- Modelos: [`processos/models_new/atividade_sugerida.py`](../processos/models_new/atividade_sugerida.py)
-- Migration: [`processos/migrations/0013_add_atividades_sugeridas.py`](../processos/migrations/0013_add_atividades_sugeridas.py)
-- CSV de Atividades: [`documentos_base/Arquitetura_DECIPEX_mapeada.csv`](../documentos_base/Arquitetura_DECIPEX_mapeada.csv)
-- CSV de Áreas: [`documentos_base/areas_organizacionais.csv`](../documentos_base/areas_organizacionais.csv)
+Usadas por: loaders, pipelines, migrações, cap_generator, cp_generator.
 
 ---
 
-**Última atualização**: 26/10/2025
-**Versão**: 1.0
-**Autor**: Sistema Helena - Governança de Processos
+## Referências
+
+- Normalização: [`processos/domain/governanca/normalize.py`](../processos/domain/governanca/normalize.py)
+- Gerador CAP: [`processos/domain/governanca/cap_generator.py`](../processos/domain/governanca/cap_generator.py)
+- Gerador CP: [`processos/domain/governanca/cp_generator.py`](../processos/domain/governanca/cp_generator.py)
+- Controle CP: [`processos/models_new/controle_indices_produto.py`](../processos/models_new/controle_indices_produto.py)
+- Busca unificada: [`processos/api/produtos_busca_api.py`](../processos/api/produtos_busca_api.py)
+- Áreas CSV: [`documentos_base/areas_organizacionais.csv`](../documentos_base/areas_organizacionais.csv)
+- Arquitetura CSV: [`documentos_base/Arquitetura_DECIPEX_mapeada.csv`](../documentos_base/Arquitetura_DECIPEX_mapeada.csv)
+- Modelos: [`processos/models.py`](../processos/models.py)
+- Pipeline: [`processos/domain/helena_mapeamento/busca_atividade_pipeline.py`](../processos/domain/helena_mapeamento/busca_atividade_pipeline.py)
+- Testes CP: [`processos/tests/test_cp_generator.py`](../processos/tests/test_cp_generator.py)
+
+---
+
+**Versão**: 3.0 (SNI + CP)
+**Data**: 2026-02-16

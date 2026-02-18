@@ -111,6 +111,16 @@ class AnaliseRiscos(models.Model):
     questoes_respondidas = models.JSONField(default=dict, blank=True)
     area_decipex = models.CharField(max_length=50, blank=True)
 
+    # Código de Produto SNI (CP)
+    codigo_cp = models.CharField(
+        max_length=20, null=True, blank=True,
+        verbose_name="Código de Produto (CP)",
+    )
+    produto_codigo = models.CharField(
+        max_length=2, default="01",
+        verbose_name="Código do tipo de produto",
+    )
+
     criado_por = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
@@ -127,6 +137,13 @@ class AnaliseRiscos(models.Model):
             models.Index(fields=["orgao_id", "status"]),
             models.Index(fields=["origem_id"]),
             models.Index(fields=["modo_entrada"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['codigo_cp'],
+                condition=~models.Q(codigo_cp=None) & ~models.Q(codigo_cp=''),
+                name='unique_cp_analise_riscos',
+            ),
         ]
 
     def __str__(self):

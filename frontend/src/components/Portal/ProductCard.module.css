@@ -2,16 +2,21 @@
   background: #f8fafc;
   border-radius: 12px;
   padding: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   cursor: pointer;
   transition: all 0.3s;
   border: 2px solid transparent;
 }
 
-.productCard:hover {
+.productCard:hover:not(.disabled) {
   background: #edf2f7;
   border-color: #3498DB;
   transform: translateX(4px);
+}
+
+.productCard.disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .productCard.active {

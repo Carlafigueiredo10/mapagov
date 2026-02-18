@@ -121,42 +121,52 @@ class FormatadorUtils:
 
 
 class CodigoUtils:
-    """Utilitários para geração e validação de códigos"""
-    
-    AREAS_PREFIXOS = {
-        "CGBEN": "1", "CGPAG": "2", "COATE": "3", "CGGAF": "4",
-        "DIGEP": "5", "CGRIS": "6", "CGCAF": "7", "CGECO": "8"
-    }
-    
+    """Utilitários para geração e validação de códigos SNI"""
+
+    @staticmethod
+    def _carregar_prefixos() -> dict:
+        """Carrega prefixos do model Area. Fallback SNI se banco indisponível."""
+        try:
+            from processos.models import Area
+            return {a.codigo: a.prefixo for a in Area.objects.filter(ativo=True)}
+        except Exception:
+            return {
+                "CGBEN": "01", "CGPAG": "02", "COATE": "03", "CGGAF": "04",
+                "DIGEP": "05", "CGRIS": "06", "CGCAF": "07", "CGECO": "08",
+                "COADM": "09", "COGES": "10", "CDGEP": "11",
+            }
+
     @staticmethod
     def gerar_codigo_processo(area_codigo: str, sequencial: Optional[int] = None) -> str:
         """
         Gera código de processo baseado na área
-        Formato: PREFIXO.MACROPROCESSO.PROCESSO.ATIVIDADE
+        Formato SNI: AA.MM.PP.SS.III
         """
-        prefixo = CodigoUtils.AREAS_PREFIXOS.get(area_codigo, "X")
-        
+        prefixos = CodigoUtils._carregar_prefixos()
+        prefixo = prefixos.get(area_codigo, "00")
+
         if sequencial is None:
             sequencial = 1
-        
-        return f"{prefixo}.1.1.{sequencial}"
-    
+
+        return f"{prefixo}.01.01.{sequencial:03d}"
+
     @staticmethod
     def validar_codigo_processo(codigo: str) -> bool:
-        """Valida formato do código de processo"""
-        pattern = r'^[1-8]\.(\d+)\.(\d+)\.(\d+)$'
+        """Valida formato CAP SNI: AA.MM.PP.SS.III"""
+        pattern = r'^\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{3}$'
         return re.match(pattern, codigo) is not None
-    
+
     @staticmethod
     def extrair_componentes_codigo(codigo: str) -> Dict[str, str]:
-        """Extrai componentes do código de processo"""
-        match = re.match(r'^([1-8])\.(\d+)\.(\d+)\.(\d+)$', codigo)
+        """Extrai componentes do código de processo SNI"""
+        match = re.match(r'^(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})\.(\d{3})$', codigo)
         if match:
             return {
                 "area": match.group(1),
                 "macroprocesso": match.group(2),
                 "processo": match.group(3),
-                "atividade": match.group(4)
+                "subprocesso": match.group(4),
+                "atividade": match.group(5)
             }
         return {}
 
@@ -2044,7 +2054,7 @@ def testar_pdf_generator():
     
     dados_teste = {
         "nome_processo": "Conceder Ressarcimento a Aposentado Civil",
-        "codigo_processo": "2.3.3.1",
+        "codigo_processo": "02.03.03.01.001",
         "area": {"codigo": "CGBEN", "nome": "Coordenação-Geral de Benefícios"},
         "sistemas": ["SouGov", "SEI", "SIGEPE"],
         "entrega_esperada": "Auxílio de caráter indenizatório, por ressarcimento concedido à aposentado civil.",

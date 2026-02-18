@@ -65,7 +65,6 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
   const opcoesOrigem: OpcaoOrigem[] = [
     { id: 'outra_area_decipex', label: 'De outra área da DECIPEX', requerEspecificacao: true, requerAreaDecipex: true },
     { id: 'orgao_centralizado', label: 'De algum órgão centralizado', requerEspecificacao: true, requerOrgaoCentralizado: true },
-    { id: 'fora_decipex', label: 'De fora da DECIPEX (outro órgão/entidade)', requerEspecificacao: true, obrigatorio: true },
     { id: 'usuario_requerente', label: 'Do usuário/requerente diretamente', requerEspecificacao: true, requerCanaisAtendimento: true },
     { id: 'area_interna_cg', label: 'De outra área interna da sua Coordenação Geral', requerEspecificacao: true, obrigatorio: true },
     { id: 'orgaos_controle', label: 'Órgãos de Controle', requerEspecificacao: true, opcoesPredefinidas: ['TCU - Indícios', 'TCU - Acórdão', 'CGU'] },

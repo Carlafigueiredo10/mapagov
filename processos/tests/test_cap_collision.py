@@ -31,11 +31,11 @@ class TestMaxAtividadeCSV(unittest.TestCase):
     """Testa parsing de max atividade a partir de lista de CAPs do CSV."""
 
     def test_csv_normal(self):
-        caps = ['8.1.1.1', '8.1.1.2', '8.1.1.3']
+        caps = ['08.01.01.01', '08.01.01.02', '08.01.01.03']
         self.assertEqual(_max_atividade_csv(caps), 3)
 
     def test_csv_com_gaps(self):
-        caps = ['1.1.1.1', '1.1.1.5', '1.1.1.3']
+        caps = ['01.01.01.01', '01.01.01.05', '01.01.01.03']
         self.assertEqual(_max_atividade_csv(caps), 5)
 
     def test_csv_vazio(self):
@@ -43,12 +43,12 @@ class TestMaxAtividadeCSV(unittest.TestCase):
 
     def test_csv_com_lixo(self):
         """Strings não-numéricas no último segmento são ignoradas."""
-        caps = ['8.1.1.abc', '8.1.1.2', 'invalido']
+        caps = ['08.01.01.abc', '08.01.01.02', 'invalido']
         self.assertEqual(_max_atividade_csv(caps), 2)
 
     def test_csv_formato_curto_ignorado(self):
         """CAPs com menos de 4 segmentos são ignorados."""
-        caps = ['1.1', '8.1.1.4']
+        caps = ['01.01', '08.01.01.04']
         self.assertEqual(_max_atividade_csv(caps), 4)
 
     def test_csv_somente_lixo_retorna_zero(self):
@@ -61,20 +61,20 @@ class TestMaxAtividadeDB(TestCase):
 
     def test_db_vazio_retorna_zero(self):
         """Sem POPs no banco, max_db deve ser 0 (CSV prevalece)."""
-        self.assertEqual(_max_atividade_db('3.7.1.1'), 0)
+        self.assertEqual(_max_atividade_db('03.07.01.01'), 0)
 
     def test_db_com_pops(self):
         """DB com POPs existentes retorna o maior segmento."""
-        POP.objects.create(session_id='s1', codigo_processo='3.7.1.1.2', is_deleted=False, status='draft')
-        POP.objects.create(session_id='s2', codigo_processo='3.7.1.1.5', is_deleted=False, status='draft')
-        POP.objects.create(session_id='s3', codigo_processo='3.7.1.1.3', is_deleted=False, status='draft')
-        self.assertEqual(_max_atividade_db('3.7.1.1'), 5)
+        POP.objects.create(session_id='s1', codigo_processo='03.07.01.01.002', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s2', codigo_processo='03.07.01.01.005', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s3', codigo_processo='03.07.01.01.003', is_deleted=False, status='draft')
+        self.assertEqual(_max_atividade_db('03.07.01.01'), 5)
 
     def test_db_maior_que_csv(self):
         """Cenário: CSV tem max=3, DB tem max=7 → gerador deve usar 7."""
-        POP.objects.create(session_id='s1', codigo_processo='3.7.1.1.7', is_deleted=False, status='draft')
-        csv_max = _max_atividade_csv(['7.1.1.1', '7.1.1.2', '7.1.1.3'])
-        db_max = _max_atividade_db('3.7.1.1')
+        POP.objects.create(session_id='s1', codigo_processo='03.07.01.01.007', is_deleted=False, status='draft')
+        csv_max = _max_atividade_csv(['07.01.01.01', '07.01.01.02', '07.01.01.03'])
+        db_max = _max_atividade_db('03.07.01.01')
         candidato = max(csv_max, db_max) + 1
         self.assertEqual(csv_max, 3)
         self.assertEqual(db_max, 7)
@@ -82,22 +82,22 @@ class TestMaxAtividadeDB(TestCase):
 
     def test_db_com_lixo_no_sufixo(self):
         """POPs com sufixo não-numérico são ignorados sem quebrar."""
-        POP.objects.create(session_id='s1', codigo_processo='3.7.1.1.abc', is_deleted=False, status='draft')
-        POP.objects.create(session_id='s2', codigo_processo='3.7.1.1.4', is_deleted=False, status='draft')
-        POP.objects.create(session_id='s3', codigo_processo='3.7.1.1.', is_deleted=False, status='draft')
-        self.assertEqual(_max_atividade_db('3.7.1.1'), 4)
+        POP.objects.create(session_id='s1', codigo_processo='03.07.01.01.abc', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s2', codigo_processo='03.07.01.01.004', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s3', codigo_processo='03.07.01.01.', is_deleted=False, status='draft')
+        self.assertEqual(_max_atividade_db('03.07.01.01'), 4)
 
     def test_db_ignora_soft_deleted(self):
         """POPs soft-deleted não devem contar."""
-        POP.objects.create(session_id='s1', codigo_processo='3.7.1.1.9', is_deleted=True, status='draft')
-        POP.objects.create(session_id='s2', codigo_processo='3.7.1.1.3', is_deleted=False, status='draft')
-        self.assertEqual(_max_atividade_db('3.7.1.1'), 3)
+        POP.objects.create(session_id='s1', codigo_processo='03.07.01.01.009', is_deleted=True, status='draft')
+        POP.objects.create(session_id='s2', codigo_processo='03.07.01.01.003', is_deleted=False, status='draft')
+        self.assertEqual(_max_atividade_db('03.07.01.01'), 3)
 
     def test_db_ignora_outro_prefixo(self):
         """POPs de outro prefixo não interferem."""
-        POP.objects.create(session_id='s1', codigo_processo='6.1.1.1.9', is_deleted=False, status='draft')
-        POP.objects.create(session_id='s2', codigo_processo='3.7.1.1.2', is_deleted=False, status='draft')
-        self.assertEqual(_max_atividade_db('3.7.1.1'), 2)
+        POP.objects.create(session_id='s1', codigo_processo='06.01.01.01.009', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s2', codigo_processo='03.07.01.01.002', is_deleted=False, status='draft')
+        self.assertEqual(_max_atividade_db('03.07.01.01'), 2)
 
 
 # ── Testes de UniqueConstraint ───────────────────────────────────────────────
@@ -108,14 +108,14 @@ class TestUniqueCapConstraint(TestCase):
     def test_dois_pops_mesmo_cap_ativo_falha(self):
         POP.objects.create(
             session_id='sess-1',
-            codigo_processo='3.1.1.1.1',
+            codigo_processo='03.01.01.01.001',
             is_deleted=False,
             status='draft',
         )
         with self.assertRaises(IntegrityError):
             POP.objects.create(
                 session_id='sess-2',
-                codigo_processo='3.1.1.1.1',
+                codigo_processo='03.01.01.01.001',
                 is_deleted=False,
                 status='draft',
             )
@@ -124,13 +124,13 @@ class TestUniqueCapConstraint(TestCase):
         """Um ativo e um soft-deleted com mesmo CAP devem coexistir."""
         POP.objects.create(
             session_id='sess-1',
-            codigo_processo='3.1.1.1.2',
+            codigo_processo='03.01.01.01.002',
             is_deleted=False,
             status='draft',
         )
         pop2 = POP.objects.create(
             session_id='sess-2',
-            codigo_processo='3.1.1.1.2',
+            codigo_processo='03.01.01.01.002',
             is_deleted=True,
             status='draft',
         )
@@ -140,13 +140,13 @@ class TestUniqueCapConstraint(TestCase):
         """Dois soft-deleted com mesmo CAP devem coexistir."""
         POP.objects.create(
             session_id='sess-1',
-            codigo_processo='3.1.1.1.3',
+            codigo_processo='03.01.01.01.003',
             is_deleted=True,
             status='draft',
         )
         pop2 = POP.objects.create(
             session_id='sess-2',
-            codigo_processo='3.1.1.1.3',
+            codigo_processo='03.01.01.01.003',
             is_deleted=True,
             status='draft',
         )
@@ -198,32 +198,32 @@ class TestAutosaveRetry(TransactionTestCase):
         """Simula colisão: cria POP existente, tenta salvar outro com mesmo CAP."""
         POP.objects.create(
             session_id='sess-existing',
-            codigo_processo='6.1.1.1.5',
+            codigo_processo='06.01.01.01.005',
             is_deleted=False,
             status='draft',
         )
 
         pop = POP(
             session_id='sess-new',
-            codigo_processo='6.1.1.1.5',
+            codigo_processo='06.01.01.01.005',
             is_deleted=False,
             status='draft',
         )
         self._save_with_retry(pop)
 
         self.assertTrue(pop.pk)
-        self.assertEqual(pop.codigo_processo, '6.1.1.1.6')
+        self.assertEqual(pop.codigo_processo, '06.01.01.01.6')
 
     def test_save_retry_dupla_colisao(self):
         """Colisão em 2 CAPs consecutivos, resolve na 3a tentativa."""
-        POP.objects.create(session_id='s1', codigo_processo='6.1.1.1.5', is_deleted=False, status='draft')
-        POP.objects.create(session_id='s2', codigo_processo='6.1.1.1.6', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s1', codigo_processo='06.01.01.01.005', is_deleted=False, status='draft')
+        POP.objects.create(session_id='s2', codigo_processo='06.01.01.01.6', is_deleted=False, status='draft')
 
-        pop = POP(session_id='s3', codigo_processo='6.1.1.1.5', is_deleted=False, status='draft')
+        pop = POP(session_id='s3', codigo_processo='06.01.01.01.005', is_deleted=False, status='draft')
         self._save_with_retry(pop)
 
         self.assertTrue(pop.pk)
-        self.assertEqual(pop.codigo_processo, '6.1.1.1.7')
+        self.assertEqual(pop.codigo_processo, '06.01.01.01.7')
 
 
 if __name__ == '__main__':

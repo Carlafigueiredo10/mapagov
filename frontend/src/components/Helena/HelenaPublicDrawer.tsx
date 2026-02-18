@@ -57,7 +57,7 @@ const SCRIPT: { pergunta: string; resposta: string }[] = [
 const GREETING: Msg = {
   de: 'helena',
   texto:
-    'Olá! Sou a Helena, assistente de governança do MapaGov. ' +
+    'Olá! Sou a Helena, assistente da plataforma MapaGov. ' +
     'Posso explicar como funciona a plataforma e o portfólio de produtos. Escolha uma pergunta:',
 };
 
@@ -129,7 +129,7 @@ export default function HelenaPublicDrawer({ open, onClose }: Props) {
             />
             <div>
               <div style={{ fontWeight: 600, color: '#1B4F72', fontSize: '0.95rem' }}>Helena</div>
-              <div style={{ fontSize: '0.75rem', color: '#7F8C8D' }}>Assistente de Governança</div>
+              <div style={{ fontSize: '0.75rem', color: '#7F8C8D' }}>Assistente da Plataforma MapaGov</div>
             </div>
           </div>
           <button onClick={onClose} style={closeBtn} aria-label="Fechar">

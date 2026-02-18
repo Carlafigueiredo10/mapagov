@@ -10,96 +10,96 @@ export const products: Product[] = [
     description: 'Assistente para orientação sobre os produtos e serviços do MapaGov.',
   },
 
-  // ── Fase 1 — Disponíveis ──────────────────────────────────────
+  // ── Disponíveis ──────────────────────────────────────────────────
   {
     code: 'pop',
-    title: 'P1 - Gerador de POP',
+    title: 'Gerador de POP',
     icon: '📋',
     status: 'disponivel',
-    statusLabel: '✅ Disponível',
+    statusLabel: 'Disponível',
     description: 'Estrutura o processo e gera o Procedimento Operacional Padrão.',
     route: '/pop',
   },
   {
+    code: 'riscos',
+    title: 'Análise de Riscos',
+    icon: '⚠️',
+    status: 'disponivel',
+    statusLabel: 'Disponível',
+    description: 'Identifica, avalia e sugere tratamento de riscos do processo.',
+    route: '/riscos',
+  },
+
+  // ── Em homologação ───────────────────────────────────────────────
+  {
     code: 'fluxograma',
-    title: 'P2 - Gerador de Fluxograma',
+    title: 'Gerador de Fluxograma',
     icon: '🔄',
-    status: 'desenvolvimento',
-    statusLabel: '🟠 Em homologação',
+    status: 'homologacao',
+    statusLabel: 'Em homologação',
     description: 'Representa visualmente o fluxo do processo mapeado.',
     route: '/fluxograma',
   },
   {
-    code: 'riscos',
-    title: 'P3 - Análise de Riscos',
-    icon: '⚠️',
-    status: 'disponivel',
-    statusLabel: '✅ Disponível',
-    description: 'Identifica, avalia e sugere tratamento de riscos do processo.',
-    route: '/riscos',
-  },
-  {
     code: 'planejamento',
-    title: 'P4 - Planejamento Estratégico',
+    title: 'Planejamento Estratégico',
     icon: '🎯',
-    status: 'desenvolvimento',
-    statusLabel: '🟠 Em homologação',
+    status: 'homologacao',
+    statusLabel: 'Em homologação',
     description: 'Organiza objetivos, metas e diretrizes institucionais.',
     route: '/planejamento-estrategico',
   },
 
-  // ── Fase 2 — Planejados ───────────────────────────────────────
-  {
-    code: 'acao',
-    title: 'P5 - Plano de Ação e Acompanhamento',
-    icon: '🛡️',
-    status: 'planejado',
-    statusLabel: '📅 Planejado',
-    description: 'Define ações, responsáveis e prazos para execução e monitoramento.',
-  },
+  // ── Em desenvolvimento ───────────────────────────────────────────
   {
     code: 'dashboard',
-    title: 'P6 - Painel Executivo',
+    title: 'Painel Executivo',
     icon: '📊',
     status: 'desenvolvimento',
-    statusLabel: '🟡 Em desenvolvimento',
+    statusLabel: 'Em desenvolvimento',
     description: 'Apresenta indicadores e visão consolidada das iniciativas.',
     route: '/painel',
   },
 
-  // ── Fase 3 — Planejados ───────────────────────────────────────
+  // ── Previstos (desabilitados) ────────────────────────────────────
+  {
+    code: 'acao',
+    title: 'Plano de Ação e Acompanhamento',
+    icon: '🛡️',
+    status: 'planejado',
+    statusLabel: 'Previsto',
+    description: 'Define ações, responsáveis e prazos para execução e monitoramento.',
+  },
   {
     code: 'dossie',
-    title: 'P7 - Dossiê Consolidado de Governança',
+    title: 'Dossiê Consolidado de Governança',
     icon: '📄',
     status: 'planejado',
-    statusLabel: '📅 Planejado',
+    statusLabel: 'Previsto',
     description: 'Reúne todos os documentos e análises gerados pelo sistema.',
   },
   {
-    code: 'conformidade',
-    title: 'P8 - Relatório de Conformidade',
-    icon: '✅',
-    status: 'planejado',
-    statusLabel: '📅 Planejado',
-    description: 'Verifica se o processo seguiu etapas e prazos previstos.',
-  },
-
-  // ── Fase 4 — Planejados ───────────────────────────────────────
-  {
     code: 'documentos',
-    title: 'P9 - Relatório Técnico Consolidado',
+    title: 'Relatório Técnico Consolidado',
     icon: '📝',
     status: 'planejado',
-    statusLabel: '📅 Planejado',
+    statusLabel: 'Previsto',
     description: 'Formaliza o histórico completo do processo para arquivamento.',
   },
   {
+    code: 'conformidade',
+    title: 'Relatório de Conformidade',
+    icon: '✅',
+    status: 'planejado',
+    statusLabel: 'Previsto',
+    description: 'Verifica se o processo seguiu etapas e prazos previstos.',
+  },
+  {
     code: 'artefatos',
-    title: 'P10 - Revisão e Adequação de Documentos',
+    title: 'Revisão e Adequação de Documentos',
     icon: '🔍',
     status: 'planejado',
-    statusLabel: '📅 Planejado',
+    statusLabel: 'Previsto',
     description: 'Ajusta documentos à linguagem simples e padrões institucionais.',
   },
 ];

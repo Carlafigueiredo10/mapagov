@@ -77,7 +77,6 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
   const MAPA_ENTRADA_SAIDA: Record<string, string> = {
     'De outra área da DECIPEX': 'outra_area_decipex',
     'De algum órgão centralizado': 'orgao_centralizado',
-    'De fora da DECIPEX (outro órgão/entidade)': 'fora_decipex',
     'Do usuário/requerente diretamente': 'usuario_requerente',
     'De outra área interna da sua Coordenação Geral': 'area_interna_cg',
     'Órgãos de Controle': 'orgaos_controle',
@@ -155,7 +154,6 @@ const InterfaceFluxosSaida: React.FC<InterfaceFluxosSaidaProps> = ({ dados, onCo
   const opcoesDestino: OpcaoDestino[] = [
     { id: 'outra_area_decipex', label: 'Para outra área da DECIPEX', requerEspecificacao: true, requerAreaDecipex: true },
     { id: 'orgao_centralizado', label: 'Para algum órgão centralizado', requerEspecificacao: true, requerOrgaoCentralizado: true },
-    { id: 'fora_decipex', label: 'Para fora da DECIPEX (outro órgão/entidade)', requerEspecificacao: true, obrigatorio: true },
     { id: 'usuario_requerente', label: 'Para o usuário/requerente diretamente', requerEspecificacao: true, requerCanaisAtendimento: true },
     { id: 'area_interna_cg', label: 'Para outra área interna da sua Coordenação Geral', requerEspecificacao: true, obrigatorio: true },
     { id: 'orgaos_controle', label: 'Órgãos de Controle', requerEspecificacao: true, opcoesPredefinidas: ['TCU - Indícios', 'TCU - Acórdão', 'CGU'] },

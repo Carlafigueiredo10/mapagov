@@ -41,7 +41,7 @@ export default function VerifyEmailPage() {
             {accessStatus === 'approved' ? (
               <>
                 <p style={{ color: '#2e7d32', fontWeight: 500 }}>Acesso liberado!</p>
-                <Link to="/login" style={{ color: '#1351B4', textDecoration: 'none', fontWeight: 500 }}>Fazer login</Link>
+                <Link to="/sobre" style={{ color: '#1351B4', textDecoration: 'none', fontWeight: 500 }}>Conhecer o MapaGov</Link>
               </>
             ) : (
               <>
@@ -49,7 +49,7 @@ export default function VerifyEmailPage() {
                   Seu cadastro esta em analise pela equipe responsavel.
                   Voce sera avisado por email quando o acesso for liberado.
                 </p>
-                <Link to="/login" style={{ color: '#1351B4', textDecoration: 'none', fontWeight: 500 }}>Voltar</Link>
+                <Link to="/sobre" style={{ color: '#1351B4', textDecoration: 'none', fontWeight: 500 }}>Conhecer o MapaGov</Link>
               </>
             )}
           </>

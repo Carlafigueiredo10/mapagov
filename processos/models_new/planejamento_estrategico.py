@@ -299,6 +299,16 @@ class PlanejamentoEstrategico(models.Model):
         help_text="Tags para categorização"
     )
 
+    # Código de Produto SNI (CP)
+    codigo_cp = models.CharField(
+        max_length=20, null=True, blank=True,
+        verbose_name="Código de Produto (CP)",
+    )
+    produto_codigo = models.CharField(
+        max_length=2, default="02",
+        verbose_name="Código do tipo de produto",
+    )
+
     class Meta:
         db_table = 'planejamentos_estrategicos'
         verbose_name = 'Planejamento Estratégico'
@@ -308,6 +318,13 @@ class PlanejamentoEstrategico(models.Model):
             models.Index(fields=['modelo', 'status']),
             models.Index(fields=['session_id']),
             models.Index(fields=['orgao', 'unidade']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['codigo_cp'],
+                condition=~models.Q(codigo_cp=None) & ~models.Q(codigo_cp='') & ~models.Q(status='cancelado'),
+                name='unique_cp_planejamento',
+            ),
         ]
 
     def __str__(self):

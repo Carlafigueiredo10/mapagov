@@ -38,7 +38,34 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f6f9' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' as const, background: '#f4f6f9' }}>
+      {/* Header institucional */}
+      <header style={{
+        background: '#fff', borderBottom: '3px solid #1351B4', padding: '12px 24px',
+        display: 'flex', alignItems: 'center', gap: 12,
+      }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+          <div style={{
+            width: 32, height: 32, background: '#1351B4', borderRadius: 4,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontWeight: 700, fontSize: 14,
+          }}>MG</div>
+          <div>
+            <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: '#1B4F72' }}>MapaGov</p>
+            <p style={{ margin: 0, fontSize: 11, color: '#666' }}>Ministério da Gestão e da Inovação em Serviços Públicos</p>
+          </div>
+        </Link>
+        <Link to="/" style={{ marginLeft: 'auto', fontSize: 13, color: '#1351B4', textDecoration: 'none', fontWeight: 500 }}>
+          &#8592; Voltar
+        </Link>
+      </header>
+
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, gap: 40 }}>
+      <img
+        src="/helena_login.PNG"
+        alt="Helena"
+        style={{ height: 340, objectFit: 'contain', flexShrink: 0 }}
+      />
       <div style={{ width: '100%', maxWidth: 420, padding: 32, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <h1 style={{ color: '#1B4F72', fontSize: 24, marginBottom: 8, textAlign: 'center' }}>MapaGov</h1>
         <p style={{ color: '#666', textAlign: 'center', marginBottom: 24 }}>Acesse sua conta</p>
@@ -93,6 +120,7 @@ export default function LoginPage() {
           Nao tem conta?{' '}
           <Link to="/registrar" style={{ color: '#1351B4', textDecoration: 'none', fontWeight: 500 }}>Cadastre-se</Link>
         </div>
+      </div>
       </div>
     </div>
   );
