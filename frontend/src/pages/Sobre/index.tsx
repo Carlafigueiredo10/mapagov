@@ -311,7 +311,7 @@ export default function Sobre() {
                   <li>Decreto n.º 12.102/2024 — Estrutura Regimental do MGI.</li>
                   <li>Resolução CMG/MGI n.º 1/2023 — Planejamento Estratégico 2023–2027.</li>
                   <li>Resolução CMG/MGI n.º 2/2024 — Cadeia de Valor do MGI.</li>
-                  <li>Guia de Modelagem de Processos — MGI (2023)</li>
+                  <li>Guia Prático de Gestão de Processos — MGI (2024)</li>
                   <li>Guia Prático de Gestão de Projetos — MGI (2025)</li>
                 </ul>
               </div>
@@ -323,7 +323,7 @@ export default function Sobre() {
                   <li>Decreto n.º 10.332/2020 — Estratégia de Governo Digital.</li>
                   <li>Decreto n.º 9.094/2017 — Simplificação do atendimento ao usuário.</li>
                   <li>Lei n.º 13.460/2017 — Direitos dos usuários de serviços públicos.</li>
-                  <li>Decreto n.º 11.871/2023 — Política de Linguagem Simples.</li>
+                  <li>Lei n.º 15.263/2025 — Política Nacional de Linguagem Simples.</li>
                   <li>Design System Gov.br — vigente — Padrões oficiais de interface e acessibilidade digital.</li>
                 </ul>
               </div>

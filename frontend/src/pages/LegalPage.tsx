@@ -5,9 +5,11 @@ import remarkGfm from 'remark-gfm';
 import Layout from '../components/Layout/Layout';
 import styles from './LegalPage.module.css';
 
+const BASE = import.meta.env.BASE_URL;
+
 const DOCS: Record<string, string> = {
-  politica: '/legal/politica_privacidade.md',
-  termos: '/legal/termos_de_uso.md',
+  politica: `${BASE}legal/politica_privacidade.md`,
+  termos: `${BASE}legal/termos_de_uso.md`,
 };
 
 export default function LegalPage() {
