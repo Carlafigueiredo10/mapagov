@@ -4,7 +4,7 @@ Helena Reception Agent — triagem assistiva.
 Papel: porta de entrada do sistema. Orienta, sugere e direciona.
 - Campo aberto sempre disponivel (permite_texto=True)
 - Menu de produtos como atalho, nao como portao
-- Deteccao simples de intencao por keywords (antes do LLM)
+- Matching deterministico via catalogo (substring + fuzzy)
 - LLM para respostas assistivas (max 80 palavras, temp 0.3)
 - Estados: INICIO → ORIENTACAO → TRANSICAO
 """
@@ -13,6 +13,10 @@ import copy
 import logging
 from typing import Dict, Any
 from langchain_openai import ChatOpenAI
+from processos.domain.helena_recepcao.catalogo_produtos import (
+    CATALOGO_PRODUTOS,
+    match_produto,
+)
 
 logger = logging.getLogger("helena_reception_agent")
 
@@ -52,7 +56,17 @@ class ReceptionAgent:
             ),
             "route": "/fluxograma",
         },
+        "dashboard": {
+            "nome": "Painel Executivo",
+            "descricao_curta": (
+                "Indicadores e visão consolidada das iniciativas."
+            ),
+            "route": "/painel",
+        },
     }
+
+    # Produtos com rota/landing — transitam normalmente
+    _PRODUTOS_STARTAVEIS = frozenset(PRODUTOS.keys())
 
     SYSTEM_PROMPT = (
         "Voce e Helena, assistente de recepcao do MapaGov. "
@@ -67,7 +81,8 @@ class ReceptionAgent:
         "1. Mapear processo (POP) — registro estruturado de atividades e documentos\n"
         "2. Analisar riscos — identificacao e avaliacao de riscos com base no Guia MGI\n"
         "3. Planejar estrategicamente — planejamento institucional com modelos de gestao\n"
-        "4. Criar fluxograma — representacao visual de processos em BPMN"
+        "4. Criar fluxograma — representacao visual de processos em BPMN\n"
+        "5. Painel Executivo — indicadores e visao consolidada das iniciativas"
     )
 
     TEXTO_BOAS_VINDAS = (
@@ -85,7 +100,9 @@ class ReceptionAgent:
         "<strong>Planejar estrategicamente</strong> — você precisa definir objetivos, "
         "metas e indicadores para sua unidade.<br><br>"
         "<strong>Criar fluxograma</strong> — você quer uma representação visual "
-        "de um fluxo de trabalho."
+        "de um fluxo de trabalho.<br><br>"
+        "<strong>Painel Executivo</strong> — você precisa de indicadores "
+        "e uma visão consolidada das iniciativas."
     )
 
     TEXTO_TRANSICAO = (
@@ -93,16 +110,11 @@ class ReceptionAgent:
         "o fluxo de trabalho selecionado."
     )
 
-    # Keywords para sugestao de produto (deteccao simples, sem transicao direta)
-    KEYWORDS_PRODUTO = {
-        "pop": ("pop", "procedimento", "passo a passo", "mapear processo", "mapeamento"),
-        "riscos": ("risco", "riscos", "mitigar", "probabilidade", "impacto"),
-        "planejamento": ("planejamento", "metas", "indicadores", "estrategico", "objetivos"),
-        "fluxograma": ("fluxograma", "bpmn"),
+    _STATUS_LABELS = {
+        "homologacao": "em homologação",
+        "desenvolvimento": "em desenvolvimento",
+        "planejado": "previsto no portfólio",
     }
-
-    # "fluxo" e generico — so sugere fluxograma se coocorrer com termo tecnico
-    _FLUXO_COOCORRENCIAS = ("processo", "bpmn", "diagrama", "visual", "etapa")
 
     def __init__(self, llm: ChatOpenAI | None = None):
         self.llm = llm or ChatOpenAI(model="gpt-4o-mini", temperature=0.3, request_timeout=30)
@@ -152,6 +164,24 @@ class ReceptionAgent:
         # ORIENTACAO (estado padrao apos boas-vindas)
         if self._eh_ainda_nao_sei(mensagem):
             return self._resposta_comparacao(contexto)
+
+        # Match por catalogo para produtos NAO startaveis → resposta de status
+        resultado = match_produto(mensagem)
+        if resultado:
+            chave_catalogo, origem = resultado
+            if chave_catalogo not in self._PRODUTOS_STARTAVEIS:
+                logger.info(
+                    "recepcao_produto_portfolio produto=%s status=%s origem=%s",
+                    chave_catalogo,
+                    CATALOGO_PRODUTOS[chave_catalogo]["status"],
+                    origem,
+                )
+                return self._resposta_menu(
+                    self._texto_status_produto(chave_catalogo),
+                    "ORIENTACAO", True, contexto,
+                )
+            # startavel → cai no LLM com hint via _sugerir_produto
+
         return self._resposta_com_llm(mensagem, "ORIENTACAO", contexto)
 
     # =========================================================================
@@ -273,15 +303,31 @@ class ReceptionAgent:
         return None
 
     def _sugerir_produto(self, mensagem: str) -> str | None:
-        """Deteccao simples de intencao por keywords. Retorna chave ou None."""
-        msg = mensagem.strip().lower()
-        for key, keywords in self.KEYWORDS_PRODUTO.items():
-            if any(kw in msg for kw in keywords):
-                return key
-        # "fluxo" sozinho e generico — so sugere se coocorrer com termo tecnico
-        if "fluxo" in msg and any(co in msg for co in self._FLUXO_COOCORRENCIAS):
-            return "fluxograma"
+        """Match via catalogo. Retorna chave so se produto e startavel."""
+        resultado = match_produto(mensagem)
+        if resultado:
+            chave, origem = resultado
+            if chave in self._PRODUTOS_STARTAVEIS:
+                logger.info(
+                    "recepcao_produto_sugerido produto=%s origem=%s",
+                    chave, origem,
+                )
+                return chave
         return None
+
+    def _texto_status_produto(self, chave: str) -> str:
+        """Texto informativo para produto que nao tem landing page."""
+        prod = CATALOGO_PRODUTOS[chave]
+        label = self._STATUS_LABELS.get(prod["status"], prod["status"])
+        nome = prod["nome"]
+        desc = prod["descricao_curta"]
+        return (
+            f"<strong>{nome}</strong> faz parte do portfólio MapaGov "
+            f"e está {label}.<br><br>"
+            f"{desc}<br><br>"
+            f"Você quer trabalhar agora com: POP, riscos, planejamento, "
+            f"fluxograma ou Painel Executivo?"
+        )
 
     def _eh_ainda_nao_sei(self, mensagem: str) -> bool:
         msg = mensagem.strip().lower()
