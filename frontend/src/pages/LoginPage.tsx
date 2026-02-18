@@ -62,7 +62,7 @@ export default function LoginPage() {
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, gap: 40 }}>
       <img
-        src="/helena_login.PNG"
+        src="/helena_login.png"
         alt="Helena"
         style={{ height: 340, objectFit: 'contain', flexShrink: 0 }}
       />
