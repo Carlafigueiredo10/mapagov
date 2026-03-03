@@ -5,6 +5,8 @@
  * A Helena não realiza avaliações automáticas nem substitui decisões administrativas.
  */
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
 import styles from './MapeamentoProcessosLanding.module.css';
 import PopHubSection from './PopHubSection';
 
@@ -49,6 +51,10 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
   onRevisar,
   onVerVersoes,
 }) => {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const location = useLocation();
+  const showLogin = !isAuthenticated && import.meta.env.VITE_PUBLIC_MVP_MODE !== '1';
+
   return (
     <div className={styles.container}>
       {/* Cabeçalho */}
@@ -164,17 +170,33 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
 
       {/* CTA */}
       <section className={styles.ctaSection}>
-        <p className={styles.ctaText}>
-          Inicie o mapeamento quando estiver pronto para descrever sua atividade
-          e construir o POP correspondente.
-        </p>
-        <button
-          type="button"
-          className={styles.ctaButton}
-          onClick={onIniciar}
-        >
-          Iniciar mapeamento da atividade
-        </button>
+        {showLogin ? (
+          <>
+            <p className={styles.ctaText}>
+              Você precisa fazer login para acessar esse serviço.
+            </p>
+            <Link
+              to={`/login?next=${encodeURIComponent(location.pathname)}`}
+              className={styles.ctaButton}
+            >
+              Fazer Login
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className={styles.ctaText}>
+              Inicie o mapeamento quando estiver pronto para descrever sua atividade
+              e construir o POP correspondente.
+            </p>
+            <button
+              type="button"
+              className={styles.ctaButton}
+              onClick={onIniciar}
+            >
+              Iniciar mapeamento da atividade
+            </button>
+          </>
+        )}
       </section>
     </div>
   );

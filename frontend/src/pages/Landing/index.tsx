@@ -7,8 +7,6 @@ import { useAuthStore } from '../../store/authStore';
 import { hasRole } from '../../services/authApi';
 import styles from './Landing.module.css';
 
-const AUTH_MODE = import.meta.env.VITE_PUBLIC_MVP_MODE !== '1';
-
 export default function Landing() {
   const [drawerAberto, setDrawerAberto] = useState(false);
   const user = useAuthStore((s) => s.user);
@@ -31,36 +29,21 @@ export default function Landing() {
                 sistema, com método e ferramentas integradas.
               </p>
 
-              {AUTH_MODE ? (
-                <div className={styles.heroButtons}>
-                  <div className={styles.heroBtnGroup}>
-                    <Link to="/login" className={styles.btn}>
-                      Acessar a Plataforma
-                    </Link>
-                    <span className={styles.heroBtnHint}>Faça login ou crie sua conta para utilizar as funcionalidades disponíveis.</span>
-                  </div>
-                  <div className={styles.heroBtnGroup}>
-                    <Link to="/sobre#helena" className={`${styles.btn} ${styles.btnOutline}`}>
-                      Conhecer Helena
-                    </Link>
-                    <span className={styles.heroBtnHint}>Saiba como a assistente virtual apoia o uso da plataforma.</span>
-                  </div>
-                  {isAdmin && (
-                    <div className={styles.heroBtnGroup}>
-                      <Link to="/admin" className={styles.btn} style={{ background: '#1B4F72' }}>
-                        Painel do Administrador
-                      </Link>
-                      <span className={styles.heroBtnHint}>Gerencie usuarios, permissoes e acompanhe estatisticas do sistema.</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className={styles.heroButtons}>
-                  <Link to="/pop" className={styles.btn}>
-                    Começar Mapeamento
-                  </Link>
-                  <Link to="/riscos" className={`${styles.btn} ${styles.btnOutline}`}>
-                    Análise de Riscos
+              <div className={styles.heroButtons}>
+                <Link to="/login" className={styles.btn}>
+                  Login
+                </Link>
+                <Link to="/pop" className={`${styles.btn} ${styles.btnOutline}`}>
+                  Começar Mapeamento
+                </Link>
+                <a href="#produtos" className={`${styles.btn} ${styles.btnOutline}`}>
+                  Ver Demais Produtos
+                </a>
+              </div>
+              {isAdmin && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <Link to="/admin" className={styles.btn} style={{ background: '#1B4F72' }}>
+                    Painel do Administrador
                   </Link>
                 </div>
               )}
@@ -123,6 +106,7 @@ export default function Landing() {
 
           {/* ── Produtos disponíveis ── */}
           <h3 className={styles.productsBlockTitle}>Disponíveis para uso</h3>
+
           <div className={styles.productsGrid}>
             <Link to="/pop" className={styles.productCard}>
               <div className={styles.productHeader}>
@@ -234,15 +218,9 @@ export default function Landing() {
               <Link to="/sobre" className={styles.btn}>
                 Conheça o projeto
               </Link>
-              {AUTH_MODE ? (
-                <Link to="/registrar" className={`${styles.btn} ${styles.btnOutline}`}>
-                  Solicitar acesso
-                </Link>
-              ) : (
-                <Link to="/portal" className={`${styles.btn} ${styles.btnOutline}`}>
-                  Acessar o portal
-                </Link>
-              )}
+              <Link to="/registrar" className={`${styles.btn} ${styles.btnOutline}`}>
+                Solicitar acesso
+              </Link>
             </div>
           </div>
         </div>

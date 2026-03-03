@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
 
 // Auth
+import { useAuthStore } from './store/authStore'
 import ProtectedRoute from './components/Auth/ProtectedRoute'
 import AdminRoute from './components/Auth/AdminRoute'
 import PublicRoute from './components/Auth/PublicRoute'
@@ -64,6 +66,9 @@ import BaseLegalPage from './pages/BaseLegalPage'
 import PainelGestaoPage from './pages/PainelGestaoPage'
 
 function App() {
+  const checkAuth = useAuthStore((s) => s.checkAuth);
+  useEffect(() => { checkAuth(); }, [checkAuth]);
+
   return (
     <BrowserRouter>
       <Routes>

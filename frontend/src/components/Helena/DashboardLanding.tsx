@@ -8,6 +8,8 @@
  * Cada seção inclui: definição, fonte, recorte, cobertura e limitações.
  */
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
 import styles from './DashboardLanding.module.css';
 
 /* ===== TYPES ===== */
@@ -223,7 +225,12 @@ function formatarData(iso: string): string {
 
 /* ===== COMPONENTE ===== */
 
+const PUBLIC_MVP = import.meta.env.VITE_PUBLIC_MVP_MODE === '1';
+
 const DashboardLanding: React.FC<DashboardLandingProps> = ({ onAcessar, dados }) => {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const location = useLocation();
+  const showLogin = !isAuthenticated && !PUBLIC_MVP;
 
   const getKpiValue = (secaoId: string, kpiKey: string): number | string | undefined => {
     if (!dados?.kpis) return undefined;
@@ -390,17 +397,33 @@ const DashboardLanding: React.FC<DashboardLandingProps> = ({ onAcessar, dados })
 
       {/* 7. CTA */}
       <section className={styles.ctaSection}>
-        <p className={styles.ctaText}>
-          Acesse o painel para visualizar os indicadores consolidados
-          e acompanhar o panorama institucional por área e período.
-        </p>
-        <button
-          type="button"
-          className={styles.ctaButton}
-          onClick={onAcessar}
-        >
-          Acessar Painel
-        </button>
+        {showLogin ? (
+          <>
+            <p className={styles.ctaText}>
+              Você precisa fazer login para acessar esse serviço.
+            </p>
+            <Link
+              to={`/login?next=${encodeURIComponent(location.pathname)}`}
+              className={styles.ctaButton}
+            >
+              Fazer Login
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className={styles.ctaText}>
+              Acesse o painel para visualizar os indicadores consolidados
+              e acompanhar o panorama institucional por área e período.
+            </p>
+            <button
+              type="button"
+              className={styles.ctaButton}
+              onClick={onAcessar}
+            >
+              Acessar Painel
+            </button>
+          </>
+        )}
       </section>
     </div>
   );

@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
 const PUBLIC_MVP = import.meta.env.VITE_PUBLIC_MVP_MODE === '1';
-const DEV_BYPASS = import.meta.env.DEV;
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  if (PUBLIC_MVP || DEV_BYPASS) return <>{children}</>;
+  if (PUBLIC_MVP) return <>{children}</>;
 
   const { isAuthenticated, user, isLoading, checkAuth } = useAuthStore();
+  const location = useLocation();
 
   useEffect(() => {
     checkAuth();
@@ -23,7 +23,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
   }
 
   if (user && !user.email_verified) {

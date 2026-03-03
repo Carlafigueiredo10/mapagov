@@ -5,6 +5,8 @@
  * Segue o padrão de landing documentado em landing-pattern.md.
  */
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
 import styles from './FluxogramaLanding.module.css';
 
 interface FluxogramaLandingProps {
@@ -43,7 +45,13 @@ const ETAPAS = [
   },
 ];
 
+const PUBLIC_MVP = import.meta.env.VITE_PUBLIC_MVP_MODE === '1';
+
 const FluxogramaLanding: React.FC<FluxogramaLandingProps> = ({ onIniciar }) => {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const location = useLocation();
+  const showLogin = !isAuthenticated && !PUBLIC_MVP;
+
   return (
     <div className={styles.container}>
       {/* Cabeçalho */}
@@ -142,17 +150,33 @@ const FluxogramaLanding: React.FC<FluxogramaLandingProps> = ({ onIniciar }) => {
 
       {/* CTA */}
       <section className={styles.ctaSection}>
-        <p className={styles.ctaText}>
-          Inicie a geração do fluxograma quando tiver o documento
-          da atividade pronto para envio.
-        </p>
-        <button
-          type="button"
-          className={styles.ctaButton}
-          onClick={onIniciar}
-        >
-          Iniciar geração de fluxograma
-        </button>
+        {showLogin ? (
+          <>
+            <p className={styles.ctaText}>
+              Você precisa fazer login para acessar esse serviço.
+            </p>
+            <Link
+              to={`/login?next=${encodeURIComponent(location.pathname)}`}
+              className={styles.ctaButton}
+            >
+              Fazer Login
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className={styles.ctaText}>
+              Inicie a geração do fluxograma quando tiver o documento
+              da atividade pronto para envio.
+            </p>
+            <button
+              type="button"
+              className={styles.ctaButton}
+              onClick={onIniciar}
+            >
+              Iniciar geração de fluxograma
+            </button>
+          </>
+        )}
       </section>
     </div>
   );

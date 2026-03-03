@@ -5,6 +5,8 @@
  * A Helena não realiza avaliações automáticas nem substitui decisões administrativas.
  */
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
 import styles from './AnaliseRiscosLanding.module.css';
 
 interface AnaliseRiscosLandingProps {
@@ -51,7 +53,13 @@ const USE_CASES = [
   'planos institucionais (PPA, PEI, PDTI, entre outros).',
 ];
 
+const PUBLIC_MVP = import.meta.env.VITE_PUBLIC_MVP_MODE === '1';
+
 const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }) => {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const location = useLocation();
+  const showLogin = !isAuthenticated && !PUBLIC_MVP;
+
   return (
     <div className={styles.container}>
       {/* Cabeçalho */}
@@ -152,17 +160,33 @@ const AnaliseRiscosLanding: React.FC<AnaliseRiscosLandingProps> = ({ onIniciar }
 
       {/* CTA */}
       <section className={styles.ctaSection}>
-        <p className={styles.ctaText}>
-          Inicie uma nova Análise de Riscos quando estiver pronto para registrar
-          e avaliar os riscos do seu contexto institucional.
-        </p>
-        <button
-          type="button"
-          className={styles.ctaButton}
-          onClick={onIniciar}
-        >
-          Iniciar análise de riscos
-        </button>
+        {showLogin ? (
+          <>
+            <p className={styles.ctaText}>
+              Você precisa fazer login para acessar esse serviço.
+            </p>
+            <Link
+              to={`/login?next=${encodeURIComponent(location.pathname)}`}
+              className={styles.ctaButton}
+            >
+              Fazer Login
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className={styles.ctaText}>
+              Inicie uma nova Análise de Riscos quando estiver pronto para registrar
+              e avaliar os riscos do seu contexto institucional.
+            </p>
+            <button
+              type="button"
+              className={styles.ctaButton}
+              onClick={onIniciar}
+            >
+              Iniciar análise de riscos
+            </button>
+          </>
+        )}
       </section>
     </div>
   );
