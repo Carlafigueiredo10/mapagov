@@ -1,10 +1,11 @@
 // InterfaceSistemas.tsx - REESCRITO DO ZERO (SIMPLES)
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface InterfaceSistemasProps {
   dados?: {
     sistemas_por_categoria?: Record<string, string[]>;
+    selecionados?: string[];
   };
   onConfirm: (resposta: string) => void;
 }
@@ -13,11 +14,35 @@ const InterfaceSistemas: React.FC<InterfaceSistemasProps> = ({ dados, onConfirm 
   const [sistemasSelecionados, setSistemasSelecionados] = useState<string[]>([]);
   const [sistemasDigitados, setSistemasDigitados] = useState<string[]>([]);
   const [sistemaManual, setSistemaManual] = useState<string>('');
+  const jaPrePopulou = useRef(false);
 
   // Extrair lista flat de todos os sistemas
   const todosSistemas = dados?.sistemas_por_categoria
     ? Object.values(dados.sistemas_por_categoria).flat()
     : [];
+
+  // Derivar selecionados prévios — garantir array de strings
+  const rawSel = dados?.selecionados;
+  const selecionadosPrevios: string[] = Array.isArray(rawSel)
+    ? (rawSel as unknown[])
+        .filter((x: unknown): x is string => typeof x === 'string')
+        .map(s => s.trim())
+        .filter(Boolean)
+    : [];
+  const selKey = selecionadosPrevios.join('|');
+
+  // Pré-popular com seleção atual (quando vem da revisão)
+  useEffect(() => {
+    if (jaPrePopulou.current) return;
+    if (!selKey || todosSistemas.length === 0) return;
+
+    const daLista = selecionadosPrevios.filter(s => todosSistemas.includes(s));
+    const manuais = selecionadosPrevios.filter(s => !todosSistemas.includes(s));
+
+    setSistemasSelecionados(daLista);
+    setSistemasDigitados(manuais);
+    jaPrePopulou.current = true;
+  }, [selKey, todosSistemas.length]);
 
   // Combinar sistemas selecionados (checkboxes) + digitados
   const todosSistemasSelecionados = [...sistemasSelecionados, ...sistemasDigitados];

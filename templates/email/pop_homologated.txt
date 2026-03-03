@@ -1,0 +1,12 @@
+MapaGov — Seu POP foi revisado e homologado
+
+Ola {{ user.first_name|default:"" }},
+
+O POP "{{ nome_processo }}" foi homologado e publicado no catalogo.
+
+O conteudo foi alterado durante a revisao. Recomendamos que voce verifique as mudancas realizadas.
+
+Acesse: {{ frontend_url }}/pop?revisar={{ pop_uuid }}
+
+---
+MapaGov — Ministerio da Gestao e da Inovacao em Servicos Publicos

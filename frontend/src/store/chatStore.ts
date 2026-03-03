@@ -75,6 +75,7 @@ interface ChatState {
   popId: number | null;
   popUuid: string | null;
   integrityHash: string | null;
+  popStatus: string | null;
 
   // Estado atual da máquina de estados (stepper)
   estadoAtual: string;
@@ -103,6 +104,7 @@ interface ChatState {
   updateDadosPOP: (dados: Partial<DadosPOP>) => void;
   setViewMode: (mode: ViewMode) => void;
   setPopIdentifiers: (id: number, uuid: string, hash: string) => void;
+  setPopStatus: (status: string | null) => void;
   setEstadoAtual: (estado: string) => void;
   setModoAjudaAtivo: (ativo: boolean) => void;
 
@@ -134,6 +136,7 @@ export const useChatStore = create<ChatState>()(
       popId: null,
       popUuid: null,
       integrityHash: null,
+      popStatus: null,
       estadoAtual: 'nome_usuario',
       modoAjudaAtivo: false,
       pendingTransition: null,
@@ -167,6 +170,7 @@ export const useChatStore = create<ChatState>()(
           popId: null,
           popUuid: null,
           integrityHash: null,
+          popStatus: null,
           estadoAtual: 'nome_usuario',
           modoAjudaAtivo: false,
           pendingTransition: null,
@@ -219,6 +223,8 @@ export const useChatStore = create<ChatState>()(
         integrityHash: hash,
       }),
 
+      setPopStatus: (status) => set({ popStatus: status }),
+
       setEstadoAtual: (estado) => set({ estadoAtual: estado }),
       setModoAjudaAtivo: (ativo) => set({ modoAjudaAtivo: ativo }),
       setPendingTransition: (transition) => set({ pendingTransition: transition }),
@@ -267,6 +273,7 @@ export const useChatStore = create<ChatState>()(
         popId: state.popId,
         popUuid: state.popUuid,
         integrityHash: state.integrityHash,
+        popStatus: state.popStatus,
       }),
     }
   )

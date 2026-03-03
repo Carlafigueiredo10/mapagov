@@ -32,19 +32,28 @@ class POPListSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'codigo_processo', 'nome_processo',
             'macroprocesso', 'area_nome', 'area_slug',
             'status', 'versao', 'created_at', 'updated_at',
+            'submitted_for_review_at',
         ]
 
 
 class POPDetailSerializer(serializers.ModelSerializer):
     """Serializer completo para detalhe do POP."""
     area_detail = AreaSerializer(source='area', read_only=True)
+    submitted_by_name = serializers.CharField(
+        source='submitted_by.username', default='', read_only=True
+    )
+    reviewed_by_name = serializers.CharField(
+        source='reviewed_by.username', default='', read_only=True
+    )
 
     class Meta:
         model = POP
-        exclude = ['raw_payload']
+        exclude = ['raw_payload', 'review_snapshot']
         read_only_fields = [
             'uuid', 'created_at', 'updated_at', 'integrity_hash',
             'last_autosave_at', 'autosave_sequence', 'last_activity_at',
+            'submitted_for_review_at', 'submitted_by', 'reviewed_by',
+            'review_notes',
         ]
 
 

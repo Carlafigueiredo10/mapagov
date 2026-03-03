@@ -55,7 +55,7 @@ export default function Footer() {
             <ul>
               <li><a href="/#roadmap">Histórico de versões</a></li>
               <li><a href="/#roadmap">Próximos lançamentos</a></li>
-              <li><Link to="/sobre">Fale conosco</Link></li>
+              <li><a href="mailto:mapagov.gestao@gmail.com">mapagov.gestao@gmail.com</a></li>
             </ul>
           </div>
         </div>

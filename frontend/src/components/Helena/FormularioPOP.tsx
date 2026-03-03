@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../../store/chatStore';
-import { FileText, CheckCircle, AlertCircle, Download, Loader2, Eye, X } from 'lucide-react';
+import { FileText, CheckCircle, AlertCircle, Download, Loader2, Eye, X, ArrowLeft } from 'lucide-react';
 import { gerarPDF } from '../../services/helenaApi';
 import type { Etapa, Cenario } from '../../types/pop.types';
 import './FormularioPOP.css';
 
 const FormularioPOP: React.FC = () => {
-  const { dadosPOP, viewMode, updateDadosPOP, resetChat, sessionId } = useChatStore();
+  const navigate = useNavigate();
+  const { dadosPOP, viewMode, setViewMode, updateDadosPOP, resetChat, sessionId } = useChatStore();
   const modoRevisao = viewMode === 'final_review';
 
   // Estado local para campos editáveis
@@ -498,6 +500,15 @@ const FormularioPOP: React.FC = () => {
         >
           <FileText size={16} />
           Reiniciar mapeamento
+        </button>
+
+        <button
+          type="button"
+          className="btn-form limpar"
+          onClick={() => { setViewMode('landing'); navigate('/pop'); }}
+        >
+          <ArrowLeft size={16} />
+          Voltar à página principal
         </button>
       </div>
 

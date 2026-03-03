@@ -55,10 +55,16 @@ class TestNormasSentinels(unittest.TestCase):
         self.assertEqual(resultado, ["Art. 34 da IN SGP 97/2022"])
 
     def test_multiplas_normas_persistem(self):
-        resultado = self._processar("Decreto 9991/2019, IN 21/2021")
+        resultado = self._processar("Decreto 9991/2019; IN 21/2021")
         self.assertEqual(len(resultado), 2)
         self.assertIn("Decreto 9991/2019", resultado)
         self.assertIn("IN 21/2021", resultado)
+
+    def test_virgula_nao_separa_normas(self):
+        """Virgula dentro de norma nao deve separar (ex: 'Decreto nº 9.094, de 2017')."""
+        resultado = self._processar("Decreto nº 9.094, de 17 de julho de 2017")
+        self.assertEqual(len(resultado), 1)
+        self.assertIn("Decreto nº 9.094, de 17 de julho de 2017", resultado)
 
     def test_pdf_com_normas_vazias(self):
         """PDF nao deve crashar com dispositivos_normativos=[]."""

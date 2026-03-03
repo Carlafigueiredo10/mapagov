@@ -1,0 +1,14 @@
+MapaGov — Seu POP foi devolvido para revisao
+
+Ola {{ user.first_name|default:"" }},
+
+O POP "{{ nome_processo }}" foi devolvido para rascunho pelo gestor da area.
+
+Motivo: {{ motivo }}
+
+Voce pode acessar o POP e fazer os ajustes necessarios.
+
+Acesse: {{ frontend_url }}/pop
+
+---
+MapaGov — Ministerio da Gestao e da Inovacao em Servicos Publicos

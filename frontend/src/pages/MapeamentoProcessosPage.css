@@ -18,6 +18,15 @@
 .mp-page__chat {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mp-page__chat-nav {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .mp-page__pop {
@@ -382,6 +391,70 @@
 
 .mp-page--fullscreen-chat .message-container.usuario .message-wrapper {
   align-self: flex-end;
+}
+
+/* ================================================
+   BANNER REVISÃO (in_review)
+   Faixa informativa no topo do editor
+   ================================================ */
+.mp-page__review-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: #FFF3CD;
+  border-bottom: 2px solid #FFCA2C;
+  color: #664D03;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.mp-page__review-banner span {
+  flex: 1;
+}
+
+.mp-page__review-banner-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #664D03;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.mp-page__review-banner-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Push content down when banner is visible */
+.mp-page:has(.mp-page__review-banner) {
+  padding-top: 52px;
+}
+
+/* Banner no modo revisão fica abaixo da toolbar */
+.mp-page--revisao .mp-page__review-banner {
+  top: 60px;
+}
+
+.mp-page--revisao:has(.mp-page__review-banner) .mp-page__pop {
+  height: calc(100vh - 60px - 42px) !important;
+  margin-top: 102px;
+}
+
+@media (max-width: 1023px) {
+  .mp-page__review-banner {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
 }
 
 /* ---- Utilitários ---- */

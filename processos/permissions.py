@@ -42,6 +42,18 @@ class IsGeneralManagerOrAdmin(BasePermission):
         return hasattr(request.user, 'profile') and request.user.profile.has_role('general_manager')
 
 
+class IsSameAreaOperator(BasePermission):
+    """Verifica se o usuario pertence a mesma area do objeto (POP)."""
+
+    def has_object_permission(self, request, view, obj):
+        if request.user.is_superuser:
+            return True
+        profile = getattr(request.user, 'profile', None)
+        if not profile or not profile.area_id:
+            return False
+        return profile.area_id == obj.area_id
+
+
 class IsApprover(BasePermission):
     """Aprovador: area_manager+ ou superuser (via is_approver)."""
 

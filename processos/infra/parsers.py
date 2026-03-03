@@ -151,8 +151,8 @@ def parse_documentos(entrada: str) -> dict:
     except:
         pass
 
-    # Parse de texto simples
-    docs = [d.strip() for d in entrada.replace('\n', ',').split(',') if d.strip()]
+    # Parse de texto simples (separador: ponto-e-vírgula, nunca vírgula)
+    docs = [d.strip() for d in entrada.replace('\n', ';').split(';') if d.strip()]
 
     return {
         'entrada': docs,
@@ -170,4 +170,4 @@ def parse_fluxos(entrada: str) -> List[str]:
     Returns:
         Lista de fluxos
     """
-    return [f.strip() for f in entrada.replace('\n', ',').split(',') if f.strip()]
+    return [f.strip() for f in entrada.replace('\n', ';').split(';') if f.strip()]

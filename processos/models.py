@@ -93,12 +93,26 @@ class POP(models.Model):
         max_length=30,
         choices=[
             ("draft", "Rascunho"),
+            ("in_review", "Em Revisão"),
             ("published", "Publicado"),
             ("archived", "Arquivado"),
         ],
         default="draft",
         verbose_name="Status"
     )
+
+    # Workflow de revisão/homologação
+    submitted_for_review_at = models.DateTimeField(null=True, blank=True, verbose_name="Submetido para revisão em")
+    submitted_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='pops_submitted', verbose_name="Submetido por"
+    )
+    reviewed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='pops_reviewed', verbose_name="Último revisor"
+    )
+    review_snapshot = models.JSONField(null=True, blank=True, verbose_name="Snapshot no momento da submissão")
+    review_notes = models.TextField(blank=True, default="", verbose_name="Notas de revisão / motivo de rejeição")
 
     raw_payload = models.JSONField(null=True, blank=True, verbose_name="Payload Bruto", help_text="Conteúdo bruto recebido do frontend para reconstrução ou depuração")
     

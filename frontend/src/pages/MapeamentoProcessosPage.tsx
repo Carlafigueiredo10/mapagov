@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../store/chatStore';
 import type { DadosPOP } from '../store/chatStore';
 import { useRequireAuth } from '../hooks/useRequireAuth';
-import { X, FileText, ArrowLeft, Save, Download } from 'lucide-react';
+import { X, FileText, ArrowLeft, Save, Download, AlertTriangle } from 'lucide-react';
 import MapeamentoProcessosLanding from '../components/Helena/MapeamentoProcessosLanding';
 import ChatContainer from '../components/Helena/ChatContainer';
 import FormularioPOP from '../components/Helena/FormularioPOP';
@@ -43,14 +43,17 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
   const requireAuth = useRequireAuth();
   const [popAberto, setPopAberto] = useState(false);
   const [salvoFeedback, setSalvoFeedback] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const {
     dadosPOP, viewMode, setViewMode, fullscreenChat,
-    resetChat, updateDadosPOP, setPopIdentifiers, carregarHistorico,
+    resetChat, updateDadosPOP, setPopIdentifiers, setPopStatus, popStatus,
+    carregarHistorico,
   } = useChatStore();
   const modoRevisao = viewMode === 'final_review';
 
   // Se entrou via /pop/chat, garantir viewMode correto
+  // (auth já é garantida pelo ProtectedRoute no App.tsx)
   useEffect(() => {
     if (startInChat && viewMode === 'landing') {
       setViewMode('chat_canvas');
@@ -148,6 +151,7 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
 
       // Restaurar identidade do documento no store
       setPopIdentifiers(pop.id, pop.uuid, pop.integrity_hash);
+      setPopStatus(pop.status);
       updateDadosPOP(pop.dados as Partial<DadosPOP>);
 
       // Restaurar histórico de mensagens se houver sessão associada
@@ -167,7 +171,7 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
     } catch (err) {
       console.error('[MapeamentoProcessosPage] Falha ao retomar POP:', err);
     }
-  }, [requireAuth, setPopIdentifiers, updateDadosPOP, carregarHistorico, setViewMode, navigate]);
+  }, [requireAuth, setPopIdentifiers, setPopStatus, updateDadosPOP, carregarHistorico, setViewMode, navigate]);
 
   // Revisar POP publicado (stub — será implementado como view readonly)
   const handleRevisar = useCallback((uuid: string) => {
@@ -188,7 +192,7 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
   // Landing institucional (apenas em /pop, nunca em /pop/chat)
   if (!startInChat && viewMode === 'landing') {
     return (
-      <LandingShell onBack={() => navigate(-1)}>
+      <LandingShell onBack={() => navigate('/')}>
         <MapeamentoProcessosLanding
           onIniciar={handleCriarNovo}
           onRetomar={handleRetomar}
@@ -202,6 +206,22 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
   // Chat + POP
   return (
     <div className={`mp-page${modoRevisao ? ' mp-page--revisao' : ''}${fullscreenChat && !modoRevisao ? ' mp-page--fullscreen-chat' : ''}`}>
+      {/* Banner de revisão — só aparece quando POP está in_review */}
+      {popStatus === 'in_review' && !bannerDismissed && (
+        <div className="mp-page__review-banner">
+          <AlertTriangle size={16} />
+          <span>Você está revisando um POP do setor. Ao salvar, seu usuário ficará registrado como revisor.</span>
+          <button
+            type="button"
+            className="mp-page__review-banner-close"
+            onClick={() => setBannerDismissed(true)}
+            aria-label="Fechar aviso"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Chat */}
       <div className="mp-page__chat">
         <ChatContainer />

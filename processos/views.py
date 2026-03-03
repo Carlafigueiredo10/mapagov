@@ -1276,6 +1276,40 @@ def autosave_pop(request):
             )
             logger.info(f"[AUTO-SAVE] Criando novo POP para sessao {session_id}")
 
+        # Validacoes de status para edicao
+        if pop.pk and pop.status in ('published', 'archived'):
+            return JsonResponse({
+                'success': False,
+                'error': 'POP publicado/arquivado nao pode ser editado.'
+            }, status=400)
+
+        if pop.pk and pop.status == 'in_review':
+            # Somente tecnicos da mesma area podem editar POP em revisao
+            profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
+            if not request.user.is_authenticated:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Autenticacao necessaria para editar POP em revisao.'
+                }, status=403)
+            if not request.user.is_superuser:
+                if not profile or not profile.area_id:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Usuario sem perfil/setor configurado.'
+                    }, status=403)
+                if not pop.area_id:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'POP sem setor vinculado.'
+                    }, status=403)
+                if profile.area_id != pop.area_id:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Apenas tecnicos do mesmo setor podem editar POP em revisao.'
+                    }, status=403)
+            # Registrar revisor
+            pop.reviewed_by = request.user
+
         # Mapear campos frontend → modelo
         area = data.get('area')
         if isinstance(area, dict):

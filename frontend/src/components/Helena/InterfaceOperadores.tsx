@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 
 interface InterfaceOperadoresProps {
   dados?: Record<string, unknown>;
@@ -29,6 +29,7 @@ const InterfaceOperadores: React.FC<InterfaceOperadoresProps> = ({ dados, onConf
   const [operadoresSelecionados, setOperadoresSelecionados] = useState<string[]>([]);
   const [operadoresDigitados, setOperadoresDigitados] = useState<string[]>([]);
   const [operadorManual, setOperadorManual] = useState<string>('');
+  const jaPrePopulou = useRef(false);
 
   // Extrair lista de operadores do backend
   const listaOperadores = useMemo(() => {
@@ -39,6 +40,29 @@ const InterfaceOperadores: React.FC<InterfaceOperadoresProps> = ({ dados, onConf
     console.warn("InterfaceOperadores: opcoes ausentes ou inválidas");
     return [];
   }, [dados]);
+
+  // Derivar selecionados prévios — garantir array de strings
+  const rawSel = (dados as Record<string, unknown>)?.selecionados;
+  const selecionadosPrevios: string[] = Array.isArray(rawSel)
+    ? (rawSel as unknown[])
+        .filter((x: unknown): x is string => typeof x === 'string')
+        .map(s => s.trim())
+        .filter(Boolean)
+    : [];
+  const selKey = selecionadosPrevios.join('|');
+
+  // Pré-popular com seleção atual (quando vem da revisão)
+  useEffect(() => {
+    if (jaPrePopulou.current) return;
+    if (!selKey || listaOperadores.length === 0) return;
+
+    const daLista = selecionadosPrevios.filter(op => listaOperadores.includes(op));
+    const manuais = selecionadosPrevios.filter(op => !listaOperadores.includes(op));
+
+    setOperadoresSelecionados(daLista);
+    setOperadoresDigitados(manuais);
+    jaPrePopulou.current = true;
+  }, [selKey, listaOperadores.length]);
 
   // Filtrar "Outros (especificar)" — substituído pelo campo manual
   const listaExibicao = useMemo(() =>

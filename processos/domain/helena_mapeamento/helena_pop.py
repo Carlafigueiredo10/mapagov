@@ -2320,9 +2320,9 @@ class HelenaPOP(BaseHelena):
             if isinstance(dados, list):
                 normas = [n for n in dados if str(n).strip().lower() not in self._SENTINEL_SEM_NORMAS]
             else:
-                # Normalizar separadores: pipe, tab, newline → vírgula
-                raw_normalizado = raw.replace(' | ', ',').replace('|', ',').replace('\t', ',').replace('\n', ',')
-                normas = [n.strip() for n in raw_normalizado.split(',')
+                # Normalizar separadores: pipe, tab, newline → ponto-e-vírgula (nunca vírgula)
+                raw_normalizado = raw.replace(' | ', ';').replace('|', ';').replace('\t', ';').replace('\n', ';')
+                normas = [n.strip() for n in raw_normalizado.split(';')
                           if n.strip() and n.strip().lower() not in self._SENTINEL_SEM_NORMAS]
 
         sm.dados_coletados['dispositivos_normativos'] = normas
@@ -3333,12 +3333,14 @@ class HelenaPOP(BaseHelena):
                 'sistemas': (EstadoPOP.SISTEMAS, 'sistemas', {
                     'sistemas_por_categoria': self.SISTEMAS_DECIPEX,
                     'campo_livre': True,
-                    'multipla_selecao': True
+                    'multipla_selecao': True,
+                    'selecionados': dados.get('sistemas', []),
                 }),
                 'operadores': (EstadoPOP.OPERADORES, 'operadores', {
                     'opcoes': self.OPERADORES_DECIPEX,
                     'campo_livre': True,
-                    'multipla_selecao': True
+                    'multipla_selecao': True,
+                    'selecionados': dados.get('operadores', []),
                 }),
                 'fluxos_entrada': (EstadoPOP.FLUXOS, 'fluxos_entrada', None),
                 'fluxos_saida': (EstadoPOP.FLUXOS, 'fluxos_saida', None),

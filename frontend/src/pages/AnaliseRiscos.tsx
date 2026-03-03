@@ -21,7 +21,7 @@ const AnaliseRiscosPage: React.FC = () => {
   // Landing institucional (enquadramento)
   if (!mostrarWizard) {
     return (
-      <LandingShell onBack={() => navigate(-1)}>
+      <LandingShell onBack={() => navigate('/')}>
         <AnaliseRiscosLanding onIniciar={() => { if (requireAuth()) setMostrarWizard(true); }} />
       </LandingShell>
     );
