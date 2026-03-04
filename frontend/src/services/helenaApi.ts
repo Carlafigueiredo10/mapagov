@@ -186,6 +186,25 @@ export const clonePOP = async (
   return response.data;
 };
 
+/** POP — Retoma POP existente, inicializando SM em REVISAO_FINAL no backend. POST /pops/{uuid}/retomar/ */
+export const retomarPOP = async (
+  popUuid: string,
+): Promise<{
+  success: boolean;
+  pop?: {
+    id: number;
+    uuid: string;
+    session_id: string;
+    integrity_hash: string;
+    status: string;
+    dados: Record<string, unknown>;
+  };
+  error?: string;
+}> => {
+  const response = await api.post(`/pops/${popUuid}/retomar/`);
+  return response.data;
+};
+
 /** POP — Reinicia conversa e state machine. POST /reiniciar-conversa-helena/ */
 export const reiniciarConversa = async (sessionId: string): Promise<void> => {
   await api.post('/reiniciar-conversa-helena/', {

@@ -15,7 +15,6 @@ interface MapeamentoProcessosLandingProps {
   onIniciar: () => void;
   onRetomar: (uuid: string) => void;
   onRevisar: (uuid: string) => void;
-  onVerVersoes: (uuid: string) => void;
   onClonar: (popData: Record<string, unknown>) => void;
 }
 
@@ -23,7 +22,6 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
   onIniciar,
   onRetomar,
   onRevisar,
-  onVerVersoes,
   onClonar,
 }) => {
   const navigate = useNavigate();
@@ -62,7 +60,6 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
         onCriarNovo={onIniciar}
         onRetomar={onRetomar}
         onRevisar={onRevisar}
-        onVerVersoes={onVerVersoes}
         onClonar={onClonar}
       />
 

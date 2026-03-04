@@ -11,7 +11,7 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Copy, FolderOpen, BookOpen, Clock, History, LogIn, CheckCircle } from 'lucide-react';
+import { Plus, Copy, FolderOpen, BookOpen, Clock, LogIn, CheckCircle } from 'lucide-react';
 import api from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { hasRole } from '../../services/authApi';
@@ -38,7 +38,6 @@ interface PopHubSectionProps {
   onCriarNovo: () => void;
   onRetomar: (uuid: string) => void;
   onRevisar: (uuid: string) => void;
-  onVerVersoes: (uuid: string) => void;
   onClonar: (popData: Record<string, unknown>) => void;
 }
 
@@ -82,7 +81,6 @@ type HubEstado = 'loading' | 'ok' | 'nao_autenticado' | 'erro';
 const PopHubSection: React.FC<PopHubSectionProps> = ({
   onCriarNovo,
   onRetomar,
-  onVerVersoes,
   onClonar,
 }) => {
   const [pops, setPops] = useState<POPResumo[]>([]);
@@ -260,7 +258,7 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
     }
   };
 
-  const drafts = pops.filter((p) => p.status === 'draft');
+  const drafts = pops.filter((p) => p.status === 'draft' && p.codigo_processo);
   const inReview = pops.filter((p) => p.status === 'in_review');
   const published = pops.filter((p) => p.status === 'published');
 
@@ -600,14 +598,6 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
                         </button>
                       </span>
                     )}
-                    <button
-                      type="button"
-                      className={`${styles.btnAcao} ${styles.btnAcaoSecundario}`}
-                      onClick={() => onVerVersoes(pop.uuid)}
-                    >
-                      <History size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                      Versoes
-                    </button>
                   </div>
                 </div>
               ))}

@@ -712,6 +712,94 @@ class POPViewSet(viewsets.ModelViewSet):
             'source_uuid': str(source_pop.uuid),
         }, status=status.HTTP_201_CREATED)
 
+    # ----- Retomar POP (inicializa SM na sessao) -----
+
+    @action(detail=True, methods=['post'], url_path='retomar',
+            permission_classes=[IsAuthenticated])
+    def retomar(self, request, uuid=None):
+        """POST /api/pops/{uuid}/retomar/ — inicializa SM em REVISAO_FINAL para retomar edicao."""
+        import uuid as uuid_mod
+
+        pop = self.get_object()
+
+        # Permissao: dono ou superuser
+        if not request.user.is_superuser and pop.created_by_id != request.user.pk:
+            raise PermissionDenied('Voce nao tem permissao para retomar este POP.')
+
+        # Somente drafts podem ser retomados para edicao
+        if pop.status != 'draft':
+            return Response(
+                {'error': 'Apenas POPs em rascunho podem ser retomados.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Regra: so retoma POP com CAP definido
+        if not pop.codigo_processo:
+            return Response(
+                {'error': 'Retomar disponivel apenas para POPs com atividade (CAP) definida.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Gerar session_id novo (nao depender de sessao antiga/expirada)
+        session_id = str(uuid_mod.uuid4())
+        pop.session_id = session_id
+        pop.save(update_fields=['session_id'])
+
+        # Inicializar SM no estado REVISAO_FINAL (mesmo padrao do clone)
+        from processos.domain.helena_mapeamento.helena_pop import POPStateMachine, EstadoPOP
+
+        sm = POPStateMachine()
+        sm.estado = EstadoPOP.REVISAO_FINAL
+        sm.nome_usuario = pop.nome_usuario or (
+            request.user.get_full_name() or request.user.username
+        )
+        sm.area_selecionada = self._normalize_area(pop)
+        sm.macro_selecionado = getattr(pop, "macroprocesso", "") or ""
+        sm.processo_selecionado = getattr(pop, "processo_especifico", "") or ""
+        sm.codigo_cap = pop.codigo_processo or ""
+        sm.atividade_selecionada = pop.nome_processo or ""
+        sm.dados_coletados = {
+            "nome_processo": pop.nome_processo or "",
+            "entrega_esperada": getattr(pop, "entrega_esperada", "") or "",
+            "dispositivos_normativos": self._normalize_to_list(
+                getattr(pop, "dispositivos_normativos", None)
+            ),
+            "operadores": self._normalize_to_list(
+                getattr(pop, "operadores", None)
+            ),
+            "sistemas": getattr(pop, "sistemas_utilizados", None) or [],
+            "fluxos_entrada": getattr(pop, "fluxos_entrada", None) or [],
+            "fluxos_saida": getattr(pop, "fluxos_saida", None) or [],
+            "pontos_atencao": getattr(pop, "pontos_atencao", "") or "",
+            "tempo_total_minutos": getattr(pop, "tempo_total_minutos", None),
+        }
+        sm.etapas_coletadas = pop.etapas or []
+        sm.tipo_interface = "revisao_final"
+        if hasattr(sm, "dados_interface"):
+            sm.dados_interface = {}
+
+        session_key = f"helena_pop_state_{session_id}"
+        request.session[session_key] = sm.to_dict()
+        request.session.modified = True
+
+        logger.info(
+            "[RETOMAR-SM] SM gravada: session_key=%s, estado=%s, pop_uuid=%s",
+            session_key, sm.estado.value, str(pop.uuid),
+        )
+
+        return Response({
+            'success': True,
+            'session_id': session_id,
+            'pop': {
+                'id': pop.pk,
+                'uuid': str(pop.uuid),
+                'session_id': session_id,
+                'integrity_hash': pop.integrity_hash,
+                'status': pop.status,
+                'dados': pop.get_dados_completos(),
+            },
+        })
+
 
 # ============================================================================
 # Etapa 2: Detalhe por area+codigo (rota manual com <path:codigo>)
