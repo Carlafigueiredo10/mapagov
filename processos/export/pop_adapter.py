@@ -75,9 +75,8 @@ def preparar_pop_para_pdf(dados_pop: Dict[str, Any]) -> Dict[str, Any]:
         dados['etapas'] = normalizar_etapas(dados['etapas'])
         dados['etapas'] = sorted(dados['etapas'], key=lambda e: _sort_key_etapa(e))
 
-    # --- tempo total da atividade (doc completa / incompleta) ---
-    dados['tempo_doc_completa'] = dados_pop.get('tempo_doc_completa') or ''
-    dados['tempo_doc_incompleta'] = dados_pop.get('tempo_doc_incompleta') or ''
+    # --- tempo total da atividade (campo unico em minutos) ---
+    dados['tempo_total_minutos'] = _normalizar_tempo_total_minutos(dados_pop)
 
     # --- garantir que nenhuma string e None ---
     for chave in ('nome_processo', 'entrega_esperada', 'pontos_atencao',
@@ -150,6 +149,37 @@ def _formatar_documentos_para_pdf(docs: Any) -> str:
         return '\n'.join(f"- {linha}" for linha in linhas)
 
     return '[Nao informado]'
+
+
+def _normalizar_tempo_total_minutos(dados_pop: Dict[str, Any]) -> str:
+    """
+    Retorna tempo total em minutos como string formatada para o PDF.
+
+    Prioridade:
+      1. tempo_total_minutos (campo novo — inteiro)
+      2. tempo_doc_completa (campo legado — texto livre, tenta extrair numero)
+
+    Retorna: "N min" ou '' se nao disponivel.
+    """
+    import re
+
+    # Campo novo: inteiro direto
+    ttm = dados_pop.get('tempo_total_minutos')
+    if ttm is not None and ttm != '':
+        try:
+            return f"{int(ttm)} min"
+        except (ValueError, TypeError):
+            pass
+
+    # Fallback: campo legado (POPs antigos)
+    legado = dados_pop.get('tempo_doc_completa', '')
+    if legado and legado != '__tempo_coletado__':
+        match = re.search(r'\d+', str(legado))
+        if match:
+            return f"{match.group()} min"
+        return str(legado)
+
+    return ''
 
 
 def _sort_key_etapa(etapa: Dict[str, Any]) -> float:

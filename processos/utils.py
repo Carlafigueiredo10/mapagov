@@ -1155,17 +1155,11 @@ class PDFGenerator:
             ))
 
             # TEMPO MÉDIO DA ATIVIDADE
-            tempo_completa = dados.get('tempo_doc_completa', '')
-            tempo_incompleta = dados.get('tempo_doc_incompleta', '')
-            if tempo_completa or tempo_incompleta:
-                linhas_tempo = []
-                if tempo_completa:
-                    linhas_tempo.append(f"Documentação completa: {tempo_completa}")
-                if tempo_incompleta:
-                    linhas_tempo.append(f"Documentação incompleta: {tempo_incompleta}")
+            tempo_total = dados.get('tempo_total_minutos', '')
+            if tempo_total:
                 elementos.extend(self._gerar_secao_conteudo(
                     "8. TEMPO MÉDIO DE EXECUÇÃO",
-                    '\n'.join(linhas_tempo)
+                    str(tempo_total)
                 ))
 
             # CONTROLE DE REVISÕES

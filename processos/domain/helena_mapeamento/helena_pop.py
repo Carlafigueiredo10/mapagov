@@ -139,7 +139,7 @@ class EstadoPOP(str, Enum):
     ETAPA_DETALHES = "etapa_detalhes"
     ETAPA_MAIS = "etapa_mais"
     ETAPA_REVISAO = "etapa_revisao"
-    TEMPO_TOTAL = "tempo_total"  # Tempo médio da atividade (doc completa / incompleta)
+    TEMPO_TOTAL = "tempo_total"  # Tempo médio da atividade (em minutos)
     REVISAO_FINAL = "revisao_final"  # Hub de revisão completa antes de finalizar
     FINALIZADO = "finalizado"
 
@@ -3241,41 +3241,27 @@ class HelenaPOP(BaseHelena):
         # Qualquer outra coisa = confirmar
         return self._finalizar_etapas(sm)
 
-    _TEMPO_COLETADO = '__tempo_coletado__'  # Sentinel: distingue "não perguntou" de "pulou"
-
-    def _limpar_tempo(self, valor) -> str:
-        """Remove sentinel de tempo para exibição. Retorna string limpa ou vazio."""
-        if not valor or valor == self._TEMPO_COLETADO:
-            return ''
-        return str(valor)
-
     def _processar_tempo_total(self, mensagem: str, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
-        """Coleta tempo total da atividade em dois cenários."""
+        """Coleta tempo médio da atividade em minutos (inteiro)."""
+        import re
         msg = mensagem.strip()
 
-        # Fase 1: tempo com documentação completa (usa sentinel para não confundir None/pular)
-        if self._TEMPO_COLETADO not in sm.dados_coletados.get('tempo_doc_completa', ''):
-            if msg.lower() in ('pular', 'skip', 'não sei', 'nao sei'):
-                sm.dados_coletados['tempo_doc_completa'] = self._TEMPO_COLETADO
-            else:
-                sm.dados_coletados['tempo_doc_completa'] = msg
-
-            resposta = (
-                "E **quando a documentação chega incompleta** (precisa de complementação, "
-                "correção ou retorno ao solicitante), em média, quanto tempo leva "
-                "desde o recebimento até a conclusão?\n\n"
-                "_Exemplos: 2 dias úteis, 1 semana, 15 dias, ou 'pular'_"
-            )
-            return resposta, sm
-
-        # Fase 2: tempo com documentação incompleta → ir para revisão final
         if msg.lower() in ('pular', 'skip', 'não sei', 'nao sei'):
-            sm.dados_coletados['tempo_doc_incompleta'] = self._TEMPO_COLETADO
-        else:
-            sm.dados_coletados['tempo_doc_incompleta'] = msg
+            sm.dados_coletados['tempo_total_minutos'] = None
+            return self._ir_para_revisao_final(sm)
 
-        # Avançar para revisão final
-        return self._ir_para_revisao_final(sm)
+        # Extrair primeiro numero inteiro da resposta
+        match = re.search(r'\d+', msg)
+        if match:
+            sm.dados_coletados['tempo_total_minutos'] = int(match.group())
+            return self._ir_para_revisao_final(sm)
+
+        # Resposta invalida — repetir pergunta
+        resposta = (
+            "Não consegui identificar o número. "
+            "Responda só com um número (em minutos). Ex: **45**"
+        )
+        return resposta, sm
 
     def _ir_para_revisao_final(self, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
         """Transição canônica para REVISAO_FINAL — único ponto de entrada."""
@@ -3292,7 +3278,7 @@ class HelenaPOP(BaseHelena):
         return resposta, sm
 
     def _finalizar_etapas(self, sm: POPStateMachine) -> tuple[str, POPStateMachine]:
-        """Salva etapas em dados_coletados e pergunta tempo total da atividade."""
+        """Salva etapas em dados_coletados e pergunta tempo médio em minutos."""
         sm.dados_coletados['etapas'] = normalizar_etapas(sm.etapas_coletadas)
         sm.estado = EstadoPOP.TEMPO_TOTAL
         sm.tipo_interface = 'texto'
@@ -3301,10 +3287,8 @@ class HelenaPOP(BaseHelena):
         nome = sm.nome_usuario or 'você'
         resposta = (
             f"**{total} etapas** mapeadas!\n\n"
-            f"Agora preciso entender o **tempo médio** dessa atividade, {nome}.\n\n"
-            f"**Quando a documentação chega completa**, em média, quanto tempo você leva "
-            f"desde o recebimento até a conclusão/encaminhamento?\n\n"
-            f"_Exemplos: 30 minutos, 2 horas, 1 dia útil, 3 dias úteis_"
+            f"{nome}, **quantos minutos leva esse processo em média?**\n\n"
+            f"_Responda com um número. Exemplos: 30, 60, 120, ou 'pular'_"
         )
         return resposta, sm
 
@@ -3334,8 +3318,7 @@ class HelenaPOP(BaseHelena):
                 'entrega_esperada': dados.get('entrega_esperada', ''),
                 'dispositivos_normativos': '; '.join(dados.get('dispositivos_normativos', [])) if isinstance(dados.get('dispositivos_normativos'), list) else dados.get('dispositivos_normativos', ''),
                 'pontos_atencao': dados.get('pontos_atencao', ''),
-                'tempo_doc_completa': self._limpar_tempo(dados.get('tempo_doc_completa')),
-                'tempo_doc_incompleta': self._limpar_tempo(dados.get('tempo_doc_incompleta')),
+                'tempo_total_minutos': str(dados.get('tempo_total_minutos', '')) if dados.get('tempo_total_minutos') is not None else '',
             },
             'campos_editaveis_secao': {
                 'sistemas': dados.get('sistemas', []),
@@ -3369,7 +3352,7 @@ class HelenaPOP(BaseHelena):
         if acao == 'editar_inline':
             campo = data.get('campo', '')
             valor = data.get('valor', '')
-            campos_permitidos = ['nome_processo', 'entrega_esperada', 'dispositivos_normativos', 'pontos_atencao', 'tempo_doc_completa', 'tempo_doc_incompleta']
+            campos_permitidos = ['nome_processo', 'entrega_esperada', 'dispositivos_normativos', 'pontos_atencao', 'tempo_total_minutos']
 
             if campo not in campos_permitidos:
                 sm.tipo_interface = 'revisao_final'
@@ -3463,11 +3446,6 @@ class HelenaPOP(BaseHelena):
         # --- Finalizar: gerar PDF ---
         if acao == 'finalizar' or msg_lower in ['finalizar', 'gerar pdf']:
             sm.dados_coletados['etapas'] = normalizar_etapas(sm.etapas_coletadas)
-            # Limpar sentinels de tempo antes de enviar pro PDF
-            for k in ('tempo_doc_completa', 'tempo_doc_incompleta'):
-                v = sm.dados_coletados.get(k)
-                if v == self._TEMPO_COLETADO:
-                    sm.dados_coletados[k] = None
             sm.estado = EstadoPOP.FINALIZADO
             sm.concluido = True
             sm.tipo_interface = 'final'

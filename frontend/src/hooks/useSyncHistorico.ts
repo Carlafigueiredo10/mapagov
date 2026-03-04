@@ -34,6 +34,13 @@ export const useSyncHistorico = () => {
     syncedRef.current = true;
 
     const loadHistory = async () => {
+      // Se já há mensagens (ex: clone injetou revisao_final), não sobrescrever
+      const currentMessages = useChatStore.getState().messages;
+      if (currentMessages.length > 0) {
+        console.log('[useSyncHistorico] Mensagens já presentes, pulando sincronização');
+        return;
+      }
+
       try {
         console.log('[useSyncHistorico] Iniciando sincronização:', sessionId);
 

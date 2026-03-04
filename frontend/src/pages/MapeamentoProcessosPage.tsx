@@ -48,7 +48,7 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
   const {
     dadosPOP, viewMode, setViewMode, fullscreenChat,
     resetChat, updateDadosPOP, setPopIdentifiers, setPopStatus, popStatus,
-    carregarHistorico, setSessionId, resetForClone,
+    carregarHistorico, setSessionId, resetForClone, addMessage,
   } = useChatStore();
   const modoRevisao = viewMode === 'final_review';
 
@@ -198,7 +198,7 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
     navigate(`/pop?versoes=${uuid}`);
   }, [requireAuth, navigate]);
 
-  // Clonar POP: carrega dados clonados direto em modo revisao
+  // Clonar POP: carrega dados clonados e abre revisao_final no chat
   const handleClonar = useCallback((popData: Record<string, unknown>) => {
     if (!requireAuth()) return;
 
@@ -216,13 +216,50 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
     );
 
     // Carregar dados no formato get_dados_completos()
-    updateDadosPOP(popData.dados as Partial<DadosPOP>);
+    const dados = (popData.dados || {}) as Record<string, unknown>;
+    updateDadosPOP(dados as Partial<DadosPOP>);
     setPopStatus('draft');
 
-    // Direto para revisao
-    setViewMode('final_review');
+    // Construir mensagem sintetica com interface revisao_final
+    const area = dados.area as { nome?: string } | undefined;
+    const etapas = (dados.etapas || []) as unknown[];
+    addMessage({
+      id: `clone-revisao-${Date.now()}`,
+      tipo: 'helena',
+      mensagem: `Agora revise todos os dados do POP clonado. Você pode editar qualquer campo antes de gerar o documento final.`,
+      timestamp: new Date().toISOString(),
+      interface: {
+        tipo: 'revisao_final',
+        dados: {
+          campos_bloqueados: {
+            codigo_processo: (dados.codigo_processo as string) || '',
+            area: area?.nome || (dados.area_nome as string) || '',
+            macroprocesso: (dados.macroprocesso as string) || '',
+            processo_especifico: (dados.processo_especifico as string) || '',
+            subprocesso: (dados.subprocesso as string) || '',
+            atividade: (dados.nome_processo as string) || '',
+          },
+          campos_editaveis_inline: {
+            nome_processo: (dados.nome_processo as string) || '',
+            entrega_esperada: (dados.entrega_esperada as string) || '',
+            dispositivos_normativos: (dados.dispositivos_normativos as string) || '',
+            pontos_atencao: (dados.pontos_atencao as string) || '',
+          },
+          campos_editaveis_secao: {
+            sistemas: dados.sistemas || [],
+            operadores: dados.operadores || [],
+            fluxos_entrada: dados.fluxos_entrada || [],
+            fluxos_saida: dados.fluxos_saida || [],
+            etapas: etapas,
+          },
+          total_etapas: etapas.length,
+        },
+      },
+    });
+
+    setViewMode('chat_canvas');
     navigate('/pop/chat');
-  }, [requireAuth, resetForClone, setSessionId, setPopIdentifiers, updateDadosPOP, setPopStatus, setViewMode, navigate]);
+  }, [requireAuth, resetForClone, setSessionId, setPopIdentifiers, updateDadosPOP, setPopStatus, setViewMode, navigate, addMessage]);
 
   // Landing institucional (apenas em /pop, nunca em /pop/chat)
   if (!startInChat && viewMode === 'landing') {

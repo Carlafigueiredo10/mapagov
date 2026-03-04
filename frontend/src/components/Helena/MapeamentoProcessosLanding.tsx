@@ -88,6 +88,15 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
         </div>
       </div>
 
+      {/* Hub de gestão documental */}
+      <PopHubSection
+        onCriarNovo={onIniciar}
+        onRetomar={onRetomar}
+        onRevisar={onRevisar}
+        onVerVersoes={onVerVersoes}
+        onClonar={onClonar}
+      />
+
       {/* Texto institucional */}
       <section className={styles.contextCard}>
         <p>
@@ -100,15 +109,6 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
           e a melhoria dos processos de trabalho.
         </p>
       </section>
-
-      {/* Hub de gestão documental */}
-      <PopHubSection
-        onCriarNovo={onIniciar}
-        onRetomar={onRetomar}
-        onRevisar={onRevisar}
-        onVerVersoes={onVerVersoes}
-        onClonar={onClonar}
-      />
 
       {/* Card Helena */}
       <section className={styles.helenaCard}>
