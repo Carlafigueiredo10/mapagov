@@ -644,7 +644,7 @@ def gerar_pdf_pop(request):
         elapsed = _time.monotonic() - t0
         logger.exception("[gerar_pdf_pop] ERRO codigo=%s time=%.2fs", codigo, elapsed)
         return JsonResponse({
-            'error': 'Erro ao gerar PDF.',
+            'error': f'Erro ao gerar PDF: {e}',
             'success': False
         }, status=500)
 

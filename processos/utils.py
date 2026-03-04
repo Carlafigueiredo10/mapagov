@@ -579,7 +579,8 @@ class PDFGenerator:
         
         # Código do processo e área (novo)
         codigo = dados.get('codigo_processo', 'X.X.X.X')
-        area = dados.get('area', {}).get('nome', '[Área não informada]')
+        area_raw = dados.get('area', {})
+        area = area_raw.get('nome', '[Área não informada]') if isinstance(area_raw, dict) else str(area_raw or '[Área não informada]')
         
         info_processo = Paragraph(
             f"<b>Código:</b> {codigo}<br/><b>Área:</b> {area}",
