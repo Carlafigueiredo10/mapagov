@@ -726,10 +726,10 @@ class POPViewSet(viewsets.ModelViewSet):
         if not request.user.is_superuser and pop.created_by_id != request.user.pk:
             raise PermissionDenied('Voce nao tem permissao para retomar este POP.')
 
-        # Somente drafts podem ser retomados para edicao
-        if pop.status != 'draft':
+        # Somente drafts e publicados podem ser retomados para edicao/revisao
+        if pop.status not in ('draft', 'published'):
             return Response(
-                {'error': 'Apenas POPs em rascunho podem ser retomados.'},
+                {'error': 'Apenas POPs em rascunho ou publicados podem ser retomados.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

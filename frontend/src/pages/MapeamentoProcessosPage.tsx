@@ -244,13 +244,68 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
     }
   }, [requireAuth, resetForClone, setSessionId, setPopIdentifiers, setPopStatus, updateDadosPOP, setViewMode, navigate, addMessage]);
 
-  // Revisar POP publicado (stub — será implementado como view readonly)
-  const handleRevisar = useCallback((uuid: string) => {
+  // Revisar POP publicado: abre revisao no chat (mesmo padrão do retomar)
+  const handleRevisar = useCallback(async (uuid: string) => {
     if (!requireAuth()) return;
-    console.info('[MapeamentoProcessosPage] Revisar POP:', uuid);
-    // TODO: implementar view review_readonly
-    navigate(`/pop/meus?revisar=${uuid}`);
-  }, [requireAuth, navigate]);
+    try {
+      const result = await retomarPOP(uuid);
+      if (!result.success || !result.pop) {
+        console.error('[MapeamentoProcessosPage] Erro ao revisar POP:', result);
+        return;
+      }
+      const { pop } = result;
+
+      resetForClone();
+      setSessionId(pop.session_id);
+      setPopIdentifiers(pop.id, pop.uuid, pop.integrity_hash);
+      setPopStatus(pop.status);
+
+      const dados = (pop.dados || {}) as Record<string, unknown>;
+      updateDadosPOP(dados as Partial<DadosPOP>);
+
+      const area = dados.area as { nome?: string } | undefined;
+      const etapas = (dados.etapas || []) as unknown[];
+      addMessage({
+        id: `revisar-revisao-${Date.now()}`,
+        tipo: 'helena',
+        mensagem: 'Revise os dados do POP. Você pode editar qualquer campo antes de gerar o documento final.',
+        timestamp: new Date().toISOString(),
+        interface: {
+          tipo: 'revisao_final',
+          dados: {
+            campos_bloqueados: {
+              codigo_processo: (dados.codigo_processo as string) || '',
+              area: area?.nome || (dados.area_nome as string) || '',
+              macroprocesso: (dados.macroprocesso as string) || '',
+              processo_especifico: (dados.processo_especifico as string) || '',
+              subprocesso: (dados.subprocesso as string) || '',
+              atividade: (dados.nome_processo as string) || '',
+              nome_processo: (dados.nome_processo as string) || '',
+            },
+            campos_editaveis_inline: {
+              entrega_esperada: (dados.entrega_esperada as string) || '',
+              dispositivos_normativos: (dados.dispositivos_normativos as string) || '',
+              pontos_atencao: (dados.pontos_atencao as string) || '',
+              tempo_total_minutos: dados.tempo_total_minutos != null ? String(dados.tempo_total_minutos) : '',
+            },
+            campos_editaveis_secao: {
+              sistemas: dados.sistemas || [],
+              operadores: dados.operadores || [],
+              fluxos_entrada: dados.fluxos_entrada || [],
+              fluxos_saida: dados.fluxos_saida || [],
+              etapas: etapas,
+            },
+            total_etapas: etapas.length,
+          },
+        },
+      });
+
+      setViewMode('chat_canvas');
+      navigate('/pop/chat');
+    } catch (err) {
+      console.error('[MapeamentoProcessosPage] Falha ao revisar POP:', err);
+    }
+  }, [requireAuth, resetForClone, setSessionId, setPopIdentifiers, setPopStatus, updateDadosPOP, setViewMode, navigate, addMessage]);
 
   // Clonar POP: carrega dados clonados e abre revisao_final no chat
   const handleClonar = useCallback((popData: Record<string, unknown>) => {

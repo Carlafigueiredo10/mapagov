@@ -81,6 +81,7 @@ type HubEstado = 'loading' | 'ok' | 'nao_autenticado' | 'erro';
 const PopHubSection: React.FC<PopHubSectionProps> = ({
   onCriarNovo,
   onRetomar,
+  onRevisar,
   onClonar,
 }) => {
   const [pops, setPops] = useState<POPResumo[]>([]);
@@ -578,10 +579,17 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
                     </p>
                   </div>
                   <div className={styles.popAcoes}>
+                    <button
+                      type="button"
+                      className={styles.btnAcao}
+                      onClick={() => onRevisar(pop.uuid)}
+                    >
+                      Revisar
+                    </button>
                     {pop.area_slug && pop.codigo_processo ? (
                       <button
                         type="button"
-                        className={styles.btnAcao}
+                        className={`${styles.btnAcao} ${styles.btnAcaoSecundario}`}
                         onClick={() => navigate(`/catalogo/${pop.area_slug}/${pop.codigo_processo}`)}
                       >
                         Ver
@@ -590,7 +598,7 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
                       <span title="POP sem codigo para abrir no catalogo">
                         <button
                           type="button"
-                          className={styles.btnAcao}
+                          className={`${styles.btnAcao} ${styles.btnAcaoSecundario}`}
                           disabled
                           aria-label="POP sem codigo para abrir no catalogo"
                         >
