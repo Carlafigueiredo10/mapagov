@@ -9,9 +9,9 @@ from django.db.models import Count, Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework import viewsets, status
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from processos.models import Area, POP, POPChangeLog, PopVersion
@@ -237,6 +237,7 @@ class AreaViewSet(viewsets.ReadOnlyModelViewSet):
     GET /api/areas/{slug}/   — detalhe da area com subareas
     GET /api/areas/{slug}/pops/ — POPs publicados da area (Etapa 2)
     """
+    permission_classes = [AllowAny]
     serializer_class = AreaSerializer
     lookup_field = 'slug'
 
@@ -547,6 +548,31 @@ class POPViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     # ----- Clone POP -----
+
+    @staticmethod
+    def _normalize_area(pop):
+        """Normaliza area do POP para formato {nome, codigo} que a SM espera."""
+        area = getattr(pop, "area", None)
+        nome = getattr(pop, "area_nome", None) or ""
+        codigo = getattr(pop, "area_codigo", None) or ""
+        if nome or codigo:
+            return {"nome": nome, "codigo": codigo}
+        if area is not None:
+            return {
+                "nome": getattr(area, "nome", "") or str(area) or "",
+                "codigo": getattr(area, "codigo", "") or "",
+            }
+        return {"nome": "", "codigo": ""}
+
+    @staticmethod
+    def _normalize_to_list(value):
+        """Converte string com ';' ou None para list (SM espera list)."""
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str) and value.strip():
+            return [v.strip() for v in value.split(";") if v.strip()]
+        return []
+
     @action(detail=True, methods=['post'], url_path='clone',
             permission_classes=[IsAuthenticated])
     def clone(self, request, uuid=None):
@@ -618,6 +644,47 @@ class POPViewSet(viewsets.ModelViewSet):
 
         _save_with_cap_retry(new_pop)
 
+        # Inicializar SM no estado REVISAO_FINAL para o clone
+        from processos.domain.helena_mapeamento.helena_pop import POPStateMachine, EstadoPOP
+
+        sm = POPStateMachine()
+        sm.estado = EstadoPOP.REVISAO_FINAL
+        sm.nome_usuario = new_pop.nome_usuario or (
+            request.user.get_full_name() or request.user.username
+        )
+        sm.area_selecionada = self._normalize_area(source_pop)
+        sm.macro_selecionado = getattr(source_pop, "macroprocesso", "") or ""
+        sm.processo_selecionado = getattr(source_pop, "processo_especifico", "") or ""
+        sm.codigo_cap = novo_cap
+        sm.atividade_selecionada = nova_atividade
+        sm.dados_coletados = {
+            "nome_processo": nova_atividade,
+            "entrega_esperada": getattr(source_pop, "entrega_esperada", "") or "",
+            "dispositivos_normativos": self._normalize_to_list(
+                getattr(source_pop, "dispositivos_normativos", None)
+            ),
+            "operadores": self._normalize_to_list(
+                getattr(source_pop, "operadores", None)
+            ),
+            "sistemas": getattr(source_pop, "sistemas_utilizados", None) or [],
+            "fluxos_entrada": getattr(new_pop, "fluxos_entrada", None) or [],
+            "fluxos_saida": getattr(new_pop, "fluxos_saida", None) or [],
+            "pontos_atencao": getattr(source_pop, "pontos_atencao", "") or "",
+        }
+        sm.etapas_coletadas = etapas_clone
+        sm.tipo_interface = "revisao_final"
+        if hasattr(sm, "dados_interface"):
+            sm.dados_interface = {}
+
+        session_key = f"helena_pop_state_{new_session_id}"
+        request.session[session_key] = sm.to_dict()
+        request.session.modified = True
+
+        logger.info(
+            "[CLONE-SM] State machine gravada: session_key=%s, estado=%s",
+            session_key, sm.estado.value,
+        )
+
         # Auditoria: registrar clone via POPChangeLog (sem migration)
         POPChangeLog.objects.create(
             pop=new_pop,
@@ -651,6 +718,7 @@ class POPViewSet(viewsets.ModelViewSet):
 # ============================================================================
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def pop_por_area_codigo(request, slug, codigo):
     """GET /api/areas/{slug}/pops/{codigo}/ — detalhe do POP por area+codigo."""
     area = Area.objects.filter(slug=slug, ativo=True).first()

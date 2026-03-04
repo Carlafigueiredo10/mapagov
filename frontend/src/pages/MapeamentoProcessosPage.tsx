@@ -24,7 +24,7 @@ import MapeamentoProcessosLanding from '../components/Helena/MapeamentoProcessos
 import ChatContainer from '../components/Helena/ChatContainer';
 import FormularioPOP from '../components/Helena/FormularioPOP';
 import LandingShell from '../components/ui/LandingShell';
-import { loadPOP, buscarMensagensV2 } from '../services/helenaApi';
+import { loadPOP, buscarMensagensV2, gerarPDF } from '../services/helenaApi';
 import './MapeamentoProcessosPage.css';
 
 const TODOS_CAMPOS = [
@@ -46,17 +46,20 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const {
-    dadosPOP, viewMode, setViewMode, fullscreenChat,
+    dadosPOP, viewMode, setViewMode, fullscreenChat, sessionId,
     resetChat, updateDadosPOP, setPopIdentifiers, setPopStatus, popStatus,
     carregarHistorico, setSessionId, resetForClone, addMessage,
   } = useChatStore();
   const modoRevisao = viewMode === 'final_review';
 
-  // Se entrou via /pop/chat, garantir viewMode correto
-  // (auth já é garantida pelo ProtectedRoute no App.tsx)
+  // Sincronizar viewMode com a rota:
+  // - /pop/meus (sem startInChat): sempre mostrar landing (painel)
+  // - /pop/chat (com startInChat): sempre mostrar chat
   useEffect(() => {
     if (startInChat && viewMode === 'landing') {
       setViewMode('chat_canvas');
+    } else if (!startInChat && viewMode !== 'landing') {
+      setViewMode('landing');
     }
   }, [startInChat, viewMode, setViewMode]);
 
@@ -103,24 +106,59 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
     return () => { document.body.style.overflow = ''; };
   }, [popAberto]);
 
-  // Gerar PDF via data-qa, com fallback por textContent
-  const handleGerarPDF = useCallback(() => {
-    let btn = document.querySelector('[data-qa="btn-gerar-pdf"]') as HTMLButtonElement | null;
-    if (!btn) {
-      const buttons = document.querySelectorAll('button');
-      for (const b of buttons) {
-        if (b.textContent?.toLowerCase().includes('gerar pdf')) {
-          btn = b;
-          break;
+  const [gerandoPDF, setGerandoPDF] = useState(false);
+
+  const handleGerarPDF = useCallback(async () => {
+    if (gerandoPDF) return;
+    setGerandoPDF(true);
+    try {
+      const resp = await gerarPDF({
+        dados_pop: dadosPOP as Record<string, unknown>,
+        session_id: sessionId,
+      });
+      if (resp.success && resp.pdf_url) {
+        // Baixar PDF (mesmo fluxo do Preview)
+        const API_BASE = import.meta.env.VITE_API_URL || '';
+        const pdfResp = await fetch(`${API_BASE}${resp.pdf_url}`, { credentials: 'include' });
+        if (pdfResp.ok) {
+          const blob = await pdfResp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = resp.arquivo || 'POP.pdf';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
         }
+        // Mostrar tela de sucesso
+        addMessage({
+          id: `final-${Date.now()}`,
+          tipo: 'helena',
+          mensagem: 'POP finalizado com sucesso!',
+          timestamp: new Date().toISOString(),
+          interface: {
+            tipo: 'final',
+            dados: {
+              codigo: dadosPOP.codigo_processo || 'POP',
+              nome_processo: dadosPOP.nome_processo || '',
+              total_etapas: Array.isArray(dadosPOP.etapas) ? (dadosPOP.etapas as unknown[]).length : 0,
+              pop_completo: dadosPOP,
+            },
+          },
+        });
+        setViewMode('chat_canvas');
+      } else {
+        console.error('[GerarPDF] Erro:', resp.error);
+        alert(resp.error || 'Erro ao gerar PDF.');
       }
+    } catch (err) {
+      console.error('[GerarPDF] Erro:', err);
+      alert('Erro ao gerar PDF. Tente novamente.');
+    } finally {
+      setGerandoPDF(false);
     }
-    if (btn) {
-      btn.click();
-    } else {
-      console.warn('[MapeamentoProcessosPage] Botão "Gerar PDF" não encontrado.');
-    }
-  }, []);
+  }, [gerandoPDF, dadosPOP, sessionId]);
 
   // Salvar ajustes — feedback visual (dados já são salvos em tempo real)
   const handleSalvarAjustes = useCallback(() => {
@@ -187,7 +225,7 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
     if (!requireAuth()) return;
     console.info('[MapeamentoProcessosPage] Revisar POP:', uuid);
     // TODO: implementar view review_readonly
-    navigate(`/pop?revisar=${uuid}`);
+    navigate(`/pop/meus?revisar=${uuid}`);
   }, [requireAuth, navigate]);
 
   // Ver versões (stub — será implementado como view version_history)
@@ -195,7 +233,7 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
     if (!requireAuth()) return;
     console.info('[MapeamentoProcessosPage] Ver versoes POP:', uuid);
     // TODO: implementar view version_history
-    navigate(`/pop?versoes=${uuid}`);
+    navigate(`/pop/meus?versoes=${uuid}`);
   }, [requireAuth, navigate]);
 
   // Clonar POP: carrega dados clonados e abre revisao_final no chat
@@ -238,9 +276,9 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
             processo_especifico: (dados.processo_especifico as string) || '',
             subprocesso: (dados.subprocesso as string) || '',
             atividade: (dados.nome_processo as string) || '',
+            nome_processo: (dados.nome_processo as string) || '',
           },
           campos_editaveis_inline: {
-            nome_processo: (dados.nome_processo as string) || '',
             entrega_esperada: (dados.entrega_esperada as string) || '',
             dispositivos_normativos: (dados.dispositivos_normativos as string) || '',
             pontos_atencao: (dados.pontos_atencao as string) || '',
@@ -261,10 +299,10 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
     navigate('/pop/chat');
   }, [requireAuth, resetForClone, setSessionId, setPopIdentifiers, updateDadosPOP, setPopStatus, setViewMode, navigate, addMessage]);
 
-  // Landing institucional (apenas em /pop, nunca em /pop/chat)
+  // Painel "Meus POPs" (apenas em /pop/meus, nunca em /pop/chat)
   if (!startInChat && viewMode === 'landing') {
     return (
-      <LandingShell onBack={() => navigate('/')}>
+      <LandingShell onBack={() => navigate('/pop')}>
         <MapeamentoProcessosLanding
           onIniciar={handleCriarNovo}
           onRetomar={handleRetomar}

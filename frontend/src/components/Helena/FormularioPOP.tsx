@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../../store/chatStore';
-import { FileText, CheckCircle, AlertCircle, Download, Loader2, Eye, X, ArrowLeft } from 'lucide-react';
+import { CheckCircle, AlertCircle, Download, Loader2, Eye, X, ArrowLeft } from 'lucide-react';
 import { gerarPDF } from '../../services/helenaApi';
 import type { Etapa, Cenario } from '../../types/pop.types';
 import './FormularioPOP.css';
 
 const FormularioPOP: React.FC = () => {
-  const navigate = useNavigate();
-  const { dadosPOP, viewMode, setViewMode, updateDadosPOP, resetChat, sessionId } = useChatStore();
+  const { dadosPOP, viewMode, setViewMode, updateDadosPOP, sessionId, addMessage } = useChatStore();
   const modoRevisao = viewMode === 'final_review';
 
   // Estado local para campos editáveis
@@ -506,26 +504,44 @@ const FormularioPOP: React.FC = () => {
         <button
           type="button"
           className="btn-form limpar"
-          onClick={() => {
-            if (confirm('Tem certeza que deseja reiniciar? Isso irá limpar o formulário e a conversa atual.')) {
-              setFormData({});
-              setValidacoes({});
-              resetChat();
-              window.location.href = '/pop/chat';
+          disabled={gerandoPDF}
+          onClick={async () => {
+            setGerandoPDF(true);
+            setErroPDF(null);
+            try {
+              const resp = await gerarPDF({
+                dados_pop: formData as Record<string, unknown>,
+                session_id: sessionId,
+              });
+              if (resp.success) {
+                addMessage({
+                  id: `final-${Date.now()}`,
+                  tipo: 'helena',
+                  mensagem: 'POP finalizado com sucesso!',
+                  timestamp: new Date().toISOString(),
+                  interface: {
+                    tipo: 'final',
+                    dados: {
+                      codigo: dadosPOP.codigo_processo || 'POP',
+                      nome_processo: dadosPOP.nome_processo || '',
+                      total_etapas: Array.isArray(dadosPOP.etapas) ? (dadosPOP.etapas as unknown[]).length : 0,
+                      pop_completo: dadosPOP,
+                    },
+                  },
+                });
+                setViewMode('chat_canvas');
+              } else {
+                setErroPDF(resp.error || 'Erro ao gerar PDF.');
+              }
+            } catch (err: any) {
+              setErroPDF(err?.message || 'Erro inesperado ao gerar PDF.');
+            } finally {
+              setGerandoPDF(false);
             }
           }}
         >
-          <FileText size={16} />
-          Reiniciar mapeamento
-        </button>
-
-        <button
-          type="button"
-          className="btn-form limpar"
-          onClick={() => { setViewMode('landing'); navigate('/pop'); }}
-        >
-          <ArrowLeft size={16} />
-          Voltar à página principal
+          {gerandoPDF ? <Loader2 size={16} className="spin" /> : <ArrowLeft size={16} />}
+          {gerandoPDF ? 'Gerando PDF...' : 'Encerrar'}
         </button>
       </div>
 

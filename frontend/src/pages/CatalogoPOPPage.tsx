@@ -36,8 +36,13 @@ export default function CatalogoPOPPage() {
         });
         setAreas(sorted);
         setStats(statsData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar dados.');
+      } catch (err: unknown) {
+        const axiosStatus = (err as { response?: { status?: number } })?.response?.status;
+        if (axiosStatus === 403) {
+          setError('login');
+        } else {
+          setError(err instanceof Error ? err.message : 'Erro ao carregar dados.');
+        }
       } finally {
         setLoading(false);
       }
@@ -76,6 +81,19 @@ export default function CatalogoPOPPage() {
     return (
       <div className="catalogo-page">
         <div className="catalogo-page__loading">Carregando catálogo...</div>
+      </div>
+    );
+  }
+
+  if (error === 'login') {
+    return (
+      <div className="catalogo-page">
+        <div className="catalogo-page__error">
+          <p>Faça login para ver o catálogo de POPs.</p>
+          <a href={`/login?next=${encodeURIComponent('/catalogo')}`} style={{ color: '#1351B4', fontWeight: 600 }}>
+            Fazer login →
+          </a>
+        </div>
       </div>
     );
   }

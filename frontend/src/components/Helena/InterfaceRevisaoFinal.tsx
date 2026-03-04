@@ -44,10 +44,10 @@ const InterfaceRevisaoFinal: React.FC<InterfaceRevisaoFinalProps> = ({ dados, on
   };
 
   const labelsInline: Record<string, { label: string; icone: string; tipo: 'input' | 'textarea' }> = {
-    nome_processo: { label: 'Atividade', icone: '📝', tipo: 'input' },
     entrega_esperada: { label: 'Entrega Esperada', icone: '🎯', tipo: 'textarea' },
     dispositivos_normativos: { label: 'Dispositivos Normativos', icone: '📜', tipo: 'textarea' },
     pontos_atencao: { label: 'Pontos de Atenção', icone: '⚠️', tipo: 'textarea' },
+    tempo_total_minutos: { label: 'Tempo Médio (minutos)', icone: '⏱️', tipo: 'input' },
   };
 
   const labelsSecao: Record<string, { label: string; icone: string }> = {

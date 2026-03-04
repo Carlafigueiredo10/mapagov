@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Download, FileText, Loader, Award } from 'lucide-react';
+import { CheckCircle, FileText, Loader, Award } from 'lucide-react';
 
 interface InterfaceFinalProps {
   dados?: Record<string, unknown>;
@@ -29,30 +29,6 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados }) => {
     if (pdfUrl) setEtapa('sucesso');
   }, [pdfUrl]);
 
-  const [baixando, setBaixando] = useState(false);
-
-  const handleBaixarPDF = async () => {
-    if (!pdfUrl) return;
-    setBaixando(true);
-    try {
-      const API_BASE = import.meta.env.VITE_API_URL || '';
-      const resp = await fetch(`${API_BASE}${pdfUrl}`, { credentials: 'include' });
-      if (!resp.ok) throw new Error(`Erro ${resp.status}`);
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = (dados?.arquivo as string) || 'POP.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('[InterfaceFinal] Erro ao baixar PDF:', err);
-    } finally {
-      setBaixando(false);
-    }
-  };
 
   return (
     <div className="interface-final fade-in">
@@ -114,19 +90,18 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados }) => {
 
           <div className="acoes-final">
             <button
-              onClick={handleBaixarPDF}
+              onClick={() => navigate('/pop/meus')}
               className="btn-final btn-pdf"
-              disabled={!pdfUrl || baixando}
             >
-              {baixando ? <Loader size={20} className="icon-loading" /> : <Download size={20} />}
-              {!pdfUrl ? 'Preparando PDF...' : baixando ? 'Baixando...' : 'Baixar PDF'}
+              <FileText size={20} />
+              Ir para Meus POPs
             </button>
           </div>
 
           <button
             type="button"
             className="badge-cartografo"
-            onClick={() => navigate('/pop')}
+            onClick={() => navigate('/pop/meus')}
             role="link"
             aria-label="Ir para pagina de mapeamento"
           >
@@ -144,7 +119,7 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados }) => {
           </div>
           <h2>Não foi possível gerar o PDF</h2>
           <p>Mas não se preocupe! Seus dados foram salvos.</p>
-          <button onClick={() => navigate('/pop')} className="btn-final btn-novo">
+          <button onClick={() => navigate('/pop/meus')} className="btn-final btn-novo">
             Voltar ao mapeamento
           </button>
         </div>

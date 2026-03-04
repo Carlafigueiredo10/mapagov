@@ -97,7 +97,7 @@ export default function CatalogoPOPDetailPage() {
     try {
       await api.post(`/pops/${pop.uuid}/homologar/`);
       setReviewToast({ type: 'success', msg: 'POP homologado com sucesso.' });
-      setTimeout(() => navigate('/pop', { state: { refresh: true } }), 1200);
+      setTimeout(() => navigate('/pop/meus', { state: { refresh: true } }), 1200);
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao homologar.';
       setReviewToast({ type: 'error', msg });
@@ -118,7 +118,7 @@ export default function CatalogoPOPDetailPage() {
       setReviewToast({ type: 'success', msg: `POP ${label} com sucesso.` });
       setReviewAction(null);
       setReviewMotivo('');
-      setTimeout(() => navigate('/pop', { state: { refresh: true } }), 1200);
+      setTimeout(() => navigate('/pop/meus', { state: { refresh: true } }), 1200);
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || `Erro ao ${reviewAction === 'devolver' ? 'devolver' : 'rejeitar'}.`;
       setReviewToast({ type: 'error', msg });

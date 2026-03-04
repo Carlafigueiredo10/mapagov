@@ -3312,9 +3312,9 @@ class HelenaPOP(BaseHelena):
                 'processo_especifico': sm.processo_selecionado or '',
                 'subprocesso': sm.subprocesso_selecionado or '',
                 'atividade': sm.atividade_selecionada or '',
+                'nome_processo': dados.get('nome_processo', '') or sm.atividade_selecionada or '',
             },
             'campos_editaveis_inline': {
-                'nome_processo': dados.get('nome_processo', '') or sm.atividade_selecionada or '',
                 'entrega_esperada': dados.get('entrega_esperada', ''),
                 'dispositivos_normativos': '; '.join(dados.get('dispositivos_normativos', [])) if isinstance(dados.get('dispositivos_normativos'), list) else dados.get('dispositivos_normativos', ''),
                 'pontos_atencao': dados.get('pontos_atencao', ''),
@@ -3352,7 +3352,13 @@ class HelenaPOP(BaseHelena):
         if acao == 'editar_inline':
             campo = data.get('campo', '')
             valor = data.get('valor', '')
-            campos_permitidos = ['nome_processo', 'entrega_esperada', 'dispositivos_normativos', 'pontos_atencao', 'tempo_total_minutos']
+            campos_permitidos = ['entrega_esperada', 'dispositivos_normativos', 'pontos_atencao', 'tempo_total_minutos']
+
+            # Guard: atividade/nome_processo são estruturantes — bloqueados na revisão
+            if campo in ('nome_processo', 'atividade'):
+                sm.tipo_interface = 'revisao_final'
+                sm.dados_interface = self._montar_dados_revisao_final(sm)
+                return "A atividade define o POP. Para mudar, use 'Clonar para outra atividade'.", sm
 
             if campo not in campos_permitidos:
                 sm.tipo_interface = 'revisao_final'
@@ -3379,13 +3385,13 @@ class HelenaPOP(BaseHelena):
                     'sistemas_por_categoria': self.SISTEMAS_DECIPEX,
                     'campo_livre': True,
                     'multipla_selecao': True,
-                    'selecionados': dados.get('sistemas', []),
+                    'selecionados': sm.dados_coletados.get('sistemas', []),
                 }),
                 'operadores': (EstadoPOP.OPERADORES, 'operadores', {
                     'opcoes': self.OPERADORES_DECIPEX,
                     'campo_livre': True,
                     'multipla_selecao': True,
-                    'selecionados': dados.get('operadores', []),
+                    'selecionados': sm.dados_coletados.get('operadores', []),
                 }),
                 'fluxos_entrada': (EstadoPOP.FLUXOS, 'fluxos_entrada', None),
                 'fluxos_saida': (EstadoPOP.FLUXOS, 'fluxos_saida', None),

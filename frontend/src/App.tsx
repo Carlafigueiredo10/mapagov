@@ -21,6 +21,7 @@ import Landing from './pages/Landing'
 import Sobre from './pages/Sobre'
 import Portal from './pages/Portal'
 import MapeamentoProcessosPage from './pages/MapeamentoProcessosPage'
+import GuiaMapeamentoPage from './pages/GuiaMapeamentoPage'
 import AnaliseRiscosPage from './pages/AnaliseRiscos'
 import FluxogramaPage from './pages/FluxogramaPage'
 import PlanoAcaoPage from './pages/PlanoAcaoPage'
@@ -107,8 +108,9 @@ function App() {
             ================================================================ */}
         <Route path="/portal" element={<ProtectedRoute><Portal /></ProtectedRoute>} />
 
-        {/* Landings publicas — gate interno protege a ferramenta */}
-        <Route path="/pop" element={<MapeamentoProcessosPage />} />
+        {/* Mapeamento de Atividades — guia publico, painel e chat */}
+        <Route path="/pop" element={<GuiaMapeamentoPage />} />
+        <Route path="/pop/meus" element={<MapeamentoProcessosPage />} />
         <Route path="/pop/chat" element={<ProtectedRoute><MapeamentoProcessosPage startInChat /></ProtectedRoute>} />
         <Route path="/riscos" element={<AnaliseRiscosPage />} />
         <Route path="/fluxograma" element={<FluxogramaPage />} />

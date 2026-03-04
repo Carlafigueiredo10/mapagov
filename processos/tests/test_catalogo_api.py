@@ -3,8 +3,10 @@ Testes para o catalogo de POPs: Areas, CRUD, Publish, Resolve, Stats.
 Cobre Etapas 1-5 do plano.
 """
 
+import json
 import uuid as uuid_lib
 
+from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
@@ -552,3 +554,109 @@ class TestSearchPOPs(TestCase):
         resp = self.client.get('/api/pops/search/?q=deletado')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.data), 0)
+
+
+# ============================================================================
+# Etapa 7: Clone inicializa SM em REVISAO_FINAL
+# ============================================================================
+
+@override_settings(ROOT_URLCONF='mapagov.urls')
+class TestCloneStateMachine(TestCase):
+    """Verifica que clone cria SM no estado REVISAO_FINAL na sessão Django."""
+
+    def setUp(self):
+        self.user = User.objects.create_superuser('operador', password='test123')
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.area = create_area()
+        self.source = create_pop(
+            area=self.area,
+            nome_processo='Concessao de ferias',
+            codigo_processo='1.1.1.1.1',
+            status='published',
+            area_nome=self.area.nome,
+            area_codigo=self.area.codigo,
+            macroprocesso='Gestao de Pessoas',
+            processo_especifico='Ferias',
+            entrega_esperada='Ferias concedidas',
+            dispositivos_normativos='Lei 8112; IN 01/2020',
+            operadores='CGBEN; DIGEP',
+            sistemas_utilizados=[{'nome': 'SIAPE'}],
+            pontos_atencao='Verificar saldo',
+            etapas=[{'id': 'e1', 'nome': 'Etapa 1', 'descricao': 'Desc'}],
+            fluxos_entrada=[{'origem': 'Servidor'}],
+            fluxos_saida=[{'destino': 'SIAPE'}],
+        )
+
+    def test_clone_creates_sm_in_revisao_final(self):
+        """Após clone, sessão Django contém SM no estado REVISAO_FINAL."""
+        resp = self.client.post(
+            f'/api/pops/{self.source.uuid}/clone/',
+            {'atividade': 'Concessao de licenca'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, 201)
+
+        new_session_id = resp.data['pop']['session_id']
+        session_key = f'helena_pop_state_{new_session_id}'
+
+        # Acessar sessão do Django via client.session
+        session = self.client.session
+        self.assertIn(session_key, session)
+
+        sm_data = session[session_key]
+        self.assertEqual(sm_data['estado'], 'revisao_final')
+        self.assertEqual(sm_data['atividade_selecionada'], 'Concessao de licenca')
+        self.assertEqual(sm_data['macro_selecionado'], 'Gestao de Pessoas')
+
+    def test_clone_normalizes_dispositivos_and_operadores(self):
+        """dispositivos_normativos e operadores (string com ;) viram list na SM."""
+        resp = self.client.post(
+            f'/api/pops/{self.source.uuid}/clone/',
+            {'atividade': 'Concessao de abono'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, 201)
+
+        new_session_id = resp.data['pop']['session_id']
+        sm_data = self.client.session[f'helena_pop_state_{new_session_id}']
+
+        dispositivos = sm_data['dados_coletados']['dispositivos_normativos']
+        operadores = sm_data['dados_coletados']['operadores']
+
+        self.assertIsInstance(dispositivos, list)
+        self.assertIsInstance(operadores, list)
+        self.assertEqual(dispositivos, ['Lei 8112', 'IN 01/2020'])
+        self.assertEqual(operadores, ['CGBEN', 'DIGEP'])
+
+    def test_clone_then_editar_inline_works(self):
+        """Editar campo inline após clone não pede nome (SM já em revisao_final)."""
+        resp = self.client.post(
+            f'/api/pops/{self.source.uuid}/clone/',
+            {'atividade': 'Concessao de auxilio'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, 201)
+        new_session_id = resp.data['pop']['session_id']
+
+        # Simular editar_inline via chat endpoint
+        chat_resp = self.client.post(
+            '/api/chat/',
+            json.dumps({
+                'message': json.dumps({
+                    'acao': 'editar_inline',
+                    'campo': 'nome_processo',
+                    'valor': 'Nome atualizado via edição',
+                }),
+                'contexto': 'gerador_pop',
+                'session_id': new_session_id,
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(chat_resp.status_code, 200)
+
+        data = chat_resp.json()
+        # Não deve perguntar nome — deve processar a edição
+        resposta = (data.get('resposta') or '').lower()
+        self.assertNotIn('como posso te chamar', resposta)
+        self.assertNotIn('seu nome', resposta)
