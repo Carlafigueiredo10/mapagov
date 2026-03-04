@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, Download, FileText, Loader } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle, Download, FileText, Loader, Award } from 'lucide-react';
 
 interface InterfaceFinalProps {
   dados?: Record<string, unknown>;
   onConfirm: (resposta: string) => void;
 }
 
-const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados, onConfirm }) => {
+const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados }) => {
+  const navigate = useNavigate();
   const [etapa, setEtapa] = useState<'processando' | 'sucesso' | 'erro'>('processando');
 
   const popCompleto = (dados?.pop_completo as Record<string, unknown>) || {};
@@ -27,14 +29,29 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados, onConfirm }) => 
     if (pdfUrl) setEtapa('sucesso');
   }, [pdfUrl]);
 
-  const handleBaixarPDF = () => {
-    if (pdfUrl) {
-      window.open(pdfUrl, '_blank');
-    }
-  };
+  const [baixando, setBaixando] = useState(false);
 
-  const handleNovoMapeamento = () => {
-    onConfirm('novo_mapeamento');
+  const handleBaixarPDF = async () => {
+    if (!pdfUrl) return;
+    setBaixando(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || '';
+      const resp = await fetch(`${API_BASE}${pdfUrl}`, { credentials: 'include' });
+      if (!resp.ok) throw new Error(`Erro ${resp.status}`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (dados?.arquivo as string) || 'POP.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[InterfaceFinal] Erro ao baixar PDF:', err);
+    } finally {
+      setBaixando(false);
+    }
   };
 
   return (
@@ -56,9 +73,9 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados, onConfirm }) => 
             <CheckCircle size={64} className="icon-sucesso" />
           </div>
 
-          <h2 className="sucesso-titulo">POP Criado com Sucesso!</h2>
+          <h2 className="sucesso-titulo">POP salvo com sucesso!</h2>
           <p className="sucesso-subtitulo">
-            Seu Procedimento Operacional Padrão está pronto
+            Seu POP foi salvo como rascunho. Submeta para homologacao na pagina de mapeamento quando estiver pronto.
           </p>
 
           <div className="pop-resumo">
@@ -69,17 +86,17 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados, onConfirm }) => 
 
             <div className="resumo-detalhes">
               <div className="detalhe-item">
-                <span className="detalhe-label">Código:</span>
+                <span className="detalhe-label">Codigo:</span>
                 <span className="detalhe-valor">{codigo}</span>
               </div>
               <div className="detalhe-item">
                 <span className="detalhe-label">Atividade:</span>
-                <span className="detalhe-valor">{String(popCompleto.nome_processo || '(Não informado)')}</span>
+                <span className="detalhe-valor">{String(popCompleto.nome_processo || '(Nao informado)')}</span>
               </div>
               <div className="detalhe-item">
-                <span className="detalhe-label">Área:</span>
+                <span className="detalhe-label">Area:</span>
                 <span className="detalhe-valor">
-                  {String((popCompleto.area as { nome?: string })?.nome || popCompleto.area || '(Não informado)')}
+                  {String((popCompleto.area as { nome?: string })?.nome || popCompleto.area || '(Nao informado)')}
                 </span>
               </div>
               <div className="detalhe-item">
@@ -90,7 +107,7 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados, onConfirm }) => 
               </div>
               <div className="detalhe-item">
                 <span className="detalhe-label">Criado por:</span>
-                <span className="detalhe-valor">{String(popCompleto.nome_usuario || 'Usuário')}</span>
+                <span className="detalhe-valor">{String(popCompleto.nome_usuario || 'Usuario')}</span>
               </div>
             </div>
           </div>
@@ -99,23 +116,24 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados, onConfirm }) => 
             <button
               onClick={handleBaixarPDF}
               className="btn-final btn-pdf"
-              disabled={!pdfUrl}
+              disabled={!pdfUrl || baixando}
             >
-              <Download size={20} />
-              {pdfUrl ? 'Baixar PDF' : 'Preparando PDF...'}
-            </button>
-
-            <button
-              onClick={handleNovoMapeamento}
-              className="btn-final btn-novo"
-            >
-              Iniciar Novo Mapeamento
+              {baixando ? <Loader size={20} className="icon-loading" /> : <Download size={20} />}
+              {!pdfUrl ? 'Preparando PDF...' : baixando ? 'Baixando...' : 'Baixar PDF'}
             </button>
           </div>
 
-          <div className="dica-final">
-            💡 <strong>Dica:</strong> O PDF gerado pode ser editado posteriormente no Microsoft Word ou Google Docs.
-          </div>
+          <button
+            type="button"
+            className="badge-cartografo"
+            onClick={() => navigate('/pop')}
+            role="link"
+            aria-label="Ir para pagina de mapeamento"
+          >
+            <Award size={32} className="badge-icon" />
+            <span className="badge-titulo">Cartografo do Conhecimento</span>
+            <span className="badge-texto">Obrigada por contribuir com um processo mais padronizado e seguro.</span>
+          </button>
         </div>
       )}
 
@@ -126,8 +144,8 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados, onConfirm }) => 
           </div>
           <h2>Não foi possível gerar o PDF</h2>
           <p>Mas não se preocupe! Seus dados foram salvos.</p>
-          <button onClick={handleNovoMapeamento} className="btn-final btn-novo">
-            Tentar Novamente
+          <button onClick={() => navigate('/pop')} className="btn-final btn-novo">
+            Voltar ao mapeamento
           </button>
         </div>
       )}
@@ -336,15 +354,42 @@ const InterfaceFinal: React.FC<InterfaceFinalProps> = ({ dados, onConfirm }) => 
           box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
         }
 
-        .dica-final {
+        /* Badge Cartografo */
+        .badge-cartografo {
           width: 100%;
-          padding: 1rem;
-          background: #fff3cd;
-          border: 1px solid #ffc107;
-          border-radius: 6px;
-          color: #856404;
-          font-size: 0.9rem;
-          text-align: left;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 1.5rem;
+          background: linear-gradient(135deg, #F0F4FA 0%, #E8F0FE 100%);
+          border: 2px solid #1351B4;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-align: center;
+        }
+
+        .badge-cartografo:hover {
+          background: linear-gradient(135deg, #E8F0FE 0%, #D6E4F9 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(19, 81, 180, 0.2);
+        }
+
+        .badge-icon {
+          color: #1351B4;
+        }
+
+        .badge-titulo {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #1351B4;
+        }
+
+        .badge-texto {
+          font-size: 0.85rem;
+          color: #495057;
+          line-height: 1.4;
         }
 
         /* Erro */

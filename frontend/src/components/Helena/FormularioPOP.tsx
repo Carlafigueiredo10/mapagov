@@ -19,6 +19,7 @@ const FormularioPOP: React.FC = () => {
   const [etapasValidasCount, setEtapasValidasCount] = useState(0);
   const [ultimoCampoPreenchido, setUltimoCampoPreenchido] = useState<string | null>(null);
   const [gerandoPDF, setGerandoPDF] = useState(false);
+  const [fasePDF, setFasePDF] = useState<'gerando' | 'baixando'>('gerando');
   const [erroPDF, setErroPDF] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -38,6 +39,7 @@ const FormularioPOP: React.FC = () => {
 
   const handleGerarPDF = async () => {
     setGerandoPDF(true);
+    setFasePDF('gerando');
     setErroPDF(null);
     try {
       const resp = await gerarPDF({
@@ -45,7 +47,22 @@ const FormularioPOP: React.FC = () => {
         session_id: sessionId,
       });
       if (resp.success && resp.pdf_url) {
-        window.open(resp.pdf_url, '_blank');
+        setFasePDF('baixando');
+        const API_BASE = import.meta.env.VITE_API_URL || '';
+        const pdfResp = await fetch(`${API_BASE}${resp.pdf_url}`, { credentials: 'include' });
+        if (!pdfResp.ok) {
+          const body = await pdfResp.json().catch(() => null);
+          throw new Error(body?.error || `Erro ao baixar PDF (${pdfResp.status})`);
+        }
+        const blob = await pdfResp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = resp.arquivo || 'POP.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       } else {
         setErroPDF(resp.error || 'Erro ao gerar PDF.');
       }
@@ -636,7 +653,7 @@ const FormularioPOP: React.FC = () => {
                   type="button"
                 >
                   {gerandoPDF ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
-                  {gerandoPDF ? 'Gerando...' : 'Gerar PDF'}
+                  {gerandoPDF ? (fasePDF === 'gerando' ? 'Gerando PDF...' : 'Baixando...') : 'Gerar PDF'}
                 </button>
               </div>
             </div>

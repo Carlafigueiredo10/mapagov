@@ -37,7 +37,7 @@ export interface POPListItem {
   macroprocesso: string;
   area_nome: string;
   area_slug: string;
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'in_review' | 'published' | 'archived';
   versao: number;
   created_at: string;
   updated_at: string;

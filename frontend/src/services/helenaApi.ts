@@ -144,6 +144,48 @@ export const loadPOP = async (identifier: string): Promise<{
   return response.data;
 };
 
+/** POP — Resolve CAP code para metadados do POP. GET /pops/resolve/?cap=... */
+export const resolveCAP = async (cap: string): Promise<{
+  uuid: string;
+  cap: string;
+  nome_processo: string;
+  status: string;
+  area_id: number | null;
+  area_nome: string;
+  versao: number;
+  published: boolean;
+} | null> => {
+  try {
+    const response = await api.get('/pops/resolve/', {
+      params: { cap: cap.trim().replace(/ /g, '') },
+    });
+    return response.data;
+  } catch {
+    return null;
+  }
+};
+
+/** POP — Clona POP existente com nova atividade. POST /pops/{uuid}/clone/ */
+export const clonePOP = async (
+  sourceUuid: string,
+  atividade: string,
+): Promise<{
+  success: boolean;
+  pop?: {
+    id: number;
+    uuid: string;
+    session_id: string;
+    integrity_hash: string;
+    status: string;
+    dados: Record<string, unknown>;
+  };
+  source_uuid?: string;
+  error?: string;
+}> => {
+  const response = await api.post(`/pops/${sourceUuid}/clone/`, { atividade });
+  return response.data;
+};
+
 /** POP — Reinicia conversa e state machine. POST /reiniciar-conversa-helena/ */
 export const reiniciarConversa = async (sessionId: string): Promise<void> => {
   await api.post('/reiniciar-conversa-helena/', {

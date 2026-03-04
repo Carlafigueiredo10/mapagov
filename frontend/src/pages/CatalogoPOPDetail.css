@@ -355,6 +355,224 @@
   cursor: pointer;
 }
 
+/* Review bar */
+.pop-detail__review-bar {
+  background: #f0f7ff;
+  border-bottom: 2px solid #1351B4;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pop-detail__review-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1351B4;
+}
+
+.pop-detail__review-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pop-detail__review-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s, color 0.15s;
+}
+
+.pop-detail__review-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pop-detail__review-btn--homologar {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.pop-detail__review-btn--homologar:hover:not(:disabled) {
+  background: #218838;
+}
+
+.pop-detail__review-btn--devolver {
+  background: white;
+  color: #856404;
+  border-color: #ffc107;
+}
+
+.pop-detail__review-btn--devolver:hover:not(:disabled) {
+  background: #fff3cd;
+}
+
+.pop-detail__review-btn--rejeitar {
+  background: white;
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.pop-detail__review-btn--rejeitar:hover:not(:disabled) {
+  background: #f8d7da;
+}
+
+/* Review warning (non-gestor) */
+.pop-detail__review-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+  font-size: 13px;
+  color: #856404;
+}
+
+/* Toast */
+.pop-detail__toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 2000;
+  animation: toast-in 0.3s ease-out;
+}
+
+.pop-detail__toast--success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.pop-detail__toast--error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Modal overlay */
+.pop-detail__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.pop-detail__modal {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.pop-detail__modal h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1B4F72;
+  margin: 0 0 8px;
+}
+
+.pop-detail__modal-hint {
+  font-size: 13px;
+  color: #636363;
+  margin: 0 0 16px;
+}
+
+.pop-detail__modal label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  display: block;
+}
+
+.pop-detail__modal-textarea {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.pop-detail__modal-textarea:focus {
+  outline: none;
+  border-color: #1351B4;
+}
+
+.pop-detail__modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.pop-detail__modal-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  transition: background 0.15s;
+}
+
+.pop-detail__modal-btn--cancel {
+  background: white;
+  color: #636363;
+}
+
+.pop-detail__modal-btn--cancel:hover {
+  background: #f5f5f5;
+}
+
+.pop-detail__modal-btn--confirm {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.pop-detail__modal-btn--confirm:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.pop-detail__modal-btn--confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* in_review status badge */
+.pop-detail__pop-status--in_review {
+  background: #cce5ff;
+  color: #004085;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .pop-detail__content {

@@ -413,7 +413,7 @@ class BuscaAtividadePipeline:
         logger.info("[PIPELINE] >>> CAMADA 2: Busca Semântica (SentenceTransformer)")
         resultado_camada2 = self._camada2_busca_semantica(descricao_usuario, area_codigo)
 
-        if resultado_camada2['sucesso'] and resultado_camada2['score'] > 0:
+        if resultado_camada2['sucesso'] and resultado_camada2['score'] >= 0.50:
             logger.info(f"[PIPELINE] [OK] CAMADA 2 encontrou atividade (score: {resultado_camada2['score']:.3f})")
             # Adicionar botões: Confirmar / Selecionar manualmente
             resultado_camada2['acoes_usuario'] = ['confirmar', 'selecionar_manualmente']
@@ -620,7 +620,10 @@ class BuscaAtividadePipeline:
             prefixo_area = self._obter_prefixo_area(area_codigo)
 
             candidatos = []
+            MIN_SCORE = 0.50  # Ignorar sugestões com similaridade < 50%
             for score, idx in zip(top_results[0], top_results[1]):
+                if float(score) < MIN_SCORE:
+                    continue
                 row = self.df_csv.iloc[int(idx)]
                 # CAP = prefixo_area + numero_csv (SNI padded)
                 cap_completo = f"{prefixo_area}.{normalize_numero_csv(str(row['Numero']).strip())}"

@@ -53,7 +53,7 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
   const [mostrarEspecificacao, setMostrarEspecificacao] = useState<Record<string, boolean>>({});
   const [especificacoes, setEspecificacoes] = useState<Record<string, string>>({});
   const [areaDecipexSelecionada, setAreaDecipexSelecionada] = useState<Record<string, string[]>>({});
-  const [orgaoCentralizadoSelecionado, setOrgaoCentralizadoSelecionado] = useState<Record<string, string>>({});
+  const [orgaoCentralizadoSelecionado, setOrgaoCentralizadoSelecionado] = useState<Record<string, string[]>>({});
   const [canaisSelecionados, setCanaisSelecionados] = useState<Record<string, string[]>>({});
   const [isLoading, setIsLoading] = useState(false); // ✅ Proteção contra duplo clique
 
@@ -68,7 +68,7 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
     { id: 'usuario_requerente', label: 'Do usuário/requerente diretamente', requerEspecificacao: true, requerCanaisAtendimento: true },
     { id: 'area_interna_cg', label: 'De outra área interna da sua Coordenação Geral', requerEspecificacao: true, obrigatorio: true },
     { id: 'orgaos_controle', label: 'Órgãos de Controle', requerEspecificacao: true, opcoesPredefinidas: ['TCU - Indícios', 'TCU - Acórdão', 'CGU'] },
-    { id: 'demanda_judicial', label: 'Demanda judicial', requerEspecificacao: true, opcoesPredefinidas: ['AGU/PRU', 'Defensoria Pública', 'Direto das partes (ex: pensão alimentícia)'] },
+    { id: 'demanda_judicial', label: 'Demanda judicial', requerEspecificacao: true, opcoesPredefinidas: ['AGU/PRU', 'PGFN', 'Defensoria Pública', 'Direto das partes (ex: pensão alimentícia)'] },
   ];
 
   const toggleOrigem = (id: string, requerEspecificacao: boolean) => {
@@ -136,15 +136,24 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
     });
   };
 
-  const handleOrgaoCentralizado = (id: string, siglaOrgao: string) => {
-    setOrgaoCentralizadoSelecionado(prev => ({ ...prev, [id]: siglaOrgao }));
-    const orgaoInfo = orgaosCentralizados.find(o => o.sigla === siglaOrgao);
-    const especificacao = orgaoInfo ? `${orgaoInfo.sigla} - ${orgaoInfo.nome_completo}` : siglaOrgao;
+  const handleToggleOrgaoCentralizado = (id: string, siglaOrgao: string) => {
+    setOrgaoCentralizadoSelecionado(prev => {
+      const atuais = prev[id] || [];
+      const jaExiste = atuais.includes(siglaOrgao);
+      const novos = jaExiste ? atuais.filter(s => s !== siglaOrgao) : [...atuais, siglaOrgao];
 
-    setEspecificacoes(prev => ({ ...prev, [id]: especificacao }));
-    setOrigens(prev => prev.map(o =>
-      o.tipo === id ? { ...o, orgao_centralizado: siglaOrgao, especificacao } : o
-    ));
+      const especificacao = novos.map(sigla => {
+        const info = orgaosCentralizados.find(o => o.sigla === sigla);
+        return info ? `${info.sigla} - ${info.nome_completo}` : sigla;
+      }).join('; ');
+
+      setEspecificacoes(p => ({ ...p, [id]: especificacao }));
+      setOrigens(p => p.map(o =>
+        o.tipo === id ? { ...o, orgao_centralizado: novos.join(';'), especificacao } : o
+      ));
+
+      return { ...prev, [id]: novos };
+    });
   };
 
   const handleToggleCanal = (idOrigem: string, codigoCanal: string) => {
@@ -216,8 +225,8 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
           setIsLoading(false);
           return;
         }
-        if (opcao?.requerOrgaoCentralizado && !orgaoCentralizadoSelecionado[origem.tipo]) {
-          alert(`Por favor, selecione o órgão centralizado de origem.`);
+        if (opcao?.requerOrgaoCentralizado && (!orgaoCentralizadoSelecionado[origem.tipo] || orgaoCentralizadoSelecionado[origem.tipo].length === 0)) {
+          alert(`Por favor, selecione ao menos um órgão centralizado de origem.`);
           setIsLoading(false);
           return;
         }
@@ -339,31 +348,59 @@ const InterfaceFluxosEntrada: React.FC<InterfaceFluxosEntradaProps> = ({ dados, 
                 </div>
               )}
 
-              {/* Seletor de Órgão Centralizado */}
+              {/* Seletor de Órgãos Centralizados (múltipla seleção) */}
               {mostrarEspecificacao[opcao.id] && opcao.requerOrgaoCentralizado && (
                 <div style={{ marginTop: '0.5rem', marginLeft: '2rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#495057' }}>
-                    Selecione o órgão centralizado:
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#495057', fontWeight: 500 }}>
+                    Selecione os órgãos centralizados (pode selecionar vários):
                   </label>
-                  <select
-                    value={orgaoCentralizadoSelecionado[opcao.id] || ''}
-                    onChange={(e) => handleOrgaoCentralizado(opcao.id, e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '1px solid #ced4da',
-                      borderRadius: '6px',
-                      fontSize: '0.95rem',
-                      background: 'white'
-                    }}
-                  >
-                    <option value="">Selecione um órgão...</option>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                    gap: '0.5rem',
+                  }}>
                     {orgaosCentralizados.map(orgao => (
-                      <option key={orgao.sigla} value={orgao.sigla}>
-                        {orgao.sigla} - {orgao.nome_completo}
-                      </option>
+                      <div
+                        key={orgao.sigla}
+                        onClick={() => handleToggleOrgaoCentralizado(opcao.id, orgao.sigla)}
+                        style={{
+                          padding: '0.6rem 0.8rem',
+                          border: '1px solid',
+                          borderColor: (orgaoCentralizadoSelecionado[opcao.id] || []).includes(orgao.sigla) ? '#1351B4' : '#dee2e6',
+                          borderRadius: '6px',
+                          background: (orgaoCentralizadoSelecionado[opcao.id] || []).includes(orgao.sigla) ? '#e7f3ff' : 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '0.5rem',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(orgaoCentralizadoSelecionado[opcao.id] || []).includes(orgao.sigla)}
+                          readOnly
+                          style={{ marginTop: '3px', accentColor: '#1351B4' }}
+                        />
+                        <div>
+                          <strong>{orgao.sigla}</strong>
+                          <span style={{ fontSize: '0.85rem', color: '#6c757d', marginLeft: '0.3rem' }}>
+                            {orgao.nome_completo}
+                          </span>
+                          {orgao.observacao && (
+                            <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '2px' }}>
+                              {orgao.observacao}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     ))}
-                  </select>
+                  </div>
+                  {(orgaoCentralizadoSelecionado[opcao.id] || []).length > 0 && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#28a745', fontWeight: 500 }}>
+                      ✓ {orgaoCentralizadoSelecionado[opcao.id].length} órgão(s) selecionado(s)
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -3,13 +3,18 @@
  * Rota: /catalogo/:slug/:codigo
  */
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { CheckCircle, XCircle, CornerDownLeft, AlertTriangle } from 'lucide-react';
 import type { POPDetail, PopVersion } from '../services/catalogoApi';
 import { obterPOPPorCodigo, listarVersoes, buildPdfUrl } from '../services/catalogoApi';
+import api from '../services/api';
+import { useAuthStore } from '../store/authStore';
+import { hasRole } from '../services/authApi';
 import './CatalogoPOPDetail.css';
 
 const STATUS_LABELS: Record<string, string> = {
   published: 'Publicado',
+  in_review: 'Em Revisao',
   draft: 'Rascunho',
   archived: 'Arquivado',
 };
@@ -26,11 +31,23 @@ interface Etapa {
 export default function CatalogoPOPDetailPage() {
   const navigate = useNavigate();
   const { slug, codigo } = useParams<{ slug: string; codigo: string }>();
+  const [searchParams] = useSearchParams();
+  const reviewMode = searchParams.get('review') === 'true';
+
+  const user = useAuthStore((s) => s.user);
+  const isGestor = hasRole(user, 'area_manager') || (user?.is_superuser ?? false);
+
   const [pop, setPop] = useState<POPDetail | null>(null);
   const [versions, setVersions] = useState<PopVersion[]>([]);
   const [showVersions, setShowVersions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Review workflow state
+  const [reviewAction, setReviewAction] = useState<'rejeitar' | 'devolver' | null>(null);
+  const [reviewMotivo, setReviewMotivo] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewToast, setReviewToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   useEffect(() => {
     if (!slug || !codigo) return;
@@ -62,6 +79,52 @@ export default function CatalogoPOPDetailPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!reviewToast) return;
+    const t = setTimeout(() => setReviewToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [reviewToast]);
+
+  const showReviewBar = reviewMode && isGestor && pop?.status === 'in_review' && pop?.uuid;
+  const showReviewWarning = reviewMode && !isGestor;
+
+  const handleHomologar = async () => {
+    if (!pop?.uuid || reviewLoading) return;
+    setReviewLoading(true);
+    try {
+      await api.post(`/pops/${pop.uuid}/homologar/`);
+      setReviewToast({ type: 'success', msg: 'POP homologado com sucesso.' });
+      setTimeout(() => navigate('/pop', { state: { refresh: true } }), 1200);
+    } catch (err) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao homologar.';
+      setReviewToast({ type: 'error', msg });
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleRejectOrReturn = async () => {
+    if (!pop?.uuid || reviewLoading) return;
+    const motivo = reviewMotivo.trim();
+    if (!motivo) return;
+    setReviewLoading(true);
+    const prefixedMotivo = reviewAction === 'devolver' ? `[DEVOLUCAO] ${motivo}` : motivo;
+    const label = reviewAction === 'devolver' ? 'devolvido' : 'rejeitado';
+    try {
+      await api.post(`/pops/${pop.uuid}/reject-review/`, { motivo: prefixedMotivo });
+      setReviewToast({ type: 'success', msg: `POP ${label} com sucesso.` });
+      setReviewAction(null);
+      setReviewMotivo('');
+      setTimeout(() => navigate('/pop', { state: { refresh: true } }), 1200);
+    } catch (err) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || `Erro ao ${reviewAction === 'devolver' ? 'devolver' : 'rejeitar'}.`;
+      setReviewToast({ type: 'error', msg });
+    } finally {
+      setReviewLoading(false);
+    }
   };
 
   if (loading) {
@@ -118,6 +181,93 @@ export default function CatalogoPOPDetailPage() {
           <span className="pop-detail__breadcrumb-current">{pop.codigo_processo}</span>
         </div>
       </div>
+
+      {/* Toast */}
+      {reviewToast && (
+        <div className={`pop-detail__toast pop-detail__toast--${reviewToast.type}`}>
+          {reviewToast.msg}
+        </div>
+      )}
+
+      {/* Warning: operador com ?review=true */}
+      {showReviewWarning && (
+        <div className="pop-detail__review-warning">
+          <AlertTriangle size={16} />
+          <span>Modo de homologacao disponivel apenas para gestores.</span>
+        </div>
+      )}
+
+      {/* Review bar for gestors */}
+      {showReviewBar && (
+        <div className="pop-detail__review-bar">
+          <span className="pop-detail__review-label">Homologacao do POP</span>
+          <div className="pop-detail__review-actions">
+            <button
+              className="pop-detail__review-btn pop-detail__review-btn--homologar"
+              onClick={handleHomologar}
+              disabled={reviewLoading}
+            >
+              <CheckCircle size={16} />
+              {reviewLoading ? 'Processando...' : 'Homologar'}
+            </button>
+            <button
+              className="pop-detail__review-btn pop-detail__review-btn--devolver"
+              onClick={() => setReviewAction('devolver')}
+              disabled={reviewLoading}
+            >
+              <CornerDownLeft size={16} />
+              Devolver para complementacao
+            </button>
+            <button
+              className="pop-detail__review-btn pop-detail__review-btn--rejeitar"
+              onClick={() => setReviewAction('rejeitar')}
+              disabled={reviewLoading}
+            >
+              <XCircle size={16} />
+              Rejeitar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal rejeitar/devolver */}
+      {reviewAction && (
+        <div className="pop-detail__modal-overlay" onClick={() => { setReviewAction(null); setReviewMotivo(''); }}>
+          <div className="pop-detail__modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{reviewAction === 'devolver' ? 'Devolver para complementacao' : 'Rejeitar POP'}</h3>
+            <p className="pop-detail__modal-hint">
+              {reviewAction === 'devolver'
+                ? 'Devolver solicita ajustes ao servidor. O POP voltara como rascunho.'
+                : 'Rejeitar encerra o processo de revisao.'}
+            </p>
+            <label>
+              Motivo (obrigatorio):
+              <textarea
+                className="pop-detail__modal-textarea"
+                value={reviewMotivo}
+                onChange={(e) => setReviewMotivo(e.target.value)}
+                rows={3}
+                placeholder="Descreva o motivo..."
+              />
+            </label>
+            <div className="pop-detail__modal-buttons">
+              <button
+                className="pop-detail__modal-btn pop-detail__modal-btn--cancel"
+                onClick={() => { setReviewAction(null); setReviewMotivo(''); }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="pop-detail__modal-btn pop-detail__modal-btn--confirm"
+                onClick={handleRejectOrReturn}
+                disabled={!reviewMotivo.trim() || reviewLoading}
+              >
+                {reviewLoading ? 'Processando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Conteudo */}
       <div className="pop-detail__content">

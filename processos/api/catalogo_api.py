@@ -75,6 +75,89 @@ def _stable_payload_hash(payload):
     ).hexdigest()
 
 
+def _compute_next_cap(source_cap):
+    """
+    Dado um CAP como '01.02.03.04.108', calcula o proximo numero de atividade
+    disponivel no mesmo subprocesso: '01.02.03.04.XXX'.
+
+    Prefixo = tudo menos o ultimo segmento (robusto para qualquer profundidade).
+    """
+    parts = source_cap.rsplit('.', 1)
+    if len(parts) != 2:
+        raise ValueError(f"CAP invalido para clone: {source_cap}")
+
+    prefix = parts[0]  # ex: '01.02.03.04'
+
+    existing_caps = POP.objects.filter(
+        codigo_processo__startswith=f"{prefix}.",
+        is_deleted=False,
+    ).values_list('codigo_processo', flat=True)
+
+    max_idx = 0
+    for cap in existing_caps:
+        suffix = cap[len(prefix) + 1:]  # tudo apos 'AA.MM.PP.SS.'
+        base_suffix = suffix.split('-')[0]  # ignorar sufixos de colisao (-2, -3)
+        try:
+            idx = int(base_suffix)
+            if idx > max_idx:
+                max_idx = idx
+        except ValueError:
+            continue
+
+    next_idx = max_idx + 1
+
+    # Manter padding de 3 digitos (minimo)
+    source_suffix = parts[1].split('-')[0]
+    padding = max(len(source_suffix), 3)
+
+    return f"{prefix}.{next_idx:0{padding}d}"
+
+
+def _save_with_cap_retry(pop, max_attempts=3):
+    """Salva POP com retry em colisao de CAP (constraint unique_cap_ativo)."""
+    from django.db import IntegrityError
+    for attempt in range(max_attempts):
+        try:
+            with transaction.atomic():
+                pop.integrity_hash = pop.compute_integrity_hash()
+                pop.save()
+            return
+        except IntegrityError as e:
+            if 'unique_cap_ativo' in str(e) and pop.codigo_processo and attempt < max_attempts - 1:
+                cap = pop.codigo_processo
+                prefix, suffix = cap.rsplit('.', 1)
+                base_suffix = suffix.split('-')[0]
+                try:
+                    next_num = int(base_suffix) + 1
+                    padding = max(len(base_suffix), 3)
+                    pop.codigo_processo = f"{prefix}.{next_num:0{padding}d}"
+                except ValueError:
+                    pop.codigo_processo = f"{cap}-{attempt + 2}"
+                logger.warning(f"[CLONE] CAP collision, attempt {attempt + 2}: {pop.codigo_processo}")
+            else:
+                raise
+
+
+def _enforce_same_area_operator(request, pop, action_name='unknown'):
+    """Valida que o operador pertence a mesma area do POP. Bypass: is_superuser."""
+    if request.user.is_superuser:
+        return
+    up = getattr(request.user, 'profile', None)
+    if not up or not up.area_id:
+        _log_workflow(action_name, pop, request.user, pop.status, pop.status,
+                      allowed=False, extra={'reason': 'no_profile_area'})
+        raise PermissionDenied("Usuario sem perfil/setor configurado.")
+    if not pop.area_id:
+        _log_workflow(action_name, pop, request.user, pop.status, pop.status,
+                      allowed=False, extra={'reason': 'pop_no_area'})
+        raise PermissionDenied("POP sem setor vinculado.")
+    if up.area_id != pop.area_id:
+        _log_workflow(action_name, pop, request.user, pop.status, pop.status,
+                      allowed=False, extra={'reason': 'area_mismatch',
+                                            'user_area': up.area_id, 'pop_area': pop.area_id})
+        raise PermissionDenied("Voce so pode clonar POPs do seu setor.")
+
+
 def _get_frontend_url():
     """URL base do frontend para links em emails."""
     if settings.DEBUG:
@@ -463,6 +546,105 @@ class POPViewSet(viewsets.ModelViewSet):
         serializer = PopVersionSerializer(versions, many=True)
         return Response(serializer.data)
 
+    # ----- Clone POP -----
+    @action(detail=True, methods=['post'], url_path='clone',
+            permission_classes=[IsAuthenticated])
+    def clone(self, request, uuid=None):
+        """POST /api/pops/{uuid}/clone/ — clona POP com nova atividade."""
+        import copy
+        import uuid as uuid_mod
+
+        source_pop = self.get_object()
+
+        # Permissao por area (operador ou superuser)
+        _enforce_same_area_operator(request, source_pop, action_name='clone')
+
+        # Validar status fonte
+        if source_pop.status not in ('published', 'in_review'):
+            return Response(
+                {'error': 'Apenas POPs publicados ou em revisao podem ser clonados.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validar atividade
+        nova_atividade = (request.data.get('atividade') or '').strip()
+        if not nova_atividade or len(nova_atividade) < 5:
+            return Response(
+                {'error': 'Nome da atividade e obrigatorio (minimo 5 caracteres).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Gerar novo CAP
+        if not source_pop.codigo_processo:
+            return Response(
+                {'error': 'POP fonte nao possui codigo de processo (CAP).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        novo_cap = _compute_next_cap(source_pop.codigo_processo)
+
+        # Deep copy etapas com UUIDs regenerados
+        etapas_clone = []
+        for etapa in (source_pop.etapas or []):
+            etapa_copy = copy.deepcopy(etapa)
+            etapa_copy['id'] = str(uuid_mod.uuid4())
+            etapas_clone.append(etapa_copy)
+
+        # Criar POP clonado
+        new_session_id = str(uuid_mod.uuid4())
+        new_pop = POP(
+            session_id=new_session_id,
+            area=source_pop.area,
+            processo_mestre=source_pop.processo_mestre,
+            area_codigo=source_pop.area_codigo,
+            area_nome=source_pop.area_nome,
+            macroprocesso=source_pop.macroprocesso,
+            codigo_processo=novo_cap,
+            nome_processo=nova_atividade,
+            processo_especifico=source_pop.processo_especifico,
+            entrega_esperada=source_pop.entrega_esperada,
+            dispositivos_normativos=source_pop.dispositivos_normativos,
+            sistemas_utilizados=copy.deepcopy(source_pop.sistemas_utilizados) if source_pop.sistemas_utilizados else [],
+            operadores=source_pop.operadores,
+            pontos_atencao=source_pop.pontos_atencao,
+            etapas=etapas_clone,
+            documentos_utilizados=copy.deepcopy(source_pop.documentos_utilizados) if source_pop.documentos_utilizados else [],
+            fluxos_entrada=copy.deepcopy(source_pop.fluxos_entrada) if source_pop.fluxos_entrada else [],
+            fluxos_saida=copy.deepcopy(source_pop.fluxos_saida) if source_pop.fluxos_saida else [],
+            status='draft',
+            versao=0,
+            created_by=request.user,
+            nome_usuario=request.user.get_full_name() or request.user.username,
+        )
+
+        _save_with_cap_retry(new_pop)
+
+        # Auditoria: registrar clone via POPChangeLog (sem migration)
+        POPChangeLog.objects.create(
+            pop=new_pop,
+            user=request.user,
+            field_name='__event__',
+            old_value=None,
+            new_value={'type': 'clone_from', 'source_uuid': str(source_pop.uuid)},
+        )
+
+        _log_workflow('clone', new_pop, request.user, 'n/a', 'draft',
+                      extra={'source_uuid': str(source_pop.uuid),
+                             'source_cap': source_pop.codigo_processo,
+                             'new_cap': new_pop.codigo_processo})
+
+        return Response({
+            'success': True,
+            'pop': {
+                'id': new_pop.pk,
+                'uuid': str(new_pop.uuid),
+                'session_id': new_pop.session_id,
+                'integrity_hash': new_pop.integrity_hash,
+                'status': 'draft',
+                'dados': new_pop.get_dados_completos(),
+            },
+            'source_uuid': str(source_pop.uuid),
+        }, status=status.HTTP_201_CREATED)
+
 
 # ============================================================================
 # Etapa 2: Detalhe por area+codigo (rota manual com <path:codigo>)
@@ -501,8 +683,8 @@ def resolve_pop(request):
     GET /api/pops/resolve/?cap=6.1.1.1.5
     """
     area_slug = request.query_params.get('area', '').strip()
-    codigo = request.query_params.get('codigo', '').strip()
-    cap = request.query_params.get('cap', '').strip()
+    codigo = request.query_params.get('codigo', '').strip().replace(' ', '')
+    cap = request.query_params.get('cap', '').strip().replace(' ', '')
     versao_param = request.query_params.get('v', '').strip()
 
     # Buscar POP
@@ -540,6 +722,8 @@ def resolve_pop(request):
             'cap': pop.codigo_processo,
             'nome_processo': pop.nome_processo,
             'status': pop.status,
+            'area_id': pop.area_id,
+            'area_nome': pop.area_nome,
             'versao': version.versao,
             'is_current': version.is_current,
             'published': True,
@@ -556,6 +740,8 @@ def resolve_pop(request):
             'cap': pop.codigo_processo,
             'nome_processo': pop.nome_processo,
             'status': pop.status,
+            'area_id': pop.area_id,
+            'area_nome': pop.area_nome,
             'versao': current_version.versao,
             'published': True,
             'published_at': current_version.published_at.isoformat(),
@@ -569,6 +755,8 @@ def resolve_pop(request):
         'cap': pop.codigo_processo,
         'nome_processo': pop.nome_processo,
         'status': pop.status,
+        'area_id': pop.area_id,
+        'area_nome': pop.area_nome,
         'versao': pop.versao,
         'published': False,
         'dados': pop.get_dados_completos(),

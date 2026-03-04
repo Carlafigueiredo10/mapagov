@@ -134,6 +134,10 @@ class POP(models.Model):
     
     def get_dados_completos(self):
         """Retorna todos os dados do POP em formato dict"""
+        # Extrair subprocesso do ProcessoMestre vinculado (se houver)
+        subprocesso = ''
+        if self.processo_mestre_id:
+            subprocesso = getattr(self.processo_mestre, 'subprocesso', '') or ''
         return {
             'nome_usuario': self.nome_usuario,
             'area': {
@@ -144,6 +148,7 @@ class POP(models.Model):
             'codigo_processo': self.codigo_processo,
             'nome_processo': self.nome_processo,
             'processo_especifico': self.processo_especifico,
+            'subprocesso': subprocesso,
             'entrega_esperada': self.entrega_esperada,
             'dispositivos_normativos': self.dispositivos_normativos,
             'sistemas': self.sistemas_utilizados,
@@ -153,7 +158,9 @@ class POP(models.Model):
             'documentos_utilizados': self.documentos_utilizados,
             'fluxos_entrada': self.fluxos_entrada,
             'fluxos_saida': self.fluxos_saida,
-            'data_criacao': self.created_at.strftime("%d/%m/%Y %H:%M") if self.created_at else None
+            'data_criacao': self.created_at.strftime("%d/%m/%Y %H:%M") if self.created_at else None,
+            'aprovado_por': (self.reviewed_by.get_full_name() or self.reviewed_by.username) if self.reviewed_by else None,
+            'data_aprovacao': self.updated_at.strftime("%d/%m/%Y %H:%M") if self.status == 'published' and self.updated_at else None,
         }
 
     def compute_integrity_hash(self):

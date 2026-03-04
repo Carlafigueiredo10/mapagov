@@ -105,6 +105,8 @@ interface ChatState {
   setViewMode: (mode: ViewMode) => void;
   setPopIdentifiers: (id: number, uuid: string, hash: string) => void;
   setPopStatus: (status: string | null) => void;
+  setSessionId: (id: string) => void;
+  resetForClone: () => void;
   setEstadoAtual: (estado: string) => void;
   setModoAjudaAtivo: (ativo: boolean) => void;
 
@@ -224,6 +226,18 @@ export const useChatStore = create<ChatState>()(
       }),
 
       setPopStatus: (status) => set({ popStatus: status }),
+
+      setSessionId: (id) => set({ sessionId: id }),
+
+      resetForClone: () => set({
+        messages: [],
+        historicoCompleto: [],
+        progresso: { atual: 0, total: 10, texto: 'Etapa 0 de 10 · Início do mapeamento' },
+        estadoAtual: '',
+        isProcessing: false,
+        fullscreenChat: false,
+        modoAjudaAtivo: false,
+      }),
 
       setEstadoAtual: (estado) => set({ estadoAtual: estado }),
       setModoAjudaAtivo: (ativo) => set({ modoAjudaAtivo: ativo }),

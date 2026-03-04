@@ -48,7 +48,7 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
   const {
     dadosPOP, viewMode, setViewMode, fullscreenChat,
     resetChat, updateDadosPOP, setPopIdentifiers, setPopStatus, popStatus,
-    carregarHistorico,
+    carregarHistorico, setSessionId, resetForClone,
   } = useChatStore();
   const modoRevisao = viewMode === 'final_review';
 
@@ -166,7 +166,16 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
         }
       }
 
-      setViewMode('chat_canvas');
+      // Decidir viewMode com dados frescos do fetch (não do store)
+      const dados = pop.dados as Record<string, unknown> | null;
+      const etapas = dados?.etapas as unknown[] | undefined;
+      const hasSubstantialData = dados?.nome_processo && dados?.area && Array.isArray(etapas) && etapas.length > 0;
+
+      if (hasSubstantialData) {
+        setViewMode('final_review');
+      } else {
+        setViewMode('chat_canvas');
+      }
       navigate('/pop/chat');
     } catch (err) {
       console.error('[MapeamentoProcessosPage] Falha ao retomar POP:', err);
@@ -189,6 +198,32 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
     navigate(`/pop?versoes=${uuid}`);
   }, [requireAuth, navigate]);
 
+  // Clonar POP: carrega dados clonados direto em modo revisao
+  const handleClonar = useCallback((popData: Record<string, unknown>) => {
+    if (!requireAuth()) return;
+
+    // Limpar estado de conversa (sem gerar novo sessionId)
+    resetForClone();
+
+    // Session_id do clone: fonte de verdade unica
+    setSessionId(popData.session_id as string);
+
+    // Identificadores
+    setPopIdentifiers(
+      popData.id as number,
+      popData.uuid as string,
+      (popData.integrity_hash as string) || '',
+    );
+
+    // Carregar dados no formato get_dados_completos()
+    updateDadosPOP(popData.dados as Partial<DadosPOP>);
+    setPopStatus('draft');
+
+    // Direto para revisao
+    setViewMode('final_review');
+    navigate('/pop/chat');
+  }, [requireAuth, resetForClone, setSessionId, setPopIdentifiers, updateDadosPOP, setPopStatus, setViewMode, navigate]);
+
   // Landing institucional (apenas em /pop, nunca em /pop/chat)
   if (!startInChat && viewMode === 'landing') {
     return (
@@ -198,6 +233,7 @@ const MapeamentoProcessosPage: React.FC<MapeamentoProcessosPageProps> = ({ start
           onRetomar={handleRetomar}
           onRevisar={handleRevisar}
           onVerVersoes={handleVerVersoes}
+          onClonar={handleClonar}
         />
       </LandingShell>
     );

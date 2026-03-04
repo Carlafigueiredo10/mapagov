@@ -81,10 +81,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
   const [docsGerados, setDocsGerados] = useState<string[]>(
     (prefill.docs_gerados as string[]) || []
   );
-  const [tempoEstimado, setTempoEstimado] = useState(
-    // Extrair só o número se vier "30 minutos" (edição)
-    ((prefill.tempo_estimado as string) || '').replace(/\s*minutos?\s*/i, '')
-  );
+  // tempo_estimado removido do form de etapa — coletado ao final do POP
 
   // ── Modo avancado (sintese) ──
   const [modoAvancado, setModoAvancado] = useState(false);
@@ -227,12 +224,11 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
     if (sistemasSelecionados.length === 0) erros.push('Pelo menos 1 sistema');
     if (docsRequeridos.length === 0) erros.push('Pelo menos 1 documento consultado/recebido');
     if (docsGerados.length === 0) erros.push('Pelo menos 1 documento gerado');
-    if (!tempoEstimado.trim()) erros.push('Tempo estimado');
 
     if (erros.length > 0) {
       setErro(`Campos obrigatorios: ${erros.join(', ')}.`);
       // Abrir complementares se algum erro e de la
-      if (!operador.trim() || sistemasSelecionados.length === 0 || docsRequeridos.length === 0 || docsGerados.length === 0 || !tempoEstimado.trim()) {
+      if (!operador.trim() || sistemasSelecionados.length === 0 || docsRequeridos.length === 0 || docsGerados.length === 0) {
         setComplementaresAberto(true);
       }
       scrollParaErro(erros[0]);
@@ -264,7 +260,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
         docs_gerados: docsGerados,
         verificacoes: verificacoesLimpas,
         detalhes: verificacoesLimpas, // alias retrocompat
-        tempo_estimado: (() => { const v = String(tempoEstimado ?? '').trim(); return v ? `${v} minutos` : null; })(),
+        tempo_estimado: null, // coletado ao final do POP
         is_condicional: isCondicional,
         ...(isCondicional && {
           cenarios_input: cenarios
@@ -685,8 +681,8 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
             gap: '0.4rem',
           }}
         >
-          {complementaresAberto ? '\u25BC' : '\u25B6'} Responsavel, sistemas, documentos e tempo
-          {!complementaresAberto && (operador || sistemasSelecionados.length > 0 || docsRequeridos.length > 0 || docsGerados.length > 0 || tempoEstimado) && (
+          {complementaresAberto ? '\u25BC' : '\u25B6'} Responsavel, sistemas e documentos
+          {!complementaresAberto && (operador || sistemasSelecionados.length > 0 || docsRequeridos.length > 0 || docsGerados.length > 0) && (
             <span style={{
               fontSize: '0.7rem',
               background: '#e8f0fe',
@@ -830,26 +826,7 @@ const InterfaceEtapaForm: React.FC<InterfaceEtapaFormProps> = ({ dados, onConfir
               </div>
             </div>
 
-            {/* Tempo estimado */}
-            <div id="ef-campo-tempo" style={sectionStyle}>
-              <label style={labelStyle}>Tempo estimado de execucao (minutos) *</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  inputMode="numeric"
-                  value={tempoEstimado}
-                  onChange={(e) => setTempoEstimado(e.target.value)}
-                  placeholder="30"
-                  style={{ ...inputStyle, flex: 1 }}
-                />
-                <span style={{ fontSize: '0.9rem', color: '#495057', whiteSpace: 'nowrap' }}>minutos</span>
-              </div>
-              <div style={helperStyle}>
-                Informe a estimativa media em minutos.
-              </div>
-            </div>
+            {/* Tempo estimado removido — coletado ao final do POP */}
           </div>
         )}
       </div>

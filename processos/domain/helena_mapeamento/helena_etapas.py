@@ -394,8 +394,10 @@ class EtapaStateMachine:
             except json.JSONDecodeError:
                 self.docs_gerados = [d.strip() for d in mensagem.split(',') if d.strip()]
 
-        self.estado = EstadoEtapa.TEMPO_ESTIMADO
-        return {"pergunta": "tempo_estimado", "docs_gerados": self.docs_gerados}
+        # Pular tempo por etapa — tempo total é perguntado após todas as etapas
+        self.tempo_estimado = None
+        self.estado = EstadoEtapa.PERGUNTA_CONDICIONAL
+        return {"pergunta": "tem_condicionais", "docs_gerados": self.docs_gerados}
 
     def _processar_tempo_estimado(self, mensagem: str) -> Dict[str, Any]:
         """Coleta tempo estimado"""

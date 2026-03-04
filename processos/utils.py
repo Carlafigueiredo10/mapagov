@@ -601,17 +601,17 @@ class PDFGenerator:
         elementos.append(texto_qr)
         elementos.append(Spacer(1, 0.5*cm))
 
-        # QR Code com URL funcional
+        # QR Code — só gera se houver URL resolvível (evita QR "morto")
         codigo_processo = dados.get('codigo_processo', 'xxxx')
-        if url_base:
-            url_processo = f"{url_base}/pop/{codigo_processo}"
-        else:
-            # URL padrão caso não seja fornecida
-            url_processo = f"https://mapagov.app/pop/{codigo_processo}"
+        if not url_base:
+            from django.conf import settings as dj_settings
+            url_base = getattr(dj_settings, 'REACT_FRONTEND_URL', None)
 
-        qr_img = self._gerar_qr_code(url_processo)
-        if qr_img:
-            elementos.append(qr_img)
+        if url_base and url_base != 'http://localhost:5174':
+            url_processo = f"{url_base.rstrip('/')}/pop/{codigo_processo}"
+            qr_img = self._gerar_qr_code(url_processo)
+            if qr_img:
+                elementos.append(qr_img)
 
         # Data de geração (novo)
         elementos.append(Spacer(1, 0.5*cm))
@@ -1006,11 +1006,13 @@ class PDFGenerator:
         
         nome_usuario = dados.get('nome_usuario', '[Usuário]')
         data_criacao = dados.get('data_criacao', datetime.now().strftime("%d/%m/%Y"))
-        
+        aprovado_por = dados.get('aprovado_por')
+        data_aprovacao = dados.get('data_aprovacao')
+
         info_controle = [
             f"<b>Elaborado por:</b> {nome_usuario}",
-            f"<b>Aprovado por:</b> [Pendente]",
-            f"<b>Em:</b> {data_criacao}"
+            f"<b>Aprovado por:</b> {aprovado_por or '[Pendente]'}",
+            f"<b>Em:</b> {data_aprovacao or data_criacao}"
         ]
         
         for linha in info_controle:
@@ -1020,8 +1022,10 @@ class PDFGenerator:
         
         dados_tabela = [
             ['Nº REV', 'DATA', 'ITEM REVISADO', 'REVISADO POR'],
-            ['1.0', data_criacao, 'Criação inicial', nome_usuario]
+            ['1.0', data_criacao, 'Criação inicial', nome_usuario],
         ]
+        if aprovado_por:
+            dados_tabela.append(['1.0', data_aprovacao or data_criacao, 'Homologação', aprovado_por])
         
         tabela = Table(dados_tabela, colWidths=[3*cm, 3*cm, 7*cm, 5*cm], repeatRows=1)
         tabela.setStyle(TableStyle([
@@ -1149,7 +1153,21 @@ class PDFGenerator:
                 "7. PONTOS GERAIS DE ATENÇÃO NA ATIVIDADE",
                 pontos
             ))
-            
+
+            # TEMPO MÉDIO DA ATIVIDADE
+            tempo_completa = dados.get('tempo_doc_completa', '')
+            tempo_incompleta = dados.get('tempo_doc_incompleta', '')
+            if tempo_completa or tempo_incompleta:
+                linhas_tempo = []
+                if tempo_completa:
+                    linhas_tempo.append(f"Documentação completa: {tempo_completa}")
+                if tempo_incompleta:
+                    linhas_tempo.append(f"Documentação incompleta: {tempo_incompleta}")
+                elementos.extend(self._gerar_secao_conteudo(
+                    "8. TEMPO MÉDIO DE EXECUÇÃO",
+                    '\n'.join(linhas_tempo)
+                ))
+
             # CONTROLE DE REVISÕES
             elementos.extend(self._gerar_controle_revisoes(dados))
             

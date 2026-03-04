@@ -10,10 +10,13 @@
  * Tolera: resposta como lista direta [] ou paginada { results: [] }
  */
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, FolderOpen, BookOpen, Clock, History, LogIn, CheckCircle, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Copy, FolderOpen, BookOpen, Clock, History, LogIn, CheckCircle } from 'lucide-react';
 import api from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { hasRole } from '../../services/authApi';
+import { resolveCAP, clonePOP } from '../../services/helenaApi';
+import { buscarPOPs } from '../../services/catalogoApi';
 import styles from './PopHubSection.module.css';
 
 interface POPResumo {
@@ -36,6 +39,7 @@ interface PopHubSectionProps {
   onRetomar: (uuid: string) => void;
   onRevisar: (uuid: string) => void;
   onVerVersoes: (uuid: string) => void;
+  onClonar: (popData: Record<string, unknown>) => void;
 }
 
 /** Extrai lista de POPs independente do shape (array direto ou { results: [] }) */
@@ -78,15 +82,26 @@ type HubEstado = 'loading' | 'ok' | 'nao_autenticado' | 'erro';
 const PopHubSection: React.FC<PopHubSectionProps> = ({
   onCriarNovo,
   onRetomar,
-  onRevisar,
   onVerVersoes,
+  onClonar,
 }) => {
   const [pops, setPops] = useState<POPResumo[]>([]);
   const [estado, setEstado] = useState<HubEstado>('loading');
-  const [rejectModal, setRejectModal] = useState<{ uuid: string; nome: string } | null>(null);
-  const [rejectMotivo, setRejectMotivo] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Clone state
+  const [cloneMode, setCloneMode] = useState(false);
+  const [cloneCap, setCloneCap] = useState('');
+  const [cloneAtividade, setCloneAtividade] = useState('');
+  const [cloneSearchResult, setCloneSearchResult] = useState<{
+    uuid: string; nome_processo: string; status: string; cap: string;
+    area_id: number | null; area_nome: string;
+  } | null>(null);
+  const [cloneNameResults, setCloneNameResults] = useState<{ uuid: string; codigo_processo: string; nome_processo: string; area_nome: string }[]>([]);
+  const [cloneLoading, setCloneLoading] = useState(false);
+  const [cloneError, setCloneError] = useState('');
+
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const isGestor = hasRole(user, 'area_manager') || (user?.is_superuser ?? false);
 
@@ -131,36 +146,6 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
     return () => { cancelled = true; };
   }, [carregarPops]);
 
-  const handleHomologar = async (uuid: string) => {
-    if (actionLoading) return;
-    setActionLoading(true);
-    try {
-      await api.post(`/pops/${uuid}/homologar/`);
-      await carregarPops();
-    } catch (err) {
-      console.error('[PopHubSection] Erro ao homologar:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleRejeitar = async () => {
-    if (!rejectModal || actionLoading) return;
-    const motivo = rejectMotivo.trim();
-    if (!motivo) return;
-    setActionLoading(true);
-    try {
-      await api.post(`/pops/${rejectModal.uuid}/reject-review/`, { motivo });
-      setRejectModal(null);
-      setRejectMotivo('');
-      await carregarPops();
-    } catch (err) {
-      console.error('[PopHubSection] Erro ao rejeitar:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleSubmitReview = async (uuid: string) => {
     if (actionLoading) return;
     setActionLoading(true);
@@ -171,6 +156,107 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
       console.error('[PopHubSection] Erro ao submeter para revisao:', err);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  // ----- Clone handlers -----
+
+  const CAP_REGEX = /^\d+\.\d+\.\d+(\.\d+)?$/;
+
+  const handleCloneSearch = async () => {
+    const query = cloneCap.trim();
+    if (cloneLoading || query.length < 3) return;
+    setCloneLoading(true);
+    setCloneError('');
+    setCloneSearchResult(null);
+    setCloneNameResults([]);
+
+    // Auto-detect: CAP pattern → resolveCAP; else → name search
+    if (CAP_REGEX.test(query)) {
+      try {
+        const result = await resolveCAP(query);
+        if (!result) {
+          setCloneError('Codigo CAP nao encontrado.');
+          return;
+        }
+        if (result.status !== 'published' && result.status !== 'in_review') {
+          setCloneError(`POP encontrado mas com status "${result.status}". Somente POPs publicados ou em revisao podem ser clonados.`);
+          return;
+        }
+        const userAreaId = user?.area;
+        if (!user?.is_superuser && userAreaId && result.area_id && userAreaId !== result.area_id) {
+          setCloneError('Voce so pode clonar POPs do seu setor.');
+          return;
+        }
+        setCloneSearchResult(result);
+      } catch {
+        setCloneError('Codigo CAP nao encontrado.');
+      } finally {
+        setCloneLoading(false);
+      }
+    } else {
+      // Name search
+      try {
+        const results = await buscarPOPs({ q: query, status: 'published', limit: 10 });
+        if (results.length === 0) {
+          setCloneError('Nenhum POP publicado encontrado.');
+        } else {
+          setCloneNameResults(results.map((r) => ({
+            uuid: r.uuid,
+            codigo_processo: r.codigo_processo,
+            nome_processo: r.nome_processo,
+            area_nome: r.area_nome,
+          })));
+        }
+      } catch {
+        setCloneError('Erro ao buscar POPs.');
+      } finally {
+        setCloneLoading(false);
+      }
+    }
+  };
+
+  const handleCloneSelectFromList = async (item: { codigo_processo: string }) => {
+    setCloneCap(item.codigo_processo);
+    setCloneNameResults([]);
+    setCloneLoading(true);
+    setCloneError('');
+    try {
+      const result = await resolveCAP(item.codigo_processo);
+      if (!result) {
+        setCloneError('Codigo CAP nao encontrado.');
+        return;
+      }
+      setCloneSearchResult(result);
+    } catch {
+      setCloneError('Erro ao resolver codigo CAP.');
+    } finally {
+      setCloneLoading(false);
+    }
+  };
+
+  const handleCloneConfirm = async () => {
+    if (!cloneSearchResult || cloneLoading) return;
+    const atividade = cloneAtividade.trim();
+    if (atividade.length < 5) return;
+    setCloneLoading(true);
+    setCloneError('');
+    try {
+      const result = await clonePOP(cloneSearchResult.uuid, atividade);
+      if (result.success && result.pop) {
+        onClonar(result.pop);
+        setCloneMode(false);
+        setCloneCap('');
+        setCloneAtividade('');
+        setCloneSearchResult(null);
+      } else {
+        setCloneError(result.error || 'Erro ao clonar POP.');
+      }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setCloneError(axiosErr?.response?.data?.error || 'Erro inesperado ao clonar.');
+    } finally {
+      setCloneLoading(false);
     }
   };
 
@@ -198,6 +284,112 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
           <LogIn size={18} />
           <p>Faça login para criar e gerenciar seus POPs.</p>
         </div>
+      )}
+
+      {/* Clonar POP existente */}
+      {user && (
+        <>
+          <button
+            type="button"
+            className={styles.criarNovo}
+            onClick={() => {
+              setCloneMode(!cloneMode);
+              setCloneError('');
+              setCloneSearchResult(null);
+              setCloneNameResults([]);
+              setCloneCap('');
+              setCloneAtividade('');
+            }}
+          >
+            <span className={styles.criarNovoIcone}>
+              <Copy size={20} />
+            </span>
+            <div className={styles.criarNovoTexto}>
+              <p className={styles.criarNovoLabel}>Clonar POP existente</p>
+              <p className={styles.criarNovoDesc}>Busque por codigo CAP ou nome da atividade</p>
+            </div>
+          </button>
+
+          {cloneMode && (
+            <div className={styles.cloneForm}>
+              {/* Busca por CAP */}
+              <div className={styles.cloneSearchRow}>
+                <input
+                  type="text"
+                  placeholder="Codigo CAP ou nome da atividade"
+                  value={cloneCap}
+                  onChange={(e) => setCloneCap(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCloneSearch(); }}
+                  className={styles.cloneInput}
+                />
+                <button
+                  type="button"
+                  className={styles.btnBuscar}
+                  onClick={handleCloneSearch}
+                  disabled={cloneLoading || cloneCap.trim().length < 3}
+                >
+                  {cloneLoading ? 'Buscando...' : 'Buscar'}
+                </button>
+              </div>
+
+              {/* Resultados de busca por nome */}
+              {cloneNameResults.length > 0 && (
+                <div className={styles.cloneResults}>
+                  <p className={styles.cloneResultInfo}>Selecione o POP para clonar:</p>
+                  {cloneNameResults.map((item) => (
+                    <button
+                      key={item.uuid}
+                      type="button"
+                      className={styles.cloneResultItem}
+                      onClick={() => handleCloneSelectFromList(item)}
+                    >
+                      <span className={styles.cloneResultItemCap}>{item.codigo_processo}</span>
+                      <span className={styles.cloneResultItemNome}>{item.nome_processo}</span>
+                      {item.area_nome && <span className={styles.cloneResultItemArea}>{item.area_nome}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Resultado da busca por CAP */}
+              {cloneSearchResult && (
+                <div className={styles.cloneResult}>
+                  <p className={styles.cloneResultInfo}>
+                    POP encontrado: <strong>{cloneSearchResult.nome_processo}</strong>
+                  </p>
+                  <p className={styles.cloneResultMeta}>
+                    CAP: {cloneSearchResult.cap}
+                    {cloneSearchResult.area_nome && ` | Area: ${cloneSearchResult.area_nome}`}
+                    {` | Status: ${cloneSearchResult.status}`}
+                  </p>
+
+                  <input
+                    type="text"
+                    placeholder="Nome da nova atividade"
+                    value={cloneAtividade}
+                    onChange={(e) => setCloneAtividade(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && cloneAtividade.trim().length >= 5) handleCloneConfirm(); }}
+                    className={styles.cloneInput}
+                  />
+                  <p className={styles.cloneNota}>
+                    O nome da atividade definira o CAP e nao podera ser alterado depois.
+                  </p>
+
+                  <button
+                    type="button"
+                    className={styles.btnClonar}
+                    onClick={handleCloneConfirm}
+                    disabled={cloneLoading || cloneAtividade.trim().length < 5}
+                  >
+                    {cloneLoading ? 'Clonando...' : 'Clonar'}
+                  </button>
+                </div>
+              )}
+
+              {cloneError && <p className={styles.erro}>{cloneError}</p>}
+            </div>
+          )}
+        </>
       )}
 
       {/* Loading */}
@@ -240,6 +432,7 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
                 <div key={pop.uuid} className={styles.popCard}>
                   <div className={styles.popInfo}>
                     <p className={styles.popNome}>
+                      {pop.codigo_processo && <span className={styles.popCap}>{pop.codigo_processo}</span>}
                       {pop.nome_processo || 'POP sem nome'}
                     </p>
                     <p className={styles.popMeta}>
@@ -301,6 +494,7 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
                 <div key={pop.uuid} className={styles.popCard}>
                   <div className={styles.popInfo}>
                     <p className={styles.popNome}>
+                      {pop.codigo_processo && <span className={styles.popCap}>{pop.codigo_processo}</span>}
                       {pop.nome_processo || 'POP sem nome'}
                     </p>
                     <p className={styles.popMeta}>
@@ -327,29 +521,17 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
                       className={styles.btnAcao}
                       onClick={() => onRetomar(pop.uuid)}
                     >
-                      Abrir para revisao
+                      Retomar
                     </button>
-                    {isGestor && (
-                      <>
-                        <button
-                          type="button"
-                          className={`${styles.btnAcao} ${styles.btnHomologar}`}
-                          onClick={() => handleHomologar(pop.uuid)}
-                          disabled={actionLoading}
-                        >
-                          <CheckCircle size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                          Homologar
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.btnAcao} ${styles.btnRejeitar}`}
-                          onClick={() => setRejectModal({ uuid: pop.uuid, nome: pop.nome_processo || 'POP sem nome' })}
-                          disabled={actionLoading}
-                        >
-                          <XCircle size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                          Rejeitar
-                        </button>
-                      </>
+                    {isGestor && pop.area_slug && pop.codigo_processo && (
+                      <button
+                        type="button"
+                        className={`${styles.btnAcao} ${styles.btnHomologar}`}
+                        onClick={() => navigate(`/catalogo/${pop.area_slug}/${pop.codigo_processo}?review=true`)}
+                      >
+                        <CheckCircle size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                        Verificar para homologacao
+                      </button>
                     )}
                   </div>
                 </div>
@@ -378,6 +560,7 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
                 <div key={pop.uuid} className={styles.popCard}>
                   <div className={styles.popInfo}>
                     <p className={styles.popNome}>
+                      {pop.codigo_processo && <span className={styles.popCap}>{pop.codigo_processo}</span>}
                       {pop.nome_processo || 'POP sem nome'}
                     </p>
                     <p className={styles.popMeta}>
@@ -397,13 +580,26 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
                     </p>
                   </div>
                   <div className={styles.popAcoes}>
-                    <button
-                      type="button"
-                      className={styles.btnAcao}
-                      onClick={() => onRevisar(pop.uuid)}
-                    >
-                      Ver
-                    </button>
+                    {pop.area_slug && pop.codigo_processo ? (
+                      <button
+                        type="button"
+                        className={styles.btnAcao}
+                        onClick={() => navigate(`/catalogo/${pop.area_slug}/${pop.codigo_processo}`)}
+                      >
+                        Ver
+                      </button>
+                    ) : (
+                      <span title="POP sem codigo para abrir no catalogo">
+                        <button
+                          type="button"
+                          className={styles.btnAcao}
+                          disabled
+                          aria-label="POP sem codigo para abrir no catalogo"
+                        >
+                          Ver
+                        </button>
+                      </span>
+                    )}
                     <button
                       type="button"
                       className={`${styles.btnAcao} ${styles.btnAcaoSecundario}`}
@@ -420,44 +616,20 @@ const PopHubSection: React.FC<PopHubSectionProps> = ({
         </div>
       )}
 
-      {/* Modal de rejeicao */}
-      {rejectModal && (
-        <div className={styles.modalOverlay} onClick={() => { setRejectModal(null); setRejectMotivo(''); }}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.modalTitulo}>Rejeitar revisao</h3>
-            <p className={styles.modalDesc}>
-              POP: <strong>{rejectModal.nome}</strong>
-            </p>
-            <label className={styles.modalLabel}>
-              Motivo (obrigatorio):
-              <textarea
-                className={styles.modalTextarea}
-                value={rejectMotivo}
-                onChange={(e) => setRejectMotivo(e.target.value)}
-                rows={3}
-                placeholder="Descreva o motivo da rejeicao..."
-              />
-            </label>
-            <div className={styles.modalBotoes}>
-              <button
-                type="button"
-                className={styles.btnAcaoSecundario}
-                onClick={() => { setRejectModal(null); setRejectMotivo(''); }}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className={styles.btnRejeitar}
-                onClick={handleRejeitar}
-                disabled={!rejectMotivo.trim() || actionLoading}
-              >
-                Confirmar rejeicao
-              </button>
-            </div>
-          </div>
+      {/* Link para catalogo completo */}
+      {estado === 'ok' && user && (
+        <div className={styles.catalogoLink}>
+          <BookOpen size={16} />
+          <button
+            type="button"
+            className={styles.catalogoLinkBtn}
+            onClick={() => navigate('/catalogo')}
+          >
+            Ver catalogo completo de POPs
+          </button>
         </div>
       )}
+
     </section>
   );
 };

@@ -75,6 +75,10 @@ def preparar_pop_para_pdf(dados_pop: Dict[str, Any]) -> Dict[str, Any]:
         dados['etapas'] = normalizar_etapas(dados['etapas'])
         dados['etapas'] = sorted(dados['etapas'], key=lambda e: _sort_key_etapa(e))
 
+    # --- tempo total da atividade (doc completa / incompleta) ---
+    dados['tempo_doc_completa'] = dados_pop.get('tempo_doc_completa') or ''
+    dados['tempo_doc_incompleta'] = dados_pop.get('tempo_doc_incompleta') or ''
+
     # --- garantir que nenhuma string e None ---
     for chave in ('nome_processo', 'entrega_esperada', 'pontos_atencao',
                   'codigo_processo', 'nome_usuario', 'macroprocesso',

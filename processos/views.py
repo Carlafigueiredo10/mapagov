@@ -3,8 +3,10 @@
 import json
 import os
 import logging
+import re
 import time
 import uuid as uuid_mod
+from datetime import datetime
 from dotenv import load_dotenv
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
@@ -528,87 +530,119 @@ def helena_ajuda_arquitetura(request):
             'error': 'Erro ao processar análise.'
         }, status=500)
 
+MAX_ETAPAS_PDF = 50  # Guard: limite razoável para não travar worker
+PDF_TIMEOUT_SECONDS = 30  # Tempo máximo de geração
+
+
 @require_http_methods(["POST"])
 def gerar_pdf_pop(request):
     """API para gerar PDF profissional do POP"""
+    import time as _time
+    t0 = _time.monotonic()
+    codigo = '?'
     try:
         data = json.loads(request.body)
         dados_pop = data.get('dados_pop', {})
         session_id = data.get('session_id', 'default')
-        
+
         # Validar dados mínimos
         if not dados_pop or not dados_pop.get('nome_processo'):
             return JsonResponse({
                 'error': 'Dados do POP incompletos. Nome do processo é obrigatório.',
                 'success': False
             }, status=400)
-        
+
+        # Guard: limite de etapas
+        n_etapas_in = len(dados_pop.get('etapas', []))
+        if n_etapas_in > MAX_ETAPAS_PDF:
+            return JsonResponse({
+                'error': f'POP com {n_etapas_in} etapas excede o limite de {MAX_ETAPAS_PDF}.',
+                'success': False
+            }, status=400)
+
         # Preparar dados para PDF (adapter normaliza schema novo + legado)
         from processos.export.pop_adapter import preparar_pop_para_pdf
-        n_etapas_in = len(dados_pop.get('etapas', []))
         dados_limpos = preparar_pop_para_pdf(dados_pop)
         n_etapas_out = len(dados_limpos.get('etapas', []))
         if n_etapas_in > 0 and n_etapas_out == 0:
-            logger.warning(f"[GUARD gerar_pdf_pop] ANOMALIA: adapter dropou etapas ({n_etapas_in} → 0)")
+            logger.warning("[GUARD gerar_pdf_pop] ANOMALIA: adapter dropou etapas (%d → 0)", n_etapas_in)
         elif n_etapas_in == 0:
-            logger.warning(f"[GUARD gerar_pdf_pop] PDF sem etapas (frontend enviou 0)")
+            logger.warning("[GUARD gerar_pdf_pop] PDF sem etapas (frontend enviou 0)")
 
         # Validar estrutura completa
         campos_obrigatorios = ['nome_processo', 'area', 'entrega_esperada']
         campos_faltando = [c for c in campos_obrigatorios if not dados_limpos.get(c)]
-        
+
         if campos_faltando:
             return JsonResponse({
                 'error': f'Campos obrigatórios faltando: {", ".join(campos_faltando)}',
                 'success': False
             }, status=400)
-        
-        # Gerar nome de arquivo seguro
-        nome_arquivo = ArquivoUtils.gerar_nome_arquivo_seguro(
-            dados_limpos.get('nome_processo', 'POP'), 
-            'pdf'
-        )
-        
-        # Instanciar gerador e criar PDF
+
+        # Nome previsível: POP_<codigo>_<data>.pdf
+        codigo = (dados_limpos.get('codigo_processo') or 'sem-codigo').replace('.', '-')
+        data_str = datetime.now().strftime("%Y%m%d")
+        nome_arquivo = f"POP_{codigo}_{data_str}.pdf"
+
+        # Gerar PDF com timeout
+        import signal
+
+        def _timeout_handler(signum, frame):
+            raise TimeoutError("Geração de PDF excedeu o tempo limite")
+
         generator = PDFGenerator()
-        pdf_path = generator.gerar_pop_completo(dados_limpos, nome_arquivo)
-        
+        url_base = getattr(settings, 'REACT_FRONTEND_URL', None)
+
+        # signal.alarm só funciona em Unix; em Windows, pula o guard
+        usar_alarm = hasattr(signal, 'SIGALRM')
+        if usar_alarm:
+            old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+            signal.alarm(PDF_TIMEOUT_SECONDS)
+        try:
+            pdf_path = generator.gerar_pop_completo(dados_limpos, nome_arquivo, url_base=url_base)
+        finally:
+            if usar_alarm:
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, old_handler)
+
         # Verificar se PDF foi gerado
         if not pdf_path or not os.path.exists(pdf_path):
             return JsonResponse({
                 'error': 'Erro ao gerar PDF. Verifique os logs do servidor.',
                 'success': False
             }, status=500)
-        
-        # Log da geração
-        log_pdf = LogUtils.criar_log_entrada(
-            usuario=session_id,
-            acao="gerar_pdf_pop",
-            dados={
-                "nome_processo": dados_limpos.get('nome_processo'),
-                "codigo": dados_limpos.get('codigo_processo'),
-                "arquivo": nome_arquivo,
-                "tamanho_kb": os.path.getsize(pdf_path) / 1024
-            }
+
+        elapsed = _time.monotonic() - t0
+        tamanho_kb = os.path.getsize(pdf_path) / 1024
+
+        # Log estruturado: 1 linha por geração
+        logger.info(
+            "[gerar_pdf_pop] ok codigo=%s etapas=%d size=%.1fKB time=%.2fs file=%s",
+            codigo, n_etapas_out, tamanho_kb, elapsed, nome_arquivo,
         )
-        
-        logger.info("[gerar_pdf_pop] PDF gerado: %s", pdf_path)
-        
+
         # Retornar sucesso com URLs
         return JsonResponse({
             'success': True,
             'pdf_url': f'/api/download-pdf/{nome_arquivo}',
-            'preview_url': f'/api/preview-pdf/{nome_arquivo}',
             'arquivo': nome_arquivo,
             'message': 'PDF gerado com sucesso!'
         })
-        
+
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
 
-    except Exception as e:
-        logger.exception("[gerar_pdf_pop] Erro ao gerar PDF")
+    except TimeoutError:
+        elapsed = _time.monotonic() - t0
+        logger.error("[gerar_pdf_pop] TIMEOUT codigo=%s time=%.2fs", codigo, elapsed)
+        return JsonResponse({
+            'error': 'A geração do PDF demorou demais. Tente reduzir o número de etapas.',
+            'success': False
+        }, status=504)
 
+    except Exception as e:
+        elapsed = _time.monotonic() - t0
+        logger.exception("[gerar_pdf_pop] ERRO codigo=%s time=%.2fs", codigo, elapsed)
         return JsonResponse({
             'error': 'Erro ao gerar PDF.',
             'success': False
@@ -618,22 +652,24 @@ def gerar_pdf_pop(request):
 def download_pdf(request, nome_arquivo):
     """API para download do PDF gerado"""
     try:
-        # Validar nome do arquivo
-        if not nome_arquivo.endswith('.pdf'):
+        # Validar nome do arquivo (só alfanuméricos, hífens, underscores e ponto)
+        if not nome_arquivo.endswith('.pdf') or not re.match(r'^[\w\-]+\.pdf$', nome_arquivo):
             return JsonResponse({'error': 'Arquivo inválido'}, status=400)
-        
-        # Caminho seguro do arquivo
+
         pdf_path = os.path.join(settings.MEDIA_ROOT, 'pdfs', nome_arquivo)
-        
+
         if not os.path.exists(pdf_path):
             return JsonResponse({'error': 'Arquivo não encontrado'}, status=404)
-        
-        # Ler arquivo
+
         with open(pdf_path, 'rb') as pdf_file:
             response = HttpResponse(pdf_file.read(), content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
+            # Impedir cache de proxy/browser (conteúdo específico do usuário)
+            response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
             return response
-            
+
     except Exception as e:
         logger.exception("[download_pdf] Erro no download")
         return JsonResponse({'error': 'Erro no download.'}, status=500)

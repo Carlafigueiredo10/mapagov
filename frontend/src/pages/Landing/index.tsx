@@ -34,7 +34,7 @@ export default function Landing() {
                   Login
                 </Link>
                 <Link to="/pop" className={`${styles.btn} ${styles.btnOutline}`}>
-                  Começar Mapeamento
+                  Mapeamento de Processo
                 </Link>
                 <a href="#produtos" className={`${styles.btn} ${styles.btnOutline}`}>
                   Ver Demais Produtos
@@ -103,6 +103,11 @@ export default function Landing() {
           <p className={styles.sectionSubtitle}>
             Soluções integradas para estruturar, executar, monitorar e consolidar a governança do seu órgão.
           </p>
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <Link to="/funcionalidades" className={`${styles.btn} ${styles.btnOutline}`} style={{ borderColor: '#fff', color: '#fff' }}>
+              Ver catálogo completo →
+            </Link>
+          </div>
 
           {/* ── Produtos disponíveis ── */}
           <h3 className={styles.productsBlockTitle}>Disponíveis para uso</h3>

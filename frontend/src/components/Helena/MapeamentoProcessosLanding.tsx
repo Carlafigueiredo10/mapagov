@@ -5,7 +5,8 @@
  * A Helena não realiza avaliações automáticas nem substitui decisões administrativas.
  */
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { BookOpen } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import styles from './MapeamentoProcessosLanding.module.css';
 import PopHubSection from './PopHubSection';
@@ -15,6 +16,7 @@ interface MapeamentoProcessosLandingProps {
   onRetomar: (uuid: string) => void;
   onRevisar: (uuid: string) => void;
   onVerVersoes: (uuid: string) => void;
+  onClonar: (popData: Record<string, unknown>) => void;
 }
 
 const HELENA_CAPABILITIES = [
@@ -50,9 +52,11 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
   onRetomar,
   onRevisar,
   onVerVersoes,
+  onClonar,
 }) => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const location = useLocation();
+  const navigate = useNavigate();
   const showLogin = !isAuthenticated && import.meta.env.VITE_PUBLIC_MVP_MODE !== '1';
 
   return (
@@ -61,6 +65,28 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
       <header className={styles.header}>
         <h1 className={styles.title}>Mapeamento de Atividades</h1>
       </header>
+
+      {/* Caixa 1 — Prevenção: consulta ao catálogo */}
+      <div className={styles.catalogoBanner}>
+        <BookOpen size={20} />
+        <div className={styles.catalogoBannerContent}>
+          <span>
+            Antes de registrar uma nova atividade, consulte o catálogo de Procedimentos
+            Operacionais Padrão (POPs) e verifique se ela já está mapeada na sua
+            Coordenação-Geral.
+          </span>
+          <span className={styles.catalogoBannerSub}>
+            Caso não esteja registrada, você poderá realizar o mapeamento da atividade.
+          </span>
+          <button
+            type="button"
+            className={styles.catalogoBannerLink}
+            onClick={() => navigate('/catalogo')}
+          >
+            Acessar catálogo →
+          </button>
+        </div>
+      </div>
 
       {/* Texto institucional */}
       <section className={styles.contextCard}>
@@ -81,6 +107,7 @@ const MapeamentoProcessosLanding: React.FC<MapeamentoProcessosLandingProps> = ({
         onRetomar={onRetomar}
         onRevisar={onRevisar}
         onVerVersoes={onVerVersoes}
+        onClonar={onClonar}
       />
 
       {/* Card Helena */}

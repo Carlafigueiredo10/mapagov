@@ -284,15 +284,18 @@
 .features {
   background: linear-gradient(135deg, var(--primary-blue) 0%, #2C5F86 100%);
   color: var(--white);
-  padding: 6rem 0;
+  padding: 4rem 0;
 }
 
 .features .sectionTitle {
   color: var(--white);
+  margin-bottom: 1rem;
 }
 
 .features .sectionSubtitle {
   color: rgba(255, 255, 255, 0.8);
+  max-width: 640px;
+  margin-bottom: 1.5rem;
 }
 
 .featuresGrid {

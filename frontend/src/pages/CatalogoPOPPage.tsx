@@ -28,7 +28,13 @@ export default function CatalogoPOPPage() {
           listarAreas(),
           obterStatsGlobal(),
         ]);
-        setAreas(areasData);
+        // Priorizar área de Riscos e Controle no topo
+        const sorted = [...areasData].sort((a, b) => {
+          const aRisco = /risco|controle/i.test(a.nome_curto) ? 0 : 1;
+          const bRisco = /risco|controle/i.test(b.nome_curto) ? 0 : 1;
+          return aRisco - bRisco;
+        });
+        setAreas(sorted);
         setStats(statsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar dados.');
@@ -102,7 +108,8 @@ export default function CatalogoPOPPage() {
       <div className="catalogo-page__hero">
         <h1>Catálogo de Procedimentos Operacionais</h1>
         <p className="catalogo-page__subtitle">
-          Acervo organizado de POPs por área organizacional
+          Explore os Procedimentos Operacionais Padrão (POPs) mapeados pelas áreas da DECIPEX
+          e consulte como as atividades institucionais são executadas.
         </p>
 
         {/* Search */}
@@ -120,24 +127,9 @@ export default function CatalogoPOPPage() {
         </div>
 
         {stats && !searchResults && (
-          <div className="catalogo-page__stats-bar">
-            <div className="catalogo-page__stat">
-              <span className="catalogo-page__stat-value">{stats.totais.publicados}</span>
-              <span className="catalogo-page__stat-label">Publicados</span>
-            </div>
-            <div className="catalogo-page__stat">
-              <span className="catalogo-page__stat-value">{stats.totais.areas}</span>
-              <span className="catalogo-page__stat-label">Áreas</span>
-            </div>
-            <div className="catalogo-page__stat">
-              <span className="catalogo-page__stat-value">{stats.totais.versoes}</span>
-              <span className="catalogo-page__stat-label">Versões</span>
-            </div>
-            <div className="catalogo-page__stat">
-              <span className="catalogo-page__stat-value">{stats.atividade_30d.publicacoes}</span>
-              <span className="catalogo-page__stat-label">Publicações (30d)</span>
-            </div>
-          </div>
+          <p className="catalogo-page__stats-inline">
+            {stats.totais.publicados} publicados &bull; {stats.totais.areas} áreas &bull; {stats.totais.versoes} versões &bull; {stats.atividade_30d.publicacoes} publicações (30d)
+          </p>
         )}
       </div>
 
@@ -198,13 +190,13 @@ export default function CatalogoPOPPage() {
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && navigate(`/catalogo/${area.slug}`)}
               >
+                <h2 className="catalogo-page__area-nome">{area.nome_curto}</h2>
                 <div className="catalogo-page__area-card-header">
                   <span className="catalogo-page__area-codigo">{area.codigo}</span>
                   <span className="catalogo-page__area-count">
                     {area.pop_count} {area.pop_count === 1 ? 'POP' : 'POPs'}
                   </span>
                 </div>
-                <h2 className="catalogo-page__area-nome">{area.nome_curto}</h2>
                 {area.descricao && (
                   <p className="catalogo-page__area-desc">{area.descricao}</p>
                 )}
