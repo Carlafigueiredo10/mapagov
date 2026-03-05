@@ -593,8 +593,9 @@ def gerar_pdf_pop(request):
         generator = PDFGenerator()
         url_base = getattr(settings, 'REACT_FRONTEND_URL', None)
 
-        # signal.alarm só funciona em Unix; em Windows, pula o guard
-        usar_alarm = hasattr(signal, 'SIGALRM')
+        # signal.alarm só funciona em Unix na main thread
+        import threading
+        usar_alarm = hasattr(signal, 'SIGALRM') and threading.current_thread() is threading.main_thread()
         if usar_alarm:
             old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
             signal.alarm(PDF_TIMEOUT_SECONDS)
