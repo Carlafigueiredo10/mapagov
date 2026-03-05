@@ -387,16 +387,13 @@ def chat_api_view(request):
             'dados_extraidos': {},
             'conversa_completa': False,
             'erro': 'ERRO_INTERNO',
-        }
-
-        # Em DEBUG, incluir contexto para diagnóstico no frontend
-        if settings.DEBUG:
-            error_payload['_diag'] = {
+            '_diag': {
                 'req_id': req_id,
                 'body_bytes': body_len,
                 'elapsed_s': round(elapsed, 2),
                 'exception': f"{type(e).__name__}: {e}",
-            }
+            },
+        }
 
         return JsonResponse(error_payload, status=500)
 
